@@ -1,14 +1,15 @@
 # Screen Inventory
 
-**Status:** Proposed (Stage 0).
+**Status:** Proposed (Stage 0, revision 2).
 **Last updated:** 2026-10-09
 
-Every screen in the intended product, grouped by who uses it. **★** marks the four
-screens we'll prototype first, so you can judge the look and feel before Stage 1 is
-approved. Every screen is designed mobile-first.
+Every screen in the intended product, grouped by who uses it. **★** marks the screens
+we'll prototype first (PO-09) so you can judge the experience on your phone. Every
+screen is designed mobile-first and has defined **loading, empty, error, and success**
+states. A screen isn't finished until all four exist.
 
-Each screen will have defined **loading, empty, error, and success** states. A screen
-isn't done until all four exist.
+**Revision 2:** organised around the two users. Messaging, event plans and reviews
+added; quotes, bookings and the concierge queue removed.
 
 ---
 
@@ -16,89 +17,101 @@ isn't done until all four exist.
 
 | # | Screen | Purpose | Stage |
 |---|---|---|---|
-| P1 ★ | Home | What Tallo is; browse categories; curated collections; search box | 1 |
-| P2 | Category page | Vendors in a category, with subcategories and filters | 1 |
-| P3 ★ | Search results | Keyword + filters (town, category, attributes); honest empty state | 1 |
-| P4 ★ | Vendor profile | Description, services and pricing (where given), photos, service area, verification, contact | 1 |
-| P5 | Collection page | A curated list ("Rainy-day party ideas") | 1 |
-| P6 | About / how it works | For organizers and for vendors | 1 |
-| P7 | For vendors | Why list, how claiming works, what it costs (free) | 1 |
-| P8 | Claim or remove this listing | Entry point from an unclaimed profile | 1 |
-| P9 | Privacy policy · Terms · Contact | Legal and contact | 1 |
+| P1 ★ | Home | What Tallo is, for consumers and for vendors; categories; collections; search | 1 |
+| P2 | Category page | Vendors in a category, with filters | 1 |
+| P3 ★ | Search results | Keyword + filters; honest empty state | 1 |
+| P4 ★ | Vendor profile | Services, published prices, photos, area, verification; **Message** (claimed) or the business's own contact + *"Let them know you're interested"* (unclaimed); **Add to event**; reviews from Stage 3 | 1 |
+| P5 | Collection page | A curated list | 1 |
+| P6 | How it works | For consumers and for vendors. States plainly that Tallo doesn't handle payments. | 1 |
+| P7 | For vendors | Why join, how claiming works, that it's free | 1 |
+| P8 | Claim or remove this listing | From an unclaimed profile | 1 |
+| P9 | Privacy · Terms · Review policy · Contact | | 1 |
 | P10 | 404 / error | Friendly, with a way back | 1 |
 
 ## Account
 
 | # | Screen | Stage |
 |---|---|---|
-| A1 | Sign up | 1 (vendors), 2 (organizers) |
-| A2 | Sign in / magic link sent | 1 |
+| A1 | Sign up (one sign-up for everyone) | 1 |
+| A2 | Sign in / sign-in link sent | 1 |
 | A3 | Reset password | 1 |
 | A4 | Account settings, delete my account | 1 |
+| A5 | Switch: "My events" ⇄ "My business" (only shown to people on a vendor team) | 2 |
 
-## Organizer
-
-| # | Screen | Purpose | Stage |
-|---|---|---|---|
-| O1 | My events | List of events, upcoming and past | 2 |
-| O2 | Create event | Type, date, place — the minimum; everything else optional | 2 |
-| O3 | Event home | One calm page: date, place, vendors, guests, RSVP summary, next steps | 2 |
-| O4 | Event vendors | Shortlisted vendors and their honest status | 2 |
-| O5 | Add vendor to event | From a profile or from saved vendors | 2 |
-| O6 | Guests | Guest list, add/edit, invitation status | 2 |
-| O7 | Invitation setup | Wording, questions, open vs per-guest links, share buttons | 2 |
-| O8 | RSVP results | Attending / not / maybe / no response; answers | 2 |
-| O9 | Event updates | Post an update to guests | 2 |
-| O10 | Event settings | Co-hosts, privacy, cancel, archive | 2 |
-| O11 | Saved vendors | Favourites | 1 or 2 (D-02) |
-| O12 | Send inquiry | Message to a vendor, optionally about an event | 3 |
-| O13 | My inquiries | Status and thread | 3 |
-| O14 | Quotes & bookings | Per event | 4 |
-| O15 | Write a review | Only when eligible | 4 |
-
-## Guest — invitation link only, no account
+## Consumer
 
 | # | Screen | Purpose | Stage |
 |---|---|---|---|
-| G1 | Invitation | Event details the host chose to share; updates; RSVP button | 2 |
-| G2 | RSVP form | Attending? party size; host's questions | 2 |
-| G3 | RSVP confirmation | "Thanks — you can change your answer with this link" | 2 |
-| G4 | Link no longer valid | Revoked or expired, without revealing anything about the event | 2 |
+| C1 | My events | Upcoming and past | 2 |
+| C2 | Create event | Type, date, town; everything else optional | 2 |
+| C3 ★ | Event plan | One calm page: vendors **considering** and **booked**, conversations about this event, what's next | 2 |
+| C4 | Add to event | From a profile: pick an event (or create one) | 2 |
+| C5 | Mark as booked | Confirms, and says plainly: *"We'll let [Vendor] know you've marked them as booked."* | 2 |
+| C6 | Saved vendors | | 2 |
+| C7 | Messages | All conversations, unread first | 2 |
+| C8 ★ | Conversation | Messages and files; "about" an event (optional); block, report; "Tallo doesn't process payments" footer | 2 |
+| C9 | Start a conversation | Choose whether to share an event, with a preview of exactly what the vendor will see | 2 |
+| C10 | Not on Tallo yet | Their own contact details + *"Let them know you're interested"* | 2 |
+| C11 | How was it? | From the feedback email: stars + comments, one per booked vendor | 3 |
+| C12 | My reviews | Status: checking, published, declined (with reason) | 3 |
+| C13 | Guests | Guest list and invitation status | 4 |
+| C14 | Invitation setup | Wording, questions, share buttons | 4 |
+| C15 | RSVP results | | 4 |
+| C16 | Event updates to guests | | 4 |
 
 ## Vendor
 
 | # | Screen | Purpose | Stage |
 |---|---|---|---|
-| V1 | Vendor home | Listing status, what's next, contact-click counts (if D-04 A) | 1 |
-| V2 | Edit listing | Profile, services, pricing model, areas, attributes, photos | 1 |
-| V3 | Submit for review / review status | | 1 |
+| V1 | My business | Listing status; from Stage 2, unread conversations and bookings marked | 1 |
+| V2 | Edit listing | Profile, services, pricing information, areas, attributes, photos | 1 |
+| V3 | Submit for review / status | | 1 |
 | V4 | Team | Invite, change role, remove | 1 |
-| V5 | Claim status | For a pending claim | 1 |
-| V6 | Inquiry inbox & thread | | 3 |
-| V7 | Quotes & bookings | | 4 |
-| V8 | Reviews & reply | | 4 |
-| V9 | Engagement report | | 4 |
+| V5 | Claim status | | 1 |
+| V6 | Inbox | Conversations with consumers | 2 |
+| V7 ★ | Conversation (vendor view) | Messages and files; event summary panel (type, date, town, guest estimate) when shared | 2 |
+| V8 | Bookings marked | Consumers who marked the business booked; **"This isn't right"** to flag | 2 |
+| V9 | Reviews | Published reviews; reply once | 3 |
+| V10 | Insights | Visits, clicks, conversations, bookings marked, reviews | 5 |
 
-## Admin & concierge
+## Guest — invitation link only, no account
+
+| # | Screen | Stage |
+|---|---|---|
+| G1 | Invitation | 4 |
+| G2 | RSVP form | 4 |
+| G3 | RSVP confirmation | 4 |
+| G4 | Link no longer valid | 4 |
+
+## Platform team
 
 | # | Screen | Purpose | Stage |
 |---|---|---|---|
-| X1 | Admin home | Queues: listings awaiting review, claims, verification, removal requests | 1 |
-| X2 ★ | Listing editor | Create/edit any listing; status controls; history | 1 |
-| X3 | Listing review | Approve/return with reason | 1 |
-| X4 | Claims | Approve/reject with reason | 1 |
+| X1 | Admin home | Queues needing attention | 1 |
+| X2 | Listing editor | Create/edit any listing; history | 1 |
+| X3 | Listing review | Approve or return with reason | 1 |
+| X4 | Claims | Approve or reject with reason | 1 |
 | X5 | Verification | Record a check with evidence | 1 |
-| X6 | Categories | Tree editor | 1 |
-| X7 | Attributes | Define filters, options, which categories they apply to | 1 |
-| X8 | Places | Municipalities, active/inactive | 1 |
-| X9 | Collections | Curate | 1 |
-| X10 | Users & roles | Find a user; grant/revoke staff roles | 1 |
-| X11 | Audit log | Search admin actions | 1 |
-| X12 | Event types | Add/edit event types | 2 |
-| X13 | Concierge queue | Inquiries to unclaimed vendors; log delivery and replies | 3 |
-| X14 | Review moderation | | 4 |
-| X15 | Entitlements & placements | | 4+ |
-| X16 | Operations report | Listings, claims, inquiries, response times | 3–4 |
+| X6 | Categories | | 1 |
+| X7 | Attributes (filters) | | 1 |
+| X8 | Places | | 1 |
+| X9 | Collections | | 1 |
+| X10 | Users & roles | | 1 |
+| X11 | Audit log | | 1 |
+| X12 | Event types | | 2 |
+| X13 | Reports | Reported messages, conversations, listings. Opening a conversation is logged. | 2 |
+| X14 | Businesses consumers want | Unclaimed businesses with interest, to invite | 2 |
+| X15 | Review moderation | Publish or decline against the written policy | 3 |
+| X16 | Booking flags | Resolve vendor flags | 3 |
+| X17 | Operations report | Listings, claims, conversations, reply rates, reviews | 3 |
 
-**Count:** 58 screens across all stages; 30 in Stage 1 (31 if favourites are included
-per D-02).
+## Counts
+
+| Stage | Screens |
+|---|---|
+| 1 — Discovery & vendors | 30 |
+| 2 — The handshake | 17 |
+| 3 — Feedback & reviews | 6 |
+| 4 — Guests & RSVPs | 8 |
+| 5 — Growth | 1 |
+| **Total** | **62** |

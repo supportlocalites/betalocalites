@@ -1,203 +1,196 @@
 # A — Product Blueprint
 
-**Status:** Proposed (Stage 0). Awaiting product owner approval.
+**Status:** Proposed (Stage 0, revision 2). Awaiting product owner approval.
 **Last updated:** 2026-10-09
+
+**Revision 2** reflects the product owner's clarification:
+- Tallo has **two users**, the consumer and the vendor, and the product centres on the
+  relationship between them.
+- Tallo is the **digital handshake**: consumers and vendors message each other directly,
+  share files, and plan the event together.
+- **No payments, ever.** Tallo doesn't handle money and never implies it does. A file
+  shared in a conversation is just a file, even if it's an invoice.
+- **"Add to event" and "Booked" are the consumer's own planning tools.** Marking a vendor
+  booked lets Tallo ask, after the event, how it went. That feedback becomes reviews
+  and ratings.
 
 ---
 
 ## 1. What Tallo is
 
-A local event discovery and coordination platform. It helps people find the local
-vendors who serve their kind of event, bring those vendors and their guests together,
-and run the event from one place instead of across texts, spreadsheets, and four
-different apps.
+A local event discovery and coordination platform. A **consumer** planning an event
+finds local **vendors**, talks to them directly, and keeps track of who they've booked.
+A **vendor** gets found, hears from people planning events, and builds a reputation
+from real feedback.
 
-It serves two sides of the same local ecosystem:
+**First market:** Orillia, Ontario. Built from day one to extend to Simcoe County and
+beyond without a rewrite.
 
-- **Organizers** — people planning an event, who need to know what's available locally
-  and want to stop coordinating across disconnected tools.
-- **Vendors** — local businesses who provide event services, who want to be found.
+**First use case:** children's birthday parties. **Not the only one.** "Birthday" is one
+row in an event-type list, never a hardcoded assumption.
 
-**First market:** Orillia, Ontario. Designed from the first day to extend into Simcoe
-County and other communities without a rewrite.
-
-**First use case:** children's birthday parties. **Not the only use case** — the data
-model treats "birthday" as one row in a reference table, never as a hardcoded
-assumption. See [B §6](./B-domain-and-data-model.md#6-metadata-strategy).
+**The roles and the relationship between consumer and vendor** are set out in plain
+English in [roles-and-relationships.md](./roles-and-relationships.md). Read that first.
 
 ## 2. The three questions the product answers
 
-| Question the user has | How Tallo answers it | Stage |
+| Question the consumer has | How Tallo answers it | Stage |
 |---|---|---|
-| What's available locally for the event I want? | Public vendor discovery — browse, search, filter, no account required | 1 |
-| How do I bring the right vendors and people together? | Attach vendors to an event; invite guests; collect RSVPs | 2–3 |
-| How do I manage this without five separate apps? | One event record that holds vendors, guests, invitations, inquiries, and updates | 2–4 |
+| What's available locally for my event? | Public vendor discovery: browse, search, filter, no account needed | 1 |
+| How do I reach the right vendors and work it out with them? | Message vendors directly, share files, plan it together | 2 |
+| How do I keep track of it all? | One event plan: who I'm considering, who I've booked, and later, my guests | 2, 4 |
+
+And for the vendor: **How do I get found by people planning events nearby, and earn
+their trust?** Through a listing, direct conversations, and reviews from consumers who
+actually booked them.
 
 ## 3. Product principles
 
-These are design constraints, not aspirations. Each one has a corresponding technical
-control, listed so it can be checked.
+Each principle has a technical control that makes it checkable.
 
-| Principle | Technical control |
+| Principle | Control |
 |---|---|
-| Discovery is open. No account, no event, and no vendor selection required to browse. | Public read paths require no session. Enforced by route-level tests. |
-| One vendor, one record, forever. | Single canonical `vendor.id` reused by every feature. [B §2](./B-domain-and-data-model.md#2-the-spine-five-canonical-records) |
-| Events are private by default. | Default-deny authorization; `event.visibility` defaults to private. [E](./E-security-and-privacy-model.md) |
-| We never claim something happened that didn't. | Distinct lifecycle states for *selected*, *contacted*, *delivered*, *responded*, *booked*. [B §5](./B-domain-and-data-model.md#5-lifecycle-states-and-what-they-do-not-mean) |
-| We collect as little personal information as possible, especially about children and guests. | No child profiles, no dates of birth, no guest accounts. [E §6](./E-security-and-privacy-model.md#6-data-minimisation-commitments) |
-| Nothing is hardcoded to birthdays or to Orillia. | `event_type` and `municipality` are reference data, not code. |
-| No fabricated content, ever. | No seeded fake vendors, reviews, prices, or availability. Verification requires recorded evidence. |
-| Calm, not enterprise. | Mobile-first; no dashboards before there is data worth showing. |
+| Discovery is open: no account needed to browse. | Public pages need no sign-in. Tested. |
+| One vendor, one record, forever. | A single `vendor.id` used by every feature. |
+| Tallo is the handshake, never a party to the deal. | No payment, transaction, or balance fields exist anywhere (ADR-018). Banned words in the interface. |
+| Each side owns its own actions. | Only consumers start conversations and mark bookings; only vendors reply and flag. Enforced in the database. |
+| Events and conversations are private. | Default-deny permissions; staff don't read conversations unless reported. |
+| We never claim something happened that didn't. | "Booked" is labelled as the consumer's record. An email is "sent" only when it really was. |
+| Reviews come from real, recorded relationships. | The database refuses reviews that don't trace to a booked vendor, a past event, and a Tallo conversation. |
+| Collect as little personal information as possible. | No child profiles, no birthdates, no guest accounts. |
+| Nothing hardcoded to birthdays or Orillia. | Event types and places are reference data. |
+| Calm, not enterprise. | Mobile-first; no dashboards before there's data worth showing. |
 
 ## 4. Capability map
 
-Each capability is marked with the stage in which we propose **building** it. Every
-capability is **designed for** now, in the sense that the data model and permissions
-leave a defined place for it. Designing for it is cheap. Building it is not.
+Each capability shows the stage in which we propose **building** it. Every capability
+is **designed for** now: the data model and permissions already have a place for it.
 
 ### A. Public discovery — Stage 1
-- Landing page explaining the platform
-- Vendor browse by category and subcategory
-- Search and filter: location, service type, event suitability, structured attributes
-- Vendor profile pages (services, description, images, service areas, verified info)
-- Curated local collections (editorially controlled, not algorithmic)
-- Honest, helpful empty states when the local market is thin — this will happen often
-  in a town of ~33,000 and the design must not treat it as an error
-- Saved vendors / favourites — Stage 1 *if* approved, otherwise Stage 2 (decision D-02)
-- Clearly labelled sponsored placements — **Stage 4+, design only**
+- Landing page explaining Tallo to consumers and vendors
+- Browse by category and subcategory
+- Search and filter: town, service type, suitability, structured attributes
+- Vendor profile pages: services, published prices where given, photos, service area,
+  verification, and (from Stage 3) reviews and rating
+- Curated local collections
+- Honest empty states. A town of ~33,000 will have thin categories, and the design
+  treats that as normal, not an error.
+- Unclaimed listings show the business's own website and phone (D-03, D-04)
 
-### B. Vendor ecosystem — Stage 1 core, later extensions
-- Business identity and profile — Stage 1
-- Categories, subcategories, services — Stage 1
-- Service areas and structured attributes — Stage 1
-- Photos and logos — Stage 1
-- Contact and inquiry preferences — Stage 1 (fields), Stage 3 (used)
-- Listing status (draft / pending review / published / unpublished / archived) — Stage 1
-- Claimed vs unclaimed profiles — Stage 1
-- Verification status with recorded evidence — Stage 1
-- Pricing where the vendor provides it, including "custom quote only" — Stage 1
-- Vendor team members and permissions — Stage 1 (table), Stage 3 (UI)
-- Availability — **not built.** Requires a reliable integration we don't have. Design only.
-- Engagement analytics — Stage 4
-- Subscriptions, entitlements, sponsorships — Stage 4+, design only
+### B. The vendor side — Stage 1 foundation, Stage 2 messaging
+- Claim a listing; manage profile, services, areas, photos — Stage 1
+- Vendor team: owner, manager, staff — Stage 1
+- Verification with recorded evidence — Stage 1
+- **Inbox: reply to consumers, share files** — Stage 2
+- **See consumers who marked them booked; flag any that aren't real** — Stage 2
+- **Reply once to each review** — Stage 3
+- Simple insights: profile visits, website clicks, conversations, bookings marked —
+  Stage 5, once there's data
+- Availability calendars — **not built.** No reliable integration; we won't imply
+  availability we can't know.
 
-### C. Event creation and management — Stage 2
-- Title, event type, date/time, location, host
-- Planning preferences and optional fields
-- Budget guidance
-- Selected vendors
-- Guest list and invitations
-- RSVPs
-- Event updates
-- Privacy settings
-- Lifecycle and historical records
+### C. The consumer side — Stage 2
+- Free account
+- Saved vendors
+- Create an event: type, date, place; everything else optional
+- Event plan: vendors **considering** → **booked**
+- **Message vendors and share files**
+- "Let them know you're interested" for businesses not yet on Tallo
 
-### D. Vendor-to-event relationships — Stage 2
-The single most important relationship in the product. An event has many vendors; a
-vendor serves many events; a person hosts many events. Modelled explicitly, with an
-honest status, in `event_vendor`.
+### D. The handshake: consumer ↔ vendor conversations — Stage 2
+- One conversation per consumer–vendor pair, optionally about one of the consumer's
+  events
+- Text messages and files (photos, PDFs, up to 5 per message, 10 MB each)
+- Email notice of new messages, batched so nobody gets spammed
+- Unread counts for each person (private, not read receipts)
+- Report and block, on both sides
+- **Not building:** typing indicators, read receipts, voice/video, group chats
 
-### E. Invitations, guests, RSVPs — Stage 2
-- Secure, shareable, revocable invitation links
-- Sent through the organizer's own channels (text, WhatsApp, email) — we don't need to
-  be a messaging platform to do this well
-- Account-free RSVP
-- Plus-ones and organizer-defined questions as structured data
-- Organizer attendance view
-- Event updates to invited guests
-- Guest privacy controls
+### E. Feedback, reviews and ratings — Stage 3
+- The morning after an event, consumers are asked about each vendor they marked booked
+- Reviews: 1–5 stars and comments, checked by the platform team before publishing
+- Strict eligibility (D-06): booked + event passed + talked on Tallo + not flagged
+- Vendor's one public reply
+- Average rating shown once a vendor has three published reviews
 
-### F. Inquiries and communication — Stage 3
-- Inquiry attached to the right vendor and, where relevant, the right event
-- Status and history
-- Vendor responses for eligible claimed listings
-- Concierge queue for unclaimed listings, handled by a person
-- Clear ownership and access rules
-- **Not building:** real-time messaging, typing indicators, read receipts
+### F. Guests, invitations, RSVPs — Stage 4
+- Guest list; secure, revocable invitation links shared through the consumer's own
+  phone or email
+- Account-free RSVP, plus-ones, host-defined questions
+- Attendance view; event updates to guests
+- Guests are not users and never interact with vendors
 
-### G. Quotes, bookings, agreements — Stage 4, assessed first
-- Quotes, revisions, acceptance
-- Booking requests and confirmations
-- Agreements and documents
-- Booking status and cancellation
-- Historical records linking event, customer, vendor, transaction
-- **Not building without separate written approval:** payments, card storage, payouts,
-  automated billing
+### G. Platform operations — Stage 1 onward
+- Listing creation, review, approval; claims; verification — Stage 1
+- Categories, attributes, places, event types — Stages 1–2
+- Reports queue: messages, conversations, listings — Stage 2
+- Review moderation and booking-flag resolution — Stage 3
+- Every staff action logged; staff permissions enforced on the server
 
-### H. Reviews and reputation — Stage 4, policy approval first
-Our recommendation, for approval as decision D-06: **a review may only be written by
-someone whose interaction with that vendor is recorded by the platform** (a completed
-booking, or a concierge-confirmed service delivered after a Tallo inquiry). Open reviews
-would be cheaper to build and would immediately become the platform's biggest liability
-and moderation cost in a town where everyone knows each other.
+### H. Future, not committed
+More communities; vendor insights; clearly labelled sponsored placements or vendor
+subscriptions, if the business model calls for them (these would never affect reviews
+or ratings); notifications by text message; richer coordination.
 
-### I. Administration and platform operations — Stage 1
-Needed from the first day, because someone has to create the first listings.
-- Vendor listing creation and management
-- Listing review and approval
-- Claim and ownership workflow
-- Category and taxonomy management
-- Moderation and correction
-- Concierge inquiry queue — Stage 3
-- Account and access management
-- Basic operational reporting
-- Commercial placements and entitlements — Stage 4+
+**Never, without a new decision:** payments of any kind.
 
-Administrative privileges are enforced server-side. See
-[E §3](./E-security-and-privacy-model.md#3-roles).
-
-### J. Future growth — not committed
-Vendor subscriptions and entitlements; sponsored placements; notifications and
-reminders; reviews; search recommendations; vendor analytics; more event types and
-locations; richer coordination; payments if the business model justifies them.
-
-**On the vendor value proposition:** at launch, the honest offer to a vendor is *local
-exposure and the chance to be found*. We will not promise leads, bookings, or business
-results until we can measure them. The analytics to measure them is Stage 4, which is
-the right order: earn the claim before making it.
+**On the vendor value proposition:** at launch, the honest offer to vendors is *being
+found by local people planning events, and hearing from them directly*. Once
+consumers start marking vendors booked, we can tell a vendor *"6 people marked you
+booked through Tallo this season"*, which is true and verifiable. We won't promise
+leads or revenue.
 
 ## 5. What we are explicitly not building
 
-Carried from the brief, and treated as binding until changed in writing:
+Payments, deposits, checkout, card storage, payouts, invoicing, or billing between
+consumers and vendors · any wording that implies Tallo handles money or confirms
+bookings · real-time chat features (typing indicators, read receipts, presence) ·
+native mobile apps · automated recommendation engines · analytics dashboards before
+meaningful data exists · automated vendor availability · unapproved third-party
+services with ongoing costs · speculative infrastructure.
 
-Real-time messaging with typing indicators and read receipts · native mobile apps ·
-automated recommendation engines · analytics dashboards before meaningful data exists ·
-automated vendor availability or booking confirmation without a reliable integration ·
-payment gateways, card storage, payouts, automated billing · unapproved SMS, email, AI,
-mapping, or analytics services with ongoing costs · speculative infrastructure with no
-identified requirement.
-
-Also binding: no fake functionality or mock production data presented as real; no
-invented business information; no claiming a process succeeded when it did not; no
+Also binding: no fake functionality or mock data presented as real; no invented
+business information; no claiming a process succeeded when it didn't; no
 architecture changes without a documented reason; no destructive production change
-without an approved migration and recovery plan; no weakening security to go faster; no
-duplicate sources of truth.
+without an approved recovery plan; no weakening security to go faster; no duplicate
+sources of truth.
 
-## 6. Roadmap summary
+## 6. Language rules
 
-Detail, dependencies, risks, and effort in [roadmap.md](./roadmap.md).
+Words carry promises. These apply to every screen, email, and help page.
 
-| Stage | Outcome | Effort (1 senior dev) |
+| Use | Never use |
+|---|---|
+| Message, conversation, reply | Inquiry, request a quote, request to book |
+| Add to event · Considering | Shortlist confirmed, reserved |
+| **Mark as booked** · You marked this booked | Book now, booking confirmed, secure your booking |
+| Shared a file | Invoice received, payment due, pay now |
+| How was it? · Leave a review | Verified purchase, verified booking |
+| Tallo connects you with local vendors | Tallo guarantees, Tallo-approved |
+| Arrange details directly with the vendor | Checkout, deposit, transaction, fee |
+
+## 7. Roadmap summary
+
+Detail in [roadmap.md](./roadmap.md).
+
+| Stage | Outcome | Effort (1 senior developer) |
 |---|---|---|
-| **0 — Discovery & architecture** | This document set, data model, security model, prototypes | ~1.5 weeks |
-| **1 — Discovery & vendor foundation** | A real, public, useful local vendor directory with admin tooling | 5–7 weeks |
-| **2 — Complete event journey** | Create an event, attach vendors, invite guests, collect RSVPs | 4–6 weeks |
-| **3 — Vendor engagement** | Inquiries, with a concierge queue for unclaimed listings | 3–4 weeks |
-| **4 — Commercial & operational** | Quotes, bookings, reviews, entitlements, analytics (scoped per item) | 6–10 weeks |
-| **5 — Expansion** | More communities, richer discovery, based on real usage | TBD |
+| **0 — Architecture** | This document set, data model, prototypes | ~1.5 weeks |
+| **1 — Discovery & vendors** | A real public directory; vendors claim their listings | 5–7 weeks |
+| **2 — The handshake** | Consumer accounts, events, messaging with files, add to event, mark as booked | 5–7 weeks |
+| **3 — Feedback & reviews** | "How was it?", reviews, ratings, vendor replies | 2–3 weeks |
+| **4 — Guests & RSVPs** | Invitations and RSVPs | 3–4 weeks |
+| **5 — Growth** | Vendor insights, more communities, based on real use | TBD |
 
-Stage 1 is a genuinely releasable product on its own: a local directory is useful to a
-parent in Orillia even with no event features at all. That matters, because it means we
-can put something real in front of users at week 7 rather than week 20.
+Stage order after Stage 2 is decision D-14. **Why Stage 1 comes before messaging:**
+messaging only works with vendors who have claimed their listing. Stage 1 gives
+businesses several weeks to claim their profiles, so the first consumer who sends a
+message on launch day has someone on the other end.
 
-## 7. Open decisions
+## 8. Open decisions
 
-See [H](./H-product-owner-action-register.md). The ones that block Stage 1 are:
-
-- **D-01** — product name and domain
-- **D-02** — exact Stage 1 release scope (accounts and favourites in or out)
-- **D-03** — do we publish unclaimed listings built from public information, and how do
-  we approach those businesses (this one has legal dimensions)
-- **D-04** — what a vendor's contact options are at launch
-- **D-07** — monthly infrastructure budget ceiling
-- **D-09** — launch geography: Orillia only, or Orillia plus immediate townships
+All in [H](./H-product-owner-action-register.md). The ones that shape the work now:
+D-00 (approve architecture), D-01 (name/domain), D-03 (listing businesses before they
+join), D-04 (contact before messaging), D-05 (messaging unclaimed businesses), D-06
+(review rule), D-07 (budget), D-09 (launch area), D-11 (who's on call), D-13
+(consumer–vendor rules), D-14 (stage order).

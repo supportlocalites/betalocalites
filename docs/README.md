@@ -4,17 +4,26 @@ This folder is the permanent home for the documents the product owner asked us t
 maintain from day one. Everything here is written to be read **without reading source
 code**.
 
-**Status: Stage 0 (Discovery & Architecture) — proposed, awaiting approval.**
+**Status: Stage 0 (Discovery & Architecture), revision 2. Proposed, awaiting approval.**
 No application code has been written. No infrastructure has been created. No money has
-been spent. Nothing in this folder has been built yet.
+been spent.
+
+**Revision 2** reworks the plan around the product owner's clarification: two users
+(consumer and vendor), Tallo as the digital handshake between them, direct messaging
+with file sharing, **no payments of any kind**, and consumer-controlled "Add to event"
+and "Booked" that lead to post-event feedback and reviews.
 
 ---
 
-## If you only read three things
+## If you only read four things
 
-1. **[A — Product Blueprint](./A-product-blueprint.md)** — what we are building, in plain English.
-2. **[B — Domain & Data Model](./B-domain-and-data-model.md)** — how the data connects across the whole product (the relationship diagrams live here).
-3. **[H — Product Owner Action Register](./H-product-owner-action-register.md)** — the decisions and tasks that are yours, with step-by-step instructions.
+1. **[Roles & Relationships](./roles-and-relationships.md)**: the consumer, the vendor,
+   and how they relate, step by step.
+2. **[A — Product Blueprint](./A-product-blueprint.md)**: what we're building.
+3. **[B — Domain & Data Model](./B-domain-and-data-model.md)**: how the data connects
+   (diagrams).
+4. **[H — Product Owner Action Register](./H-product-owner-action-register.md)**: your
+   decisions and tasks.
 
 ---
 
@@ -22,40 +31,39 @@ been spent. Nothing in this folder has been built yet.
 
 | Doc | Title | What it answers |
 |---|---|---|
-| A | [Product Blueprint](./A-product-blueprint.md) | What the full product is; capability map; phased roadmap |
-| B | [Domain & Data Model](./B-domain-and-data-model.md) | Canonical records, relationships, lifecycle states, metadata rules |
-| C | [Architecture Decision Log](./C-architecture-decision-log.md) | Every significant technical decision, why, alternatives, revisit triggers |
-| D | [Feature-to-Domain Map](./D-feature-to-domain-map.md) | Which features use which data and services, and what depends on what |
-| E | [Security & Privacy Model](./E-security-and-privacy-model.md) | Who can see and do what; invitation-link security; privacy commitments |
-| F | [Operational Runbook](./F-operational-runbook.md) | Deploy, monitor, back up, restore, recover; who is responsible for what |
-| G | [Release & Migration History](./G-release-and-migration-history.md) | What shipped, which migrations ran, how to roll back |
-| H | [Product Owner Action Register](./H-product-owner-action-register.md) | Your open decisions and tasks, with instructions |
+| — | [Roles & Relationships](./roles-and-relationships.md) | Who the two users are, what each can do and see, and the rules between them |
+| A | [Product Blueprint](./A-product-blueprint.md) | The product, capability map, language rules, roadmap summary |
+| B | [Domain & Data Model](./B-domain-and-data-model.md) | Records, relationships, lifecycle states, metadata |
+| C | [Architecture Decision Log](./C-architecture-decision-log.md) | Technical decisions, why, alternatives, revisit triggers |
+| D | [Feature-to-Domain Map](./D-feature-to-domain-map.md) | Which features use which data, for which side |
+| E | [Security & Privacy Model](./E-security-and-privacy-model.md) | Who can see and do what; conversation and file safety; retention |
+| F | [Operational Runbook](./F-operational-runbook.md) | Deploy, monitor, back up, restore, recover |
+| G | [Release & Migration History](./G-release-and-migration-history.md) | What changed, what was tested |
+| H | [Product Owner Action Register](./H-product-owner-action-register.md) | Your decisions and tasks |
 
 ## Supporting documents
 
 | Doc | What it answers |
 |---|---|
-| [Screen Inventory](./screen-inventory.md) | Every screen in the intended product, by stage |
-| [Roadmap & Estimates](./roadmap.md) | Stage scope, exclusions, dependencies, effort, risks, acceptance criteria |
-| [Cost Model](./cost-model.md) | What this costs per month, verified against vendor pricing pages |
-| [API & Integration Strategy](./api-strategy.md) | Internal contracts, domain boundaries, third-party integrations |
-| [Testing Strategy](./testing-strategy.md) | What we test, how, and what "done" means |
-| [Proposed Stage 1 Schema](./schema/stage1-proposed.sql) | The actual database tables we propose creating first (not yet applied) |
+| [Screen Inventory](./screen-inventory.md) | All 62 screens, by user and stage |
+| [Roadmap & Estimates](./roadmap.md) | Stage scope, effort, dependencies, risks, acceptance criteria |
+| [Cost Model](./cost-model.md) | Monthly costs, with sources |
+| [API & Integration Strategy](./api-strategy.md) | Internal contracts, messaging delivery, third-party services |
+| [Testing Strategy](./testing-strategy.md) | What we test and what "done" means |
+| [Proposed schema: Stage 1](./schema/stage1-proposed.sql) · [checks](./schema/stage1-proposed.test.sql) | Vendors and discovery tables (not applied) |
+| [Proposed schema: Stages 2–3](./schema/stage2-3-proposed.sql) · [checks](./schema/stage2-3-proposed.test.sql) | Events, conversations, files, reviews (not applied) |
 
 ---
 
 ## How these documents are kept current
 
-- Every change to the data model updates **B** in the same change as the code.
-- Every significant technical decision adds an entry to **C**. Decisions are never
-  silently reversed; a superseding entry is added instead.
-- Every release appends to **G** before it is deployed.
-- Anything that needs the product owner moves to **H** immediately, not into a
-  technical document where it would be missed.
+- Every data model change updates **B** in the same change as the code.
+- Every significant technical decision adds an entry to **C**; nothing is silently
+  reversed.
+- Every release appends to **G** before deployment.
+- Anything that needs the product owner goes into **H** immediately.
 
-## A note on honesty in these documents
+## Honesty in these documents
 
-Where something is unverified, estimated, or assumed, it says so. Where a price came
-from a third-party source rather than the vendor, the document says so and asks us to
-confirm it at signup. We would rather hand over a document with visible uncertainty
-than one that reads as confident and turns out to be wrong.
+Where something is unverified, estimated, or assumed, it says so. Prices from
+third-party sources are marked for confirmation at signup.

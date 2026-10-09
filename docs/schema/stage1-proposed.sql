@@ -14,8 +14,8 @@
 --   * Money is integer cents + ISO currency code.
 --   * Timestamps are timestamptz (stored UTC).
 --   * Nothing important is hard-deleted; relationships end with a timestamp.
---   * Stage 2+ tables (event, guest, invitation, ...) are designed in doc B and
---     are intentionally NOT created here.
+--   * Stage 2+ tables are in stage2-3-proposed.sql (the consumer-vendor
+--     handshake and reviews). Guest/RSVP tables are designed in doc B only.
 -- =============================================================================
 
 create extension if not exists citext;
@@ -53,11 +53,11 @@ create table app_user (
 create trigger app_user_updated before update on app_user
   for each row execute function set_updated_at();
 
--- Platform staff roles. Checked server-side for every admin/concierge action.
+-- Platform team roles. Checked server-side for every admin action.
 create table platform_role (
   id          uuid primary key default gen_random_uuid(),
   user_id     uuid not null references app_user(id),
-  role        text not null check (role in ('admin', 'concierge')),
+  role        text not null check (role in ('admin')),
   granted_by  uuid references app_user(id),
   granted_at  timestamptz not null default now(),
   revoked_at  timestamptz
@@ -160,12 +160,11 @@ create table vendor (
   description              text check (char_length(description) <= 5000),
   primary_municipality_id  uuid not null references municipality(id),
 
-  -- Contact the vendor has published or provided (see decision D-03/D-04).
+  -- Contact the vendor has published or provided (see decisions D-03/D-04).
+  -- Messaging on Tallo is available once the listing is claimed (see D-05).
   website_url              text check (website_url ~ '^https?://'),
   public_email             citext,
   public_phone             text check (public_phone ~ '^\+?[0-9 ().-]{7,20}$'),
-  inquiry_preference       text not null default 'external_only'
-                           check (inquiry_preference in ('platform', 'external_only', 'none')),
 
   -- Lifecycle (transitions enforced in application code, ADR-017).
   listing_status           text not null default 'draft'
@@ -244,14 +243,14 @@ create unique index vendor_category_one_primary
 create index vendor_category_by_category on vendor_category (category_id);
 
 -- Services and packages. Pricing is optional and must be honest:
--- a priced model requires a price; 'custom_quote'/'not_listed' must not have one.
+-- a priced model requires a price; 'on_request'/'not_listed' must not have one.
 create table vendor_service (
   id                uuid primary key default gen_random_uuid(),
   vendor_id         uuid not null references vendor(id),
   name              text not null check (char_length(name) between 1 and 120),
   description       text check (char_length(description) <= 2000),
   pricing_model     text not null
-                    check (pricing_model in ('fixed', 'starting_at', 'hourly', 'custom_quote', 'not_listed')),
+                    check (pricing_model in ('fixed', 'starting_at', 'hourly', 'on_request', 'not_listed')),
   price_cents       int check (price_cents >= 0),
   currency          char(3) not null default 'CAD',
   price_note        text check (char_length(price_note) <= 200),
@@ -432,13 +431,13 @@ create table saved_vendor (
 
 create table status_change (
   id             uuid primary key default gen_random_uuid(),
-  subject_type   text not null,          -- 'vendor', 'vendor_claim', later 'event_vendor', 'inquiry', ...
+  subject_type   text not null,          -- 'vendor', 'vendor_claim', later 'event_vendor', 'conversation', 'review', ...
   subject_id     uuid not null,
   field          text not null,          -- e.g. 'listing_status'
   from_status    text,
   to_status      text not null,
   actor_user_id  uuid references app_user(id),
-  actor_kind     text not null check (actor_kind in ('user', 'admin', 'concierge', 'system')),
+  actor_kind     text not null check (actor_kind in ('consumer', 'vendor', 'admin', 'system')),
   reason         text,
   created_at     timestamptz not null default now()
 );

@@ -1,63 +1,70 @@
 # API & Integration Strategy
 
-**Status:** Proposed (Stage 0).
+**Status:** Proposed (Stage 0, revision 2).
 **Last updated:** 2026-10-09
 
 ## 1. Internal contracts
 
-There is no separate backend API to maintain in Stage 1 (ADR-001). Instead:
+There is no separate backend API to maintain (ADR-001). Instead:
 
 - **Screens never touch the database.** They call functions exported by a module's
-  public interface (e.g. `vendors.publishListing(actor, vendorId)`).
-- **Every public module function** takes the acting user as its first argument, checks
-  permission through the `policy` module, validates its input against a schema, and
-  returns a typed result. No function trusts its caller to have checked anything.
-- **Input validation** uses declared schemas (Zod) at every boundary: form submissions,
-  URL parameters, uploaded files. The same schema produces the error messages users see.
+  public interface, e.g. `messaging.sendMessage(actor, conversationId, body, files)`.
+- **Every function takes the acting person and the side they're acting as**
+  (consumer or vendor), checks permission through the `policy` module, validates input
+  against a schema, and returns a typed result. No function trusts its caller.
+- **Input validation** uses declared schemas (Zod) at every boundary: forms, URL
+  parameters, uploaded files (checked by content, not just name).
 - **Errors** are typed: `NotFound`, `Forbidden`, `InvalidInput`, `Conflict` (e.g. a
-  disallowed status change). `Forbidden` and `NotFound` look identical to the user for
-  private records, so probing IDs reveals nothing.
-- **Module boundaries** are enforced by an automated lint rule: a module may import
-  another module's public interface, never its internals or tables.
+  disallowed status change). For private records, `Forbidden` and `NotFound` look the
+  same to the user, so probing IDs reveals nothing.
+- **Module boundaries** are enforced by an automated lint rule.
 
-This is the contract that lets us add a public API later without rewriting anything:
-an API endpoint becomes a thin wrapper around the same module functions.
+This is what lets us add a public API or native app later: an endpoint becomes a thin
+wrapper around the same functions.
 
-## 2. External API
+## 2. Messaging delivery
 
-**None in Stages 1–3.** A public or partner API (e.g. for a native app, or for vendors'
-own websites) would be proposed separately with a use case. When it comes, it will be
-versioned (`/api/v1/`), documented with an OpenAPI specification, and authenticated
-with scoped keys.
+- While a conversation is open, the page asks our server for new messages about every
+  15 seconds, through the same permission checks as everything else (ADR-019).
+- When someone is away, a batched email tells them they have a new message. The email
+  says who it's from and links to the conversation. **It doesn't include the message
+  text**, so private conversations don't sit in inboxes or email-provider logs.
+- No websockets, no browser-to-database connections, no third-party chat service.
 
-## 3. Third-party integrations
+## 3. External API
 
-| Integration | Stage | Purpose | Data shared | Failure behaviour | Approval |
+**None planned.** A public or partner API (e.g. for a native app) would be proposed
+separately with a use case. It would be versioned, documented (OpenAPI), and
+authenticated with scoped keys.
+
+## 4. Third-party integrations
+
+| Integration | Stage | Purpose | Data shared | If it fails | Approval |
 |---|---|---|---|---|---|
-| Supabase Auth | 1 | Sign-in | Email, hashed password (held by Supabase) | Sign-in unavailable; public pages unaffected | ADR-003 |
-| Supabase Storage | 1 | Images, documents | Uploaded files | Images fall back to placeholders; uploads show a retry | ADR-003 |
-| Resend | 1 | Sign-in emails; later notifications | Recipient email, message | Retry with backoff; user sees "email may be delayed" | ADR-013 |
-| Sentry | 1 | Error alerts | Error details, personal data scrubbed | None to users | ADR-016 |
+| Supabase Auth | 1 | Sign-in | Email; password held by Supabase | Sign-in unavailable; public pages fine | ADR-003 |
+| Supabase Storage | 1 | Vendor photos; **conversation files** (Stage 2) | Uploaded files (stored in Canada) | Uploads show retry; messages still send | ADR-003 |
+| Resend | 1 | Sign-in; message notices; booked notices; feedback requests | Recipient email; notice text (never message content) | Queued and retried; status recorded honestly | ADR-013 |
+| Sentry | 1 | Error alerts | Error details; personal data and message text scrubbed | None to users | ADR-016 |
 | Vercel | 1 | Hosting | Everything passes through | Instant rollback | ADR-007 |
 
-**Rules for every integration:**
-1. Wrapped behind our own interface, so it can be replaced without touching features.
-2. A failure in an integration degrades one feature; it never takes down public pages.
-3. Data sent is the minimum needed; documented in the table above.
-4. No integration with a recurring cost is added without approval.
+**Rules for every integration:** wrapped behind our own interface so it can be replaced;
+a failure degrades one feature, never public pages; minimum data shared; no recurring
+cost without approval.
 
-## 4. Integrations explicitly not planned
+## 5. Not planned
 
-| Integration | Why not (yet) |
+| Integration | Why not |
 |---|---|
-| Calendar / availability sync | No reliable, widely used integration among local vendors; would imply availability we can't guarantee |
-| Payments (Stripe, etc.) | Not approved |
-| Maps (Google, Mapbox) | Town-level location is sufficient; cost |
-| SMS | Hosts share links through their own phones (D-08) |
-| Social login | Adds data-sharing relationships; add on request |
+| **Payments of any kind** (Stripe, PayPal, Interac…) | Tallo never handles money (ADR-018). Not "later": a new decision would be required. |
+| Chat services (Stream, Sendbird) | Cost; messages would be held outside our database and outside Canada |
+| Calendar / availability sync | No reliable integration among local vendors; we won't imply availability |
+| Maps | Town-level location is enough |
+| SMS | Not requested; email first |
+| Social login | Adds data-sharing; add on request |
 | AI services | No identified requirement |
 
-## 5. Inbound webhooks
+## 6. Inbound webhooks
 
-None in Stages 1–3. When needed (e.g. email bounce notices), each webhook verifies the
-sender's signature before acting, and is idempotent so a repeated delivery does no harm.
+Possibly one, in Stage 2: email delivery and bounce notices from Resend, so a failed
+notice is recorded as failed rather than assumed sent. It will verify the sender's
+signature and be safe to receive twice.

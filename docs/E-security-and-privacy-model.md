@@ -1,236 +1,265 @@
 # E — Security & Privacy Model
 
-**Status:** Proposed (Stage 0). Awaiting product owner approval.
+**Status:** Proposed (Stage 0, revision 2). Awaiting product owner approval.
 **Last updated:** 2026-10-09
+
+**Revision 2:** rebuilt around the two users, consumer and vendor. Added
+conversations, shared files, consumer-marked bookings, and reviews. Removed the
+concierge role and inquiry/quote/booking records.
 
 ---
 
 ## 1. Principles
 
-1. **Deny by default.** Nobody can see or change anything unless a rule explicitly
-   allows it.
-2. **Server-side only.** Every permission check happens on our server. Hiding a button
-   is a courtesy, not a control. (ADR-004)
-3. **Two locks.** Application policy checks, plus database row-level security as a
-   backstop.
-4. **Ownership is explicit.** Every private record belongs to a user, a vendor team, or
-   the platform, traceable in one step.
-5. **Collect less.** Information we never collect can't leak.
-6. **Prove it.** Every rule in the matrix below has an automated test that tries to
-   break it. A rule without a test is a hope.
+1. **Deny by default.** Nobody sees or changes anything unless a rule allows it.
+2. **Server-side only.** Permission checks happen on our server. Hiding a button is a
+   courtesy, not a control (ADR-004).
+3. **Two locks.** Application checks plus database rules. For relationship rules (who
+   may message, who may review), the database enforces them too.
+4. **Each side owns its actions.** Consumers start conversations and mark bookings.
+   Vendors reply and flag. Neither can act as the other.
+5. **Conversations are private to the two parties.** Staff don't read them unless one
+   side reports the conversation.
+6. **Collect less.** What we never collect can't leak.
+7. **Prove it.** Every rule in §4 has an automated test that tries to break it.
 
-## 2. Authentication (signing in)
+## 2. Signing in
 
-- Provider: Supabase Auth (ADR-003).
-- Methods at launch: email + password, and email sign-in link. No social sign-in until
-  requested (each adds a dependency and a data-sharing relationship).
-- Sessions are held in secure, HTTP-only cookies that page scripts cannot read.
-- Passwords are never seen or stored by Tallo code; the provider handles them.
-- Staff accounts (admin, concierge) **must** use two-factor authentication. Enforced
-  server-side: a staff action from a session without 2FA is refused.
-- **Guests never need an account.** They act only through an invitation link.
+- Provider: Supabase Auth (ADR-003). Email + password, or an emailed sign-in link.
+- Sessions in secure, HTTP-only cookies that page scripts can't read.
+- Tallo code never sees or stores passwords.
+- Platform team accounts **must** use two-factor authentication, enforced on the server.
+- **Browsing needs no account.** Guests (Stage 4) never need one.
 
 ## 3. Roles
 
-A person's permissions come from relationships, not from a single "user type". The same
-person can host a birthday party and also be a vendor's manager.
+Two users, one platform team. See [roles-and-relationships.md](./roles-and-relationships.md).
 
 | Role | How you get it | Scope |
 |---|---|---|
-| **Visitor** | Anyone, no account | Public pages only |
-| **Signed-in user** | Create an account | Their own profile, saved vendors, events they host |
-| **Event host** | Create an event | That event and everything on it |
-| **Event co-host / helper** | Invited by the host | That event; helpers can't see contact details or delete |
-| **Guest** | Holds a valid invitation link | That one invitation page and their own RSVP |
-| **Vendor owner** | Approved claim, or created by admin and assigned | That vendor's listing, team, and inquiries |
-| **Vendor manager / staff** | Added by vendor owner | That vendor; staff can't change team or ownership |
-| **Concierge** | Granted by admin (`platform_role`) | Inquiries to unclaimed vendors; read-only listing data |
-| **Admin** | Granted by another admin, recorded in `audit_log` | Platform-wide administration |
+| **Visitor** | Anyone | Public pages |
+| **Consumer** | Any signed-in account | Their own saved vendors, events, conversations, reviews |
+| **Vendor owner** | Approved claim, or assigned by the platform team | Their business: listing, team, conversations, bookings marked, review replies |
+| **Vendor manager** | Added by the owner | As owner, except team and ownership changes |
+| **Vendor staff** | Added by the owner | Read and reply to the business's conversations |
+| **Guest** (Stage 4) | Holds a valid invitation link | One invitation page and their own RSVP |
+| **Platform admin** | Granted by another admin; logged | Listings, claims, verification, reports, review moderation |
 
-**There is no "super user" bypass in the application.** Admins act through the same
-policy checks as everyone else; their role simply grants more. Every admin action is
-recorded in `audit_log`.
+One person can be a consumer and a vendor team member (ADR-022). Permissions are
+checked against **the side they're acting as** in each request. Acting for your
+business never gives access to your personal events, and vice versa.
+
+There's no "super user" bypass. Admins go through the same checks; their role simply
+grants more, and every admin action is recorded in `audit_log`.
 
 ## 4. Permission matrix
 
-**R** read · **C** create · **U** update · **X** archive/remove · **—** no access.
-"Own" means records where the person holds the relevant relationship.
+**R** read · **C** create · **U** update · **X** remove/archive · **—** no access.
 
-### 4.1 Discovery & vendor (Stage 1)
+### 4.1 Discovery & listings (Stage 1)
 
-| Record | Visitor | Signed-in user | Vendor owner/manager | Vendor staff | Concierge | Admin |
-|---|---|---|---|---|---|---|
-| Published vendor listing | R | R | R | R | R | R |
-| Unpublished / draft listing | — | — | R U (own) | R (own) | R | R C U X |
-| Submit listing for review | — | — | C (own) | — | — | C |
-| Approve / publish listing | — | — | — | — | — | U |
-| Vendor services, media, attributes | R (published) | R (published) | R C U X (own) | R C U (own) | R | R C U X |
-| Vendor team (`vendor_member`) | — | — | R C U X (own; owner only for C/X) | R (own) | — | R C U X |
-| Claim request | — | C (own), R (own) | — | — | R | R U |
-| Verification record & evidence | — (status only, on listing) | — | R (own) | — | — | R C U |
-| Categories, attributes, places | R | R | R | R | R | R C U X |
-| Saved vendors | — | R C X (own) | — | — | — | — (aggregate counts only) |
-
-### 4.2 Events & guests (Stage 2)
-
-| Record | Visitor | Other signed-in user | Host | Co-host | Helper | Guest (link) | Vendor on event | Admin |
-|---|---|---|---|---|---|---|---|---|
-| Event details | — | — | R U X | R U | R | R (invitation fields only) | R (date, town, type only — after an inquiry, Stage 3) | R (support, logged) |
-| Event ↔ vendor list | — | — | R C U X | R C U | R | — | R (own row only) | R |
-| Guest list | — | — | R C U X | R C U | R (names only) | — | — | R (support, logged) |
-| Guest contact details | — | — | R U | R U | — | own only | — | — (unless support, logged) |
-| Invitation link | — | — | C X (revoke) | C X | — | R (own) | — | X |
-| RSVP | — | — | R | R | R (counts + names) | C U (own) | — | R (support, logged) |
-| Other guests' RSVPs | — | — | R | R | R (counts) | — | — | — |
-| Event updates | — | — | R C U X | R C | R | R (if audience matches) | — | R |
-
-### 4.3 Inquiries (Stage 3)
-
-| Record | Requester | Vendor owner/manager | Vendor staff | Concierge | Admin |
+| Record | Visitor | Consumer | Vendor owner / manager | Vendor staff | Admin |
 |---|---|---|---|---|---|
-| Inquiry to a claimed vendor | R C, X (withdraw) | R U (respond, close) | R U (respond) | — | R |
-| Inquiry to an unclaimed vendor | R C, X | — (vendor has no account) | — | R U (log delivery, relay responses) | R |
-| Inquiry messages | R C (own inquiries) | R C (own vendor) | R C (own vendor) | R C (concierge inquiries) | R |
+| Published listing | R | R | R | R | R |
+| Draft / unpublished listing | — | — | R U (own) | R (own) | R C U X |
+| Submit listing for review | — | — | C (own) | — | C |
+| Publish listing | — | — | — | — | U |
+| Services, media, attributes | R (published) | R (published) | R C U X (own) | R (own) | R C U X |
+| Vendor team | — | — | R; owner C U X (own) | R (own) | R C U X |
+| Claim request | — | C, R (own) | — | — | R U |
+| Verification evidence | — (outcome only) | — (outcome only) | R (own) | — | R C U |
+| Categories, attributes, places, event types | R | R | R | R | R C U X |
+| Anonymous counts (visits, clicks) | — | — | R (own) | R (own) | R |
 
-**Admin "support, logged"** means: an admin may view the record only to resolve a
-support request, and each view writes an `audit_log` row with the reason. This is
-visible in the operations report so access can be reviewed.
+### 4.2 Consumer planning (Stage 2)
+
+| Record | Visitor | The consumer | Another consumer | Vendor on the plan | Admin |
+|---|---|---|---|---|---|
+| Saved vendors | — | R C X (own) | — | — (not told) | aggregate counts only |
+| Event | — | R C U X (own) | — | **Summary only**¹ | R (support, logged) |
+| Event plan: vendors *considering* | — | R C U X (own) | — | — (not told) | R (support, logged) |
+| Event plan: vendor *booked* | — | R U (own) | — | R (own row)²; can flag | R; resolves flags |
+| Budget, notes | — | R U (own) | — | — | — |
+
+¹ The event's type, date, town and guest-count estimate, and only if the consumer
+linked the event to a conversation with that vendor, or marked them booked. Never the
+title, notes, budget, address, or guest list.
+² The vendor sees that they were marked booked and the event summary, so they can
+recognise the booking or flag it.
+
+### 4.3 Conversations & files (Stage 2)
+
+| Record | The consumer in it | The vendor's team | Another consumer | Another vendor | Admin |
+|---|---|---|---|---|---|
+| Conversation | R C; block | R; owner/manager block | — | — | **Only if reported**, logged |
+| Messages | R C; remove own | R C (after the consumer's first message); remove own | — | — | **Only if reported**, logged |
+| Files | R C (own uploads) | R C (own uploads) | — | — | **Only if reported**, logged |
+| Own unread position | R U | R U (each person) | — | — | — |
+| Report a message / conversation / listing | C | C | C (listing) | C (listing) | R U |
+
+Former team members lose access to the business's conversations the moment their
+membership ends. Their past messages stay, attributed to the business.
+
+### 4.4 Feedback & reviews (Stage 3)
+
+| Record | Visitor | Author | The reviewed vendor | Other vendors | Admin |
+|---|---|---|---|---|---|
+| Published review + vendor reply | R | R | R | R | R |
+| Pending / rejected review | — | R; edit while pending | — | — | R; publish / reject with reason |
+| Write a review | — | C if eligible (§4.5) | — | — | — |
+| Vendor reply | — | — | Owner/manager C, once | — | R; remove for policy breach |
+| Rating summary | R (shown from 3 reviews) | R | R | R | R |
+
+### 4.5 Review eligibility (enforced by the database)
+
+A consumer can review a vendor only if: they marked that vendor booked on their own
+event; the event date has passed; it's within 60 days; the vendor hasn't flagged the
+booking (or the platform team confirmed it); and **they exchanged messages on Tallo,
+with at least one reply from the vendor** (D-06, recommended). One review per booking.
+
+### 4.6 Guests (Stage 4)
+
+As in revision 1: the host controls guests, invitations and RSVPs. A guest's link opens
+only their invitation and RSVP form. Vendors never see guest lists.
 
 ## 5. Invitation-link security
 
+Stage 4. Unchanged from revision 1:
+
 | Threat | Control |
 |---|---|
-| Someone guesses a link | 256-bit random tokens. Guessing one is not practically possible. RSVP endpoint is rate-limited. |
-| Our database is copied | Only token **hashes** are stored. Hashes can't be turned back into working links. |
-| A guest forwards their link | The link shows only the invitation and that guest's RSVP form. Nothing else. Hosts can revoke and reissue. |
-| A link is used after the event | Links expire (default 30 days after the event end). |
-| A link opens the host's workspace | Impossible by design: the invitation page is a separate, minimal view with its own query that reads only invitation-safe fields. Tested explicitly. |
-| A guest sees other guests | Never shown on the invitation page. Not in the page's data, not merely hidden. |
-| Search engines index invitations | Invitation pages send `noindex` and are excluded in `robots.txt`. |
-| Link appears in browser history on a shared computer | Token is exchanged for a short-lived, invitation-scoped cookie on first open; the address bar then shows a token-free URL. |
+| Guessing a link | 256-bit random tokens; rate-limited RSVP |
+| Database copied | Only token hashes stored |
+| Link forwarded | Opens only that invitation; host can revoke and reissue |
+| Link used after the event | Expires (default 30 days after) |
+| Link opens host workspace | Impossible: separate minimal view and query |
+| Guest sees other guests | Never in the page's data |
+| Search engines | `noindex`; excluded in `robots.txt` |
+| Link left in browser history | Swapped for a short-lived cookie; address bar shows no token |
 
-**Open-link invitations** (one link shared to a group chat) are supported, because
-that's how many parents invite a class. They are inherently less private: anyone with
-the link can RSVP. The host is told this plainly when choosing it, and the host can
-see and remove any RSVP.
+## 6. Conversation and file safety
 
-## 6. Data minimisation commitments
+| Risk | Control |
+|---|---|
+| Someone reads a conversation that isn't theirs | Server and database both check membership on every request. Tested by changing IDs directly. |
+| A vendor spams consumers | Vendors cannot start conversations (database-enforced). Consumers can block and report. |
+| A consumer harasses a vendor | Vendors can block and report. Reports go to the platform team. |
+| Fake or fraudulent invoices | Tallo never handles money, and says so in every conversation's footer: *"Tallo doesn't process payments. Arrange payment directly with the business."* Report button on every message. Verified badge only for vendors with recorded checks. |
+| Malicious files | Images and PDFs only; content-type checked; PDFs download rather than open in Tallo; 10 MB limit. No automatic virus scanning at launch (ADR-020): known gap, revisited if reports warrant it. |
+| A shared file link leaks | File links expire within minutes and are issued only after a membership check. |
+| Photos reveal home location | GPS data stripped from images on upload. |
+| Former staff keep access | Access ends the moment membership ends. |
+| Platform staff snoop | Staff can open a conversation only through a report, and each access is logged with the report ID. |
 
-These are product commitments, not just engineering ones. Changing any requires
-product owner approval and an update here.
+## 7. Data minimisation commitments
 
-**About children:**
-- No child profiles. No child accounts.
-- No date of birth. An event may record an optional *age range* (e.g. "turning 6",
-  "ages 4–7") because it's useful for vendor suitability. Not a birthdate.
-- The event title is free text the host controls. We don't require a child's name.
-- No photos of children are required anywhere. If image upload is added to events
-  later, it needs its own privacy review.
+Changing any of these requires product owner approval.
 
-**About guests:**
-- A guest needs only a display name. Email and phone are optional and used only for
-  the host's own reference unless a notification channel is later approved.
-- Dietary or accessibility answers are collected only if the host asks them as an
-  event question, and are visible only to the host and co-hosts.
-- Guests don't create accounts, so we hold no guest password, profile, or history
-  across events.
+**About children:** No child profiles or accounts. No dates of birth. An event may have
+an optional age range ("ages 4–7"). The event title is free text; no child's name is
+required.
 
-**About organizers:**
-- Name and email. Phone optional.
-- No home address required. Event location can be a venue name, a street address, or
-  just a town; the host chooses.
+**About consumers:** Name and email. Phone optional. A vendor sees the consumer's
+display name, plus whatever the consumer chooses to write or share. Never their email,
+unless the consumer types it.
 
-**About vendors:**
-- Business contact details are public only where the vendor (or, for an unclaimed
-  listing, already-public business information) makes them so. See decision D-03.
+**About vendors:** Business contact details are public only where the business
+published them (D-03) or provided them.
 
-**About everyone:**
-- No third-party advertising or tracking scripts (ADR-015).
-- IP addresses are used transiently for rate limiting and abuse prevention, not stored
-  against records.
+**About guests (Stage 4):** A display name. Email and phone optional and visible only
+to the host.
 
-## 7. Retention and deletion
+**About conversations:** We can't control what people write, so we don't pretend to.
+The conversation screen reminds people not to share sensitive information they don't
+need to. Staff don't read conversations unless reported.
+
+**About everyone:** No third-party advertising or tracking. IP addresses are used
+briefly for abuse prevention, never stored against records.
+
+## 8. Retention and deletion
 
 Proposed defaults. **D-10 asks you to approve these.**
 
 | Data | Kept for | Then |
 |---|---|---|
-| Guest contact details | Until 90 days after the event | Erased. Name and RSVP counts kept for the host's history. |
-| Invitation tokens | Until expiry or revocation | Hash retained (useless without the token), status kept |
-| Event records | While the host's account exists | Deleted with the account, except where linked to a booking with a vendor (kept, anonymised on the host side) |
-| Inquiry threads | 2 years after closing | Anonymised |
+| Conversations and files | While both parties' accounts exist, up to 3 years after the last message | Deleted |
+| When a consumer deletes their account | — | Their events, plans and saved vendors are deleted. In conversations, their messages show as *"Former Tallo member"* and their files are deleted, so the vendor keeps a record of their own side. |
+| When a vendor leaves Tallo | — | The listing is archived. Consumers keep their copies of conversations, shown as *"This business has left Tallo"*. Published reviews stay, without the reply option. |
+| Published reviews | While the listing exists | The author is shown as *"A Tallo member"* if they delete their account |
+| Guest contact details (Stage 4) | Until 90 days after the event | Erased; RSVP counts kept |
+| Email delivery log | 1 year | Deleted |
 | Audit log | 2 years | Deleted |
-| Verification evidence (documents) | While listing is verified + 1 year | Deleted; the outcome (verified/date) is kept |
-| Account deletion request | Processed within 30 days | Personal fields erased; history anonymised |
-| Backups | Rolling window set by the provider plan (expected ~7 days on Supabase Pro; confirm at signup) | Expire automatically. Deleted data is fully gone once the backup window passes. |
+| Verification evidence | While verified + 1 year | Deleted; outcome kept |
+| Account deletion request | Within 30 days | As above |
+| Backups | The provider's rolling window (~7 days on Supabase Pro; confirm at signup) and our 30-day independent backup | Expire automatically |
 
-## 8. Media and documents
+## 9. Media and files
 
 | Kind | Storage | Access |
 |---|---|---|
-| Vendor logos, photos (published listings) | Public bucket | Anyone, via CDN |
-| Vendor media on unpublished listings | Private bucket | Signed URLs, expiring in minutes, issued after a policy check |
-| Verification evidence | Private bucket | Admin only. Never shown publicly. |
-| Agreements, booking documents (Stage 4) | Private bucket | Parties to the booking. Signed, short-lived URLs. |
+| Published vendor photos and logos | Public | Anyone |
+| Unpublished listing media | Private | Signed links after a permission check |
+| Verification evidence | Private | Admins only |
+| **Files in conversations** | **Private, Canada** | **The two parties only**; links expire in minutes |
 
-Uploads are checked server-side for file type and size. Images have location metadata
-(EXIF GPS) stripped before storage.
+## 10. Secrets and credentials
 
-## 9. Secrets and credentials
+- Secrets live only in the hosting providers' encrypted settings. Never in git, chat,
+  email, or documents.
+- **You own the root accounts.** The engineering team is invited with the least access
+  needed. Development sessions never receive production credentials: code goes to
+  GitHub; Vercel deploys it; migrations run through a reviewed process using a secret
+  stored in GitHub's encrypted settings.
+- **You will never be asked to paste a password, key, or code into chat.**
+- Automated secret scanning on every change. Keys rotated when someone with access
+  leaves, and at least yearly.
 
-- Secrets (database keys, email API keys) are stored only in the hosting provider's
-  encrypted environment settings and in a team password manager. **Never in git, chat,
-  email, or documents.**
-- The product owner owns the root accounts (hosting, database, domain, email). The
-  engineering team is invited as members with the least access needed. If a team
-  member leaves, their access is removed without changing anything else. See action
-  PO-03 in [H](./H-product-owner-action-register.md).
-- The product owner **will never be asked to paste a password, key, or code into
-  chat.** If anyone asks, it's not us — or it's a mistake, and the answer is still no.
-- Automated secret scanning runs on every change to the code repository.
-- Keys are rotated when a team member with access leaves, and at least yearly.
+## 11. Audit trail
 
-## 10. Audit trail
+`audit_log` records every admin action and every permission-sensitive action (including
+every staff view of a reported conversation): who, what, which record, when, and
+before/after values. It is append-only, enforced by the database (tested).
 
-`audit_log` records, for every admin action and every permission-sensitive action:
-who, what, which record, when, from where (session ID, not IP), and before/after
-values for changed fields. It is append-only: the application has no code path to edit
-or delete audit rows.
+## 12. Security testing
 
-## 11. Security testing
+Every row of §4 becomes automated tests run before every deployment, including:
 
-Every row of the permission matrix in §4 becomes automated tests that run before every
-deployment. Specifically:
+- **Cross-conversation:** Consumer B, and a member of Vendor B, try to read, post to,
+  and download files from a conversation between Consumer A and Vendor A, by supplying
+  its ID directly. All must fail.
+- **Impersonation:** a consumer tries to post as a vendor; a vendor tries to post as the
+  consumer; a former team member tries to post; a vendor tries to start a
+  conversation. All must fail. *(Database layer already proven; see below.)*
+- **Planning privacy:** a vendor tries to see a consumer's *considering* list, budget,
+  notes, or another vendor's row on the same event. All must fail.
+- **Booking integrity:** a vendor tries to mark themselves booked; another consumer tries
+  to mark a vendor booked on someone else's event. All must fail.
+- **Review integrity:** reviews without a booking, before the event, after the window,
+  without a Tallo conversation, on a flagged booking, by someone else, or twice. All
+  must fail. *(Database layer already proven.)*
+- **File access:** expired links, links for files in other conversations, public
+  storage attempts. All must fail.
+- **Role escalation:** vendor staff attempt owner actions; consumers attempt admin
+  actions. All must fail.
 
-- **Cross-account tests:** User A creates an event. User B attempts to read, edit, list
-  guests of, and revoke invitations on it by supplying its ID directly. All must fail.
-- **Cross-event tests:** A guest holding a valid invitation for Event 1 attempts to read
-  Event 2's details, guest list, and RSVPs. All must fail.
-- **Cross-vendor tests:** A manager of Vendor A attempts to edit Vendor B, read Vendor
-  B's inquiries, and add themselves to Vendor B's team. All must fail.
-- **Role escalation tests:** A vendor staff member attempts owner-only actions. A
-  signed-in user attempts admin actions. All must fail.
-- **Invitation tests:** revoked token, expired token, malformed token, a valid token
-  from another event, and rate-limit enforcement.
-- **State machine tests:** every disallowed status transition is attempted and must be
-  rejected.
+**Current results (database layer, 2026-10-09):** 82 of 82 checks passed on PostgreSQL
+16 + PostGIS. That's 29 for Stage 1 rules and 53 for the consumer–vendor relationship
+rules. Application-layer tests will be added with the code.
 
-Results are recorded in [G](./G-release-and-migration-history.md) for every release.
+## 13. Legal context (not legal advice)
 
-**Current results:** none. No code exists yet.
+- **PIPEDA** governs personal information. We need a privacy policy, plus access and
+  deletion requests.
+- **CASL** (anti-spam law) affects commercial email. Our emails are transactional
+  (messages, sign-in, feedback on a booking the consumer recorded). The lawyer should
+  confirm that the feedback request and the "business joined" notice fit that
+  description.
+- **Not a party to the deal.** The terms of use must state clearly that Tallo connects
+  consumers and vendors and is not a party to their arrangements, payments, or disputes.
+- **Reviews** need a published policy (what's allowed, how disputes work) and fair
+  treatment of vendors' flags.
+- Listing businesses that haven't joined (D-03) should be reviewed.
 
-## 12. Legal context (not legal advice)
-
-- **PIPEDA** governs how a private business in Ontario handles personal information.
-  We'll need a privacy policy explaining what we collect and why, and a way to request
-  access or deletion.
-- **CASL** (Canada's anti-spam law) restricts commercial electronic messages sent
-  without consent. It's the main reason we recommend hosts share invitations through
-  their own channels (D-08), and it matters for how we contact unclaimed vendors (D-03).
-- Publishing listings for businesses that haven't asked to be listed, using publicly
-  available information, is common practice for directories, but the approach should
-  be reviewed.
-
-**A lawyer familiar with Canadian privacy law should review the privacy policy, terms
-of use, and the unclaimed-listing approach before public launch** (action PO-07). This
-document describes engineering controls; it is not a legal opinion.
+**A lawyer familiar with Canadian privacy and consumer law should review the privacy
+policy, terms of use, review policy, and the unclaimed-listing approach before launch**
+(PO-07). This document describes engineering controls, not legal advice.

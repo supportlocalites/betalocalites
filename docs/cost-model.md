@@ -1,52 +1,66 @@
 # Cost Model
 
-**Last updated:** 2026-10-09
+**Last updated:** 2026-10-09 (revision 2)
 **Currency:** USD unless stated. Multiply by roughly 1.4 for CAD; check the current rate.
 
 **About these numbers.** Prices were checked on 2026-10-09 using third-party pricing
-summaries, not the vendors' own pricing pages, and some of those sources disagree on
-details. Treat them as planning estimates. Each will be confirmed on the vendor's own
-pricing page at signup, and this document updated.
+summaries, not the providers' own pages, and some sources disagree on details. Treat
+them as planning estimates. Each will be confirmed on the provider's pricing page at
+signup, and this document updated.
+
+**Revision 2:** messaging increases email volume, so the email line moves to its paid
+plan from Stage 2. Recommended ceiling raised from $75 to $90 to keep headroom.
 
 ---
 
 ## Summary
 
-| Period | Monthly | One-off / yearly |
+| Period | Monthly | Notes |
 |---|---|---|
-| **Stage 0–1, building (before launch)** | $0 – $25 | Domain ~CA$15–25/yr |
-| **After public launch (Stages 1–3)** | ~$45 – $70 | Domain; legal review (quoted separately) |
-| **Stage 4, if point-in-time recovery is added** | Add the provider's add-on price — will be quoted for approval | — |
+| **Building, before launch** | $0 – $25 | Free tiers for development |
+| **After Stage 1 launch (directory)** | ~$45 – $50 | Hosting + database |
+| **From Stage 2 (messaging)** | ~$65 – $75 | + email plan |
+| **One-off / yearly** | Domain ~CA$15–25/yr; legal review quoted separately | |
 
-Recommended budget ceiling for approval: **US$75/month** through Stage 2 (decision D-07).
+Recommended ceiling for approval: **US$90/month** through Stage 3 (D-07).
 
 ## Line items
 
-| Service | What for | Plan | Expected cost | Notes | Source |
+| Service | What for | Plan | Expected | Notes | Source |
 |---|---|---|---|---|---|
-| **Vercel** | Hosting the application | Hobby (dev only) → **Pro** at launch | $0 → **$20/month** per developer seat; viewer seats free | Hobby plan is **non-commercial only**, so production must be on Pro. Usage beyond included allowance is billed; we'll set a spend cap. | [makerkit.dev](https://makerkit.dev/blog/saas/vercel-cost), [schematichq.com](https://schematichq.com/blog/vercel-pricing) |
-| **Supabase** | Database, sign-in, file storage | Free (dev) → **Pro** at launch | $0 → **$25/month**, includes ~$10 compute credit | Free projects pause after a week idle and have limited backups, so production needs Pro. Most small apps stay near the base price. | [makerkit.dev](https://makerkit.dev/blog/saas/supabase-pricing), [focusreactive.com](https://focusreactive.com/blog/supabase-price/) |
-| **Resend** | Sign-in and notification emails | Free → Pro if needed | $0 (3,000/month, **100/day cap**) → ~$20/month | The daily cap is the limit we'd hit first, e.g. on a busy launch day. | [automationatlas.io](https://automationatlas.io/answers/resend-pricing-explained-2026/), [usecarly.com](https://www.usecarly.com/blog/resend-pricing/) |
-| **Sentry** | Error alerts | Free | $0 | Free tier is sufficient for expected volume. | To confirm at signup |
-| **Independent backups** | Off-provider copy of the database | Object storage | Expected < $5/month | Specific provider proposed at Stage 1. | To be quoted |
-| **Domain** | The web address | `.ca` | ~CA$15–25/year | Depends on registrar. | To be quoted with D-01 |
-| **GitHub** | Code repository | Existing account | $0 | Already in place. | — |
+| **Vercel** | Hosting | Hobby (dev) → **Pro** at launch | $0 → **$20/month** per developer seat; viewers free | Hobby is **non-commercial only**. Spend cap will be set. | [makerkit.dev](https://makerkit.dev/blog/saas/vercel-cost), [schematichq.com](https://schematichq.com/blog/vercel-pricing) |
+| **Supabase** | Database, sign-in, file storage (incl. conversation files) | Free (dev, staging) → **Pro** at launch | $0 → **$25/month** (includes ~$10 compute credit) | Staging stays on the free tier. Conversation files are small (≤10 MB each); storage included in Pro should last well beyond year one. | [makerkit.dev](https://makerkit.dev/blog/saas/supabase-pricing), [focusreactive.com](https://focusreactive.com/blog/supabase-price/) |
+| **Resend** | Sign-in, message notices, booked notices, feedback requests | Free → **Pro from Stage 2** | $0 (3,000/month, **100/day cap**) → ~**$20/month** | Batched notices keep volume down, but the 100/day cap is likely to be hit once messaging is busy. | [automationatlas.io](https://automationatlas.io/answers/resend-pricing-explained-2026/), [usecarly.com](https://www.usecarly.com/blog/resend-pricing/) |
+| **Sentry** | Error alerts | Free | $0 | | To confirm at signup |
+| **Independent backups** | Off-provider database copy | Object storage | < $5/month | Provider proposed at Stage 1 | To be quoted |
+| **Domain** | Web address | `.ca` | ~CA$15–25/year | | Quoted with D-01 |
+| **GitHub** | Code | Existing | $0 | | — |
 
-## Costs we are deliberately **not** incurring
+## Possible additions (each would come to you first)
 
-| Not using | Typical cost | Why not |
-|---|---|---|
-| Search service (Algolia, etc.) | $0–$100s/month | PostgreSQL search is sufficient at our size (ADR-008) |
-| Maps API (Google Maps, etc.) | Usage-based | Town-level location is enough for Stage 1; no map needed |
-| Third-party analytics | $0–$100s/month + privacy cost | First-party counting in our own database (ADR-015) |
-| SMS | Per message | Invitations shared through the host's own phone (D-08) |
-| Payments | % of transactions | Not approved; not in scope |
-| AI services | Usage-based | No identified requirement |
+| Item | When | Why | Rough cost |
+|---|---|---|---|
+| Point-in-time database recovery | Before Stage 2 launch | Daily backups could lose up to a day of messages | Supabase add-on; will be quoted |
+| Virus scanning of shared files | If reports show a need | ADR-020 | Usage-based service; will be quoted |
+| Text-message notices | Only if requested | Some vendors may prefer texts | Per message |
+| Retained on-call developer | From Stage 2 (D-11) | Messaging outages matter | Retainer, quoted separately |
+
+## Costs we deliberately don't incur
+
+| Not using | Why not |
+|---|---|
+| Payment processing | Tallo never handles money (ADR-018) |
+| Chat service (Stream, Sendbird…) | Our own messaging costs nothing extra and keeps messages in Canada (ADR-019) |
+| Real-time connection service | Polling every ~15 s is enough for planning |
+| Search service | PostgreSQL search suffices at our size |
+| Maps API | Town-level location is enough |
+| Third-party analytics | First-party counts in our own database |
+| SMS | Not requested; email notices first |
+| AI services | No identified requirement |
 
 ## Rules
 
-1. No new service with a recurring cost is added without your written approval.
-2. Spending caps are set inside each provider where available.
-3. You get a monthly one-line cost summary once anything is billed.
-4. If actual costs approach 80% of the approved ceiling, we tell you before it's
-   reached, with options.
+1. No new recurring cost without your written approval.
+2. Spending caps set inside each provider where available.
+3. A monthly one-line cost summary once anything is billed.
+4. At 80% of the approved ceiling, we tell you before it's reached, with options.

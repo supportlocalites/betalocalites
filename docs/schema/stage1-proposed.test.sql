@@ -53,18 +53,18 @@ insert into media_asset (id, owner_kind, owner_id, bucket, storage_path, mime_ty
 select pg_temp.expect_reject('fixed price with no amount',
   $q$insert into vendor_service (vendor_id, name, pricing_model)
      values ('00000000-0000-7000-8000-0000000000b1', 'Package', 'fixed')$q$);
-select pg_temp.expect_reject('custom quote that also shows a price',
+select pg_temp.expect_reject('price-on-request that also shows a price',
   $q$insert into vendor_service (vendor_id, name, pricing_model, price_cents)
-     values ('00000000-0000-7000-8000-0000000000b1', 'Package', 'custom_quote', 25000)$q$);
+     values ('00000000-0000-7000-8000-0000000000b1', 'Package', 'on_request', 25000)$q$);
 select pg_temp.expect_reject('negative price',
   $q$insert into vendor_service (vendor_id, name, pricing_model, price_cents)
      values ('00000000-0000-7000-8000-0000000000b1', 'Package', 'fixed', -1)$q$);
 select pg_temp.expect_reject('min guests above max guests',
   $q$insert into vendor_service (vendor_id, name, pricing_model, min_guests, max_guests)
      values ('00000000-0000-7000-8000-0000000000b1', 'Package', 'not_listed', 20, 10)$q$);
-select pg_temp.expect_accept('custom quote with no price',
+select pg_temp.expect_accept('price on request, with no price',
   $q$insert into vendor_service (vendor_id, name, pricing_model)
-     values ('00000000-0000-7000-8000-0000000000b1', 'Custom party', 'custom_quote')$q$);
+     values ('00000000-0000-7000-8000-0000000000b1', 'Custom party', 'on_request')$q$);
 select pg_temp.expect_accept('starting-at price',
   $q$insert into vendor_service (vendor_id, name, pricing_model, price_cents)
      values ('00000000-0000-7000-8000-0000000000b1', 'Basic', 'starting_at', 15000)$q$);

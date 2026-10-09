@@ -18,7 +18,8 @@ and confirmed before launch; this document will then record when.
 | **Production** | The real site | Real data | Public pages: everyone. Everything else: per [E](./E-security-and-privacy-model.md). |
 
 Production and staging are **separate Supabase projects** with separate credentials.
-A mistake in staging cannot touch production data.
+A mistake in staging cannot touch production data. Staging runs on Supabase's free tier
+(it pauses when idle, which is fine for review), so it adds no monthly cost.
 
 **Test data rule:** staging and test data is always obviously fake ("Test Vendor 14",
 "example.com" addresses). Real business names are never used as test data, so a
@@ -80,7 +81,7 @@ very unlikely, and recoverable when it happens.
 | Layer | What | Frequency | Retention | Source |
 |---|---|---|---|---|
 | Provider backups | Full database | Daily, automatic | Per plan (~7 days on Supabase Pro; confirm at signup) | Supabase |
-| Point-in-time recovery | Restore to any second | Continuous | Per add-on | Supabase add-on, **not included initially**; recommended once real bookings exist (Stage 4) — would require budget approval |
+| Point-in-time recovery | Restore to any second | Continuous | Per add-on | Supabase add-on, **not included initially**. Worth considering once consumers and vendors depend on conversations (Stage 2): a daily backup could lose up to a day of messages. Will be costed and brought to you for approval before Stage 2 launch. |
 | Independent backup | Full database export (`pg_dump`), encrypted | Daily, scheduled job | 30 days | Stored outside Supabase, so a provider problem or account issue doesn't take the backups with it |
 | File storage | Vendor images, documents | Daily sync | 30 days | Copied to separate storage |
 
@@ -129,6 +130,8 @@ Integrity checks after any restore:
 | Site down | Uptime check every few minutes on the home page and one vendor page | Engineering and you, immediately |
 | Slow pages | Vercel analytics on page load time | Weekly review by engineering |
 | Database health | Supabase dashboard: storage used, connections, slow queries | Weekly review by engineering |
+| Email delivery | Failed and queued counts in the `notification` log; provider's daily-limit warnings | Engineering daily; you if consumers or vendors are missing message notices |
+| Reports | New items in the reports queue (messages, conversations, listings, reviews) | Platform team (you, initially), daily |
 | Costs | Each provider's billing page; spending caps where available | Monthly summary to you |
 | Unusual admin activity | Weekly `audit_log` review | Engineering, flagged to you |
 
