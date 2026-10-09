@@ -45,11 +45,13 @@ authenticated with scoped keys.
 | Supabase Storage | 1 | Vendor photos; **conversation files** (Stage 2) | Uploaded files (stored in Canada) | Uploads show retry; messages still send | ADR-003 |
 | Resend | 1 | Sign-in; message notices; booked notices; feedback requests | Recipient email; notice text (never message content) | Queued and retried; status recorded honestly | ADR-013 |
 | Sentry | 1 | Error alerts | Error details; personal data and message text scrubbed | None to users | ADR-016 |
-| Vercel | 1 | Hosting | Everything passes through | Instant rollback | ADR-007 |
+| Cloudflare | 1 | Hosting (free plan); scheduled checks | Everything passes through | Roll back to previous version | ADR-007 |
+
+All on free plans; Tallo has no running costs (D-20).
 
 **Rules for every integration:** wrapped behind our own interface so it can be replaced;
-a failure degrades one feature, never public pages; minimum data shared; no recurring
-cost without approval.
+a failure degrades one feature, never public pages; minimum data shared; no cost of any
+kind without approval.
 
 ## 5. Not planned
 

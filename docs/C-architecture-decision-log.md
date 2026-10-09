@@ -16,6 +16,11 @@ never edited; a new entry supersedes an old one and both stay.
 **Revision 2 changes:** ADR-001, 004, 013, 015 and 017 updated for the consumer–vendor
 handshake. ADR-018 to ADR-022 added.
 
+**Revision 3 changes (product owner: no running costs):** ADR-003 and ADR-013 move to
+free plans. ADR-007 replaces Vercel with Cloudflare's free plan, because Vercel's free
+plan doesn't allow business use. ADR-005 adds a fit test for Cloudflare's free limits.
+ADR-014 caveat updated. Nothing in the data model or security model changes.
+
 ---
 
 ## Summary
@@ -24,17 +29,17 @@ handshake. ADR-018 to ADR-022 added.
 |---|---|---|---|
 | ADR-001 | One application (modular monolith), not microservices | Team | Proposed |
 | ADR-002 | PostgreSQL is the single source of truth | Team | Proposed |
-| ADR-003 | Supabase for database, sign-in, and file storage | **Needs approval** (cost) | Proposed |
+| ADR-003 | Supabase (free plan) for database, sign-in, and file storage | Team ($0) | Proposed |
 | ADR-004 | The browser never talks to the database directly | Team | Proposed |
-| ADR-005 | Next.js + TypeScript for the application | Team | Proposed |
+| ADR-005 | Next.js + TypeScript, confirmed by a fit test on the free host | Team | Proposed |
 | ADR-006 | Drizzle for database access, with SQL migrations in git | Team | Proposed |
-| ADR-007 | Vercel for hosting, on the paid Pro plan | **Needs approval** (cost) | Proposed |
+| ADR-007 | Cloudflare (free plan) for hosting | Team ($0) | Proposed (rev. 3) |
 | ADR-008 | Postgres full-text search for Stage 1; no search service | Team | Proposed |
 | ADR-009 | UUID v7 identifiers plus human-readable slugs | Team | Proposed |
 | ADR-010 | Invitation links: random, hashed, revocable, expiring | Team | Proposed |
 | ADR-011 | Three-tier metadata (columns, typed attributes, display extras) | Team | Proposed |
 | ADR-012 | One `vendor` table with team membership; no `organization` yet | Team | Proposed |
-| ADR-013 | Email via Resend: sign-in, message notices, feedback requests | **Needs approval** (cost) | Proposed |
+| ADR-013 | Email via Resend (free plan): sign-in, message notices, feedback requests | Team ($0) | Proposed |
 | ADR-014 | Data stored in Canada | **Needs approval** (trust/legal) | Proposed |
 | ADR-015 | First-party counts in our own database; no third-party trackers | Team | Proposed |
 | ADR-016 | Sentry for error monitoring, free tier | Team | Proposed |
@@ -86,12 +91,13 @@ relationships the application's problem. That's how duplicate sources of truth s
 
 ---
 
-## ADR-003 — Supabase for database, sign-in, and file storage
+## ADR-003 — Supabase (free plan) for database, sign-in, and file storage
 
-**Needs your approval** (monthly cost; see [cost-model.md](./cost-model.md)).
+**Team decision. $0** (see [cost-model.md](./cost-model.md)).
 
-**Decision.** Use Supabase as the managed provider for PostgreSQL, sign-in, and file
-storage (vendor photos and files shared in conversations).
+**Decision.** Use Supabase's **free plan** as the managed provider for PostgreSQL,
+sign-in, and file storage (vendor photos and files shared in conversations). Two free
+projects: the live site and a test copy.
 
 **Plain English.** Supabase runs the database for us, including backups, security
 patches and uptime. It also handles sign-in and stores files, so we don't need three
@@ -101,15 +107,18 @@ separate providers.
 It offers a Canadian region (ADR-014) and daily backups on the paid plan, with one bill
 and one set of credentials.
 
-**Cost.** Free for development. Pro plan (~US$25/month per third-party sources) before
-launch, because free projects pause after a week of inactivity. Confirm at
-supabase.com/pricing.
+**Free-plan limits** (from supabase.com): 500 MB database, 1 GB file storage, two
+active projects. A project pauses only after a week without database activity; a live
+site with daily visitors keeps it active, and Supabase emails a week before any pause.
+The product owner has run projects on this plan without issue. We don't rely on the
+free plan's backups; we keep our own nightly copy (F §5).
 
 **Alternatives.** *Neon + Auth.js + S3* — equally sound, more pieces to operate.
 *AWS directly* — highest operational burden. *Firebase* — not relational (ADR-002).
 
-**Revisit when.** Costs exceed ~US$150/month without matching growth in usage, or
-reliability falls short two months running.
+**Revisit when.** A free-plan limit reaches 80% (we tell you with options), or
+reliability falls short two months running. Moving to a paid plan would be your
+decision.
 
 ---
 
@@ -154,6 +163,14 @@ so hiring and handover are easy.
 **Alternatives.** *Remix / SvelteKit* — good, smaller talent pool. *Rails / Django* —
 excellent for this; rejected only to keep the codebase to one language.
 
+**Fit test (revision 3).** Cloudflare's free plan (ADR-007) allows 10 ms of processing
+per request and a 3 MiB application size. In Stage 1 week 1, before real building
+starts, we deploy one vendor profile page, one search, and one signed-in page to the
+free plan and measure them. If Next.js doesn't fit comfortably, we use **React Router**
+(formerly Remix) instead: same language, same React components, and built to run on
+Cloudflare. Either way the data model, database, and security model are unchanged.
+The result is recorded here.
+
 ---
 
 ## ADR-006 — Drizzle for database access, SQL migrations in git
@@ -171,20 +188,41 @@ heavier tools hide. Anyone reviewing a migration can see exactly what it does.
 
 ---
 
-## ADR-007 — Vercel for hosting, on the Pro plan
+## ADR-007 — Cloudflare (free plan) for hosting
 
-**Needs your approval** (monthly cost).
+**Team decision. $0.** *(Revision 3: replaces "Vercel on the Pro plan", following the
+product owner's direction that Tallo should have no running costs.)*
 
-**Decision.** Host on Vercel. Free Hobby plan for development only; Pro before launch.
+**Plain English.** Supabase is the filing cabinet. The host is the shopfront: the
+computer that runs the website and sends each page to a visitor's phone. Something has
+to do this job, and Supabase doesn't.
 
-**Important.** Vercel's free plan is restricted to **personal, non-commercial use**, so
-the live site needs Pro (US$20 per developer seat per month; viewer seats free). We'll
-set a spending cap. Confirm at vercel.com/pricing.
+**Decision.** Host on Cloudflare's free plan.
+- **Public pages** (home, categories, vendor profiles) are pre-built and served as
+  files. Cloudflare serves these free and without limit, and fast in Canada.
+- **Signed-in pages** (messages, event plans) are built on request: up to 100,000 a
+  day on the free plan, far beyond what a local launch will use.
+- Code goes to GitHub; Cloudflare builds and deploys it automatically, and every
+  proposed change gets its own preview link for you to review on your phone. Previews
+  only ever use the test copy of the database, with fake data.
 
-**Why.** Vercel builds Next.js; deploying is a `git push`. Every proposed change gets a
-private preview link, which is how you'll review work on your phone.
+**Why not Vercel.** Vercel's free plan is restricted to personal, non-commercial use, so
+a business would need its US$20/month plan.
 
-**Alternatives.** Netlify, Render, Railway, Fly.io, at similar cost.
+**To confirm before we commit:** Cloudflare's published limits contain no
+business-use restriction, but we couldn't open their full terms of service from the
+development environment. We'll read them at signup (PO-03). If they don't allow
+Tallo, we come back to you with options before anything costs money.
+
+**Limits that shape the build:** 10 ms of processing per request and a 3 MiB
+application size on the free plan, hence the fit test in ADR-005.
+
+**Alternatives.** *Netlify free plan* (a monthly allowance; sites pause when it runs
+out). *Vercel* (business use needs $20/month). *A self-managed server* (free tiers
+exist, but someone has to maintain and secure it).
+
+**Revisit when.** The fit test fails, the terms don't allow us, or traffic approaches
+80% of the free daily allowance.
 
 ---
 
@@ -243,9 +281,10 @@ and changes no vendor IDs.
 
 ---
 
-## ADR-013 — Email via Resend
+## ADR-013 — Email via Resend (free plan)
 
-**Needs your approval** (monthly cost).
+**Team decision. $0.** Requires the domain (D-07): Resend only emails other people
+from a domain you own and have verified.
 
 **Decision.** Use Resend for the emails Tallo must send:
 - Stage 1: sign-in links, password resets, claim decisions.
@@ -263,9 +302,10 @@ the message text, so private conversations don't sit in inboxes or provider logs
 they get one email. They get no further email for that conversation until they've
 opened it or an hour has passed. This keeps inboxes calm and volume low.
 
-**Cost.** Free tier: 3,000 emails/month with a **100-per-day cap** (third-party
-sources). Messaging will likely outgrow the daily cap soon after Stage 2 launches, so
-budget for the ~US$20/month plan from then. Confirm at resend.com/pricing.
+**Free plan.** 3,000 emails a month, **100 a day** (resend.com). Batching keeps a
+local launch well inside this. If we approach the daily cap: sign-in emails always go
+first, message notices are batched more tightly, and a second free service (Brevo, 300 a
+day) takes overflow. Paying would only ever be your decision.
 
 **Not decided here:** Tallo sending guest invitations itself (D-08); text messages.
 
@@ -278,14 +318,18 @@ budget for the ~US$20/month plan from then. Confirm at resend.com/pricing.
 **Needs your approval** (trust and legal positioning; no extra cost expected).
 
 **Decision.** Create the Supabase project in its Canada (Central) region, so the
-database, conversations, and shared files are stored in Canada.
+database, conversations, and shared files are stored in Canada. At signup we'll confirm
+the Canada region is offered on the free plan; if it isn't, we'll bring you the
+options rather than choose for you.
 
 **Why.** Canadian privacy law (PIPEDA) doesn't strictly require it, but "your messages
 and files are stored in Canada" is a simple, reassuring answer. It's free to choose now
 and disruptive to change later.
 
-**Caveat.** Vercel's servers may process requests outside Canada. We'll pin the nearest
-available region and disclose this in the privacy policy. **A lawyer should review the
+**Caveat.** Cloudflare runs the website in the data centre nearest each visitor (for
+local visitors, usually in Canada), so requests may pass through servers elsewhere
+when visitors are elsewhere. Stored data stays in Canada. We'll disclose this in the
+privacy policy. **A lawyer should review the
 privacy policy before launch** (PO-07).
 
 ---

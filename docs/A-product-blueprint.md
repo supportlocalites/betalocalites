@@ -60,6 +60,7 @@ Each principle has a technical control that makes it checkable.
 | Collect as little personal information as possible. | No child profiles, no birthdates, no guest accounts. |
 | Nothing hardcoded to birthdays or Orillia. | Event types and places are reference data. |
 | Calm, not enterprise. | Mobile-first; no dashboards before there's data worth showing. |
+| No running costs. | Every service on a free plan; only the web address is paid (D-20, [cost-model.md](./cost-model.md)). |
 
 ## 4. Capability map
 
@@ -192,5 +193,6 @@ message on launch day has someone on the other end.
 All in [H](./H-product-owner-action-register.md). The ones that shape the work now:
 D-00 (approve architecture), D-01 (name/domain), D-03 (listing businesses before they
 join), D-04 (contact before messaging), D-05 (messaging unclaimed businesses), D-06
-(review rule), D-07 (budget), D-09 (launch area), D-11 (who's on call), D-13
+(review rule), D-07 (the web address, the only cost), D-09 (launch area), D-11 (who's
+on call), D-13
 (consumer–vendor rules), D-14 (stage order).

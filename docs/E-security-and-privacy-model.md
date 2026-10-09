@@ -191,7 +191,7 @@ Proposed defaults. **D-10 asks you to approve these.**
 | Audit log | 2 years | Deleted |
 | Verification evidence | While verified + 1 year | Deleted; outcome kept |
 | Account deletion request | Within 30 days | As above |
-| Backups | The provider's rolling window (~7 days on Supabase Pro; confirm at signup) and our 30-day independent backup | Expire automatically |
+| Backups | Our own nightly backup, kept 30 days (F §5) | Expire automatically; deleted data is fully gone after 30 days |
 
 ## 9. Media and files
 
@@ -208,7 +208,7 @@ Proposed defaults. **D-10 asks you to approve these.**
   email, or documents.
 - **You own the root accounts.** The engineering team is invited with the least access
   needed. Development sessions never receive production credentials: code goes to
-  GitHub; Vercel deploys it; migrations run through a reviewed process using a secret
+  GitHub; Cloudflare deploys it; migrations run through a reviewed process using a secret
   stored in GitHub's encrypted settings.
 - **You will never be asked to paste a password, key, or code into chat.**
 - Automated secret scanning on every change. Keys rotated when someone with access

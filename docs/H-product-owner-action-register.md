@@ -22,6 +22,7 @@ Recorded from your message of 9 October 2026. These now shape every document.
 | ✅ D-17 | **Tallo is the digital handshake.** Consumers and vendors talk directly and plan together, and can share files (an invoice is just a file). | Messaging with files is the centre of Stage 2 (ADR-019, ADR-020). Quotes, vendor-confirmed bookings and agreements removed. |
 | ✅ D-18 | **"Add to event" and "Booked" are the consumer's tools.** | ADR-021. Only the consumer can set them (database-enforced). |
 | ✅ D-19 | **After the event, ask the consumer for feedback; that feeds reviews and ratings.** | Stage 3: feedback requests → reviews → ratings. |
+| ✅ D-20 | **No running costs.** Every service runs on a free plan. | [cost-model.md](./cost-model.md) revision 3. Supabase, email, error alerts and backups on free plans; hosting moved from Vercel to Cloudflare's free plan (ADR-007). Only the web address remains (D-07). |
 
 ---
 
@@ -37,13 +38,13 @@ Recorded from your message of 9 October 2026. These now shape every document.
 | **D-01** | Product name and web address | Stage 1 launch | 10 min |
 | **D-03** | List businesses before they join? | Stage 1 content | 15 min + lawyer |
 | **D-04** | How consumers contact vendors in Stage 1 | Stage 1 build | 2 min |
-| **D-07** | Monthly budget ceiling | Stage 1 launch | 2 min |
+| **D-07** | The one cost: the web address (~CA$15–25/year) | Email, launch | 2 min |
 | **D-09** | Launch area | Stage 1 content | 2 min |
 | **D-11** | Who responds when the live site breaks | Stage 1 launch | 10 min |
 
 **How to respond:** reply in the conversation with decision numbers and your choice,
-e.g. *"D-13 approve. D-06 recommended. D-07 approve $90."* "I don't understand this
-one" is a perfectly good answer.
+e.g. *"D-13 approve. D-06 recommended. D-07 yes to the domain."* "I don't understand
+this one" is a perfectly good answer.
 
 ---
 
@@ -206,21 +207,33 @@ truthfully how many people reached them through Tallo.
 
 ---
 
-### D-07 — Monthly budget ceiling
+### D-07 — The one cost: the web address
 
-**Expected** (details in [cost-model.md](./cost-model.md); USD):
-| Period | Expected |
-|---|---|
-| Building (Stages 0–1, before launch) | $0 – $25 |
-| After launch, directory only | ~$45 – $50 |
-| Once messaging is live (Stage 2) | ~$65 – $75 |
+*(Revision 3: replaces the monthly budget ceiling. Per D-20, Tallo runs on free plans
+and has no monthly costs. Details in [cost-model.md](./cost-model.md).)*
 
-Messaging means more email (new-message notices, feedback requests), so we expect to
-move to the email provider's ~$20/month plan in Stage 2.
+**What needs deciding.** Whether to pay for the web address (e.g. `tallo.ca`), about
+CA$15–25 a year.
 
-**Recommendation.** **US$90/month** through Stage 3. (Revision 1 suggested $75; with
-messaging, $75 would leave no headroom, and our rule is to warn you at 80% of the
-ceiling.) Any new service with a recurring cost still comes to you first.
+**Why it matters.**
+1. **Email needs it.** The email service only sends to other people from a domain you
+   own. Without one, nobody receives sign-in links, message notices, or "How was it?"
+   emails.
+2. **Links last.** Vendor links shared on Facebook keep working forever. Starting on a
+   free address and switching later breaks every link already shared.
+3. **Trust.** `tallo.ca` reads as a real local business.
+
+**Options.**
+| Option | Cost | Effect |
+|---|---|---|
+| **A. Buy the domain** | ~CA$15–25/year | Everything works |
+| B. Free Cloudflare address (`something.pages.dev`) | $0 | The directory works; sign-in and all email don't, until a domain is added |
+
+**Recommendation.** A. It's the only spending in the plan, and email (and therefore
+messaging notices and reviews) depends on it.
+
+**Standing rule.** Nothing else that costs money is added without your written
+approval. When a free plan approaches its limit, we tell you at 80%, with options.
 
 **Status:** ⏳ Awaiting you.
 
@@ -262,10 +275,16 @@ someone starts one. They can't watch for alerts on their own, take a call, or lo
 your hosting accounts. Once consumers and vendors depend on messaging, an outage
 matters more than it does for a directory.
 
-**Options.** A: you receive alerts and start a session. **B: you receive alerts; a
-retained developer is on call for serious incidents.** C: best effort.
+**Options.**
+| Option | Cost | Response |
+|---|---|---|
+| **A. Alerts go to you by email; you start a session to diagnose and fix** | $0 | As soon as you see the alert |
+| B. As A, plus a retained developer for serious incidents | A retainer | Hours, any time |
 
-**Recommendation.** C until public launch; B from Stage 2 (messaging) onward.
+**Recommendation.** A, in keeping with no running costs (D-20). Alerts arrive as
+plain-English emails saying what's wrong. The runbook will include a one-paragraph
+"what to paste into a new session" note for each kind of alert. Revisit B only if
+outages start to matter to users.
 
 **Status:** ⏳ Awaiting you.
 
@@ -312,10 +331,23 @@ codes or screenshots of them.
 
 ### PO-03 — Create hosting and database accounts
 **When:** **Not yet.** After Stage 1 is approved. We'll do it together, live.
-**Summary:** Vercel (sign up with GitHub, Pro plan, spending cap, connect the repository);
-Supabase (sign up with GitHub, create an organisation, invite the team; we create the
-project in Canada); connect them through Vercel's Supabase integration so no secret is
-ever copied by hand. Full verified instructions will be added here at that point.
+**Cost:** $0. Every account below is on a free plan, and none needs a payment method
+for what we use.
+**Summary:**
+1. **Supabase** (you've used it before): create two free projects, "tallo" and
+   "tallo-test", in the Canada region.
+2. **Cloudflare**: create a free account and connect it to the `Tallo` GitHub
+   repository, so every change we push is built automatically. Before connecting, we
+   read Cloudflare's terms together to confirm business use is allowed on the free plan
+   (ADR-007).
+3. **Connect them**: copy the database connection details from Supabase's dashboard
+   into Cloudflare's encrypted settings, from one screen to the other. They never go
+   into chat or email.
+4. **Resend** (email) and **Sentry** (error alerts): free accounts, after the domain is
+   registered (PO-04).
+
+Full step-by-step instructions, checked against the live sites, will be added here at
+that point.
 
 ### PO-04 — Register the domain
 **When:** After D-01. Earlier is safer. **Cost:** ~CA$15–25/year. Verified instructions

@@ -14,12 +14,15 @@ and confirmed before launch; this document will then record when.
 | Environment | What it's for | Data | Who can see it |
 |---|---|---|---|
 | **Local / session** | Development and automated tests | Throwaway test data, created and destroyed by tests | Engineering |
-| **Preview** | Every proposed change gets its own link, for review | A shared staging database with clearly fake test data | You and engineering only (Vercel's built-in deployment protection requires viewers to be signed in as team members; viewer seats are free on Pro) |
+| **Preview** | Every proposed change gets its own link, for review | The test copy of the database, with clearly fake data only | You and engineering. The links are hard to guess, and because previews only ever hold fake data, nothing real is exposed if one is shared. |
 | **Production** | The real site | Real data | Public pages: everyone. Everything else: per [E](./E-security-and-privacy-model.md). |
 
-Production and staging are **separate Supabase projects** with separate credentials.
-A mistake in staging cannot touch production data. Staging runs on Supabase's free tier
-(it pauses when idle, which is fine for review), so it adds no monthly cost.
+Production and staging are **separate Supabase projects** with separate credentials,
+both on Supabase's free plan (which allows two). A mistake in staging cannot touch
+production data. Staging may pause when idle, which is fine for review.
+
+**Running costs: none** (D-20). Hosting is Cloudflare's free plan, database Supabase's
+free plan, email Resend's free plan. See [cost-model.md](./cost-model.md).
 
 **Test data rule:** staging and test data is always obviously fake ("Test Vendor 14",
 "example.com" addresses). Real business names are never used as test data, so a
@@ -32,8 +35,8 @@ screenshot of staging can't be mistaken for a real listing.
 | Writing, testing, and reviewing code | ✅ | — |
 | Database migrations | ✅ | — |
 | Approving releases to production | Recommends | ✅ Approves (until you delegate this) |
-| Owning root accounts (Vercel, Supabase, domain, email) | Invited member | ✅ Owner |
-| Paying for services | — | ✅ |
+| Owning root accounts (Cloudflare, Supabase, domain, email) | Invited member | ✅ Owner |
+| Paying for services | — | ✅ Domain only (~CA$15–25/year) |
 | Receiving alerts | ✅ | ✅ (plain-English summary) |
 | Responding to incidents | Per D-11 | Per D-11 |
 | Monthly restore test | ✅ | Receives confirmation |
@@ -44,14 +47,14 @@ screenshot of staging can't be mistaken for a real listing.
 1. Work happens on a branch. Every push runs the automated checks: type checking,
    linting, unit tests, permission tests, and migration tests against a real
    PostgreSQL database.
-2. Vercel builds a **preview** from the branch. You get a link.
+2. Cloudflare builds a **preview** from the branch. You get a link.
 3. A pull request is opened describing the change in plain English, the migrations it
    includes, and the test results.
 4. You (or a delegate) review the preview and approve.
 5. On merge to `main`:
    1. Database migrations run first, automatically, against production (via GitHub
       Actions, using a secret held in GitHub's encrypted settings).
-   2. Only if migrations succeed does Vercel deploy the new application.
+   2. Only if migrations succeed does Cloudflare deploy the new application.
 6. A post-deploy smoke test loads the home page, a vendor profile, and search. Failure
    alerts engineering and you.
 7. The release is recorded in [G](./G-release-and-migration-history.md).
@@ -80,16 +83,17 @@ very unlikely, and recoverable when it happens.
 
 | Layer | What | Frequency | Retention | Source |
 |---|---|---|---|---|
-| Provider backups | Full database | Daily, automatic | Per plan (~7 days on Supabase Pro; confirm at signup) | Supabase |
-| Point-in-time recovery | Restore to any second | Continuous | Per add-on | Supabase add-on, **not included initially**. Worth considering once consumers and vendors depend on conversations (Stage 2): a daily backup could lose up to a day of messages. Will be costed and brought to you for approval before Stage 2 launch. |
-| Independent backup | Full database export (`pg_dump`), encrypted | Daily, scheduled job | 30 days | Stored outside Supabase, so a provider problem or account issue doesn't take the backups with it |
-| File storage | Vendor images, documents | Daily sync | 30 days | Copied to separate storage |
+| **Our own backup (the one we rely on)** | Full database export (`pg_dump`), encrypted | Nightly, automatic | 30 days | Stored outside Supabase on free storage, so a provider problem or account issue doesn't take the backups with it |
+| Files | Vendor photos, conversation files | Weekly | 30 days | Copied to separate free storage |
+| Provider backups | Full database | Whatever Supabase's free plan provides | — | Not relied on (sources disagree on what the free plan includes) |
 
-**Why the independent backup:** provider backups protect against hardware failure. They
-don't protect against losing access to the provider account, or a mistake that goes
-unnoticed for longer than the provider's retention window. The independent backup's
-storage location and cost will be proposed at Stage 1 (expected to be a few dollars a
-month or less).
+**What this means in practice:** if the database were damaged, we could restore it to
+last night's state. Anything written since (messages, edits) could be lost. Continuous
+"restore to any second" recovery is a paid add-on and is not planned (D-20).
+
+**Where the backups live:** a free storage location outside Supabase, chosen and set up
+in Stage 1 week 1. While the database is small, our existing free accounts are enough.
+If the backups outgrow free storage, we tell you before anything changes.
 
 ## 6. Restore procedure *(to be verified before launch)*
 
@@ -118,7 +122,7 @@ Integrity checks after any restore:
 
 | Situation | Action | Time |
 |---|---|---|
-| Application bug, no data harm | Vercel → "Instant Rollback" to the previous deployment. Safe because of the expand-then-contract rule. | Minutes |
+| Application bug, no data harm | Cloudflare → roll back to the previous version. Safe because of the expand-then-contract rule. | Minutes |
 | Migration failed partway | Migrations run in a transaction; a failure rolls back automatically and the application is not deployed. | Automatic |
 | Migration succeeded but damaged data | Restore procedure above, after your approval | Hours |
 
@@ -127,12 +131,13 @@ Integrity checks after any restore:
 | What | How | Who's told |
 |---|---|---|
 | Application errors | Sentry (free tier). Personal data scrubbed before sending. | Engineering; daily digest to you if anything new |
-| Site down | Uptime check every few minutes on the home page and one vendor page | Engineering and you, immediately |
-| Slow pages | Vercel analytics on page load time | Weekly review by engineering |
+| Site down | A scheduled check every few minutes (free, on Cloudflare) loads the home page and one vendor page and queries the database | Engineering and you, immediately, by email |
+| Slow pages | Cloudflare's free built-in analytics (no cookies, no tracking) | Weekly review by engineering |
+| Free-plan limits | Database size, file storage, data transfer, emails per day, requests per day | Engineering weekly; **you at 80% of any limit**, with options |
 | Database health | Supabase dashboard: storage used, connections, slow queries | Weekly review by engineering |
 | Email delivery | Failed and queued counts in the `notification` log; provider's daily-limit warnings | Engineering daily; you if consumers or vendors are missing message notices |
 | Reports | New items in the reports queue (messages, conversations, listings, reviews) | Platform team (you, initially), daily |
-| Costs | Each provider's billing page; spending caps where available | Monthly summary to you |
+| Costs | Confirm every account is still on its free plan with no payment method needed | Monthly one-line confirmation to you |
 | Unusual admin activity | Weekly `audit_log` review | Engineering, flagged to you |
 
 ## 9. Dependency management

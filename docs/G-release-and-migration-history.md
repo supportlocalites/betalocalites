@@ -31,6 +31,24 @@ Every release and every database migration, in order. Appended before each deplo
 
 ## Releases
 
+### 2026-10-09 — Stage 0 documentation, revision 3: no running costs
+
+**Stage:** 0
+**What changed (plain English):** The product owner directed that Tallo should have no
+running costs (D-20). Every service moves to a free plan: Supabase (database, sign-in,
+files), Resend (email), Sentry (error alerts), free storage for nightly backups.
+Hosting moves from Vercel to Cloudflare's free plan, because Vercel's free plan doesn't
+allow business use. The only recommended cost is the web address (~CA$15–25/year), which
+email requires (D-07). A one-day fit test in Stage 1 confirms the app fits Cloudflare's
+free limits (ADR-005). The on-call recommendation changes to alerts by email to the
+product owner (D-11).
+**Documents:** cost-model rewritten; C (ADR-003, 005, 007, 013, 014), F, H, A, E,
+roadmap, API strategy updated.
+**Migrations applied:** None. Data model and schemas unchanged.
+**Destructive?** No.
+**Tests run:** None needed; no schema change.
+**Approved by:** Pending (D-00).
+
 ### 2026-10-09 — Stage 0 documentation, revision 2: consumer–vendor handshake
 
 **Stage:** 0

@@ -89,7 +89,8 @@ public launch), PO-08.
 **Effort.** 5–7 weeks.
 | Work | Weeks |
 |---|---|
-| Foundations: setup, CI, environments, sign-in, permissions module, audit, migrations | 1.5 |
+| **Fit test (first day):** one vendor page, one search, one signed-in page on Cloudflare's free plan; confirm it fits the free limits (ADR-005) | 0.2 |
+| Foundations: setup, CI, environments, sign-in, permissions module, audit, migrations, nightly backup | 1.5 |
 | Taxonomy, vendor model, admin listing tools | 1.5–2 |
 | Public discovery: landing, browse, search, profile, SEO | 1.5–2 |
 | Vendor accounts, claiming, self-editing, team | 1 |
@@ -105,7 +106,8 @@ public launch), PO-08.
    has passing tests, including cross-vendor and role-escalation attempts.
 7. Every page passes automated accessibility checks and works at 360px wide.
 8. A backup has been restored successfully and recorded in G.
-9. **Success measure to watch:** how many listed businesses claim their profile.
+9. Every service is on a free plan; the only payment is the domain.
+10. **Success measure to watch:** how many listed businesses claim their profile.
 
 **Risks.** Too few vendors (high; mitigated by D-03 B and D-09 B) · a business objects to
 being listed (medium; clear labels, fast removal, personal contact) · legal review
@@ -141,7 +143,7 @@ see who marked them booked.
 text-message notifications; reviews (Stage 3); guests (Stage 4); payment of any kind.
 
 **Dependencies.** Stage 1 released and businesses claiming; D-05, D-10, D-13 decided;
-email plan approved (D-07).
+domain registered so email works (D-07).
 
 **Effort.** 5–7 weeks.
 | Work | Weeks |
@@ -220,7 +222,8 @@ approval).
 | Vendors don't reply, so consumers lose trust | Email notices; reply-rate visible to the platform team; later, a gentle "replies usually within a day" on profiles (only once true) |
 | Messaging misuse: spam, harassment, fake invoices | Vendors can't start conversations; block/report; "Tallo doesn't process payments" notice; reports reviewed daily |
 | Fake bookings used to post unfair reviews | Consumer-only "booked"; vendor flag; D-06 conversation requirement; moderation |
-| Nobody available when messaging breaks | D-11 option B from Stage 2 |
-| Email volume exceeds free tier | Budgeted from Stage 2 (D-07) |
+| Nobody available when messaging breaks | Alerts by email to you; a ready-made note for starting a fix session (D-11) |
+| A free-plan limit is reached (most likely email at 100/day, then file storage) | Free plans stop rather than bill. We warn you at 80% with free options first: tighter email batching, a second free email service, photo compression ([cost-model.md](./cost-model.md)) |
+| Cloudflare's free plan doesn't fit, or its terms don't allow business use | Fit test and terms check before real building starts; options brought to you before anything costs money |
 | Building beyond validated need | Stage gates; Stage 5 items need usage evidence |
 | Estimates slip | Mid-stage check-in with a revised range and reason |
