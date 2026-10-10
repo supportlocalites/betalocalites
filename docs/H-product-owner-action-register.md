@@ -41,6 +41,7 @@ Recorded from your messages of 9 and 10 October 2026. These now shape every docu
 | ✅ D-25 | **Suggest a business.** Anyone who doesn't see a business they want can suggest it by answering three questions: its name, its website (if any), and a phone number or email (if known). It's emailed to supportlocalites@gmail.com; the team vets it and adds it. | ADR-027; Stage 1. Screens P11 and X19. |
 | ✅ D-23 | **Stage 1 approved.** Build the public directory, vendor accounts, admin tools, activity tracking and Suggest a business, loaded with the test set. | [roadmap](./roadmap.md) Stage 1; building started 10 October 2026. |
 | ✅ D-22 | **Full activity tracking for vendor reports**: who and how many people see each vendor in search, open their profile, tap their website or phone (from Stage 1), and save, inquire, message, add them to an event or mark them booked (from Stage 2). | ADR-023; [E §7a](./E-security-and-privacy-model.md#7a-activity-tracking-d-22). Used to sell featured placements and help with renewals. **Amended:** detailed records kept with no deletion date, for year-over-year numbers; vendors see only anonymous counts, in a dashboard for paying vendors. |
+| ✅ D-26 | **A website only; no mobile app.** Everyone signs in with their email address, and every notice (new messages, "marked you as booked", "How was it?") goes to that email. | ADR-013 already works this way; no app-store fees, so D-20 holds. The website can still be made installable (a home-screen icon) at no cost later if you ask; not planned. |
 
 ---
 

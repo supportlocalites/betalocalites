@@ -367,6 +367,9 @@ local launch well inside this. If we approach the daily cap: sign-in emails alwa
 first, message notices are batched more tightly, and a second free service (Brevo, 300 a
 day) takes overflow. Paying would only ever be your decision.
 
+**Confirmed by D-26 (10 October 2026):** email is the only notice channel. People sign
+in with their email address, and there is no mobile app or phone notifications.
+
 **Not decided here:** Localites sending guest invitations itself (D-08); text messages.
 
 **Alternative.** Postmark, with a stronger delivery reputation and a smaller free tier.

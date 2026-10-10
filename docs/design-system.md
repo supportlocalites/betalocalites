@@ -29,7 +29,8 @@ font, a button or a card is made once and appears everywhere, at every size.
    and desktop (1440 × 900); see [testing-strategy.md](./testing-strategy.md).
 6. **Installable later, at no cost.** The website can be made installable (an icon on a
    phone's home screen or a computer's dock) without a second codebase. App-store apps
-   are out of scope (separate code, yearly fees).
+   are out of scope (separate code, yearly fees); D-26 confirms a website only, with
+   notices by email.
 
 ## 2. Colour
 
