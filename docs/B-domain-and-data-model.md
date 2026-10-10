@@ -5,7 +5,7 @@
 
 **Revision 2:** reworked around the two users, consumer and vendor, and the
 relationship between them. The commercial domain (quotes, vendor-confirmed bookings,
-agreements, payments) has been removed: Tallo is the digital handshake, never a party
+agreements, payments) has been removed: Localites is the digital handshake, never a party
 to the deal. Messaging with file sharing is now central. "Booked" is the consumer's own
 record, and it drives post-event feedback and reviews. Plain-English version:
 [roles-and-relationships.md](./roles-and-relationships.md).
@@ -29,7 +29,7 @@ These are decided now because changing them later means touching every table.
 | **Every status change is recorded** | Changes write a `status_change` row: who, when, from, to, why. | We can always answer "when was this marked booked, and by whom?" |
 | **Each status has one owner** | Every status field says *who* is allowed to set it (consumer, vendor, platform, or system). | "Booked" is the consumer's word; it can never be set by anyone else. |
 | **Time** | Stored in UTC. Events store their date, optional times, and local time zone. | Correct times across daylight saving, and ready for other regions. |
-| **Money** | Only appears as a vendor's *published* price information, in integer cents. No transaction, payment, or balance fields exist anywhere. | Tallo never handles money (ADR-018). |
+| **Money** | Only appears as a vendor's *published* price information, in integer cents. No transaction, payment, or balance fields exist anywhere. | Localites never handles money (ADR-018). |
 | **Place** | Every vendor and event is tied to a real `municipality`, not just free text. | Expansion to new towns is adding rows, not rewriting search. |
 | **Reference data, not code** | Event types, categories, places, attribute definitions live in admin-editable tables. | Adding "baby shower" or "Barrie" doesn't need a developer. |
 | **Ownership on every row** | Every private record traces to its owner (a consumer, a vendor team, or the platform) in one step. | Permission checks are simple and auditable. |
@@ -59,7 +59,7 @@ flowchart LR
 | `event_vendor` | A vendor on a consumer's event plan, with the consumer's status: considering → booked | The consumer |
 | `conversation` | The handshake: one consumer and one vendor talking, optionally about one event | Both, jointly |
 | `message`, `message_attachment` | What they say and share | The author |
-| `review_request` | Tallo asking the consumer how it went | The platform |
+| `review_request` | Localites asking the consumer how it went | The platform |
 | `review` | The consumer's rating and comments, and the vendor's one reply | Consumer (review), vendor (reply), platform (publication) |
 
 **Why there's no "consumer" table.** A consumer isn't a separate kind of account. It's
@@ -309,15 +309,15 @@ mean" column.
 |---|---|---|---|---|
 | Appears in search | Calculated live | — | Listing is published and matches | Endorsed or available |
 | Saved | `saved_vendor` | Consumer | A private bookmark | Any contact. The vendor isn't told. |
-| Conversation started | `conversation` + first `message` | Consumer | The consumer wrote to the vendor through Tallo | The vendor has read or replied |
+| Conversation started | `conversation` + first `message` | Consumer | The consumer wrote to the vendor through Localites | The vendor has read or replied |
 | Vendor replied | `message` with `author_side = vendor` | Vendor | A reply exists | Availability or agreement |
-| File shared | `message_attachment` | Either | A file was sent in the conversation | Anything about its contents. Tallo doesn't read or act on files. |
+| File shared | `message_attachment` | Either | A file was sent in the conversation | Anything about its contents. Localites doesn't read or act on files. |
 | Added to event | `event_vendor.status = considering` | Consumer | The consumer is considering this vendor | Contacted or booked. The vendor isn't told. |
-| Booked | `event_vendor.status = booked` | Consumer | **The consumer says** they've booked this vendor | That Tallo or the vendor confirmed it, or that money moved |
+| Booked | `event_vendor.status = booked` | Consumer | **The consumer says** they've booked this vendor | That Localites or the vendor confirmed it, or that money moved |
 | Booking flagged | `event_vendor.vendor_flagged_at` | Vendor | The vendor says this booking isn't real | That it isn't; the platform team resolves it |
 | Feedback requested | `review_request.status = sent` | System | An email was actually sent (or the in-app prompt shown) | That it was read |
 | Review submitted | `review.moderation_status = pending` | Consumer | Awaiting the platform team's check | Published |
-| Review published | `review.moderation_status = published` | Platform | Passed the review policy and is public | Tallo endorses the vendor or the opinion |
+| Review published | `review.moderation_status = published` | Platform | Passed the review policy and is public | Localites endorses the vendor or the opinion |
 
 ### State machines
 

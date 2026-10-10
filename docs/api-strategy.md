@@ -47,7 +47,7 @@ authenticated with scoped keys.
 | Sentry | 1 | Error alerts | Error details; personal data and message text scrubbed | None to users | ADR-016 |
 | Cloudflare | 1 | Hosting (free plan); scheduled checks | Everything passes through | Roll back to previous version | ADR-007 |
 
-All on free plans; Tallo has no running costs (D-20).
+All on free plans; Localites has no running costs (D-20).
 
 **Rules for every integration:** wrapped behind our own interface so it can be replaced;
 a failure degrades one feature, never public pages; minimum data shared; no cost of any
@@ -57,7 +57,7 @@ kind without approval.
 
 | Integration | Why not |
 |---|---|
-| **Payments of any kind** (Stripe, PayPal, Interac…) | Tallo never handles money (ADR-018). Not "later": a new decision would be required. |
+| **Payments of any kind** (Stripe, PayPal, Interac…) | Localites never handles money (ADR-018). Not "later": a new decision would be required. |
 | Chat services (Stream, Sendbird) | Cost; messages would be held outside our database and outside Canada |
 | Calendar / availability sync | No reliable integration among local vendors; we won't imply availability |
 | Maps | Town-level location is enough |

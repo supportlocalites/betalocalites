@@ -4,19 +4,19 @@
 **Last updated:** 2026-10-09
 
 **Revision 2** reflects the product owner's clarification:
-- Tallo has **two users**, the consumer and the vendor, and the product centres on the
+- Localites has **two users**, the consumer and the vendor, and the product centres on the
   relationship between them.
-- Tallo is the **digital handshake**: consumers and vendors message each other directly,
+- Localites is the **digital handshake**: consumers and vendors message each other directly,
   share files, and plan the event together.
-- **No payments, ever.** Tallo doesn't handle money and never implies it does. A file
+- **No payments, ever.** Localites doesn't handle money and never implies it does. A file
   shared in a conversation is just a file, even if it's an invoice.
 - **"Add to event" and "Booked" are the consumer's own planning tools.** Marking a vendor
-  booked lets Tallo ask, after the event, how it went. That feedback becomes reviews
+  booked lets Localites ask, after the event, how it went. That feedback becomes reviews
   and ratings.
 
 ---
 
-## 1. What Tallo is
+## 1. What Localites is
 
 A local event discovery and coordination platform. A **consumer** planning an event
 finds local **vendors**, talks to them directly, and keeps track of who they've booked.
@@ -34,7 +34,7 @@ English in [roles-and-relationships.md](./roles-and-relationships.md). Read that
 
 ## 2. The three questions the product answers
 
-| Question the consumer has | How Tallo answers it | Stage |
+| Question the consumer has | How Localites answers it | Stage |
 |---|---|---|
 | What's available locally for my event? | Public vendor discovery: browse, search, filter, no account needed | 1 |
 | How do I reach the right vendors and work it out with them? | Message vendors directly, share files, plan it together | 2 |
@@ -52,11 +52,11 @@ Each principle has a technical control that makes it checkable.
 |---|---|
 | Discovery is open: no account needed to browse. | Public pages need no sign-in. Tested. |
 | One vendor, one record, forever. | A single `vendor.id` used by every feature. |
-| Tallo is the handshake, never a party to the deal. | No payment, transaction, or balance fields exist anywhere (ADR-018). Banned words in the interface. |
+| Localites is the handshake, never a party to the deal. | No payment, transaction, or balance fields exist anywhere (ADR-018). Banned words in the interface. |
 | Each side owns its own actions. | Only consumers start conversations and mark bookings; only vendors reply and flag. Enforced in the database. |
 | Events and conversations are private. | Default-deny permissions; staff don't read conversations unless reported. |
 | We never claim something happened that didn't. | "Booked" is labelled as the consumer's record. An email is "sent" only when it really was. |
-| Reviews come from real, recorded relationships. | The database refuses reviews that don't trace to a booked vendor, a past event, and a Tallo conversation. |
+| Reviews come from real, recorded relationships. | The database refuses reviews that don't trace to a booked vendor, a past event, and a Localites conversation. |
 | Collect as little personal information as possible. | No child profiles, no birthdates, no guest accounts. |
 | Nothing hardcoded to birthdays or Orillia. | Event types and places are reference data. |
 | Calm, not enterprise. | Mobile-first; no dashboards before there's data worth showing. |
@@ -68,7 +68,7 @@ Each capability shows the stage in which we propose **building** it. Every capab
 is **designed for** now: the data model and permissions already have a place for it.
 
 ### A. Public discovery — Stage 1
-- Landing page explaining Tallo to consumers and vendors
+- Landing page explaining Localites to consumers and vendors
 - Browse by category and subcategory
 - Search and filter: town, service type, suitability, structured attributes
 - Vendor profile pages: services, published prices where given, photos, service area,
@@ -96,7 +96,7 @@ is **designed for** now: the data model and permissions already have a place for
 - Create an event: type, date, place; everything else optional
 - Event plan: vendors **considering** → **booked**
 - **Message vendors and share files**
-- "Let them know you're interested" for businesses not yet on Tallo
+- "Let them know you're interested" for businesses not yet on Localites
 
 ### D. The handshake: consumer ↔ vendor conversations — Stage 2
 - One conversation per consumer–vendor pair, optionally about one of the consumer's
@@ -110,7 +110,7 @@ is **designed for** now: the data model and permissions already have a place for
 ### E. Feedback, reviews and ratings — Stage 3
 - The morning after an event, consumers are asked about each vendor they marked booked
 - Reviews: 1–5 stars and comments, checked by the platform team before publishing
-- Strict eligibility (D-06): booked + event passed + talked on Tallo + not flagged
+- Strict eligibility (D-06): booked + event passed + talked on Localites + not flagged
 - Vendor's one public reply
 - Average rating shown once a vendor has three published reviews
 
@@ -138,13 +138,13 @@ or ratings); notifications by text message; richer coordination.
 **On the vendor value proposition:** at launch, the honest offer to vendors is *being
 found by local people planning events, and hearing from them directly*. Once
 consumers start marking vendors booked, we can tell a vendor *"6 people marked you
-booked through Tallo this season"*, which is true and verifiable. We won't promise
+booked through Localites this season"*, which is true and verifiable. We won't promise
 leads or revenue.
 
 ## 5. What we are explicitly not building
 
 Payments, deposits, checkout, card storage, payouts, invoicing, or billing between
-consumers and vendors · any wording that implies Tallo handles money or confirms
+consumers and vendors · any wording that implies Localites handles money or confirms
 bookings · real-time chat features (typing indicators, read receipts, presence) ·
 native mobile apps · automated recommendation engines · analytics dashboards before
 meaningful data exists · automated vendor availability · unapproved third-party
@@ -167,7 +167,7 @@ Words carry promises. These apply to every screen, email, and help page.
 | **Mark as booked** · You marked this booked | Book now, booking confirmed, secure your booking |
 | Shared a file | Invoice received, payment due, pay now |
 | How was it? · Leave a review | Verified purchase, verified booking |
-| Tallo connects you with local vendors | Tallo guarantees, Tallo-approved |
+| Localites connects you with local vendors | Localites guarantees, Localites-approved |
 | Arrange details directly with the vendor | Checkout, deposit, transaction, fee |
 
 ## 7. Roadmap summary
@@ -191,8 +191,7 @@ message on launch day has someone on the other end.
 ## 8. Open decisions
 
 All in [H](./H-product-owner-action-register.md). The ones that shape the work now:
-D-00 (approve architecture), D-01 (name/domain), D-03 (listing businesses before they
-join), D-04 (contact before messaging), D-05 (messaging unclaimed businesses), D-06
-(review rule), D-07 (the web address, the only cost), D-09 (launch area), D-11 (who's
-on call), D-13
-(consumer–vendor rules), D-14 (stage order).
+D-00 (approve architecture), D-01 (web address; the name, Localites, is decided), D-03
+(listing businesses before they join), D-04 (contact before messaging), D-05 (messaging
+unclaimed businesses), D-06 (review rule), D-07 (the web address, the only cost), D-09
+(launch area), D-11 (who's on call), D-13 (consumer–vendor rules), D-14 (stage order).

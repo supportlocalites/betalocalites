@@ -31,10 +31,28 @@ Every release and every database migration, in order. Appended before each deplo
 
 ## Releases
 
+### 2026-10-10 — Stage 0 documentation, revision 4: renamed to Localites
+
+**Stage:** 0
+**What changed (plain English):** The product owner renamed the product from its working
+name, Tallo, to **Localites** (D-01, name part). Every document now says Localites, as do
+the proposed schemas (comments and two error messages), the blueprint page and the design
+mockups. Example web addresses now read `localites.ca`; the web address itself is still
+to be chosen (D-01), after checking the domain is free and the name is clear to use. The
+GitHub repository keeps its current name, `Tallo`; that name isn't shown to anyone using
+the product.
+**Documents:** README, A–H, roles and relationships, roadmap, screen inventory, cost
+model, API and testing strategies, both proposed schemas and their checks.
+**Migrations applied:** None. Text only; no tables, columns or rules changed.
+**Destructive?** No.
+**Tests run:** Both proposed schemas re-applied to a scratch database and checked:
+Stage 1, 29 of 29 passed; Stage 2–3, 53 of 53 passed.
+**Approved by:** Product owner (the name), 10 October 2026.
+
 ### 2026-10-09 — Stage 0 documentation, revision 3: no running costs
 
 **Stage:** 0
-**What changed (plain English):** The product owner directed that Tallo should have no
+**What changed (plain English):** The product owner directed that Localites should have no
 running costs (D-20). Every service moves to a free plan: Supabase (database, sign-in,
 files), Resend (email), Sentry (error alerts), free storage for nightly backups.
 Hosting moves from Vercel to Cloudflare's free plan, because Vercel's free plan doesn't
@@ -54,7 +72,7 @@ roadmap, API strategy updated.
 **Stage:** 0
 **What changed (plain English):** Reworked the plan around the product owner's
 clarification. Two users (consumer and vendor) and the relationship between them are
-now the centre. Tallo is the digital handshake: direct messaging with file sharing.
+now the centre. Localites is the digital handshake: direct messaging with file sharing.
 No payments of any kind. "Add to event" and "Booked" are the consumer's own records,
 and post-event feedback becomes reviews. Removed quotes, vendor-confirmed bookings,
 agreements, inquiries and the concierge relay. New stage order proposed: handshake

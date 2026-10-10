@@ -1,5 +1,5 @@
 -- =============================================================================
--- Tallo — PROPOSED Stage 1 schema
+-- Localites — PROPOSED Stage 1 schema
 -- =============================================================================
 -- STATUS: PROPOSAL FOR REVIEW. NOT APPLIED TO ANY DATABASE.
 --
@@ -161,7 +161,7 @@ create table vendor (
   primary_municipality_id  uuid not null references municipality(id),
 
   -- Contact the vendor has published or provided (see decisions D-03/D-04).
-  -- Messaging on Tallo is available once the listing is claimed (see D-05).
+  -- Messaging on Localites is available once the listing is claimed (see D-05).
   website_url              text check (website_url ~ '^https?://'),
   public_email             citext,
   public_phone             text check (public_phone ~ '^\+?[0-9 ().-]{7,20}$'),

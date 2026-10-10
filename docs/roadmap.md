@@ -38,7 +38,7 @@ next.
 listing. Stage 1 puts the directory in front of the public *and* gives local businesses
 5–7 weeks to claim their profiles, so the first consumer who taps "Message" on Stage 2
 launch day has someone on the other end. Reviews follow because they complete the
-loop: by the time Stage 3 ships, the first events planned through Tallo will have
+loop: by the time Stage 3 ships, the first events planned through Localites will have
 happened.
 
 ---
@@ -137,7 +137,7 @@ see who marked them booked.
 - "Let them know you're interested" for unclaimed businesses, plus a notice when they
   join (D-05)
 - Per-person database rules on events, conversations, messages and files (ADR-004)
-- "Tallo doesn't process payments" notice in every conversation (ADR-018)
+- "Localites doesn't process payments" notice in every conversation (ADR-018)
 
 **Excluded.** Typing indicators, read receipts, online status, group chats, voice/video;
 text-message notifications; reviews (Stage 3); guests (Stage 4); payment of any kind.
@@ -220,7 +220,7 @@ approval).
 |---|---|
 | Vendors don't claim, so messaging has nobody to talk to | Claim drive during Stage 1 (PO-08); consumer-interest signals; measure claim rate weekly |
 | Vendors don't reply, so consumers lose trust | Email notices; reply-rate visible to the platform team; later, a gentle "replies usually within a day" on profiles (only once true) |
-| Messaging misuse: spam, harassment, fake invoices | Vendors can't start conversations; block/report; "Tallo doesn't process payments" notice; reports reviewed daily |
+| Messaging misuse: spam, harassment, fake invoices | Vendors can't start conversations; block/report; "Localites doesn't process payments" notice; reports reviewed daily |
 | Fake bookings used to post unfair reviews | Consumer-only "booked"; vendor flag; D-06 conversation requirement; moderation |
 | Nobody available when messaging breaks | Alerts by email to you; a ready-made note for starting a fix session (D-11) |
 | A free-plan limit is reached (most likely email at 100/day, then file storage) | Free plans stop rather than bill. We warn you at 80% with free options first: tighter email batching, a second free email service, photo compression ([cost-model.md](./cost-model.md)) |

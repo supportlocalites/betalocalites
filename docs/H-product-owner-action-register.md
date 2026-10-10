@@ -1,6 +1,6 @@
 # H — Product Owner Action Register
 
-**Last updated:** 2026-10-09 (revision 2)
+**Last updated:** 2026-10-10 (revision 3)
 
 This is the one place where everything that needs **you** is listed. If it isn't here,
 you don't need to do it.
@@ -13,16 +13,17 @@ you don't need to do it.
 
 ## Already decided by you
 
-Recorded from your message of 9 October 2026. These now shape every document.
+Recorded from your messages of 9 and 10 October 2026. These now shape every document.
 
 | # | Decision | Effect |
 |---|---|---|
 | ✅ D-15 | **Two users: consumers and vendors.** The relationship between them is the core of the product. | New [roles-and-relationships.md](./roles-and-relationships.md); data model rebuilt around it. |
-| ✅ D-16 | **No payments. Tallo doesn't handle cash and never says or implies it does.** | ADR-018. No payment features or fields anywhere. Language rules in [A §6](./A-product-blueprint.md#6-language-rules). |
-| ✅ D-17 | **Tallo is the digital handshake.** Consumers and vendors talk directly and plan together, and can share files (an invoice is just a file). | Messaging with files is the centre of Stage 2 (ADR-019, ADR-020). Quotes, vendor-confirmed bookings and agreements removed. |
+| ✅ D-16 | **No payments. Localites doesn't handle cash and never says or implies it does.** | ADR-018. No payment features or fields anywhere. Language rules in [A §6](./A-product-blueprint.md#6-language-rules). |
+| ✅ D-17 | **Localites is the digital handshake.** Consumers and vendors talk directly and plan together, and can share files (an invoice is just a file). | Messaging with files is the centre of Stage 2 (ADR-019, ADR-020). Quotes, vendor-confirmed bookings and agreements removed. |
 | ✅ D-18 | **"Add to event" and "Booked" are the consumer's tools.** | ADR-021. Only the consumer can set them (database-enforced). |
 | ✅ D-19 | **After the event, ask the consumer for feedback; that feeds reviews and ratings.** | Stage 3: feedback requests → reviews → ratings. |
 | ✅ D-20 | **No running costs.** Every service runs on a free plan. | [cost-model.md](./cost-model.md) revision 3. Supabase, email, error alerts and backups on free plans; hosting moved from Vercel to Cloudflare's free plan (ADR-007). Only the web address remains (D-07). |
+| ✅ D-01 (name) | **The product is called Localites** (renamed from Tallo, 10 October 2026). | Every document, the proposed schemas and the design mockups say Localites. The web address is still to choose ([D-01](#d-01--product-name-and-web-address)). |
 
 ---
 
@@ -32,10 +33,10 @@ Recorded from your message of 9 October 2026. These now shape every document.
 |---|---|---|---|
 | **D-00** | Approve the revised architecture (separately from Stage 1) | Everything | Read the blueprint page; reply |
 | **D-13** | Approve the consumer–vendor rules | Stage 2 design | 10 min |
-| **D-05** | Messaging businesses that haven't joined Tallo | Stage 2 design | 2 min |
+| **D-05** | Messaging businesses that haven't joined Localites | Stage 2 design | 2 min |
 | **D-06** | Who may leave a review | Stage 3 design | 5 min |
 | **D-14** | After the handshake: reviews first, or guest RSVPs first? | Roadmap | 2 min |
-| **D-01** | Product name and web address | Stage 1 launch | 10 min |
+| **D-01** | Web address (the name, Localites, is decided) | Stage 1 launch | 5 min |
 | **D-03** | List businesses before they join? | Stage 1 content | 15 min + lawyer |
 | **D-04** | How consumers contact vendors in Stage 1 | Stage 1 build | 2 min |
 | **D-07** | The one cost: the web address (~CA$15–25/year) | Email, launch | 2 min |
@@ -78,12 +79,12 @@ prototypes.
 | R3 | "Considering" is private; "booked" notifies the vendor | ✅ Yes |
 | R4 | Vendors can flag a booking that isn't real; it can't lead to a review until resolved | ✅ Yes |
 | R5 | The consumer controls what event details a vendor sees (type, date, town, guest count; never the guest list) | ✅ Yes |
-| R6 | Tallo staff don't read conversations unless one side reports it | ✅ Yes |
+| R6 | Localites staff don't read conversations unless one side reports it | ✅ Yes |
 | R7 | Either side can block the other | ✅ Yes |
 | R8 | One account per person; a person can be both a consumer and on a vendor's team, and switches between "My events" and "My business" | ✅ Yes |
 
 **The rule most worth your attention is R3.** Telling a vendor when they're marked
-booked is good for vendors (it's real evidence Tallo works for them) and protects
+booked is good for vendors (it's real evidence Localites works for them) and protects
 reviews (they can flag fakes). The cost: a consumer's name and event date are shared
 with that vendor. We'd tell the consumer this clearly when they tap "Mark as booked".
 The alternative is to keep "booked" completely private, which removes the flagging
@@ -93,7 +94,7 @@ protection.
 
 ---
 
-### D-05 — Messaging businesses that haven't joined Tallo
+### D-05 — Messaging businesses that haven't joined Localites
 
 *(Replaces the earlier concierge proposal.)*
 
@@ -104,12 +105,12 @@ protection.
 | Option | Consumer experience | Your workload | Honesty |
 |---|---|---|---|
 | **A. Not messageable; show their own contact details; "Let them know you're interested"** | Calls or visits their website directly. Gets an email if the business joins later. | You (or someone) contact interested businesses to invite them. Light. | Clean: we never hold a message we can't deliver |
-| B. Concierge relay: Tallo staff pass messages back and forth by phone/email | Feels like messaging, but slow and indirect | Heavy: you'd relay every message | Risky: easy to imply delivery that hasn't happened |
+| B. Concierge relay: Localites staff pass messages back and forth by phone/email | Feels like messaging, but slow and indirect | Heavy: you'd relay every message | Risky: easy to imply delivery that hasn't happened |
 
 **Recommendation.** A. Your clarification puts the consumer and vendor talking
 *directly* at the centre, which a relay can't provide. Interest from real consumers is
 also the most persuasive, truthful reason for a business to claim its listing: *"Three
-parents tried to message you on Tallo this month."*
+parents tried to message you on Localites this month."*
 
 **Status:** ⏳ Awaiting you.
 
@@ -123,8 +124,8 @@ review?
 **Options.**
 | Option | Rule | Review volume | Credibility |
 |---|---|---|---|
-| **A. Booked + event passed + talked on Tallo (vendor replied) + not flagged** | Strict | Lower early on | High: both sides took part on Tallo |
-| B. Booked + event passed + not flagged | Looser | Higher | Medium: a consumer could review a business they only phoned. Such reviews would be labelled "Planned outside Tallo". |
+| **A. Booked + event passed + talked on Localites (vendor replied) + not flagged** | Strict | Lower early on | High: both sides took part on Localites |
+| B. Booked + event passed + not flagged | Looser | Higher | Medium: a consumer could review a business they only phoned. Such reviews would be labelled "Planned outside Localites". |
 
 Both options: one review per booking; checked by the platform team before publishing;
 vendor gets one public reply; average shown only from three reviews; 60-day window.
@@ -146,7 +147,7 @@ invitations & RSVPs**?
 
 **Recommendation.** Reviews first (Stage 3, 2–3 weeks), then RSVPs (Stage 4, 3–4
 weeks). Reviews complete the consumer–vendor loop you described, and the timing works:
-the first events booked through Tallo will be happening by the time reviews ship.
+the first events booked through Localites will be happening by the time reviews ship.
 Parents already have workable RSVP tools (Evite, group chats); nobody else has
 reviews tied to real local bookings. No feedback is lost in the meantime: bookings are
 recorded from Stage 2, and Stage 3 asks about any event in the previous 60 days.
@@ -157,13 +158,19 @@ recorded from Stage 2, and Stage 3 asks about any event in the previous 60 days.
 
 ### D-01 — Product name and web address
 
-**Why it matters.** The domain appears in every shared vendor link and invitation.
-Changing it breaks links already in group chats.
+**Name: decided.** The product is called **Localites** (your message of 10 October
+2026). It replaces the working name, Tallo.
 
-**Recommendation.** A `.ca` domain under the product name (not a town name, which
-becomes wrong when you expand). Requires Canadian presence, which you have.
+**Still needed: the web address.** The domain appears in every shared vendor link and
+invitation. Changing it later breaks links already in group chats.
 
-**Status:** ⏳ Awaiting you. Then PO-04.
+**Recommendation.** A `.ca` domain under the product name, such as `localites.ca`, if
+it's available (not a town name, which becomes wrong when you expand). Requires Canadian
+presence, which you have. Before registering, we'll check together that the name is
+clear to use: that the domain is free, and a quick search of the Canadian trademarks
+database (free) for another business or app already trading under the name.
+
+**Status:** Name ✅ decided. Web address ⏳ awaiting you. Then PO-04.
 
 ---
 
@@ -201,7 +208,7 @@ clearly marked unclaimed (fast).** C: self-signup only (slowest).
 
 Messaging arrives in Stage 2. Until then: **Recommend: show the vendor's own website and
 phone on their listing, and count the clicks anonymously**, so we can tell vendors
-truthfully how many people reached them through Tallo.
+truthfully how many people reached them through Localites.
 
 **Status:** ⏳ Awaiting you.
 
@@ -209,10 +216,10 @@ truthfully how many people reached them through Tallo.
 
 ### D-07 — The one cost: the web address
 
-*(Revision 3: replaces the monthly budget ceiling. Per D-20, Tallo runs on free plans
+*(Revision 3: replaces the monthly budget ceiling. Per D-20, Localites runs on free plans
 and has no monthly costs. Details in [cost-model.md](./cost-model.md).)*
 
-**What needs deciding.** Whether to pay for the web address (e.g. `tallo.ca`), about
+**What needs deciding.** Whether to pay for the web address (e.g. `localites.ca`), about
 CA$15–25 a year.
 
 **Why it matters.**
@@ -221,7 +228,7 @@ CA$15–25 a year.
    emails.
 2. **Links last.** Vendor links shared on Facebook keep working forever. Starting on a
    free address and switching later breaks every link already shared.
-3. **Trust.** `tallo.ca` reads as a real local business.
+3. **Trust.** `localites.ca` reads as a real local business.
 
 **Options.**
 | Option | Cost | Effect |
@@ -242,7 +249,7 @@ approval. When a free plan approaches its limit, we tell you at 80%, with option
 ### D-08 — How guest invitations are delivered (needed before Stage 4)
 
 **Recommendation.** The consumer shares links through their own phone, WhatsApp,
-Facebook or email, with one-tap share buttons. Tallo doesn't email guests. Free, and
+Facebook or email, with one-tap share buttons. Localites doesn't email guests. Free, and
 avoids anti-spam issues.
 
 **Status:** Not needed yet.
@@ -334,12 +341,12 @@ codes or screenshots of them.
 **Cost:** $0. Every account below is on a free plan, and none needs a payment method
 for what we use.
 **Summary:**
-1. **Supabase** (you've used it before): create two free projects, "tallo" and
-   "tallo-test", in the Canada region.
-2. **Cloudflare**: create a free account and connect it to the `Tallo` GitHub
-   repository, so every change we push is built automatically. Before connecting, we
-   read Cloudflare's terms together to confirm business use is allowed on the free plan
-   (ADR-007).
+1. **Supabase** (you've used it before): create two free projects, "localites" and
+   "localites-test", in the Canada region.
+2. **Cloudflare**: create a free account and connect it to the project's GitHub
+   repository (it can keep its current name, `Tallo`), so every change we push is built
+   automatically. Before connecting, we read Cloudflare's terms together to confirm
+   business use is allowed on the free plan (ADR-007).
 3. **Connect them**: copy the database connection details from Supabase's dashboard
    into Cloudflare's encrypted settings, from one screen to the other. They never go
    into chat or email.
@@ -351,7 +358,7 @@ that point.
 
 ### PO-04 — Register the domain
 **When:** After D-01. Earlier is safer. **Cost:** ~CA$15–25/year. Verified instructions
-for a recommended registrar will be added once D-01 is decided.
+for a recommended registrar will be added once the web address is chosen (D-01).
 
 ### PO-05 — Confirm the starting category list
 **When:** Stage 1, week 1. We send a proposed list; you mark it up from local knowledge.
@@ -361,7 +368,7 @@ for a recommended registrar will be added once D-01 is decided.
 
 ### PO-07 — Legal review
 **When:** Before public launch. **Start looking now.**
-**Scope:** privacy policy; terms of use (especially that **Tallo is not a party to
+**Scope:** privacy policy; terms of use (especially that **Localites is not a party to
 arrangements or payments between consumers and vendors**); review policy and how vendor
 flags are handled; the unclaimed-listing approach (D-03); emails we send (CASL);
 retention (D-10). We'll prepare drafts and a one-page summary so the lawyer reviews
@@ -388,3 +395,4 @@ booked"**. You tell us what feels right. No code to read.
 | Date | Item |
 |---|---|
 | 2026-10-09 | D-15 to D-19 decided (see top of this document) |
+| 2026-10-10 | D-01, name part: the product is called Localites |

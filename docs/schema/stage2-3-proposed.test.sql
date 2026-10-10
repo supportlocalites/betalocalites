@@ -100,7 +100,7 @@ select pg_temp.expect_accept('A adds an unclaimed business to her event (allowed
      values ('50000000-0000-7000-8000-000000000001', '30000000-0000-7000-8000-000000000002', '10000000-0000-7000-8000-000000000001')$q$);
 
 -- ---------------------------------------------------------- conversations ---
-select pg_temp.expect_reject('conversation with a business that has not joined Tallo',
+select pg_temp.expect_reject('conversation with a business that has not joined Localites',
   $q$insert into conversation (consumer_user_id, vendor_id)
      values ('10000000-0000-7000-8000-000000000001', '30000000-0000-7000-8000-000000000002')$q$);
 select pg_temp.expect_reject('conversation about someone else''s event',
@@ -201,14 +201,14 @@ select pg_temp.expect_reject('review after the 60-day window',
   $q$insert into review (event_vendor_id, author_user_id, rating)
      values ('90000000-0000-7000-8000-000000000005', '10000000-0000-7000-8000-000000000001', 5)$q$);
 
--- Test Vendor 3: booked, but the vendor never replied on Tallo.
+-- Test Vendor 3: booked, but the vendor never replied on Localites.
 insert into conversation (id, consumer_user_id, vendor_id) values
   ('60000000-0000-7000-8000-000000000003', '10000000-0000-7000-8000-000000000001', '30000000-0000-7000-8000-000000000003');
 insert into message (conversation_id, author_user_id, author_side, body) values
   ('60000000-0000-7000-8000-000000000003', '10000000-0000-7000-8000-000000000001', 'consumer', 'Hi there');
 insert into event_vendor (id, event_id, vendor_id, added_by, status, booked_at) values
   ('90000000-0000-7000-8000-000000000003', '50000000-0000-7000-8000-000000000001', '30000000-0000-7000-8000-000000000003', '10000000-0000-7000-8000-000000000001', 'booked', now());
-select pg_temp.expect_reject('review with no conversation reply from the vendor on Tallo',
+select pg_temp.expect_reject('review with no conversation reply from the vendor on Localites',
   $q$insert into review (event_vendor_id, author_user_id, rating)
      values ('90000000-0000-7000-8000-000000000003', '10000000-0000-7000-8000-000000000001', 1)$q$);
 

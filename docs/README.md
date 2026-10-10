@@ -1,4 +1,4 @@
-# Tallo — Engineering Documentation
+# Localites — Engineering Documentation
 
 This folder is the permanent home for the documents the product owner asked us to
 maintain from day one. Everything here is written to be read **without reading source
@@ -9,7 +9,7 @@ No application code has been written. No infrastructure has been created. No mon
 been spent.
 
 **Revision 2** reworks the plan around the product owner's clarification: two users
-(consumer and vendor), Tallo as the digital handshake between them, direct messaging
+(consumer and vendor), Localites as the digital handshake between them, direct messaging
 with file sharing, **no payments of any kind**, and consumer-controlled "Add to event"
 and "Booked" that lead to post-event feedback and reviews.
 

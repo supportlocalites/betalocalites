@@ -15,7 +15,7 @@ not a finished feature.
 - [ ] Loading, empty, error, and success states exist
 - [ ] It works on a 360px-wide phone and with a keyboard
 - [ ] Automated accessibility checks pass
-- [ ] No wording implies Tallo handles money or confirms bookings ([A §6](./A-product-blueprint.md#6-language-rules))
+- [ ] No wording implies Localites handles money or confirms bookings ([A §6](./A-product-blueprint.md#6-language-rules))
 - [ ] The stage's acceptance tests pass
 - [ ] Docs B, D, E and G are updated
 
@@ -66,7 +66,7 @@ PostgreSQL. Mocked databases are where permission bugs hide.
 **Stage 3: feedback & reviews**
 13. The morning after the event, the consumer receives "How was it?", leaves 5 stars;
     the platform team publishes it; the vendor replies once.
-14. A consumer who marked a vendor booked but never talked with them on Tallo can't
+14. A consumer who marked a vendor booked but never talked with them on Localites can't
     review them (if D-06 option A).
 15. A flagged booking can't be reviewed until resolved.
 

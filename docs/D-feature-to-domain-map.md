@@ -74,7 +74,7 @@ that module writes to them. Others go through its public functions.
 | Report | Both | — | `moderation_report` | safety | 📐 |
 | Reports queue | Admin | `moderation_report`, reported item | `moderation_report`, `audit_log` | safety | 📐 |
 | "Let them know you're interested" | Consumer | `vendor` (unclaimed) | `vendor_interest` | messaging | 📐 |
-| "Now on Tallo" notice when claimed | Consumer | `vendor_interest` | `notification` | messaging, vendors | 📐 |
+| "Now on Localites" notice when claimed | Consumer | `vendor_interest` | `notification` | messaging, vendors | 📐 |
 | Event types | Admin | `event_type` | `event_type`, `audit_log` | taxonomy | 📐 |
 
 ### Stage 3 — Feedback & reviews

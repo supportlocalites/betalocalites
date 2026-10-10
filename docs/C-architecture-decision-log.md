@@ -44,7 +44,7 @@ ADR-014 caveat updated. Nothing in the data model or security model changes.
 | ADR-015 | First-party counts in our own database; no third-party trackers | Team | Proposed |
 | ADR-016 | Sentry for error monitoring, free tier | Team | Proposed |
 | ADR-017 | One gatekeeper for every status change | Team | Proposed |
-| ADR-018 | **Tallo never handles money**, and nothing in the system prepares for it | **Needs approval** (product commitment) | Proposed |
+| ADR-018 | **Localites never handles money**, and nothing in the system prepares for it | **Needs approval** (product commitment) | Proposed |
 | ADR-019 | Messaging: stored conversations, polled updates, batched email notices | Team | Proposed |
 | ADR-020 | Files in conversations: private, participants only, limited types | Team | Proposed |
 | ADR-021 | "Booked" is the consumer's own record, labelled as such | **Needs approval** (user experience) | Proposed |
@@ -191,7 +191,7 @@ heavier tools hide. Anyone reviewing a migration can see exactly what it does.
 ## ADR-007 — Cloudflare (free plan) for hosting
 
 **Team decision. $0.** *(Revision 3: replaces "Vercel on the Pro plan", following the
-product owner's direction that Tallo should have no running costs.)*
+product owner's direction that Localites should have no running costs.)*
 
 **Plain English.** Supabase is the filing cabinet. The host is the shopfront: the
 computer that runs the website and sends each page to a visitor's phone. Something has
@@ -212,7 +212,7 @@ a business would need its US$20/month plan.
 **To confirm before we commit:** Cloudflare's published limits contain no
 business-use restriction, but we couldn't open their full terms of service from the
 development environment. We'll read them at signup (PO-03). If they don't allow
-Tallo, we come back to you with options before anything costs money.
+Localites, we come back to you with options before anything costs money.
 
 **Limits that shape the build:** 10 ms of processing per request and a 3 MiB
 application size on the free plan, hence the fit test in ADR-005.
@@ -286,10 +286,10 @@ and changes no vendor IDs.
 **Team decision. $0.** Requires the domain (D-07): Resend only emails other people
 from a domain you own and have verified.
 
-**Decision.** Use Resend for the emails Tallo must send:
+**Decision.** Use Resend for the emails Localites must send:
 - Stage 1: sign-in links, password resets, claim decisions.
 - Stage 2: **new-message notices**, "marked you as booked" notices to vendors, "now on
-  Tallo" notices when a business a consumer was interested in joins.
+  Localites" notices when a business a consumer was interested in joins.
 - Stage 3: **"How was it?" feedback requests** and one reminder; review published or
   replied-to notices.
 
@@ -307,7 +307,7 @@ local launch well inside this. If we approach the daily cap: sign-in emails alwa
 first, message notices are batched more tightly, and a second free service (Brevo, 300 a
 day) takes overflow. Paying would only ever be your decision.
 
-**Not decided here:** Tallo sending guest invitations itself (D-08); text messages.
+**Not decided here:** Localites sending guest invitations itself (D-08); text messages.
 
 **Alternative.** Postmark, with a stronger delivery reputation and a smaller free tier.
 
@@ -367,25 +367,25 @@ nothing was. One gatekeeper makes honest states enforceable.
 
 ---
 
-## ADR-018 — Tallo never handles money
+## ADR-018 — Localites never handles money
 
 **Needs your approval** (a product commitment).
 
-**Decision.** Tallo has no payment, deposit, checkout, invoicing, billing, balance, or
+**Decision.** Localites has no payment, deposit, checkout, invoicing, billing, balance, or
 payout capability, and **nothing in the data model prepares for one**. No transaction
 tables, no "amount owed" fields, no payment provider. A vendor's *published* prices
 ("from $150") are listing information, shown as the vendor gave them.
 
 The interface never implies otherwise. Banned words and their replacements are in
 [A §6](./A-product-blueprint.md#6-language-rules). The terms of use will state that
-Tallo is not a party to any arrangement between a consumer and a vendor.
+Localites is not a party to any arrangement between a consumer and a vendor.
 
 **Plain English.** We introduce people. What they agree and how they pay is between them.
 
 **Why.** Handling money brings regulation, fraud, disputes, refunds, tax and liability.
-It changes what Tallo is. Not building toward it also keeps the product simpler.
+It changes what Localites is. Not building toward it also keeps the product simpler.
 
-**Consequence.** Files shared in conversations may include invoices. Tallo stores and
+**Consequence.** Files shared in conversations may include invoices. Localites stores and
 delivers them like any other file and never reads, totals, or acts on them.
 
 **Revisit when.** Only by a new, explicit product decision. It would mean a new domain,
@@ -429,10 +429,10 @@ switch to Realtime is contained in the messaging module.
 - Allowed: JPEG, PNG, WebP images and PDFs. Up to 10 MB each, 5 per message.
 - Stored in **private** storage (Canada). Opened only through short-lived links
   (minutes) issued after checking that the person is in the conversation.
-- PDFs download rather than open inside Tallo; images display. Image location data
+- PDFs download rather than open inside Localites; images display. Image location data
   (GPS) is stripped on upload.
 - File type is checked from the file's contents, not just its name.
-- Tallo doesn't read, scan the text of, or interpret files.
+- Localites doesn't read, scan the text of, or interpret files.
 
 **Known gap: malware scanning.** We're not proposing automatic virus scanning at
 launch: it needs a paid service, and restricting to images and PDFs removes most of the
@@ -451,7 +451,7 @@ consumer and *"[Name] marked you as booked for Sat 14 Nov"* to the vendor (D-13,
 It is never described as confirmed. The vendor can flag it as not real; a flagged
 booking can't lead to a review until the platform team resolves it.
 
-**Why.** It gives consumers a simple planning tool and gives Tallo a truthful signal to
+**Why.** It gives consumers a simple planning tool and gives Localites a truthful signal to
 ask for feedback, without pretending to be a booking system.
 
 ---

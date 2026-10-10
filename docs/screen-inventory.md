@@ -17,12 +17,12 @@ added; quotes, bookings and the concierge queue removed.
 
 | # | Screen | Purpose | Stage |
 |---|---|---|---|
-| P1 ★ | Home | What Tallo is, for consumers and for vendors; categories; collections; search | 1 |
+| P1 ★ | Home | What Localites is, for consumers and for vendors; categories; collections; search | 1 |
 | P2 | Category page | Vendors in a category, with filters | 1 |
 | P3 ★ | Search results | Keyword + filters; honest empty state | 1 |
 | P4 ★ | Vendor profile | Services, published prices, photos, area, verification; **Message** (claimed) or the business's own contact + *"Let them know you're interested"* (unclaimed); **Add to event**; reviews from Stage 3 | 1 |
 | P5 | Collection page | A curated list | 1 |
-| P6 | How it works | For consumers and for vendors. States plainly that Tallo doesn't handle payments. | 1 |
+| P6 | How it works | For consumers and for vendors. States plainly that Localites doesn't handle payments. | 1 |
 | P7 | For vendors | Why join, how claiming works, that it's free | 1 |
 | P8 | Claim or remove this listing | From an unclaimed profile | 1 |
 | P9 | Privacy · Terms · Review policy · Contact | | 1 |
@@ -49,9 +49,9 @@ added; quotes, bookings and the concierge queue removed.
 | C5 | Mark as booked | Confirms, and says plainly: *"We'll let [Vendor] know you've marked them as booked."* | 2 |
 | C6 | Saved vendors | | 2 |
 | C7 | Messages | All conversations, unread first | 2 |
-| C8 ★ | Conversation | Messages and files; "about" an event (optional); block, report; "Tallo doesn't process payments" footer | 2 |
+| C8 ★ | Conversation | Messages and files; "about" an event (optional); block, report; "Localites doesn't process payments" footer | 2 |
 | C9 | Start a conversation | Choose whether to share an event, with a preview of exactly what the vendor will see | 2 |
-| C10 | Not on Tallo yet | Their own contact details + *"Let them know you're interested"* | 2 |
+| C10 | Not on Localites yet | Their own contact details + *"Let them know you're interested"* | 2 |
 | C11 | How was it? | From the feedback email: stars + comments, one per booked vendor | 3 |
 | C12 | My reviews | Status: checking, published, declined (with reason) | 3 |
 | C13 | Guests | Guest list and invitation status | 4 |

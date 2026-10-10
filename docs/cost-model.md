@@ -30,7 +30,7 @@ stops working.
 | **Sentry** | The smoke alarm: alerts when something breaks | Free (1 user) | $0 | Error volume cap; ample for us | To confirm at signup |
 | **GitHub** | Where the code lives; runs automated tests | Free | $0 | Monthly allowance of test-running minutes for private repositories | Existing account |
 | **Nightly backup** | A copy of the data kept outside Supabase | Free storage | $0 | Small while the database is small | Location chosen in Stage 1, week 1 |
-| **Domain** | The web address, e.g. `tallo.ca` | Registrar | **~CA$15–25/year** | — | Quoted with D-01 |
+| **Domain** | The web address, e.g. `localites.ca` | Registrar | **~CA$15–25/year** | — | Quoted with D-01 |
 
 ## Why the domain is the one cost worth keeping
 
@@ -38,9 +38,9 @@ stops working.
    than yourself from a domain you own and have verified. Without one, nobody can
    receive a sign-in link or a message notice.
 2. **Links last.** Vendor profile links get shared on Facebook and in group chats. A
-   free address like `tallo.pages.dev` works, but moving to a real domain later breaks
+   free address like `localites.pages.dev` works, but moving to a real domain later breaks
    every link already shared.
-3. **Trust.** Parents and businesses are more comfortable with `tallo.ca` than with a
+3. **Trust.** Parents and businesses are more comfortable with `localites.ca` than with a
    free subdomain.
 
 If you'd rather not pay even this, we can launch on a free Cloudflare address, but
@@ -58,7 +58,7 @@ email (sign-in, message notices, feedback requests) won't work until a domain is
 
 **The important difference from paid plans:** free plans *stop* rather than *bill* you
 when a limit is reached. That's what you want for cost control, and it's why we warn
-at 80%. If Tallo outgrows a free plan, that's a sign it's working, and spending would
+at 80%. If Localites outgrows a free plan, that's a sign it's working, and spending would
 then be your decision with real numbers in front of you.
 
 ## Trade-offs of running entirely free
@@ -76,7 +76,7 @@ then be your decision with real numbers in front of you.
 |---|---|
 | Lawyer to review privacy policy, terms, and listing approach (PO-07) | **Recommended** before public launch, especially because we list businesses before they join and publish reviews. Your decision. |
 | A developer on call for outages (D-11) | Optional. Free alternative: alerts go to you and you start a session. |
-| Your own Claude plan used for development | Not part of Tallo's running costs |
+| Your own Claude plan used for development | Not part of Localites' running costs |
 
 ## Removed from earlier drafts
 

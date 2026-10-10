@@ -27,7 +27,7 @@ concierge role and inquiry/quote/booking records.
 
 - Provider: Supabase Auth (ADR-003). Email + password, or an emailed sign-in link.
 - Sessions in secure, HTTP-only cookies that page scripts can't read.
-- Tallo code never sees or stores passwords.
+- Localites code never sees or stores passwords.
 - Platform team accounts **must** use two-factor authentication, enforced on the server.
 - **Browsing needs no account.** Guests (Stage 4) never need one.
 
@@ -114,7 +114,7 @@ membership ends. Their past messages stay, attributed to the business.
 
 A consumer can review a vendor only if: they marked that vendor booked on their own
 event; the event date has passed; it's within 60 days; the vendor hasn't flagged the
-booking (or the platform team confirmed it); and **they exchanged messages on Tallo,
+booking (or the platform team confirmed it); and **they exchanged messages on Localites,
 with at least one reply from the vendor** (D-06, recommended). One review per booking.
 
 ### 4.6 Guests (Stage 4)
@@ -144,8 +144,8 @@ Stage 4. Unchanged from revision 1:
 | Someone reads a conversation that isn't theirs | Server and database both check membership on every request. Tested by changing IDs directly. |
 | A vendor spams consumers | Vendors cannot start conversations (database-enforced). Consumers can block and report. |
 | A consumer harasses a vendor | Vendors can block and report. Reports go to the platform team. |
-| Fake or fraudulent invoices | Tallo never handles money, and says so in every conversation's footer: *"Tallo doesn't process payments. Arrange payment directly with the business."* Report button on every message. Verified badge only for vendors with recorded checks. |
-| Malicious files | Images and PDFs only; content-type checked; PDFs download rather than open in Tallo; 10 MB limit. No automatic virus scanning at launch (ADR-020): known gap, revisited if reports warrant it. |
+| Fake or fraudulent invoices | Localites never handles money, and says so in every conversation's footer: *"Localites doesn't process payments. Arrange payment directly with the business."* Report button on every message. Verified badge only for vendors with recorded checks. |
+| Malicious files | Images and PDFs only; content-type checked; PDFs download rather than open in Localites; 10 MB limit. No automatic virus scanning at launch (ADR-020): known gap, revisited if reports warrant it. |
 | A shared file link leaks | File links expire within minutes and are issued only after a membership check. |
 | Photos reveal home location | GPS data stripped from images on upload. |
 | Former staff keep access | Access ends the moment membership ends. |
@@ -183,9 +183,9 @@ Proposed defaults. **D-10 asks you to approve these.**
 | Data | Kept for | Then |
 |---|---|---|
 | Conversations and files | While both parties' accounts exist, up to 3 years after the last message | Deleted |
-| When a consumer deletes their account | — | Their events, plans and saved vendors are deleted. In conversations, their messages show as *"Former Tallo member"* and their files are deleted, so the vendor keeps a record of their own side. |
-| When a vendor leaves Tallo | — | The listing is archived. Consumers keep their copies of conversations, shown as *"This business has left Tallo"*. Published reviews stay, without the reply option. |
-| Published reviews | While the listing exists | The author is shown as *"A Tallo member"* if they delete their account |
+| When a consumer deletes their account | — | Their events, plans and saved vendors are deleted. In conversations, their messages show as *"Former Localites member"* and their files are deleted, so the vendor keeps a record of their own side. |
+| When a vendor leaves Localites | — | The listing is archived. Consumers keep their copies of conversations, shown as *"This business has left Localites"*. Published reviews stay, without the reply option. |
+| Published reviews | While the listing exists | The author is shown as *"A Localites member"* if they delete their account |
 | Guest contact details (Stage 4) | Until 90 days after the event | Erased; RSVP counts kept |
 | Email delivery log | 1 year | Deleted |
 | Audit log | 2 years | Deleted |
@@ -235,7 +235,7 @@ Every row of §4 becomes automated tests run before every deployment, including:
 - **Booking integrity:** a vendor tries to mark themselves booked; another consumer tries
   to mark a vendor booked on someone else's event. All must fail.
 - **Review integrity:** reviews without a booking, before the event, after the window,
-  without a Tallo conversation, on a flagged booking, by someone else, or twice. All
+  without a Localites conversation, on a flagged booking, by someone else, or twice. All
   must fail. *(Database layer already proven.)*
 - **File access:** expired links, links for files in other conversations, public
   storage attempts. All must fail.
@@ -254,7 +254,7 @@ rules. Application-layer tests will be added with the code.
   (messages, sign-in, feedback on a booking the consumer recorded). The lawyer should
   confirm that the feedback request and the "business joined" notice fit that
   description.
-- **Not a party to the deal.** The terms of use must state clearly that Tallo connects
+- **Not a party to the deal.** The terms of use must state clearly that Localites connects
   consumers and vendors and is not a party to their arrangements, payments, or disputes.
 - **Reviews** need a published policy (what's allowed, how disputes work) and fair
   treatment of vendors' flags.

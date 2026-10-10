@@ -1,5 +1,5 @@
 -- =============================================================================
--- Tallo — PROPOSED Stage 2–3 schema: the consumer–vendor handshake and reviews
+-- Localites — PROPOSED Stage 2–3 schema: the consumer–vendor handshake and reviews
 -- =============================================================================
 -- STATUS: PROPOSAL FOR REVIEW. NOT APPLIED TO ANY DATABASE.
 -- Applies on top of stage1-proposed.sql.
@@ -9,9 +9,9 @@
 --     "Booked" is the consumer's own record; only the consumer sets it.
 --   * A consumer and a claimed vendor talk in a conversation, sharing messages
 --     and files. Only the consumer can start it; vendors reply.
---   * After a booked event has taken place, Tallo asks the consumer how it went.
+--   * After a booked event has taken place, Localites asks the consumer how it went.
 --     The answer becomes a review, published after a check by the platform team.
---   * Tallo never handles money. There are no payment, transaction, or balance
+--   * Localites never handles money. There are no payment, transaction, or balance
 --     fields anywhere in this schema.
 --
 -- Rules marked [D-xx] follow a recommendation awaiting the product owner's
@@ -155,7 +155,7 @@ begin
     if not exists (select 1 from vendor v
                    where v.id = new.vendor_id and v.claim_status = 'claimed'
                      and v.listing_status <> 'archived') then
-      raise exception 'this business has not joined Tallo yet, so it cannot receive messages';
+      raise exception 'this business has not joined Localites yet, so it cannot receive messages';
     end if;
     if exists (select 1 from vendor_member m
                where m.vendor_id = new.vendor_id and m.user_id = new.consumer_user_id
@@ -243,7 +243,7 @@ create trigger message_immutable
 
 -- Files shared in a conversation. Always private storage, only the two parties
 -- can open them (enforced in the application's policy layer and storage rules).
--- Tallo does not read or interpret file contents. An invoice is just a file.
+-- Localites does not read or interpret file contents. An invoice is just a file.
 create table message_attachment (
   message_id      uuid not null references message(id),
   media_asset_id  uuid not null unique references media_asset(id),  -- a file belongs to one message
@@ -283,7 +283,7 @@ create table conversation_read_marker (
   primary key (conversation_id, user_id)
 );
 
--- A consumer who wanted to message a business that hasn't joined Tallo.
+-- A consumer who wanted to message a business that hasn't joined Localites.
 -- Used to (truthfully) invite the business, and to tell the consumer when it joins.
 create table vendor_interest (
   vendor_id           uuid not null references vendor(id),
@@ -315,7 +315,7 @@ create table moderation_report (
 );
 create index moderation_report_open on moderation_report (created_at) where status = 'open';
 
--- Every email Tallo sends, with an honest status: "sent" only once the
+-- Every email Localites sends, with an honest status: "sent" only once the
 -- provider accepted it.
 create table notification (
   id              uuid primary key default gen_random_uuid(),
@@ -398,7 +398,7 @@ create table review (
 
 -- [D-06] Who may review: the host, for a vendor they marked booked, after the
 -- event, within 60 days, if the vendor hasn't flagged the booking, and if the
--- two exchanged messages on Tallo (the vendor replied at least once).
+-- two exchanged messages on Localites (the vendor replied at least once).
 create function enforce_review_eligibility() returns trigger
 language plpgsql as $$
 declare
@@ -431,7 +431,7 @@ begin
                  where c.consumer_user_id = e.host_user_id
                    and c.vendor_id = ev.vendor_id
                    and m.author_side = 'vendor') then
-    raise exception 'a vendor can only be reviewed after you have exchanged messages with them on Tallo';
+    raise exception 'a vendor can only be reviewed after you have exchanged messages with them on Localites';
   end if;
   if new.moderation_status <> 'pending' then
     raise exception 'new reviews start as pending until the platform team checks them';
@@ -443,7 +443,7 @@ create trigger review_eligibility
   before insert on review
   for each row execute function enforce_review_eligibility();
 
--- After the platform team's check, the consumer's words are fixed. Tallo never
+-- After the platform team's check, the consumer's words are fixed. Localites never
 -- edits a review; it only publishes, rejects, or removes it. The vendor gets one
 -- reply, on a published review, written by an owner or manager.
 create function enforce_review_changes() returns trigger
