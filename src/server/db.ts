@@ -15,16 +15,18 @@ type Connection = { url: string; ssl: 'require' | false; via: 'hyperdrive' | 'da
  * DATABASE_URL secret is used, always encrypted to hosted databases.
  */
 export function connection(): Connection {
+  let secret = process.env.DATABASE_URL;
   try {
-    const env = getCloudflareContext().env as { HYPERDRIVE?: { connectionString: string } };
+    const env = getCloudflareContext().env as { HYPERDRIVE?: { connectionString: string }; DATABASE_URL?: string };
     if (env.HYPERDRIVE?.connectionString) {
       return { url: env.HYPERDRIVE.connectionString, ssl: false, via: 'hyperdrive' };
     }
+    secret = env.DATABASE_URL ?? secret;
   } catch {
     // Not running on Cloudflare (local development and tests).
   }
-  if (!process.env.DATABASE_URL) throw new Error('DATABASE_URL is not set.');
-  const url = normalizeDatabaseUrl(process.env.DATABASE_URL);
+  if (!secret) throw new Error('DATABASE_URL is not set.');
+  const url = normalizeDatabaseUrl(secret);
   return { url, ssl: requiresTls(url) ? 'require' : false, via: 'database_url' };
 }
 
