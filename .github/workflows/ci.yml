@@ -35,8 +35,8 @@ jobs:
       # A throwaway database inside this job only; not a real credential.
       TEST_DATABASE_ADMIN_URL: postgres://postgres:postgres@localhost:5432/postgres
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
         with:
           node-version: 22
           cache: npm
@@ -65,8 +65,8 @@ jobs:
     env:
       DATABASE_ADMIN_URL: ${{ secrets.SUPABASE_TEST_ADMIN_URL }}
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
         with:
           node-version: 22
           cache: npm
