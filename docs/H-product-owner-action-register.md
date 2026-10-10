@@ -48,11 +48,11 @@ Recorded from your messages of 9 and 10 October 2026. These now shape every docu
 
 | # | What | Blocks | Your effort |
 |---|---|---|---|
-| **PO-03** | Part 3: connect GitHub, Supabase and Cloudflare (step by step below) | Fit test and first preview | About 30 minutes |
+| **ADR-005** | Tell us Cloudflare's CPU time figures (median and P99) and whether any "Exceeded CPU" errors appear (localites → Metrics) | The hosting fit test | 5 min |
 | **D-12** | Mailing address for the privacy policy and terms | Public launch | 1 min, later |
 
 **How to respond:** reply in the conversation with decision numbers and your choice,
-e.g. *"PO-03 done: localites.example.workers.dev"* "I don't understand
+e.g. *"Median 6 ms, P99 20 ms, no errors."* "I don't understand
 this one" is a perfectly good answer.
 
 ---
@@ -597,6 +597,10 @@ means a note on your own computer that you delete straight after.
     off** for now. Send us the configuration **ID** (not a secret); we add it to the
     site. ✅ Done: ID `4e3e6b64b1cb4015a679dd85ad7a8daa`.
 
+**✅ Done (10 October 2026).** The test site is live at
+https://localites.supportlocalites.workers.dev, connected through Hyperdrive
+(`/api/health` reports `"database":"ok"`).
+
 **Done when:** you reply *"PO-03 done"* with the `.workers.dev` address (an address,
 not a secret). We then run the speed half of the fit test (ADR-005) and check
 Cloudflare's numbers with you.
@@ -681,4 +685,5 @@ computer through private preview links. You tell us what feels right. No code to
 | 2026-10-10 | D-24 (no payments of any kind through Localites); D-12 business name; PO-08 pilot of 5 per category |
 | 2026-10-10 | D-25 Suggest a business |
 | 2026-10-10 | D-23: Stage 1 approved; building started |
+| 2026-10-10 | PO-03: Supabase, GitHub and Cloudflare connected; test site live |
 | 2026-10-10 | PO-08: test set of our 28 suggested businesses (up to 5 per category); vendor list to be refreshed later |

@@ -155,7 +155,9 @@ Mockups: phone `G-00` to `G-14`; desktop `G-D1` to `G-D6`.
   Localites yet, Mark as booked, Browse local, Plan an event. **Message** on claimed,
   verified businesses; **Inquire** (secondary button) on businesses not yet on Localites
   (D-04), never both. **Suggest a business** (text link) under search results, category
-  pages and empty results (D-25). Welcome reads "Welcome to
+  pages and empty results (D-25). **Plan an event** appears on Welcome from Stage 2, when
+  event plans exist; until then Welcome shows only **Browse local** (decided 10 October
+  2026), so no button leads nowhere. Welcome reads "Welcome to
   Localites." / "See what your community has to offer…".
 - Language rules in [A §6](./A-product-blueprint.md#6-language-rules) apply throughout.
 

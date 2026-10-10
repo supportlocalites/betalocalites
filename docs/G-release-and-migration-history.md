@@ -31,6 +31,27 @@ Every release and every database migration, in order. Appended before each deplo
 
 ## Releases
 
+### 2026-10-10 — First live test site (Stage 1, not public)
+
+**Stage:** 1
+**What changed (plain English):** The Stage 1 foundations went live on Cloudflare's free
+plan at https://localites.supportlocalites.workers.dev, built automatically from GitHub
+on every change. It reads the Supabase test project (`localites-test`, Canada) through
+Cloudflare Hyperdrive, with only the six fake test businesses. Getting there found and
+fixed three issues: the database library's Node build is rejected by Cloudflare's runtime
+(now its Cloudflare build), direct encrypted connections to Supabase's pooler were cut
+off (now Hyperdrive), and Cloudflare's publish step needs a placeholder local address for
+Hyperdrive. `/api/health` reports the connection in plain words without revealing any
+secret.
+**Migrations applied:** none new (0001 and 0002 were already on `localites-test`).
+**Destructive?** No.
+**Tests run:** GitHub checks green on every change; `/api/health` live: database ok via
+Hyperdrive, 6 published test listings.
+**Fit test:** size 1,085 KiB (35% of 3 MiB). CPU time first reading 20 ms against a
+10 ms limit; percentiles pending (ADR-005).
+**How to roll back:** Cloudflare → localites → Deployments → previous version → Deploy.
+**Approved by:** Product owner (PO-03), 10 October 2026.
+
 ### 2026-10-10 — Stage 1, week 1: foundations and local fit test (not deployed)
 
 **Stage:** 1 (approved D-23)

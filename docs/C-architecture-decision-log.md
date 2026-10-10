@@ -203,8 +203,13 @@ Cloudflare's runtime rejects its encryption settings and every database page fai
 Cloudflare also verifies database certificates, so if it doesn't trust Supabase's, the
 app connects through **Cloudflare Hyperdrive** (free plan; encrypts to Supabase and pools
 connections). The code supports both; `/api/health` reports which is in use.
-**Part 2, still to do on Cloudflare itself after PO-03:** time per request against the
-10 ms limit, on the real free plan, with a signed-in page.
+**Part 2, on Cloudflare (10 October 2026, in progress):** the site runs live at
+`localites.supportlocalites.workers.dev`, reaching Supabase through Hyperdrive. First
+reading from Cloudflare's metrics: **CPU time 20 ms** (percentile not yet known) against
+the free plan's 10 ms. Next: median and P99, and whether any "Exceeded CPU" errors occur.
+If typical requests exceed the limit, the fallback above (React Router) applies; the
+paid plan (about US$5 a month) would break D-20 and needs the product owner's approval.
+The signed-in page is measured when sign-in is built.
 
 ---
 
