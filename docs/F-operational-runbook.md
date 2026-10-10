@@ -106,9 +106,18 @@ kind of problem (not configured, address unreadable, login refused, encryption f
 cannot reach) and what to do. It never shows the address or password. Uptime checks
 (§8) use the same page.
 
-**On Cloudflare**, the app connects through **Hyperdrive** when a `HYPERDRIVE` binding
-exists (Cloudflare's free database connector: it keeps the encrypted connection to
-Supabase and pools connections), otherwise directly with the `DATABASE_URL` secret.
+**On Cloudflare**, the app connects through **Hyperdrive** (Cloudflare's free database
+connector: it keeps the encrypted connection to Supabase and pools connections). Test
+project: configuration `localites-test-db`, ID `4e3e6b64b1cb4015a679dd85ad7a8daa`
+(bound as `HYPERDRIVE` in `wrangler.jsonc`), Supabase **Session pooler** (port 5432),
+user `app_server`, SSL mode **Require**, caching **off**. The `DATABASE_URL` secret is
+only a fallback. To change the database password: set it in Supabase (step C), then edit
+the Hyperdrive configuration's password in Cloudflare.
+
+**Why Hyperdrive (10 October 2026):** direct connections from Cloudflare to Supabase's
+pooler were cut off right after the encrypted handshake (logs: `unhandledRejection … read`).
+Hyperdrive is Cloudflare's supported route to external Postgres, included in the free
+plan.
 
 ### The app's own database login (ADR-004)
 

@@ -588,6 +588,15 @@ means a note on your own computer that you delete straight after.
 14. Open the address Cloudflare shows for the Worker (it ends in `.workers.dev`) and tap
     **Browse local**. You should see six "Test Vendor" businesses.
 
+*F. Hyperdrive (Cloudflare's free database connector), added 10 October 2026*
+15. Cloudflare's direct encrypted connection to Supabase kept being cut off, so the site
+    connects through Hyperdrive instead. In Cloudflare: **Storage & Databases →
+    Hyperdrive → Create configuration → Connect to public database**. Name
+    `localites-test-db`; the **Session pooler** address (port **5432**) with the
+    `app_server.` user name and app_server password; **SSL mode: Require**; **caching
+    off** for now. Send us the configuration **ID** (not a secret); we add it to the
+    site. ✅ Done: ID `4e3e6b64b1cb4015a679dd85ad7a8daa`.
+
 **Done when:** you reply *"PO-03 done"* with the `.workers.dev` address (an address,
 not a secret). We then run the speed half of the fit test (ADR-005) and check
 Cloudflare's numbers with you.

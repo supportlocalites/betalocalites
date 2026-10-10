@@ -32,4 +32,6 @@ npm run cf:build && npm run cf:size   # Cloudflare build and size budget
 ```
 
 `TEST_DATABASE_ADMIN_URL` must point at a disposable PostgreSQL 16 + PostGIS server.
+For `wrangler dev` (`npm run cf:preview`), set
+`CLOUDFLARE_HYPERDRIVE_LOCAL_CONNECTION_STRING_HYPERDRIVE` to your local database.
 Never put secrets in git; production secrets live only in Cloudflare and Supabase.
