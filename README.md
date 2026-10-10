@@ -1,2 +1,2 @@
-# Tallo
+# Localites
 A local vendor app
