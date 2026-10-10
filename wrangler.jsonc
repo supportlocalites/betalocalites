@@ -1,0 +1,11 @@
+{
+  // Cloudflare Workers, free plan (ADR-007). Secrets such as DATABASE_URL are set in
+  // the Cloudflare dashboard by the product owner, never in this file.
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "localites",
+  "main": ".open-next/worker.js",
+  "compatibility_date": "2026-09-01",
+  "compatibility_flags": ["nodejs_compat", "global_fetch_strictly_public"],
+  "assets": { "directory": ".open-next/assets", "binding": "ASSETS" },
+  "observability": { "enabled": true }
+}

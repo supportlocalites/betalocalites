@@ -161,7 +161,7 @@ erDiagram
 ```
 
 Full Stage 1 detail, including service areas, media, collections and the audit tables,
-is in [schema/stage1-proposed.sql](./schema/stage1-proposed.sql).
+is in [db/migrations/0001_stage1_foundation.sql](../db/migrations/0001_stage1_foundation.sql) (built from the reviewed [proposal](./schema/stage1-proposed.sql)).
 
 ### 3.3 The handshake: events, plans, conversations — [S2]
 

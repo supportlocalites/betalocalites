@@ -1,6 +1,6 @@
 # Roadmap & Estimates
 
-**Status:** Proposed (Stage 0, revision 2).
+**Status:** Stage 0 approved (D-00). **Stage 1 approved (D-23, 10 October 2026); in progress.**
 **Last updated:** 2026-10-10
 
 **10 October 2026:** stages and estimates unchanged. Your answers on the launch list
@@ -58,7 +58,7 @@ happened.
 | 2 | **Roles & the consumer–vendor relationship** | [roles-and-relationships.md](./roles-and-relationships.md) | ✅ New |
 | 3 | Screen inventory | [screen-inventory.md](./screen-inventory.md) | ✅ Revised |
 | 4 | Domain model & diagrams | [B](./B-domain-and-data-model.md) | ✅ Revised |
-| 5 | Proposed database: Stage 1 and Stages 2–3 | [schema/](./schema/) | ✅ 85/85 checks pass |
+| 5 | Database: Stage 1 built as migrations; Stages 2–3 proposed | [db/](../db/), [schema/](./schema/) | ✅ 51/51 and 56/56 checks pass |
 | 6 | Permissions & privacy | [E](./E-security-and-privacy-model.md) | ✅ Revised |
 | 7 | Architecture & deployment | [C](./C-architecture-decision-log.md), [F](./F-operational-runbook.md) | ✅ Revised |
 | 8 | API & integrations | [api-strategy.md](./api-strategy.md) | ✅ Revised |
@@ -74,6 +74,11 @@ conversation (both sides), and an event plan with "Mark as booked".
 ---
 
 ## Stage 1 — Discovery & vendor foundation
+
+**Progress (10 October 2026):** foundations done: app skeleton in design G, first two
+database migrations with 51 checks, Welcome, Explore, search and business profile pages
+on fake test data, automatic checks on GitHub, and the local half of the hosting fit test
+(30% of the size limit). Next: PO-03 accounts, then the fit test on Cloudflare itself.
 
 **Outcome.** A real, public directory of local event vendors, useful to a parent on its
 own, with the admin tools to build it. **Local businesses claim their listings** so

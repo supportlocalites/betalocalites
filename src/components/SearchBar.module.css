@@ -1,0 +1,35 @@
+.form {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  background: var(--color-surface);
+  border: var(--hairline) solid var(--color-line);
+  border-radius: var(--radius-pill);
+  padding-inline: var(--space-4) var(--space-1);
+  padding-block: var(--space-1);
+  max-width: var(--size-search-max);
+}
+
+.input {
+  flex: 1;
+  min-width: 0;
+  border: 0;
+  background: transparent;
+  font: inherit;
+  color: var(--color-ink);
+  min-height: var(--size-icon-button);
+}
+
+.input:focus-visible {
+  outline: none;
+}
+
+.form:focus-within {
+  outline: var(--focus-ring) solid var(--color-ink);
+  outline-offset: var(--focus-ring);
+}
+
+.submit {
+  min-height: var(--size-icon-button);
+  border-radius: var(--radius-pill);
+}

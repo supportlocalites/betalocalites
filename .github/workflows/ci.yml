@@ -1,0 +1,53 @@
+# Runs on every push and pull request. Free on GitHub (no paid services).
+# Proves: lint, types, design tokens and wording; unit tests; every database rule
+# against real PostgreSQL + PostGIS; the Cloudflare build and its size budget.
+name: CI
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  checks:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    services:
+      postgres:
+        image: postgis/postgis:16-3.4
+        env:
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
+    env:
+      NEXT_TELEMETRY_DISABLED: '1'
+      # A throwaway database inside this job only; not a real credential.
+      TEST_DATABASE_ADMIN_URL: postgres://postgres:postgres@localhost:5432/postgres
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Lint, types, design tokens, wording
+        run: npm run check
+      - name: Unit tests
+        run: npm test
+      - name: Database checks (migrations + rules)
+        run: npm run test:db
+      - name: Cloudflare build
+        run: npm run cf:build
+      - name: Size budget (free plan)
+        run: npm run cf:size

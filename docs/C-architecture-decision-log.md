@@ -190,6 +190,16 @@ free plan and measure them. If Next.js doesn't fit comfortably, we use **React R
 Cloudflare. Either way the data model, database, and security model are unchanged.
 The result is recorded here.
 
+**Fit test, part 1 (10 October 2026, local).** Built with Next.js 16.3.8 and the
+OpenNext Cloudflare adapter 1.20.10. Size: **932 KiB compressed, 30% of the 3 MiB
+limit**; `npm run cf:size` fails the build above 80%. The same build ran in Cloudflare's
+own runtime (workerd, locally) against PostgreSQL as the restricted `app_server` role:
+the welcome page, Explore, search (including typos) and a business profile all worked.
+Next.js 16.4.0 was tried first and failed in that runtime (the adapter doesn't yet
+support a file 16.4 added), so we stay on 16.3.8 until the adapter catches up.
+**Part 2, still to do on Cloudflare itself after PO-03:** time per request against the
+10 ms limit, on the real free plan, with a signed-in page.
+
 ---
 
 ## ADR-006 — Drizzle for database access, SQL migrations in git

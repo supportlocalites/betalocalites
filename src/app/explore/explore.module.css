@@ -1,0 +1,31 @@
+.intro {
+  display: grid;
+  gap: var(--space-5);
+  margin-bottom: var(--space-8);
+}
+
+.grid {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(var(--size-tile-min), 1fr));
+  gap: var(--space-3);
+}
+
+.tile {
+  display: grid;
+  gap: var(--space-1);
+  padding: var(--space-4);
+  background: var(--color-surface);
+  border: var(--hairline) solid var(--color-line);
+  text-decoration: none;
+  min-height: var(--size-tile-height);
+  align-content: end;
+}
+
+.tileName {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: var(--text-title-3);
+}

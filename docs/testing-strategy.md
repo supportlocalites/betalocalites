@@ -97,7 +97,11 @@ PostgreSQL. Mocked databases are where permission bugs hide.
 
 | Suite | Result | Date |
 |---|---|---|
-| Stage 1 schema checks ([stage1-proposed.test.sql](./schema/stage1-proposed.test.sql)) | **29 / 29 passed** | 2026-10-10 |
-| Consumer–vendor relationship checks ([stage2-3-proposed.test.sql](./schema/stage2-3-proposed.test.sql)) | **56 / 56 passed**, each rejection confirmed to fail for the intended reason (review rule updated for D-06) | 2026-10-10 |
-| Environment | PostgreSQL 16.15 + PostGIS, scratch database, discarded after | |
-| Everything else | Not yet applicable: no application code | — |
+| Migration checks ([db/tests/0001_stage1.test.sql](../db/tests/0001_stage1.test.sql)): the 29 approved Stage 1 rules plus 22 for launch data, Suggest a business, activity tracking and the app's restricted role | **51 / 51 passed** | 2026-10-10 |
+| Consumer–vendor relationship checks ([stage2-3-proposed.test.sql](./schema/stage2-3-proposed.test.sql)), applied on top of the real migrations | **56 / 56 passed**, each rejection confirmed to fail for the intended reason (review rule updated for D-06) | 2026-10-10 |
+| Unit tests (price wording) | **3 / 3 passed** | 2026-10-10 |
+| Design-token and language checks | **Passed** | 2026-10-10 |
+| Screen-size check (manual, first pages): phone 390, tablet 768, desktop 1440 | **No sideways scrolling**; matches design G | 2026-10-10 |
+| Hosting size budget | **932 KiB, 30% of 3 MiB** | 2026-10-10 |
+| Environment | PostgreSQL 16 + PostGIS, throwaway database per run (GitHub CI: `postgis/postgis:16-3.4`) | |
+| Automated run | Every push, via GitHub Actions ([.github/workflows/ci.yml](../.github/workflows/ci.yml)) | |

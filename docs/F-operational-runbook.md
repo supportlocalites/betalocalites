@@ -78,6 +78,27 @@ very unlikely, and recoverable when it happens.
    and your explicit approval.
 5. **Large data changes** are done in batches, not one giant transaction that locks
    the site.
+6. **Applied migrations are never edited.** `npm run db:migrate` records a checksum of
+   each file it applies and refuses to run if an applied file has changed.
+
+### How migrations are applied
+
+- Files live in `db/migrations/` (`0001_stage1_foundation.sql`, `0002_…`). Each runs in
+  its own transaction, in order.
+- **Tested first, every time:** `npm run test:db` builds a throwaway database, applies
+  every migration and runs every check in `db/tests/` (GitHub runs this on every push).
+- **Applied to Supabase** with `npm run db:migrate`, using the database's admin
+  connection string held in an encrypted secret (a GitHub or Cloudflare secret the
+  product owner pastes in), never written in git or chat.
+
+### The app's own database login (ADR-004)
+
+Migration 0001 creates the restricted role `app_server` **without** a password. The
+only console step, because passwords never go in git: once per database, the product
+owner sets its password in Supabase's SQL editor with
+`alter role app_server login password '<a new password from Bitwarden>';`, then pastes
+the matching connection string into Cloudflare's encrypted secret `DATABASE_URL`. We
+guide this live (PO-03 part 3). Changing the password later is the same two steps.
 
 ## 5. Backups
 

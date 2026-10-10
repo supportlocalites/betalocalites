@@ -31,6 +31,33 @@ Every release and every database migration, in order. Appended before each deplo
 
 ## Releases
 
+### 2026-10-10 — Stage 1, week 1: foundations and local fit test (not deployed)
+
+**Stage:** 1 (approved D-23)
+**What changed (plain English):** The first application code. A Next.js website in
+design G: Welcome, Explore (search and the six categories), search results with typo
+tolerance, and a business profile with honest price wording, all reading from the
+database as the restricted app role. One tokens file holds every colour, font and size,
+with a check that rejects any outside it, and a check for banned wording. GitHub now
+runs every check on every push. Nothing is deployed and no real business is loaded:
+pages were tested with six obviously fake "Test Vendor" listings in a local database.
+**Migrations applied:** `0001_stage1_foundation.sql` and
+`0002_launch_places_and_categories.sql`, to **local throwaway databases only**. Not
+applied to Supabase (no account yet, PO-03).
+**Destructive?** No.
+**Tests run:** migration checks 51/51; Stage 2–3 proposal checks on top of the real
+migrations 56/56; unit tests 3/3; token, wording, lint and type checks passed; pages
+checked at 390, 768 and 1440 wide with no sideways scrolling.
+**Security tests:** the browser-facing roles read nothing (including suggestions and
+activity); the app role can't edit the audit log, delete rows or change the structure.
+**Fit test:** 932 KiB compressed (30% of Cloudflare's free 3 MiB); runs in Cloudflare's
+runtime locally. Time per request still to be measured on Cloudflare (ADR-005).
+**Dependencies:** pinned exactly. No known vulnerabilities in anything that ships;
+remaining advisories are in build and lint tools only (none critical), tracked for the
+next update.
+**How to roll back:** nothing is deployed.
+**Approved by:** Product owner (D-23), 10 October 2026.
+
 ### 2026-10-10 — Stage 0 documentation, revision 9: Suggest a business
 
 **Stage:** 0

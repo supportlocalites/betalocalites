@@ -1,6 +1,6 @@
 # H — Product Owner Action Register
 
-**Last updated:** 2026-10-10 (revision 9)
+**Last updated:** 2026-10-10 (revision 10)
 
 This is the one place where everything that needs **you** is listed. If it isn't here,
 you don't need to do it.
@@ -39,6 +39,7 @@ Recorded from your messages of 9 and 10 October 2026. These now shape every docu
 | ✅ D-12 | **Business name: Localites. Privacy contact: supportlocalites@gmail.com.** Mailing address left blank for now; it must be added before launch. | Privacy policy and terms (PO-07). |
 | ✅ D-24 | **No payments of any kind go through Localites.** Consumers pay vendors, and vendors pay Localites (for a paid plan or a featured spot), entirely outside the site. | ADR-018 extended; ADR-025: Localites records only which plan a vendor has and its dates. |
 | ✅ D-25 | **Suggest a business.** Anyone who doesn't see a business they want can suggest it by answering three questions: its name, its website (if any), and a phone number or email (if known). It's emailed to supportlocalites@gmail.com; the team vets it and adds it. | ADR-027; Stage 1. Screens P11 and X19. |
+| ✅ D-23 | **Stage 1 approved.** Build the public directory, vendor accounts, admin tools, activity tracking and Suggest a business, loaded with the test set. | [roadmap](./roadmap.md) Stage 1; building started 10 October 2026. |
 | ✅ D-22 | **Full activity tracking for vendor reports**: who and how many people see each vendor in search, open their profile, tap their website or phone (from Stage 1), and save, inquire, message, add them to an event or mark them booked (from Stage 2). | ADR-023; [E §7a](./E-security-and-privacy-model.md#7a-activity-tracking-d-22). Used to sell featured placements and help with renewals. **Amended:** detailed records kept with no deletion date, for year-over-year numbers; vendors see only anonymous counts, in a dashboard for paying vendors. |
 
 ---
@@ -47,11 +48,11 @@ Recorded from your messages of 9 and 10 October 2026. These now shape every docu
 
 | # | What | Blocks | Your effort |
 |---|---|---|---|
-| **D-23** | Approve Stage 1: the public directory and vendor accounts | Building starts | Read Stage 1 in the [roadmap](./roadmap.md); reply |
+| **PO-03** | Create the free hosting and database accounts (step by step below) | Fit test and first preview | About 30 minutes |
 | **D-12** | Mailing address for the privacy policy and terms | Public launch | 1 min, later |
 
 **How to respond:** reply in the conversation with decision numbers and your choice,
-e.g. *"D-23 approve."* "I don't understand
+e.g. *"PO-03 done."* "I don't understand
 this one" is a perfectly good answer.
 
 ---
@@ -285,7 +286,7 @@ they're built (PO-09).
 
 **Recommendation.** Approve.
 
-**Status:** ⏳ Awaiting you.
+**Status:** ✅ Approved, 10 October 2026. Building has started (see G).
 
 ---
 
@@ -501,26 +502,48 @@ share a password, key, or code with anyone, including us.**
 codes or screenshots of them.
 
 ### PO-03 — Create hosting and database accounts
-**When:** **Not yet.** After Stage 1 is approved. We'll do it together, live.
-**Cost:** $0. Every account below is on a free plan, and none needs a payment method
-for what we use.
-**Summary:**
-Every account is registered to the Localites admin address, **supportlocalites@gmail.com**
-(D-11), not a personal address.
-1. **Supabase** (you've used it before): create two free projects, "localites" and
-   "localites-test", in the Canada region.
-2. **Cloudflare**: create a free account and connect it to the project's GitHub
-   repository, `supportlocalites/localites`, so every change we push is built
-   automatically. Before connecting, we read Cloudflare's terms together to confirm
-   business use is allowed on the free plan (ADR-007).
-3. **Connect them**: copy the database connection details from Supabase's dashboard
-   into Cloudflare's encrypted settings, from one screen to the other. They never go
-   into chat or email.
-4. **Resend** (email) and **Sentry** (error alerts): free accounts, after the domain is
-   registered (PO-04).
+**When:** **Now** (Stage 1 approved). Parts 1 and 2 now; part 3 when we tell you the
+first version is ready.
+**Cost:** $0. No payment method is needed. If a screen asks for a card or pushes a paid
+plan, choose the free option, or stop and tell us what you see.
+**Before you start:** sign in to supportlocalites@gmail.com and open Bitwarden (PO-02).
+Every account uses **supportlocalites@gmail.com**, never a personal address. Turn on
+two-step login wherever it's offered.
 
-Full step-by-step instructions, checked against the live sites, will be added here at
-that point.
+**Part 1: Supabase (the database)**
+1. Go to **supabase.com** and choose **Sign up** (or *Start your project*). Sign up with
+   the email supportlocalites@gmail.com, not "Continue with GitHub", so the account
+   belongs to the Localites address. Confirm the email Supabase sends you.
+2. If asked to create an organization: name it **Localites** and choose the **Free**
+   plan.
+3. Create a new project:
+   - **Name:** `localites-test`
+   - **Database password:** click **Generate**, then save it in Bitwarden as
+     "Supabase localites-test database password". **Don't send it to us.**
+   - **Region:** **Canada (Central)**. If there's no Canada option, stop and tell us.
+   - Click **Create**. It takes a few minutes.
+4. Don't create the second project ("localites") yet; that comes before launch.
+
+*Expected:* a dashboard for `localites-test`. *If a screen looks different from this,
+tell us what it says; these sites change their wording often.*
+
+**Part 2: Cloudflare (the hosting)**
+5. Go to **dash.cloudflare.com** and choose **Sign up**, with supportlocalites@gmail.com.
+   Confirm the email. If asked for a plan, choose **Free**. Skip adding a website or
+   domain for now.
+
+*Expected:* you can see the Cloudflare dashboard.
+
+**Part 3: Connect them (later; we'll guide you step by step)**
+- In Cloudflare, you'll connect the GitHub repository `supportlocalites/localites` so
+  every change we push is built automatically, and we'll check together that Cloudflare's
+  free-plan terms allow business use (ADR-007).
+- You'll copy one connection address from Supabase's screen into Cloudflare's encrypted
+  "secrets" box, from one screen to the other. It never goes into chat or email.
+- Resend (email) and Sentry (error alerts) come later, also free.
+
+**Done when:** you reply *"PO-03 part 1 and 2 done"*. Never send passwords, codes, or
+screenshots that show them.
 
 ### PO-04 — Register the domain
 **✅ Done.** You bought `localites.ca` on 10 October 2026. Three things to check in your
@@ -597,4 +620,5 @@ computer through private preview links. You tell us what feels right. No code to
 | 2026-10-10 | PO-05 categories; D-13, D-06, D-14, D-08, D-10 decided; D-12 privacy contact; D-22 amended |
 | 2026-10-10 | D-24 (no payments of any kind through Localites); D-12 business name; PO-08 pilot of 5 per category |
 | 2026-10-10 | D-25 Suggest a business |
+| 2026-10-10 | D-23: Stage 1 approved; building started |
 | 2026-10-10 | PO-08: test set of our 28 suggested businesses (up to 5 per category); vendor list to be refreshed later |

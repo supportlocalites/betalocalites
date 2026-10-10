@@ -1,0 +1,19 @@
+.header {
+  max-width: var(--content-max);
+  margin: 0 auto;
+  padding-inline: var(--gutter);
+  padding-block: var(--space-4);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+  border-bottom: var(--hairline) solid var(--color-line-soft);
+}
+
+.wordmark {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: var(--text-title-2);
+  letter-spacing: var(--tracking-welcome);
+  text-decoration: none;
+}

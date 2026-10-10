@@ -1,0 +1,131 @@
+@import '../styles/tokens.css';
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--color-ground);
+  color: var(--color-ink);
+  font-family: var(--font-body);
+  font-size: var(--text-body);
+  line-height: var(--leading-body);
+}
+
+h1,
+h2,
+h3 {
+  font-family: var(--font-display);
+  font-weight: 600;
+  margin: 0;
+  text-wrap: balance;
+}
+
+a {
+  color: inherit;
+}
+
+img {
+  max-width: 100%;
+  display: block;
+}
+
+:focus-visible {
+  outline: var(--focus-ring) solid var(--color-ink);
+  outline-offset: var(--focus-ring);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation: none !important;
+    transition: none !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+.page {
+  max-width: var(--content-max);
+  margin: 0 auto;
+  padding-inline: var(--gutter);
+  padding-block: var(--space-6) var(--space-14);
+}
+
+.label {
+  font-family: var(--font-body);
+  font-size: var(--text-label);
+  font-weight: 600;
+  letter-spacing: var(--tracking-label);
+  text-transform: uppercase;
+  color: var(--color-muted);
+}
+
+.title-1 {
+  font-size: var(--text-title-1);
+}
+
+.title-rule {
+  width: var(--space-14);
+  height: var(--hairline);
+  background: var(--color-gold);
+  margin-block: var(--space-3) var(--space-5);
+}
+
+.muted {
+  color: var(--color-muted);
+}
+
+.button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: var(--size-button);
+  padding-inline: var(--space-6);
+  border-radius: var(--radius-button);
+  font-family: var(--font-body);
+  font-size: var(--text-button);
+  font-weight: 500;
+  letter-spacing: var(--tracking-button);
+  text-transform: uppercase;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.button-primary {
+  background: var(--color-ink);
+  color: var(--color-on-ink);
+  border: var(--hairline) solid var(--color-ink);
+}
+
+.button-secondary {
+  background: transparent;
+  color: var(--color-ink);
+  border: var(--hairline) solid var(--color-gold);
+}
+
+.text-link {
+  font-size: var(--text-label);
+  font-weight: 600;
+  letter-spacing: var(--tracking-label);
+  text-transform: uppercase;
+  text-underline-offset: var(--underline-offset);
+}
+
+.visually-hidden {
+  position: absolute;
+  width: var(--hairline);
+  height: var(--hairline);
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+.section-gap {
+  margin-top: var(--space-8);
+}

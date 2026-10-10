@@ -1,3 +1,5 @@
+-- SUPERSEDED (10 October 2026): approved and built as db/migrations/0001_stage1_foundation.sql.
+-- Kept unchanged as the reviewed record. Do not edit; change the database with a new migration.
 -- =============================================================================
 -- Localites — PROPOSED Stage 1 schema
 -- =============================================================================

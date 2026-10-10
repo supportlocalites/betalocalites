@@ -5,7 +5,7 @@ maintain from day one. Everything here is written to be read **without reading s
 code**.
 
 **Status: Stage 0 (Discovery & Architecture). Architecture approved by the product owner
-(D-00, 10 October 2026). Stage 1 is approved separately and hasn't started.**
+(D-00, 10 October 2026). Stage 1 approved (D-23, 10 October 2026) and in progress.**
 No application code has been written. No infrastructure has been created. The only
 spending so far is the web address, `localites.ca`, bought by the product owner. The
 design is chosen: direction G, one website for phones and computers
@@ -56,7 +56,7 @@ and "Booked" that lead to post-event feedback and reviews.
 | [Design System](./design-system.md) | How Localites looks and behaves on phones and computers (direction G) |
 | [Launch vendor research](./launch/vendor-research-2026-10-10.md) | Researched Orillia-area businesses for the launch list (PO-08) |
 | [Design archive](./design/README.md) | Every mockup explored (A to H), kept for reference |
-| [Proposed schema: Stage 1](./schema/stage1-proposed.sql) · [checks](./schema/stage1-proposed.test.sql) | Vendors and discovery tables (not applied) |
+| [Database migrations](../db/migrations/) · [checks](../db/tests/) (Stage 1, built) · [original proposal](./schema/stage1-proposed.sql) | Vendors and discovery tables (not applied) |
 | [Proposed schema: Stages 2–3](./schema/stage2-3-proposed.sql) · [checks](./schema/stage2-3-proposed.test.sql) | Events, conversations, files, reviews (not applied) |
 
 ---

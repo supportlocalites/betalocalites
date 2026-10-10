@@ -1,3 +1,5 @@
+-- SUPERSEDED (10 October 2026): approved and built as db/tests/0001_stage1.test.sql.
+-- Kept unchanged as the reviewed record. Do not edit; change the database with a new migration.
 -- =============================================================================
 -- Checks for docs/schema/stage1-proposed.sql
 -- =============================================================================

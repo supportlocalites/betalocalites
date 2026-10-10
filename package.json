@@ -1,0 +1,51 @@
+{
+  "name": "localites",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Localites: local event vendors, found and contacted directly. Orillia, Ontario.",
+  "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "eslint .",
+    "typecheck": "next typegen && tsc --noEmit",
+    "check:tokens": "node scripts/check-tokens.mjs",
+    "check:words": "node scripts/check-words.mjs",
+    "check": "npm run lint && npm run typecheck && npm run check:tokens && npm run check:words",
+    "db:migrate": "node scripts/migrate.mjs",
+    "db:seed:test": "node scripts/seed-test-data.mjs",
+    "test": "vitest run",
+    "test:db": "node scripts/test-db.mjs",
+    "cf:build": "opennextjs-cloudflare build",
+    "cf:preview": "opennextjs-cloudflare build && opennextjs-cloudflare preview",
+    "cf:deploy": "opennextjs-cloudflare build && opennextjs-cloudflare deploy",
+    "cf:size": "node scripts/worker-size.mjs",
+    "db:types": "node scripts/db-types.mjs"
+  },
+  "dependencies": {
+    "@fontsource/jost": "5.3.0",
+    "@fontsource/playfair-display": "5.3.0",
+    "drizzle-orm": "0.45.4",
+    "next": "16.3.8",
+    "postgres": "3.4.9",
+    "react": "19.3.0",
+    "react-dom": "19.3.0",
+    "server-only": "0.0.1"
+  },
+  "devDependencies": {
+    "@opennextjs/cloudflare": "1.20.10",
+    "@types/node": "22.18.8",
+    "@types/react": "19.3.0",
+    "@types/react-dom": "19.2.3",
+    "drizzle-kit": "0.31.11",
+    "eslint": "9.37.0",
+    "eslint-config-next": "16.3.8",
+    "typescript": "5.9.3",
+    "vitest": "5.0.3",
+    "wrangler": "4.149.0"
+  }
+}

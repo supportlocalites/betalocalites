@@ -1,0 +1,93 @@
+/*
+ * Localites design tokens (design direction G, docs/design-system.md).
+ * THE ONLY FILE where colours, fonts, sizes and shapes are written as raw values.
+ * Everything else uses these variables; `npm run check:tokens` enforces it.
+ */
+:root {
+  /* Colour (§2) */
+  --color-ground: #f7f5f1;
+  --color-surface: #fbfaf8;
+  --color-ink: #141414;
+  --color-ink-soft: #3d3935;
+  --color-muted: #6b655e;
+  --color-line: #dcd6ce;
+  --color-line-soft: #e7e2da;
+  --color-tint: #ede8e1;
+  --color-gold: #b8955a; /* lines and outlines only, never text, icons or fills */
+  --color-on-ink: #f7f5f1;
+  --color-photo-1: #e5dfd6;
+  --color-photo-2: #ddd6cb;
+  --color-photo-3: #e9e4dc;
+  --color-photo-4: #d3ccc1;
+
+  /* Type (§3): served with the site from @fontsource, no third party */
+  --font-display: 'Playfair Display', Georgia, 'Times New Roman', serif;
+  --font-body: 'Jost', 'Helvetica Neue', Arial, sans-serif;
+
+  --text-welcome: 72px;
+  --text-title-1: 30px;
+  --text-title-2: 26px;
+  --text-title-3: 18px;
+  --text-body: 15px;
+  --text-small: 13px;
+  --text-label: 10.5px;
+  --text-button: 13px;
+  --leading-body: 1.55;
+  --tracking-label: 0.2em;
+  --tracking-button: 0.16em;
+  --tracking-welcome: -0.02em;
+
+  /* Space (§4), base unit 4px */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-7: 28px;
+  --space-8: 32px;
+  --space-12: 48px;
+  --space-14: 56px;
+  --gutter: 20px;
+  --content-max: 1200px;
+
+  /* Shape (§5) */
+  --radius-button: 12px;
+  --radius-file: 10px;
+  --radius-sheet: 24px;
+  --radius-pill: 999px;
+  --size-icon-button: 44px;
+  --size-button: 52px;
+  --hairline: 1px;
+  --frame-inset-photo: 6px;
+  --frame-inset-welcome: 14px;
+  --focus-ring: 2px;
+  --underline-offset: 3px;
+
+  /* Component sizes */
+  --size-thumb: 72px;
+  --size-tile-min: 160px;
+  --size-tile-height: 96px;
+  --size-search-max: 640px;
+  --size-photo-max: 560px;
+}
+
+@media (min-width: 768px) {
+  :root {
+    --gutter: 32px;
+  }
+}
+
+@media (min-width: 1200px) {
+  :root {
+    --text-title-1: 44px;
+    --text-title-2: 30px;
+    --text-title-3: 19px;
+    --text-body: 16px;
+    --text-small: 14px;
+    --text-label: 11px;
+    --frame-inset-photo: 8px;
+    --frame-inset-welcome: 20px;
+    --text-welcome: clamp(64px, 9vw, 132px);
+  }
+}
