@@ -591,8 +591,12 @@ where visitors came from (Google, shared link, Localites search, category); phon
 computer; approximate town (city level, from Cloudflare, no third party); comparisons
 with the category average and rank in category; Suggest-a-business requests that named
 the business; and search demand per category, including searches that found nothing.
-**Words people type into search are kept only as anonymous daily totals** (word, category,
-count), never linked to a visitor or account, because a search can contain anything.
+**Search words are tracked like everything else**, linked to the visitor ID or account,
+because the product owner wants every action available to improve the app; the privacy
+policy says so in plain words. As with all detail, only the Localites team can see it,
+every look is logged, and vendors see totals only. A search can contain anything (even
+someone's name or number), so it is never shown to vendors word for word with who typed
+it.
 
 **Rejected.** Google Analytics or similar (third-party profiling, consent banners, and no
 reliable link to individual vendors). Storing every impression (outgrows the free
