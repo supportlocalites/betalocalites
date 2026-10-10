@@ -31,6 +31,23 @@ Every release and every database migration, in order. Appended before each deplo
 
 ## Releases
 
+### 2026-10-10 — The 28 test businesses, as drafts (Stage 1, not public)
+
+**Stage:** 1 (PO-08)
+**What changed (plain English):** The 28 researched test businesses are loaded into the
+test project as drafts: name, town, category and, only where the research found it, the
+business's own website. Nothing about them is public until the team checks each one and
+publishes it (PO-11). Each listing's history holds the research link and what to check.
+Loaded once by GitHub (`scripts/import-test-businesses.mjs`); later runs do nothing, so
+the team's edits are never overwritten.
+**Migrations applied:** none (data only, test project only).
+**Destructive?** No.
+**Tests run:** loaded twice into a local database: 28 drafts, then nothing on the second
+run; the public site still showed only published listings; the admin page listed the
+drafts with their research notes. Unit tests 27/27 (new: record IDs and web addresses).
+**How to roll back:** archive the drafts from the admin page.
+**Approved by:** Product owner (PO-08 test set; D-23).
+
 ### 2026-10-10 — Team sign-in and the admin page (Stage 1, not public)
 
 **Stage:** 1 (D-28)
@@ -51,8 +68,8 @@ phone and desktop sizes: sign-in, two-step set-up, add, edit, publish, hide, his
 without two-step, tampered token, form from another website, editing one listing's
 service through another, forbidden status change, removed admin role, reused cookies
 after sign-out, sign-in link to another website: all refused.
-**Not yet live:** needs PO-10 (Supabase settings, first admin, two Cloudflare secrets).
-Until then the sign-in page says sign-in isn't switched on.
+**Live:** 10 October 2026, after PO-10 (Supabase settings, first admin, two Cloudflare
+secrets); the product owner signed in with a two-step code and reached the Listings page.
 **How to roll back:** Cloudflare → localites → Deployments → previous version → Deploy.
 The migration can stay (it only adds).
 **Approved by:** Product owner (D-28, "go ahead"), 10 October 2026.

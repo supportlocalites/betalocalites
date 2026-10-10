@@ -1,5 +1,5 @@
 import { sql } from 'drizzle-orm';
-import { uuidv7 } from '@/lib/ids';
+import { uuidv7 } from '@/lib/ids.mjs';
 import type { Admin } from '../auth/admin.server';
 import { type Db, withDb } from '../db.server';
 import type { ServerEnv } from '../env';

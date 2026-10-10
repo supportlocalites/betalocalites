@@ -1,5 +1,5 @@
 import { sql } from 'drizzle-orm';
-import { uuidv7 } from '@/lib/ids';
+import { uuidv7 } from '@/lib/ids.mjs';
 import type { Db } from '../db.server';
 
 export type AuditEntry = {

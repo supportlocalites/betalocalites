@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { SLUG, slugify } from '@/lib/ids';
+import { SLUG, slugify } from '@/lib/ids.mjs';
 import { PRICING_MODELS } from '@/lib/listing-status';
 
 /**

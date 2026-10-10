@@ -55,7 +55,7 @@ Recorded from your messages of 9 and 10 October 2026. These now shape every docu
 | # | What | Blocks | Your effort |
 |---|---|---|---|
 | **ADR-005** | ✅ CPU time 8 ms with React Router (passes). A day after the speed improvements go live, glance at **Metrics** once more: CPU time, and whether any "Exceeded CPU" errors appear | Nothing; a final check | 2 min |
-| **PO-10** | Switch on sign-in for the team and make yourself the first admin (steps below) | Using the admin page | 15 min |
+| **PO-11** | Check the 28 test businesses (drafts) and publish the ones that are right (steps below) | Real listings on the test site | At your pace, ~5 min each |
 | **D-12** | Mailing address for the privacy policy and terms | Public launch | 1 min, later |
 
 **How to respond:** reply in the conversation with decision numbers and your choice,
@@ -748,6 +748,29 @@ square code can make your codes. If you lose your phone, tell us and we'll remov
 authenticator so you can set up a new one (runbook, "Team sign-in and admins").
 
 **Done when:** you see the **Listings** page. Reply *"PO-10 done"*.
+
+**✅ Done (10 October 2026).** Sign-in and the admin page work on the live test site;
+`/api/health` sees both Supabase settings.
+
+### PO-11 — Check and publish the test businesses
+**When:** At your pace, once GitHub has loaded them (about ten minutes after our update).
+**Cost:** $0.
+The 28 test businesses (PO-08) are in the admin page as **drafts**, so nobody else sees
+them yet. Each has only what the research could confirm: name, town, category and, where
+we found it, the business's own website. Its **History** (at the bottom) shows the
+research link and what to check.
+1. Open https://localites.supportlocalites.workers.dev/admin, set **Status** to **Draft**,
+   and click **Show**.
+2. Open a business. Look at its own website or social page, and fill in only what the
+   business publishes itself: a short description, an about paragraph, phone, email, and
+   services with prices exactly as it shows them. Fix the category if needed. **Save
+   details** (and **Add service** for each service).
+3. If it's right, click **Publish**: it appears on Explore and in search straight away.
+   If it has closed or doesn't fit, click **Archive**.
+4. When enough real ones are live, archive the six fake "Test Vendor" listings the same
+   way.
+
+Nothing is ever deleted: every change is kept in the listing's history.
 
 ---
 

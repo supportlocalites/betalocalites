@@ -23,6 +23,7 @@
     "size": "node scripts/worker-size.mjs",
     "db:migrate": "node scripts/migrate.mjs",
     "db:seed:test": "node scripts/seed-test-data.mjs",
+    "db:import:test-businesses": "node scripts/import-test-businesses.mjs",
     "db:types": "node scripts/db-types.mjs"
   },
   "dependencies": {

@@ -1,7 +1,7 @@
 import { data, Form, Link, redirect, useNavigation } from 'react-router';
 import { adminContext, cloudflareContext } from '@/app/context';
 import { ListingFields, type ListingValues } from '@/components/admin/ListingFields';
-import { isUuid } from '@/lib/ids';
+import { isUuid } from '@/lib/ids.mjs';
 import { pageMeta } from '@/lib/meta';
 import { describePrice, type PricingModel } from '@/lib/price';
 import { ADMIN_TRANSITIONS, type ListingStatus, PRICING_MODELS, STATUS_LABEL } from '@/lib/listing-status';

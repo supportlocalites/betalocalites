@@ -146,3 +146,6 @@ jobs:
       - name: Load fake test businesses
         if: env.DATABASE_ADMIN_URL != ''
         run: npm run db:seed:test -- --supabase-test-project
+      - name: Load the 28 researched test businesses as drafts (once)
+        if: env.DATABASE_ADMIN_URL != ''
+        run: npm run db:import:test-businesses -- --supabase-test-project
