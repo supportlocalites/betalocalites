@@ -484,29 +484,17 @@ share a password, key, or code with anyone, including us.**
 **When:** Now. **Steps:** Reply with your choices on the "Needed from you now" table.
 
 ### PO-02 — Secure your own accounts
-**When:** Now. Good practice regardless.
-1. Install a password manager. **Recommended: Bitwarden** (free). Go to
-   **bitwarden.com** → **Get started** → create an account with a long master password
-   you've never used elsewhere; write it down somewhere physical and safe.
-   *Expected:* you can log in to the web vault. *If not:* check email for a verification
-   link.
-2. Install the browser extension and phone app when prompted.
-3. In Bitwarden: **Settings → Security → Two-step login**. Use an authenticator app.
-   Save the **recovery code** on paper.
-4. GitHub: **github.com** → profile picture (top right) → **Settings** → **Password and
-   authentication** → **Enable two-factor authentication**. Save recovery codes into
-   Bitwarden. *Expected:* "Two-factor authentication is enabled."
-5. Do the same for the email account you use for GitHub.
-
-**Done when:** you tell us "2FA is on for GitHub and my email." Never send recovery
-codes or screenshots of them.
+**Handled by you** (10 October 2026). You keep your passwords in a place of your
+choosing. The only rules we ask for: two-step login on GitHub, your email and every
+service account, and never sending passwords, codes or recovery codes to anyone,
+including us.
 
 ### PO-03 — Create hosting and database accounts
 **When:** **Now** (Stage 1 approved). Parts 1 and 2 now; part 3 when we tell you the
 first version is ready.
 **Cost:** $0. No payment method is needed. If a screen asks for a card or pushes a paid
 plan, choose the free option, or stop and tell us what you see.
-**Before you start:** sign in to supportlocalites@gmail.com and open Bitwarden (PO-02).
+**Before you start:** sign in to supportlocalites@gmail.com and have your password store open.
 Every account uses **supportlocalites@gmail.com**, never a personal address. Turn on
 two-step login wherever it's offered.
 
@@ -518,7 +506,7 @@ two-step login wherever it's offered.
    plan.
 3. Create a new project:
    - **Name:** `localites-test`
-   - **Database password:** click **Generate**, then save it in Bitwarden as
+   - **Database password:** click **Generate**, then save it with your passwords as
      "Supabase localites-test database password". **Don't send it to us.**
    - **Region:** **Canada (Central)**. If there's no Canada option, stop and tell us.
    - Click **Create**. It takes a few minutes.
@@ -546,7 +534,7 @@ means a note on your own computer that you delete straight after.
 2. Choose the **Session pooler** connection string (it contains `pooler.supabase.com`
    and ends in `:5432/postgres`). Copy it into a private note.
 3. In the note, replace `[YOUR-PASSWORD]` (including the square brackets) with the
-   database password saved in Bitwarden in part 1.
+   database password you saved in part 1.
 4. On GitHub, open **supportlocalites/localites** → **Settings** → **Secrets and
    variables** → **Actions** → **New repository secret**. Name:
    `SUPABASE_TEST_ADMIN_URL`. Secret: paste the edited text. Click **Add secret**, then
@@ -560,9 +548,9 @@ means a note on your own computer that you delete straight after.
    logs, so the logs are safe to look at.
 
 *C. Give the app its own password*
-6. In Bitwarden, generate a new password: 32 characters, **letters and numbers only**
-   (turn special characters off). Save it as "Supabase localites-test app_server
-   password".
+6. Create a new password of about 32 characters using **letters and numbers only** (no
+   symbols, because it goes inside a web address). Save it with your passwords as
+   "Supabase localites-test app_server password".
 7. In Supabase, open **SQL Editor** → **New query** and paste
    `alter role app_server login password 'PASTE-HERE';`, replacing `PASTE-HERE` with
    that password (keep the quote marks). Click **Run**; expect "Success. No rows
@@ -608,7 +596,7 @@ so the lawyer's review (PO-07) should confirm it.
 ### PO-04 — Register the domain
 **✅ Done.** You bought `localites.ca` on 10 October 2026. Three things to check in your
 domain company's account (the registrar), today:
-1. **Two-step login is on** for that account, and its password is saved in Bitwarden
+1. **Two-step login is on** for that account, and its password is stored safely
    (PO-02). The domain is valuable: whoever controls this account controls the address.
 2. **Auto-renew is on**, with a card that won't expire soon, so the address can't lapse.
 3. **Privacy is on** for your contact details. For `.ca` addresses owned by an

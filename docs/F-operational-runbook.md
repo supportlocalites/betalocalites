@@ -103,7 +103,7 @@ very unlikely, and recoverable when it happens.
 Migration 0001 creates the restricted role `app_server` **without** a password. The
 only console step, because passwords never go in git: once per database, the product
 owner sets its password in Supabase's SQL editor with
-`alter role app_server login password '<a new password from Bitwarden>';`, then pastes
+`alter role app_server login password '<a new letters-and-numbers password>';`, then pastes
 the matching connection string into Cloudflare's encrypted secret `DATABASE_URL`. We
 guide this live (PO-03 part 3). Changing the password later is the same two steps.
 
