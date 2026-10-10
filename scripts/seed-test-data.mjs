@@ -4,11 +4,17 @@
 //
 // Usage: DATABASE_ADMIN_URL=postgres://.../localites_dev npm run db:seed:test
 import postgres from 'postgres';
-import { requiresTls } from './migrate.mjs';
+import { normalizeDatabaseUrl, requiresTls } from './migrate.mjs';
 
-const url = process.env.DATABASE_ADMIN_URL;
-if (!url) {
+if (!process.env.DATABASE_ADMIN_URL) {
   console.error('Set DATABASE_ADMIN_URL.');
+  process.exit(1);
+}
+let url;
+try {
+  url = normalizeDatabaseUrl(process.env.DATABASE_ADMIN_URL);
+} catch (err) {
+  console.error(err.message);
   process.exit(1);
 }
 const dbName = new URL(url).pathname.slice(1);

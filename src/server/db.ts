@@ -2,11 +2,10 @@ import 'server-only';
 import { drizzle, type PostgresJsDatabase } from 'drizzle-orm/postgres-js';
 import postgres from 'postgres';
 import * as schema from '@/db/generated/schema';
+import { normalizeDatabaseUrl, requiresTls } from '@/lib/db-url.mjs';
 
 export type Db = PostgresJsDatabase<typeof schema>;
 
-/** Hosted databases are always reached over an encrypted connection. */
-export const requiresTls = (url: string) => !/@(localhost|127\.0\.0\.1)[:/]/.test(url);
 
 /**
  * Runs `fn` with a database connection made for this request, then closes it.
@@ -15,8 +14,8 @@ export const requiresTls = (url: string) => !/@(localhost|127\.0\.0\.1)[:/]/.tes
  * The app connects as the restricted app_server role (ADR-004).
  */
 export async function withDb<T>(fn: (db: Db) => Promise<T>): Promise<T> {
-  const url = process.env.DATABASE_URL;
-  if (!url) throw new Error('DATABASE_URL is not set.');
+  if (!process.env.DATABASE_URL) throw new Error('DATABASE_URL is not set.');
+  const url = normalizeDatabaseUrl(process.env.DATABASE_URL);
   const client = postgres(url, {
     max: 1,
     prepare: false, // required by Supabase's transaction pooler

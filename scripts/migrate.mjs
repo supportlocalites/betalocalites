@@ -9,14 +9,15 @@ import { readFile, readdir } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import postgres from 'postgres';
+import { normalizeDatabaseUrl, requiresTls } from '../src/lib/db-url.mjs';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 export const MIGRATIONS_DIR = path.join(here, '..', 'db', 'migrations');
 
-/** Hosted databases are always reached over an encrypted connection. */
-export const requiresTls = (url) => !/@(localhost|127\.0\.0\.1)[:/]/.test(url);
+export { normalizeDatabaseUrl, requiresTls };
 
-export async function migrate(url, { log = console.log } = {}) {
+export async function migrate(rawUrl, { log = console.log } = {}) {
+  const url = normalizeDatabaseUrl(rawUrl);
   const sql = postgres(url, { max: 1, onnotice: () => {}, ssl: requiresTls(url) ? 'require' : undefined });
   try {
     await sql`
