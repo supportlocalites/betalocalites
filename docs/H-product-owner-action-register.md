@@ -564,13 +564,16 @@ means a note on your own computer that you delete straight after.
    **supportlocalites** account, for **only** the `localites` repository.
 10. Use these settings exactly:
     - **Project name:** `localites`
-    - **Production branch:** `claude/event-discovery-architecture-dz0qgf` (we'll switch
-      to `main` before launch)
     - **Build command:** `npx opennextjs-cloudflare build`
     - **Deploy command:** `npx opennextjs-cloudflare deploy`
     - If it asks for a command for other branches: `npx opennextjs-cloudflare upload`
-11. Click **Create and deploy**. The first build takes a few minutes. The site will show
-    an error until step E is done; that's expected.
+11. Click **Create and deploy**. This first build may fail, because Cloudflare starts
+    from the `main` branch, which doesn't hold the website yet. That's expected.
+11a. Point Cloudflare at the branch that holds the website: open the **localites**
+    Worker → **Settings** → **Build** → **Branch control** → **Production branch** →
+    choose `claude/event-discovery-architecture-dz0qgf` → **Save**. (We'll switch to
+    `main` before launch.) Tell us, and we'll send a small update that starts a fresh
+    build from that branch.
 
 *E. Give the site its database address*
 12. Back in Supabase **Connect**, copy the **Transaction pooler** string (it ends in
