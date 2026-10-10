@@ -16,6 +16,10 @@ never edited; a new entry supersedes an old one and both stay.
 **Revision 2 changes:** ADR-001, 004, 013, 015 and 017 updated for the consumer–vendor
 handshake. ADR-018 to ADR-022 added.
 
+**Revision 4 changes (10 October 2026):** ADR-023 (activity tracking for vendor reports,
+D-22) and ADR-024 (Inquire for unclaimed or unverified vendors, Stage 2, D-04 and D-05)
+added. ADR-015 is extended by ADR-023. Stages are unchanged.
+
 **Revision 3 changes (product owner: no running costs):** ADR-003 and ADR-013 move to
 free plans. ADR-007 replaces Vercel with Cloudflare's free plan, because Vercel's free
 plan doesn't allow business use. ADR-005 adds a fit test for Cloudflare's free limits.
@@ -41,7 +45,7 @@ ADR-014 caveat updated. Nothing in the data model or security model changes.
 | ADR-012 | One `vendor` table with team membership; no `organization` yet | Team | Accepted |
 | ADR-013 | Email via Resend (free plan): sign-in, message notices, feedback requests | Team ($0) | Accepted |
 | ADR-014 | Data stored in Canada | **Needs approval** (trust/legal) | Accepted |
-| ADR-015 | First-party counts in our own database; no third-party trackers | Team | Accepted |
+| ADR-015 | First-party counts in our own database; no third-party trackers (extended by ADR-023) | Team | Accepted |
 | ADR-016 | Sentry for error monitoring, free tier | Team | Accepted |
 | ADR-017 | One gatekeeper for every status change | Team | Accepted |
 | ADR-018 | **Localites never handles money**, and nothing in the system prepares for it | **Needs approval** (product commitment) | Accepted (D-16) |
@@ -49,6 +53,8 @@ ADR-014 caveat updated. Nothing in the data model or security model changes.
 | ADR-020 | Files in conversations: private, participants only, limited types | Team | Accepted |
 | ADR-021 | "Booked" is the consumer's own record, labelled as such | **Needs approval** (user experience) | Accepted (D-18) |
 | ADR-022 | One account per person; acting as a vendor comes from team membership | **Needs approval** (user experience; D-13) | Proposed (awaits D-13) |
+| ADR-023 | Activity tracking for vendor reports: detailed for 90 days, then daily totals | **Needs approval** (privacy; D-22) | Accepted (D-22) |
+| ADR-024 | Unclaimed or unverified vendors get **Inquire**, which reaches the Localites team by email | **Needs approval** (user experience; D-04) | Accepted (D-04) |
 
 ---
 
@@ -343,6 +349,9 @@ Google Analytics, Meta Pixel, or similar.
 **Why.** No cost, no cookie banner, no third party profiling parents. The numbers sit
 next to the data they describe, so vendor insights can be built directly.
 
+**Extended by ADR-023** (10 October 2026): tracking now covers every vendor interaction,
+with detail kept for 90 days (D-22).
+
 ---
 
 ## ADR-016 — Sentry for error monitoring
@@ -470,3 +479,61 @@ screens keep the two sides clearly separate.
 
 **Alternative.** Separate consumer and vendor sign-ups. Simpler to explain on day one;
 creates duplicate identities later.
+
+---
+
+## ADR-023 — Activity tracking for vendor reports
+
+**Needs your approval** (privacy). **Accepted: D-22, 10 October 2026.**
+
+**Decision.** Record how people interact with each vendor in our own database:
+- **Meaningful actions** (from Stage 1: profile view with its source, website or phone
+  tap; from Stage 2: save, inquiry, conversation started, message sent, reply time, added
+  to an event, marked booked) are stored as individual records with the time, the vendor
+  and the person: their account if signed in, otherwise a random visitor ID kept in our
+  own cookie. Kept 90 days.
+- **"Seen in search"** is counted when a vendor's card is at least half on screen for a
+  moment, once per visit per page. The browser sends these in one batch per page, not one
+  request per card, and they're stored straight away as **daily totals** per vendor,
+  placement (search, category, collection, Featured) and town, never as individual rows.
+- Each night, the detailed records are added into the same **daily totals**, which are
+  kept. Reports read only the totals.
+- Vendors and anyone outside the team see totals only. The Localites team can look at the
+  detail while it exists; every look is recorded in the audit log.
+
+**Why.** Vendor reports are central to selling featured placements and renewals (D-22).
+Keeping it in our own database costs nothing, involves no third party, and puts the
+numbers beside the data they describe. Storing "seen in search" as totals keeps us inside
+the free database: at 1,000 visitors a day seeing about 30 cards each, individual rows
+would add about 900,000 a month; daily totals add a few thousand.
+
+**Rejected.** Google Analytics or similar (third-party profiling, consent banners, and no
+reliable link to individual vendors). Storing every impression (outgrows the free
+database within months).
+
+**Revisit if** the totals approach 80% of the free database, or vendors need same-day
+numbers.
+
+---
+
+## ADR-024 — Inquire, for unclaimed or unverified vendors
+
+**Needs your approval** (user experience). **Accepted: D-04 and D-05, 10 October 2026.**
+Built in Stage 2, with messaging.
+
+**Decision.** A vendor that hasn't claimed its listing, or isn't verified, shows
+**Inquire** instead of **Message**. A signed-in person taps it and can add a note and
+choose one of their events to mention. We save the inquiry (`vendor_interest`), count it (ADR-023), and email
+the Localites team at supportlocalites@gmail.com with the vendor, the person's name and email,
+and anything they chose to share. The person sees: *"This business isn't on Localites yet.
+We've passed your interest to our team, who'll get in touch with them. We'll let you know
+if they join."* Nothing says or suggests that the vendor received a message.
+
+**Why.** Every contact is recorded and counted. Interest becomes a warm, truthful
+invitation for the business to join. Nobody is misled about delivery.
+
+**Not planned.** Relaying messages by hand (D-05). Once a business joins, conversations
+happen directly on Localites (D-17).
+
+**Cost.** Inquiry emails count toward the free plan's 100 a day. If they become frequent,
+they're bundled into a few summary emails a day.

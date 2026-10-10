@@ -1,6 +1,6 @@
 # Testing Strategy
 
-**Status:** Proposed (Stage 0, revision 3: phone, tablet and desktop checks).
+**Status:** Proposed (Stage 0, revision 4: Inquire and activity-tracking checks).
 **Last updated:** 2026-10-10
 
 ## What "done" means
@@ -52,6 +52,10 @@ PostgreSQL. Mocked databases are where permission bugs hide.
 3. Admin creates and publishes a listing; finds it in search.
 4. A business claims its listing; admin approves; the business edits it.
 5. Unclaimed listing → "Is this your business?" → removal request reaches the admin queue.
+5a. Activity is counted: a search page records "seen in search" once per vendor shown,
+    and a profile view and a website tap each add one to that vendor's daily totals. The
+    team's report for one vendor shows only that vendor; a vendor's team and a visitor
+    can't read any other business's numbers.
 
 **Stage 2: the handshake**
 6. Consumer finds a vendor, taps **Message**, shares their event (seeing exactly what the
@@ -64,9 +68,9 @@ PostgreSQL. Mocked databases are where permission bugs hide.
 10. A vendor tries to message a consumer first; it's refused.
 11. Consumer blocks a vendor; neither can send further messages; a report reaches the
     queue.
-12. Consumer taps **Message** on an unclaimed business, sees its own contact details,
-    taps "Let them know you're interested"; when the business claims, the consumer gets
-    a notice.
+12. Consumer taps **Inquire** on an unclaimed business: the inquiry is saved and the
+    team email is sent (or the screen and the team's inquiries list say honestly that it
+    wasn't); when the business claims, the consumer gets a notice.
 
 **Stage 3: feedback & reviews**
 13. The morning after the event, the consumer receives "How was it?", leaves 5 stars;

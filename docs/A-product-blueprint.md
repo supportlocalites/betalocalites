@@ -1,7 +1,7 @@
 # A — Product Blueprint
 
 **Status:** Approved (D-00, 10 October 2026).
-**Last updated:** 2026-10-09
+**Last updated:** 2026-10-10 (Inquire, activity tracking and the launch list added; stages unchanged)
 
 **Revision 2** reflects the product owner's clarification:
 - Localites has **two users**, the consumer and the vendor, and the product centres on the
@@ -77,6 +77,8 @@ is **designed for** now: the data model and permissions already have a place for
 - Honest empty states. A town of ~33,000 will have thin categories, and the design
   treats that as normal, not an error.
 - Unclaimed listings show the business's own website and phone (D-03, D-04)
+- Activity counted for each vendor: seen in search, profile views, website and phone taps
+  (D-22)
 
 ### B. The vendor side — Stage 1 foundation, Stage 2 messaging
 - Claim a listing; manage profile, services, areas, photos — Stage 1
@@ -85,8 +87,8 @@ is **designed for** now: the data model and permissions already have a place for
 - **Inbox: reply to consumers, share files** — Stage 2
 - **See consumers who marked them booked; flag any that aren't real** — Stage 2
 - **Reply once to each review** — Stage 3
-- Simple insights: profile visits, website clicks, conversations, bookings marked —
-  Stage 5, once there's data
+- Activity is counted from Stage 1 (D-22) and reported to vendors by the Localites
+  team; a dashboard where vendors see their own numbers — Stage 5
 - Availability calendars — **not built.** No reliable integration; we won't imply
   availability we can't know.
 
@@ -96,7 +98,8 @@ is **designed for** now: the data model and permissions already have a place for
 - Create an event: type, date, place; everything else optional
 - Event plan: vendors **considering** → **booked**
 - **Message vendors and share files**
-- "Let them know you're interested" for businesses not yet on Localites
+- **Inquire** about businesses not yet on Localites, which reaches the Localites team
+  (D-04, D-05)
 
 ### D. The handshake: consumer ↔ vendor conversations — Stage 2
 - One conversation per consumer–vendor pair, optionally about one of the consumer's
@@ -124,7 +127,8 @@ is **designed for** now: the data model and permissions already have a place for
 ### G. Platform operations — Stage 1 onward
 - Listing creation, review, approval; claims; verification — Stage 1
 - Categories, attributes, places, event types — Stages 1–2
-- Reports queue: messages, conversations, listings — Stage 2
+- Reports queue: messages, conversations, listings; inquiries — Stage 2
+- Vendor activity reports, prepared by the team (D-22) — Stage 1
 - Review moderation and booking-flag resolution — Stage 3
 - Every staff action logged; staff permissions enforced on the server
 
@@ -162,7 +166,8 @@ Words carry promises. These apply to every screen, email, and help page.
 
 | Use | Never use |
 |---|---|
-| Message, conversation, reply | Inquiry, request a quote, request to book |
+| Message, conversation, reply | Request a quote, request to book |
+| **Inquire**, only on businesses not yet on Localites (it reaches the Localites team, D-04) | Inquire on a claimed business; anything implying the business has already been contacted |
 | Add to event · Considering | Shortlist confirmed, reserved |
 | **Mark as booked** · You marked this booked | Book now, booking confirmed, secure your booking |
 | Shared a file | Invoice received, payment due, pay now |
@@ -191,8 +196,10 @@ message on launch day has someone on the other end.
 ## 8. Open decisions
 
 All in [H](./H-product-owner-action-register.md). The ones that shape the work now:
-D-03 (listing businesses before they join), D-04 (contact
-before messaging), D-05 (messaging unclaimed businesses), D-06 (review rule), D-09 (launch
-area), D-11 (who's on call), D-13 (consumer–vendor rules), D-14 (stage order).
-Already decided: the architecture (D-00), the name and address, Localites at `localites.ca` (D-01, D-07), and the
-design, direction G for phones and computers (D-21, [design-system.md](./design-system.md)).
+D-13 (consumer–vendor rules), D-06 (review rule), D-14 (stage order).
+Already decided: the architecture (D-00); the name and address, Localites at
+`localites.ca` (D-01, D-07); the design, direction G for phones and computers (D-21,
+[design-system.md](./design-system.md)); a curated launch list (D-03); website and phone
+in Stage 1, then messaging with **Inquire** for businesses not yet on Localites in Stage 2
+(D-04, D-05); the launch area (D-09); all team emails to the product owner's address
+(D-11); and activity tracking for vendor reports (D-22).

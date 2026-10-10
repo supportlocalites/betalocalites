@@ -152,7 +152,9 @@ Mockups: phone `G-00` to `G-14`; desktop `G-D1` to `G-D6`.
 - **Guest privacy is stated where it matters.** Invite screens say guests never see
   vendors, budget, notes or other guests' replies.
 - **Words we use:** Event (not "occasion"), Booked, Considering, Awaiting reply, Not on
-  Localites yet, Mark as booked, Browse local, Plan an event. Welcome reads "Welcome to
+  Localites yet, Mark as booked, Browse local, Plan an event. **Message** on claimed,
+  verified businesses; **Inquire** (secondary button) on businesses not yet on Localites
+  (D-04), never both. Welcome reads "Welcome to
   Localites." / "See what your community has to offer…".
 - Language rules in [A §6](./A-product-blueprint.md#6-language-rules) apply throughout.
 

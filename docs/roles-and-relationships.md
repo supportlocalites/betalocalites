@@ -75,8 +75,8 @@ never claims a step happened when it didn't.
 
 | # | Step | Who does it | What the consumer sees | What the vendor sees | It does **not** mean |
 |---|---|---|---|---|---|
-| 1 | **Finds** the vendor | Consumer | The public profile | A count of profile visits and website/phone clicks (no names) | Localites endorses them, or that they're available |
-| 2 | **Saves** the vendor | Consumer | It's in their saved list | Nothing. Saving is private. | Any contact |
+| 1 | **Finds** the vendor | Consumer | The public profile | Totals: times seen in search, profile visits, website/phone taps (no names; D-22) | Localites endorses them, or that they're available |
+| 2 | **Saves** the vendor | Consumer | It's in their saved list | Only a total of how many people saved them, never who (D-22) | Any contact |
 | 3 | **Starts a conversation** | Consumer only | The conversation | The message, the consumer's name, and any event details the consumer chose to share | Availability or agreement |
 | 4 | **Plans it out** | Both | Messages and files | Messages and files | That Localites is involved in any payment. An invoice shared here is between them. |
 | 5 | **Adds to event** | Consumer | The vendor on their event plan | Nothing. Who a consumer is considering stays private. | Booked |
@@ -118,7 +118,7 @@ decision **D-13**. You can accept them as a set or object to any one.
 | R5 | **The consumer controls what event details a vendor sees.** When a conversation is about an event, the vendor sees its type, date, town and approximate guest count, and nothing else. Never the guest list. | Private by default. |
 | R6 | **Localites staff don't read conversations** unless one side reports it. Every such access is logged. | People need to trust the messaging to use it. |
 | R7 | **Either side can block the other.** Blocking ends the conversation for both. | Basic safety. |
-| R8 | **Messaging is only possible with claimed vendors.** For an unclaimed listing, the consumer sees the business's own phone and website, and can tap *"Let them know you're interested"*. | We can't deliver a message to a business that isn't on Localites, and we won't pretend to. Consumer interest becomes a truthful reason for the business to join. (Decision D-05.) |
+| R8 | **Messaging is only possible with claimed vendors.** For an unclaimed or unverified listing, the consumer sees the business's own phone and website, and can tap **Inquire**, which reaches the Localites team (D-04). | We can't deliver a message to a business that isn't on Localites, and we won't pretend to. Consumer interest becomes a truthful reason for the business to join. (Decisions D-04, D-05.) |
 
 ## 4. What Localites never does
 

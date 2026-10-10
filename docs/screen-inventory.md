@@ -1,7 +1,7 @@
 # Screen Inventory
 
 **Status:** Proposed (Stage 0, revision 2).
-**Last updated:** 2026-10-09
+**Last updated:** 2026-10-10 (Inquire and vendor activity reports added; stages unchanged)
 
 Every screen in the intended product, grouped by who uses it. **★** marks the screens
 we'll prototype first (PO-09) so you can judge the experience on your phone. Every
@@ -20,7 +20,7 @@ added; quotes, bookings and the concierge queue removed.
 | P1 ★ | Home | What Localites is, for consumers and for vendors; categories; collections; search | 1 |
 | P2 | Category page | Vendors in a category, with filters | 1 |
 | P3 ★ | Search results | Keyword + filters; honest empty state | 1 |
-| P4 ★ | Vendor profile | Services, published prices, photos, area, verification; **Message** (claimed) or the business's own contact + *"Let them know you're interested"* (unclaimed); **Add to event**; reviews from Stage 3 | 1 |
+| P4 ★ | Vendor profile | Services, published prices, photos, area, verification; **Message** (claimed) or the business's own contact + **Inquire** (unclaimed or unverified, D-04); **Add to event**; reviews from Stage 3 | 1 |
 | P5 | Collection page | A curated list | 1 |
 | P6 | How it works | For consumers and for vendors. States plainly that Localites doesn't handle payments. | 1 |
 | P7 | For vendors | Why join, how claiming works, that it's free | 1 |
@@ -51,7 +51,7 @@ added; quotes, bookings and the concierge queue removed.
 | C7 | Messages | All conversations, unread first | 2 |
 | C8 ★ | Conversation | Messages and files; "about" an event (optional); block, report; "Localites doesn't process payments" footer | 2 |
 | C9 | Start a conversation | Choose whether to share an event, with a preview of exactly what the vendor will see | 2 |
-| C10 | Not on Localites yet | Their own contact details + *"Let them know you're interested"* | 2 |
+| C10 | Inquire | For unclaimed or unverified businesses: their own contact details, an optional note and event; says honestly what happens next (D-04) | 2 |
 | C11 | How was it? | From the feedback email: stars + comments, one per booked vendor | 3 |
 | C12 | My reviews | Status: checking, published, declined (with reason) | 3 |
 | C13 | Guests | Guest list and invitation status | 4 |
@@ -100,18 +100,19 @@ added; quotes, bookings and the concierge queue removed.
 | X11 | Audit log | | 1 |
 | X12 | Event types | | 2 |
 | X13 | Reports | Reported messages, conversations, listings. Opening a conversation is logged. | 2 |
-| X14 | Businesses consumers want | Unclaimed businesses with interest, to invite | 2 |
+| X14 | Inquiries | Every inquiry, by business, to follow up and invite (D-04) | 2 |
 | X15 | Review moderation | Publish or decline against the written policy | 3 |
 | X16 | Booking flags | Resolve vendor flags | 3 |
 | X17 | Operations report | Listings, claims, conversations, reply rates, reviews | 3 |
+| X18 | Vendor activity reports | One vendor's totals by period (seen in search, views, taps; later saves, inquiries, messages), to share with that vendor; category-level figures for others (D-22) | 1 |
 
 ## Counts
 
 | Stage | Screens |
 |---|---|
-| 1 — Discovery & vendors | 30 |
+| 1 — Discovery & vendors | 31 |
 | 2 — The handshake | 17 |
 | 3 — Feedback & reviews | 6 |
 | 4 — Guests & RSVPs | 8 |
 | 5 — Growth | 1 |
-| **Total** | **62** |
+| **Total** | **63** |

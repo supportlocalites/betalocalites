@@ -128,6 +128,10 @@ Integrity checks after any restore:
 
 ## 8. Monitoring
 
+**Every alert and every email meant for the Localites team goes to
+supportlocalites@gmail.com** (D-11), including inquiries (D-04). It's also the admin
+address on every service account (Supabase, Cloudflare, Resend, Sentry, backups).
+
 | What | How | Who's told |
 |---|---|---|
 | Application errors | Sentry (free tier). Personal data scrubbed before sending. | Engineering; daily digest to you if anything new |

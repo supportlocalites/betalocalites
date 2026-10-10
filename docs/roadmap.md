@@ -1,7 +1,11 @@
 # Roadmap & Estimates
 
 **Status:** Proposed (Stage 0, revision 2).
-**Last updated:** 2026-10-09
+**Last updated:** 2026-10-10
+
+**10 October 2026:** stages and estimates unchanged. Your answers on the launch list
+(D-03), launch area (D-09), team emails (D-11), Inquire (D-04, D-05) and activity
+tracking (D-22) are placed in the existing stages below.
 
 **Revision 2:** stages reorganised around the consumer–vendor handshake. Messaging
 moves from a late, optional stage to the centre of Stage 2. Quotes, vendor-confirmed
@@ -74,7 +78,9 @@ they're ready for messaging.
 
 **In scope.** Landing page · category browsing · search with filters (town, category,
 attributes, keyword, typo-tolerant) · vendor profiles (mobile-first, fast, findable on
-Google) · honest empty states · vendor website/phone with anonymous click counts (D-04)
+Google) · honest empty states · vendor website/phone (D-04) · activity counted for each
+vendor (seen in search, profile views, website and phone taps) and reports prepared by
+the team (D-22)
 · vendor accounts: sign up, claim, edit, submit for review, manage team · admin:
 create, review, publish, claims, verification, categories, attributes, places,
 collections · image upload · audit trail · privacy policy and terms (from PO-07) ·
@@ -83,10 +89,10 @@ production environment, monitoring, backups, restore drill.
 **Excluded.** Consumer accounts, events, messaging, reviews (later stages). Anything
 involving payment (never).
 
-**Dependencies.** D-03, D-04, D-09, D-11 (D-00, D-01 and D-07 are done); PO-03, PO-05, PO-07 (before
-public launch), PO-08.
+**Dependencies.** D-00, D-01, D-03, D-04, D-07, D-09 and D-11 are decided; PO-03, PO-05,
+PO-07 (before public launch), PO-08.
 
-**Effort.** 5–7 weeks.
+**Effort.** 5–7 weeks, plus about half a week for the fuller activity tracking (D-22).
 | Work | Weeks |
 |---|---|
 | **Fit test (first day):** one vendor page, one search, one signed-in page on Cloudflare's free plan; confirm it fits the free limits (ADR-005) | 0.2 |
@@ -94,6 +100,7 @@ public launch), PO-08.
 | Taxonomy, vendor model, admin listing tools | 1.5–2 |
 | Public discovery: landing, browse, search, profile, SEO | 1.5–2 |
 | Vendor accounts, claiming, self-editing, team | 1 |
+| Activity tracking and vendor reports (D-22) | 0.5 |
 | Hardening: accessibility, security tests, restore drill, launch checklist | 0.5–1 |
 
 **Acceptance criteria.**
@@ -107,13 +114,15 @@ public launch), PO-08.
 7. Every page passes automated accessibility checks and works at 360px wide.
 8. A backup has been restored successfully and recorded in G.
 9. Every service is on a free plan; the only payment is the domain.
-10. **Success measure to watch:** how many listed businesses claim their profile.
+10. Activity is counted for each vendor (seen in search, profile views, taps); only the
+    Localites team can see another business's numbers (tested).
+11. **Success measure to watch:** how many listed businesses claim their profile.
 
 **Risks.** Too few vendors (high; mitigated by D-03 B and D-09 B) · a business objects to
 being listed (medium; clear labels, fast removal, personal contact) · legal review
 delays launch (medium; start PO-07 now) · **low claim rate leaves Stage 2 with few
-messageable vendors** (medium; PO-08 claim calls; consumer interest signals in Stage 2
-give a truthful reason to claim).
+messageable vendors** (medium; PO-08 claim calls; Stage 1 activity numbers, then
+inquiries in Stage 2, give a truthful reason to claim).
 
 ---
 
@@ -134,15 +143,17 @@ see who marked them booked.
   text + files (images, PDFs); updates every ~15 seconds on screen; batched email
   notices; private unread counts
 - Block and report, both sides; reports queue for the platform team
-- "Let them know you're interested" for unclaimed businesses, plus a notice when they
-  join (D-05)
+- **Inquire** on unclaimed or unverified businesses: saved, and emailed to the Localites
+  team (supportlocalites@gmail.com) naming the business and the person asking; plus a notice
+  when the business joins (D-04, D-05, ADR-024)
+- Activity tracking extended to saves, inquiries, conversations and messages (D-22)
 - Per-person database rules on events, conversations, messages and files (ADR-004)
 - "Localites doesn't process payments" notice in every conversation (ADR-018)
 
 **Excluded.** Typing indicators, read receipts, online status, group chats, voice/video;
 text-message notifications; reviews (Stage 3); guests (Stage 4); payment of any kind.
 
-**Dependencies.** Stage 1 released and businesses claiming; D-05, D-10, D-13 decided;
+**Dependencies.** Stage 1 released and businesses claiming; D-10, D-13 decided (D-05 is);
 domain registered so email works (D-07).
 
 **Effort.** 5–7 weeks.
@@ -151,7 +162,7 @@ domain registered so email works (D-07).
 | Consumer accounts, side switching, saved vendors | 0.5–1 |
 | Events and event plan (considering / booked / flag) | 1–1.5 |
 | Conversations, messages, files, unread counts, polling | 1.5–2 |
-| Email notices (batched), block, report, reports queue, interest signals | 1 |
+| Email notices (batched), block, report, reports queue, Inquire | 1 |
 | Per-person database rules, security tests, hardening | 1–1.5 |
 
 **Acceptance criteria.**
@@ -168,6 +179,8 @@ domain registered so email works (D-07).
 7. The words in [A §6](./A-product-blueprint.md#6-language-rules) are checked across all
    screens and emails: no wording implies payment or confirmation.
 8. Blocking stops messages both ways; reports reach the queue.
+9. **Inquire** saves the inquiry and emails the team; if the email fails, the person and
+   the team's list say so honestly. Nothing suggests the business received a message.
 
 ---
 
@@ -218,7 +231,7 @@ approval).
 
 | Risk | Mitigation |
 |---|---|
-| Vendors don't claim, so messaging has nobody to talk to | Claim drive during Stage 1 (PO-08); consumer-interest signals; measure claim rate weekly |
+| Vendors don't claim, so messaging has nobody to talk to | Claim drive during Stage 1 (PO-08); **Inquire** reaches the team for every unclaimed business (D-04); measure claim rate weekly |
 | Vendors don't reply, so consumers lose trust | Email notices; reply-rate visible to the platform team; later, a gentle "replies usually within a day" on profiles (only once true) |
 | Messaging misuse: spam, harassment, fake invoices | Vendors can't start conversations; block/report; "Localites doesn't process payments" notice; reports reviewed daily |
 | Fake bookings used to post unfair reviews | Consumer-only "booked"; vendor flag; D-06 conversation requirement; moderation |

@@ -1,7 +1,7 @@
 # D — Feature-to-Domain Map
 
 **Status:** Proposed (Stage 0, revision 2).
-**Last updated:** 2026-10-09
+**Last updated:** 2026-10-10 (Inquire and activity tracking)
 
 For every capability: which records it reads and writes, which module owns it, which
 side of the marketplace uses it, and what it depends on. Use this to answer *"if we
@@ -31,7 +31,7 @@ that module writes to them. Others go through its public functions.
 | `safety` | `moderation_report` | messaging, reviews, vendors |
 | `notifications` | `notification` | *(called by messaging, events, reviews, vendors)* |
 | `audit` | `status_change`, `audit_log` | *(written to by all)* |
-| `analytics` | `analytics_event` | *(written to by discovery)* |
+| `analytics` | `activity_event`, `vendor_daily_stats` (D-22, ADR-023) | *(written to by discovery, vendors and messaging)* |
 
 ## Capabilities
 
@@ -42,8 +42,10 @@ that module writes to them. Others go through its public functions.
 | Landing page | Visitor | `category`, `collection` | — | discovery | 📐 |
 | Browse by category | Visitor | `category`, `vendor`, `vendor_category` | — | discovery | 📐 |
 | Search & filter | Visitor | `vendor` + attributes, areas, places | — | discovery | 📐 |
-| Vendor profile | Visitor | `vendor` + services, media, areas, attributes, verification outcome | `analytics_event` (visit) | vendors | 📐 |
-| Website / phone click counting (D-04) | Visitor | — | `analytics_event` | analytics | 📐 |
+| Vendor profile | Visitor | `vendor` + services, media, areas, attributes, verification outcome | `activity_event` (view) | vendors | 📐 |
+| Website / phone tap counting (D-04, D-22) | Visitor | — | `activity_event` | analytics | 📐 |
+| "Seen in search" counting, batched per page (D-22) | Visitor | — | `vendor_daily_stats` | analytics | 📐 |
+| Vendor activity reports (team only, D-22) | Admin | `vendor_daily_stats`, `activity_event` | `audit_log` | analytics | 📐 |
 | Vendor sign-up / sign-in | Vendor | `app_user` | `app_user` | identity | 📐 |
 | Claim a listing | Vendor | `vendor` | `vendor_claim`, `status_change` | vendors | 📐 |
 | Edit own listing, submit for review | Vendor | `vendor` + children | `vendor` + children, `status_change`, `audit_log` | vendors | 📐 |
@@ -73,7 +75,7 @@ that module writes to them. Others go through its public functions.
 | Block | Both | `conversation` | `conversation`, `status_change` | messaging | 📐 |
 | Report | Both | — | `moderation_report` | safety | 📐 |
 | Reports queue | Admin | `moderation_report`, reported item | `moderation_report`, `audit_log` | safety | 📐 |
-| "Let them know you're interested" | Consumer | `vendor` (unclaimed) | `vendor_interest` | messaging | 📐 |
+| **Inquire** (unclaimed or unverified; emails the team, D-04) | Consumer | `vendor` (unclaimed) | `vendor_interest`, `notification`, `activity_event` | messaging, notifications | 📐 |
 | "Now on Localites" notice when claimed | Consumer | `vendor_interest` | `notification` | messaging, vendors | 📐 |
 | Event types | Admin | `event_type` | `event_type`, `audit_log` | taxonomy | 📐 |
 
@@ -100,7 +102,7 @@ that module writes to them. Others go through its public functions.
 
 ### Stage 5 — Growth (each approved separately)
 
-Vendor insights (from `analytics_event`, `conversation`, `event_vendor`, `review`) ·
+Vendor insights dashboard (from `vendor_daily_stats`, `conversation`, `event_vendor`, `review`) ·
 more communities (data only) · labelled sponsored placements or subscriptions, if
 approved · text-message notifications, if approved.
 

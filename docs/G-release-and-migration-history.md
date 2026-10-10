@@ -31,6 +31,37 @@ Every release and every database migration, in order. Appended before each deplo
 
 ## Releases
 
+### 2026-10-10 — Stage 0 documentation, revision 6: launch list, Inquire, activity tracking
+
+**Stage:** 0
+**What changed (plain English):** The product owner decided:
+- **D-03:** Localites launches with a curated list. We research Orillia-area businesses
+  in the chosen categories (PO-05); the product owner picks which to add. Public ratings
+  of 4 stars or more are only our private filter and are never copied or shown.
+- **D-04:** the stages stay as planned. Stage 1 profiles show the business's own website
+  and phone. When messaging arrives in Stage 2, unclaimed or unverified businesses show
+  **Inquire**, which is saved and emailed to the Localites team (ADR-024). This settles
+  D-05.
+- **D-09:** the launch area is Orillia, Severn, Oro-Medonte and Ramara.
+- **D-11:** supportlocalites@gmail.com is the admin address for every service account,
+  and all alerts and team emails go to it.
+- **D-22 (new):** activity tracking so vendor reports can support sales and renewals
+  (ADR-023). Stage 1 counts "seen in search", profile views and website and phone taps;
+  Stage 2 adds saves, inquiries and messages. Detail is kept 90 days, daily totals after.
+
+A draft that moved messaging into Stage 1 was withdrawn at the product owner's request
+before it was saved; the stages and estimates are as before, with about half a week
+added to Stage 1 for the fuller tracking.
+**Documents:** H, A, B, C (ADR-015 extended; ADR-023 and ADR-024 new), D, E (new §7a,
+activity tracking), F, roadmap, roles and relationships, screen inventory (X18 added),
+testing strategy, design system.
+**Migrations applied:** None. The proposed Stage 1 schema still shows the older
+`analytics_event` table; it will be replaced by the two tracking tables, and checked,
+before any Stage 1 code is written.
+**Destructive?** No.
+**Tests run:** None needed; no schema change.
+**Approved by:** Product owner (D-03, D-04, D-09, D-11, D-22), 10 October 2026.
+
 ### 2026-10-10 — Architecture approved (D-00)
 
 **Stage:** 0

@@ -69,7 +69,7 @@ grants more, and every admin action is recorded in `audit_log`.
 | Claim request | — | C, R (own) | — | — | R U |
 | Verification evidence | — (outcome only) | — (outcome only) | R (own) | — | R C U |
 | Categories, attributes, places, event types | R | R | R | R | R C U X |
-| Anonymous counts (visits, clicks) | — | — | R (own) | R (own) | R |
+| Activity totals (seen in search, visits, taps, saves, inquiries, messages; §7a) | — | — | R (own) | R (own) | R (detail, logged) |
 
 ### 4.2 Consumer planning (Stage 2)
 
@@ -174,7 +174,29 @@ The conversation screen reminds people not to share sensitive information they d
 need to. Staff don't read conversations unless reported.
 
 **About everyone:** No third-party advertising or tracking. IP addresses are used
-briefly for abuse prevention, never stored against records.
+briefly for abuse prevention, never stored against records. Localites' own activity
+tracking is described in §7a.
+
+## 7a. Activity tracking (D-22)
+
+Localites counts how people interact with each vendor (ADR-023), to report to vendors and
+to sell featured placements.
+
+| Who | Sees |
+|---|---|
+| A vendor's team | Totals for their own business only: seen in search, profile views, website and phone taps, saves, inquiries, conversations, messages, reply times (later, bookings marked). **Never who** viewed or saved them. They see the people who message them, as part of the conversation. |
+| Other vendors and prospective vendors | Category-level figures, or one vendor's own numbers only with that vendor's permission |
+| The Localites team (platform admins) | The detailed records, for 90 days, to run the service and prepare reports. Every look is recorded in the audit log. |
+| Anyone else | Nothing. Tracking data is never sold. |
+
+- **Told plainly** in the privacy policy, in everyday words. Visitors who aren't signed in
+  get a random visitor ID in Localites' own cookie, with no outside trackers. The legal
+  review (PO-07) confirms whether a notice is also needed on first visit.
+- **Counted, not watched:** we record that something happened (a profile view, a tap), not
+  what someone typed or read.
+- **Retention:** detailed records 90 days, then only daily totals (§8).
+- **Starts with each feature:** seen in search, profile views and taps from Stage 1;
+  saves, inquiries, conversations and messages from Stage 2, when those exist.
 
 ## 8. Retention and deletion
 
@@ -187,6 +209,7 @@ Proposed defaults. **D-10 asks you to approve these.**
 | When a vendor leaves Localites | — | The listing is archived. Consumers keep their copies of conversations, shown as *"This business has left Localites"*. Published reviews stay, without the reply option. |
 | Published reviews | While the listing exists | The author is shown as *"A Localites member"* if they delete their account |
 | Guest contact details (Stage 4) | Until 90 days after the event | Erased; RSVP counts kept |
+| Detailed activity records (§7a) | 90 days | Rolled into daily totals per vendor; the totals are kept |
 | Email delivery log | 1 year | Deleted |
 | Audit log | 2 years | Deleted |
 | Verification evidence | While verified + 1 year | Deleted; outcome kept |

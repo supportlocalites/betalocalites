@@ -300,6 +300,16 @@ erDiagram
 Guests are **not users**: they never have accounts and never interact with vendors.
 Invitation-link security is in [E §5](./E-security-and-privacy-model.md#5-invitation-link-security).
 
+### 3.6 Changes from the 10 October 2026 decisions
+
+Stages are unchanged.
+- **Inquiries** (D-04, D-05, ADR-024, Stage 2): `vendor_interest` gains an optional note,
+  an optional event, and the status of the email to the Localites team.
+- **Activity tracking** (D-22, ADR-023): `activity_event` (detail, 90 days) and
+  `vendor_daily_stats` (daily totals, kept) replace the planned `analytics_event`. Both are
+  built in Stage 1 and record what exists then (seen in search, profile views, website
+  and phone taps); saves, inquiries, conversations and messages are added in Stage 2.
+
 ## 4. Lifecycle states and what they do NOT mean
 
 User-facing wording must match the "means" column and must never imply the "does not
@@ -416,13 +426,14 @@ hiding there.
 | `media_asset` | Media | S1 | Every stored file, with owner and visibility |
 | `collection`, `collection_item` | Discovery | S1 | Curated lists |
 | `status_change`, `audit_log` | Audit | S1 | Append-only history |
-| `analytics_event` | Analytics | S1 | Anonymous counts: profile views, contact clicks (if D-04 A) |
+| `activity_event` | Analytics | S1 | One meaningful action on a vendor (profile view and source, tap; from Stage 2 save, inquiry, conversation, message): time, vendor, person or visitor ID. Kept 90 days (D-22, ADR-023). |
+| `vendor_daily_stats` | Analytics | S1 | Per vendor, day, placement and town: seen in search, views, taps (from Stage 2 also saves, inquiries, conversations, messages), unique people. Kept. |
 | `saved_vendor` | Consumer | S2 | Private bookmarks |
 | `event_type`, `event` | Event | S2 | The consumer's event |
 | `event_vendor` | Event | S2 | Considering → booked |
 | `conversation`, `message`, `message_attachment` | Handshake | S2 | Consumer ↔ vendor messaging with files |
 | `conversation_read_marker` | Handshake | S2 | Private unread counts |
-| `vendor_interest` | Handshake | S2 | Consumers who want to reach an unclaimed vendor |
+| `vendor_interest` | Handshake | S2 | **Inquiries** (D-04, D-05): who asked about an unclaimed or unverified vendor, an optional note and event, and whether the team email was sent |
 | `moderation_report` | Safety | S2 | Reports of messages, conversations, reviews, listings |
 | `notification` | Comms | S2 | Log of every email sent, with honest status |
 | `review_request` | Reviews | S3 | "How was it?" prompts |
