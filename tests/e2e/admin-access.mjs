@@ -1,121 +1,10 @@
 // Admin access tests (E §1.7 "prove it"; testing-strategy: cross-account and role
-// escalation). Runs against a LOCAL site (npm run preview), a LOCAL Supabase Auth server
-// and a LOCAL database, never a hosted one: it creates accounts and test listings.
-//
-//   E2E_BASE_URL            the site, e.g. http://localhost:4173
-//   E2E_AUTH_URL            the local sign-in server, e.g. http://127.0.0.1:9999
-//   E2E_AUTH_JWT_SECRET     that server's own throwaway signing secret (creates test accounts)
-//   E2E_DATABASE_ADMIN_URL  the local database the site uses, as a superuser
+// escalation). Settings and safety checks: tests/e2e/helpers.mjs.
 //
 // Usage: npm run test:e2e
-import { createHmac, randomUUID } from 'node:crypto';
-import postgres from 'postgres';
+import { randomUUID } from 'node:crypto';
+import { account, b64, check, cookieFor, finish, passwordSession, run, site, sql, twoStepSession } from './helpers.mjs';
 
-const BASE = process.env.E2E_BASE_URL ?? 'http://localhost:4173';
-const AUTH = process.env.E2E_AUTH_URL ?? 'http://127.0.0.1:9999';
-const SECRET = process.env.E2E_AUTH_JWT_SECRET;
-const DB_URL = process.env.E2E_DATABASE_ADMIN_URL;
-for (const [name, value] of Object.entries({ E2E_BASE_URL: BASE, E2E_AUTH_URL: AUTH, E2E_DATABASE_ADMIN_URL: DB_URL ?? '' })) {
-  if (!/^(https?|postgres(ql)?):\/\/([^@/]*@)?(localhost|127\.0\.0\.1)[:/]/.test(value)) {
-    console.error(`${name} must point at this computer (localhost). These tests create accounts and listings.`);
-    process.exit(1);
-  }
-}
-if (!SECRET) {
-  console.error('Set E2E_AUTH_JWT_SECRET to the local sign-in server’s signing secret.');
-  process.exit(1);
-}
-
-const sql = postgres(DB_URL, { max: 1, onnotice: () => {} });
-const failures = [];
-let passes = 0;
-const check = (label, ok, detail = '') => {
-  if (ok) {
-    passes++;
-    console.log(`  PASS  ${label}`);
-  } else {
-    failures.push(label);
-    console.log(`  FAIL  ${label}${detail ? `  (${detail})` : ''}`);
-  }
-};
-
-// ------------------------------------------------------- sign-in server helpers
-const b64 = (o) => Buffer.from(JSON.stringify(o)).toString('base64url');
-function serviceToken() {
-  const head = b64({ alg: 'HS256', typ: 'JWT' });
-  const body = b64({ role: 'service_role', exp: Math.floor(Date.now() / 1000) + 600 });
-  return `${head}.${body}.${createHmac('sha256', SECRET).update(`${head}.${body}`).digest('base64url')}`;
-}
-const adminHeaders = () => ({ Authorization: `Bearer ${serviceToken()}`, 'Content-Type': 'application/json' });
-async function auth(path, { method = 'GET', token, body } = {}) {
-  const res = await fetch(AUTH + path, {
-    method,
-    headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
-    body: body === undefined ? undefined : JSON.stringify(body),
-  });
-  const json = res.status === 204 ? null : await res.json().catch(() => null);
-  if (!res.ok) throw new Error(`${path}: ${res.status} ${json?.msg ?? ''}`);
-  return json;
-}
-function totp(secret, t = Date.now()) {
-  const abc = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';
-  let bits = '';
-  for (const c of secret.replace(/=+$/, '')) bits += abc.indexOf(c).toString(2).padStart(5, '0');
-  const key = Buffer.from(bits.match(/.{8}/g).map((b) => parseInt(b, 2)));
-  const counter = Buffer.alloc(8);
-  counter.writeBigUInt64BE(BigInt(Math.floor(t / 30000)));
-  const h = createHmac('sha1', key).update(counter).digest();
-  return String((h.readUInt32BE(h[19] & 15) & 0x7fffffff) % 1e6).padStart(6, '0');
-}
-async function account(email) {
-  const list = await (await fetch(`${AUTH}/admin/users?per_page=200`, { headers: adminHeaders() })).json();
-  let user = list.users?.find((u) => u.email === email);
-  if (!user) {
-    const res = await fetch(`${AUTH}/admin/users`, {
-      method: 'POST',
-      headers: adminHeaders(),
-      body: JSON.stringify({ email, password: 'e2e-password-123', email_confirm: true, user_metadata: { display_name: email.split('@')[0] } }),
-    });
-    user = await res.json();
-  }
-  // Start each run without an authenticator app, so the test can set one up and know its key.
-  const factors = (await (await fetch(`${AUTH}/admin/users/${user.id}/factors`, { headers: adminHeaders() })).json()) ?? [];
-  for (const f of factors) await fetch(`${AUTH}/admin/users/${user.id}/factors/${f.id}`, { method: 'DELETE', headers: adminHeaders() });
-  await sql`insert into app_user (id, display_name, email) values (${user.id}, ${email.split('@')[0]}, ${email})
-            on conflict (id) do nothing`;
-  return user.id;
-}
-const passwordSession = (email) => auth('/token?grant_type=password', { method: 'POST', body: { email, password: 'e2e-password-123' } });
-const authenticators = new Map(); // email → { id, secret } of the app set up in this run
-async function twoStepSession(email) {
-  const s = await passwordSession(email);
-  let factor = authenticators.get(email);
-  if (!factor) {
-    // First time: set up an authenticator app (Supabase allows a second one only after two-step).
-    const made = await auth('/factors', { method: 'POST', token: s.access_token, body: { factor_type: 'totp', friendly_name: `e2e ${Date.now()}` } });
-    factor = { id: made.id, secret: made.totp.secret };
-    authenticators.set(email, factor);
-  }
-  const challenge = await auth(`/factors/${factor.id}/challenge`, { method: 'POST', token: s.access_token, body: {} });
-  return auth(`/factors/${factor.id}/verify`, {
-    method: 'POST',
-    token: s.access_token,
-    body: { challenge_id: challenge.id, code: totp(factor.secret) },
-  });
-}
-const cookieFor = (s) => `__Host-lc_at=${s.access_token}; __Host-lc_rt=${s.refresh_token}`;
-
-// --------------------------------------------------------------- site helpers
-async function site(path, { cookie, method = 'GET', form, origin = BASE } = {}) {
-  const headers = {};
-  if (cookie) headers.Cookie = cookie;
-  if (method !== 'GET') {
-    headers['Content-Type'] = 'application/x-www-form-urlencoded';
-    if (origin) headers.Origin = origin;
-  }
-  const res = await fetch(BASE + path, { method, headers, body: form ? new URLSearchParams(form) : undefined, redirect: 'manual' });
-  return { status: res.status, location: res.headers.get('location') ?? '', headers: res.headers, body: await res.text() };
-}
 const countVendors = async (name) => (await sql`select count(*)::int as n from vendor where display_name = ${name}`)[0].n;
 const towns = await sql`select id from municipality where is_active order by sort_order limit 1`;
 const cats = await sql`select id from category where parent_id is null order by sort_order limit 1`;
@@ -130,7 +19,6 @@ const listingForm = (name) => ({
   publicEmail: '',
   publicPhone: '',
 });
-const run = Date.now().toString(36);
 
 // ------------------------------------------------------------------ accounts
 const adminEmail = `e2e-admin-${run}@example.test`;
@@ -292,6 +180,4 @@ check('declining is recorded with its reason, in the audit log', declined.status
 r = await site('/explore');
 check('public pages need no account and set no cookies', r.status === 200 && !r.headers.get('set-cookie'));
 
-await sql.end();
-console.log(`\n${passes} of ${passes + failures.length} admin access checks passed`);
-process.exit(failures.length ? 1 : 0);
+await finish('admin access');

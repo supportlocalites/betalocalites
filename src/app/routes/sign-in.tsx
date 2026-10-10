@@ -1,4 +1,4 @@
-import { data, Form, redirect, useNavigation } from 'react-router';
+import { data, Form, Link, redirect, useNavigation } from 'react-router';
 import { cloudflareContext } from '@/app/context';
 import { SiteHeader } from '@/components/SiteHeader';
 import { pageMeta } from '@/lib/meta';
@@ -8,7 +8,7 @@ import { explainAuthError } from '@/server/auth/messages.server';
 import { loadSession, safeNext, sessionCookies, withCookies } from '@/server/auth/session.server';
 import type { Route } from './+types/sign-in';
 
-export const meta: Route.MetaFunction = () => pageMeta('Sign in');
+export const meta: Route.MetaFunction = () => pageMeta('Team sign-in');
 
 export async function loader({ request, context }: Route.LoaderArgs) {
   const { env } = context.get(cloudflareContext);
@@ -19,7 +19,7 @@ export async function loader({ request, context }: Route.LoaderArgs) {
     const { session, setCookies } = await loadSession(request, env);
     if (session) throw redirect(next, withCookies(undefined, setCookies));
   }
-  return { next, configured, expired: url.searchParams.has('expired') };
+  return { next, configured, expired: url.searchParams.has('expired'), team: url.searchParams.has('team') };
 }
 
 export async function action({ request, context }: Route.ActionArgs) {
@@ -46,10 +46,13 @@ export default function SignIn({ loaderData, actionData }: Route.ComponentProps)
     <>
       <SiteHeader />
       <main className="page narrow">
-        <h1 className="title-1">Sign in</h1>
+        <h1 className="title-1">Team sign-in</h1>
         <div className="title-rule" aria-hidden="true" />
         {loaderData.expired && (
           <p className="notice">For safety, team sign-ins last 12 hours. Please sign in again.</p>
+        )}
+        {loaderData.team && (
+          <p className="notice">The team pages need the team sign-in: your password, then your authenticator app.</p>
         )}
         {!loaderData.configured ? (
           <p className="notice">Sign-in isn’t switched on for this site yet.</p>
@@ -86,7 +89,9 @@ export default function SignIn({ loaderData, actionData }: Route.ComponentProps)
             </button>
           </Form>
         )}
-        <p className="muted section-gap">New accounts open when businesses can claim their listings.</p>
+        <p className="muted section-gap">
+          This sign-in is for the Localites team. Everyone else: <Link to="/join">sign in with an emailed code</Link>.
+        </p>
       </main>
     </>
   );

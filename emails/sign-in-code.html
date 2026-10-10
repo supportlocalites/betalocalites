@@ -1,0 +1,13 @@
+<!--
+  Supabase email template for sign-in codes (D-32, ADR-028). Paste this body into BOTH
+  Supabase templates: "Magic link or OTP" and "Confirm sign up" (PO-13).
+  Subject for both: Your Localites code: {{ .Token }}
+  Only {{ .Token }} is used on purpose: no link (it would skip our site) and no name
+  (anyone can type a name for an address they don't own).
+-->
+<h2>Your Localites sign-in code</h2>
+<p>Enter this code on Localites to sign in:</p>
+<p style="font-size: 28px; letter-spacing: 4px;"><strong>{{ .Token }}</strong></p>
+<p>It works once and expires in 15 minutes.</p>
+<p><strong>Never share this code.</strong> Localites will never ask you for it, by phone, email or text.</p>
+<p>If you didn’t ask for a code, you can ignore this email.</p>

@@ -49,3 +49,9 @@
     grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
   }
 }
+
+.owner {
+  margin-top: var(--space-6);
+  padding-top: var(--space-4);
+  border-top: var(--hairline) solid var(--color-line-soft);
+}

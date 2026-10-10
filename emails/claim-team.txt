@@ -1,0 +1,8 @@
+Subject: New claim: {{business}}
+
+{{name}} ({{email}}) has claimed {{business}}.
+Connection to the business: {{relationship}}
+{{evidence}}
+
+Check it, then approve or decline it on the Claims page (never by replying to this email):
+{{claimsUrl}}

@@ -1,7 +1,7 @@
 # F — Operational Runbook
 
 **Status:** Proposed (Stage 0). No production environment exists yet.
-**Last updated:** 2026-10-09
+**Last updated:** 2026-10-10 (sign-in codes and claims)
 
 How the application is deployed, monitored, backed up, restored, and recovered — and
 who is responsible for each part. Procedures marked *(to be verified)* will be tested
@@ -147,13 +147,36 @@ guide this live (PO-03 part 3). Changing the password later is the same two step
   next click.
 - **Lost phone (authenticator):** in the SQL editor, `delete from auth.mfa_factors where user_id = (select id from auth.users where email = '<email>');`
   Their next sign-in shows a new square code to scan.
-- **Forgotten password:** until password reset by email is built (screen A3), set a new
-  one in the SQL editor:
+- **Forgotten team password:** the public has no passwords (D-32); for a team account,
+  set a new one in the SQL editor:
   `update auth.users set encrypted_password = extensions.crypt('<new password>', extensions.gen_salt('bf')) where email = '<email>';`
   then delete that query from the editor's list, as in PO-03 C.
-- **Known limit:** Supabase limits sign-in attempts per address, and every request comes
-  from Cloudflare's servers. At team scale this never matters; revisit before public
-  sign-up opens.
+- **Known limit:** Supabase limits sign-in attempts per internet address, and every
+  request comes from Cloudflare's servers, so its limits apply to the whole site at once.
+  Our own limits apply per visitor (ADR-028). Revisit if people report "Too many tries
+  from here" when only a few are signing in.
+
+### Sign-in codes and claims (D-32 to D-35, ADR-028)
+
+- **Settings:** Supabase sends the codes through Resend (PO-13): custom SMTP, both email
+  templates from `emails/sign-in-code.html`, sign-ups on, "Confirm email" on, codes of 6
+  digits lasting 900 seconds. If codes stop arriving, check Resend's **Emails** log first,
+  then Supabase **Authentication** → **Emails** → **SMTP Settings**.
+- **"We've sent a lot of sign-in codes today":** our daily cap of 60 codes was reached. It
+  clears itself within a day. If it happens often, the cap (`CODES_PER_DAY` in
+  `src/server/auth/code-limits.server.ts`) can rise towards Resend's free 100 a day.
+- **Checking a claim (D-33):** on **Claims**, if it says the email matches the business's
+  own website, you can approve. Otherwise contact the business at the phone number or
+  email **it publishes itself** (shown on the claim), never the details the claimant gave,
+  then approve or decline with a reason (the reason is emailed to them). You can't approve
+  your own claim; another team member must.
+- **Claim emails:** each one to a claimant is recorded in `notification` as `sent` or
+  `failed` (with the reason); the Claims page shows the "received" email's status. A failed
+  email can be followed up by hand from supportlocalites@gmail.com.
+- **Wrong owner approved:** removing an owner isn't on the admin page yet (it comes with
+  owner editing, D-34). Ask the developer: it's a recorded change (end the
+  `vendor_member` row, set the listing back to `unclaimed`, with `status_change` and
+  `audit_log` rows), never a deletion.
 
 ## 5. Backups
 

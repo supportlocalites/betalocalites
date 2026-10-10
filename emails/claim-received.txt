@@ -1,0 +1,10 @@
+Subject: We've received your claim for {{business}}
+
+Hi {{name}},
+
+Thanks for claiming {{business}} on Localites.
+
+Our team will check it with the business and email you when it's decided. You can see
+where it's up to on your account page: {{accountUrl}}
+
+Localites

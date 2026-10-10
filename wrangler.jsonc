@@ -11,7 +11,11 @@
   "observability": { "enabled": true },
   // Suggest a business (ADR-027): at most 3 suggestions a minute from one internet
   // address. Cloudflare counts in memory and forgets; addresses are never stored.
-  "ratelimits": [{ "name": "SUGGEST_LIMIT", "namespace_id": "1001", "simple": { "limit": 3, "period": 60 } }],
+  "ratelimits": [
+    { "name": "SUGGEST_LIMIT", "namespace_id": "1001", "simple": { "limit": 3, "period": 60 } },
+    // Sign in with an emailed code (ADR-028): 10 code requests or code checks a minute per address.
+    { "name": "SIGN_IN_LIMIT", "namespace_id": "1002", "simple": { "limit": 10, "period": 60 } }
+  ],
   // Cloudflare Hyperdrive (free): the app's route to Supabase. It keeps the encrypted
   // connection to the database (SSL "require") and pools connections. The ID is not a
   // secret; the database login lives only in Cloudflare. localConnectionString is a

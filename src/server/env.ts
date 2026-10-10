@@ -17,6 +17,8 @@ export type ServerEnv = {
   RESEND_API_KEY?: string;
   /** Suggest a business: a per-address limit kept by Cloudflare, never stored (wrangler.jsonc). */
   SUGGEST_LIMIT?: RateLimit;
+  /** Sign in with an emailed code: a per-address limit kept by Cloudflare, never stored. */
+  SIGN_IN_LIMIT?: RateLimit;
 };
 
 export type Cloudflare = { env: ServerEnv; ctx: ExecutionContext };

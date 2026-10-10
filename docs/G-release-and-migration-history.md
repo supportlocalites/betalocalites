@@ -31,6 +31,50 @@ Every release and every database migration, in order. Appended before each deplo
 
 ## Releases
 
+### 2026-10-10 — Sign in with an emailed code; claiming a business (Stage 1, not public)
+
+**Stage:** 1 (D-27, D-29, D-32, D-33, D-35; ADR-028)
+**What changed (plain English):** A **Sign in** link in the header opens *"Sign in or
+create an account"*: type your email, enter the 6-digit code we email you, and (first time
+only) your name. No passwords. Every unclaimed business page now asks *"Is this your
+business?"* with **Claim this business** and a way to ask us to remove it. A claim says how
+the person is connected to the business, with an optional note, and needs them to confirm
+they're allowed to manage the listing. **Your account** shows your name and email, the
+businesses you manage and your claims (waiting, approved, or not approved with the
+reason). The team's new **Claims** page shows each claim's evidence (whether the email is
+at the business's own website) and the business's own published phone and email; the team
+approves (saying how it was confirmed) or declines with a reason. The first approved claim
+wins: the person becomes the owner and any other claims are declined automatically. The
+claimant and the team are emailed at each step (once PO-12 and PO-13 are done), and every
+email is recorded as sent or failed. The team's own sign-in is now labelled **Team
+sign-in**; an emailed-code sign-in never opens the team pages.
+**Migrations applied:** `0004_claims_and_sign_in.sql`: how a claimant is connected to the
+business; a declined claim must have a reason; one active owner per business; the
+`notification` table (moved forward from the Stage 2 proposal); `sign_in_code_event` for our
+code limits. Applied to the test database by GitHub after the checks pass.
+**Destructive?** No: new columns, constraints on rows that don't exist yet, new tables.
+**Tests run:** unit tests 60/60 (new: Supabase error codes, the inputs for joining and
+claiming, claim emails, email-to-website matching); database checks 51/51, 12/12, 19/19
+(new: migration 0004) and 56/56; end-to-end 43/43 admin access and 63/63 sign-in and
+claiming (new, against a local copy of Supabase's sign-in server and a pretend email
+service); phone-size screenshots of every new screen and the code email; Worker size 194
+KiB (6% of the free limit).
+**Security tests:** replies never say whether an address has an account; 5 wrong guesses per
+code; per-address, daily and per-internet-address limits; code sign-ins refused by the
+admin gate even for an admin; claims need an account; unpublished listings can't be
+claimed; people see only their own claims; non-team and claimants can't decide claims; a
+team member can't approve their own claim; "email matches" refused when it doesn't; first
+approved wins with one owner; cross-site forms refused. All passed.
+**Found by the tests and fixed before release:** an email address at the domain a website
+sits under (e.g. anyone@someisp.ca for bakery.someisp.ca) counted as matching; now only the
+website's own domain or its subdomains count.
+**Not yet live:** codes reach any address only after PO-13 (Supabase's own email service
+sends only to the team); emails from Localites wait for PO-12. Owners editing their own
+listing comes next (D-34).
+**How to roll back:** Cloudflare → localites → Deployments → previous version → Deploy. The
+migration can stay: the previous version ignores the new tables and column.
+**Approved by:** Product owner (D-32, D-33, D-35; D-23).
+
 ### 2026-10-10 — Suggest a business (Stage 1, not public)
 
 **Stage:** 1 (D-25, ADR-027)

@@ -8,6 +8,7 @@ import './globals.css';
 import { Form, isRouteErrorResponse, Link, Links, Meta, Outlet, Scripts, ScrollRestoration } from 'react-router';
 import { SiteHeader } from '@/components/SiteHeader';
 import { pageMeta } from '@/lib/meta';
+import { hasSessionCookie } from '@/server/auth/session.server';
 import type { Route } from './+types/root';
 
 const isNotFound = (error: unknown) => isRouteErrorResponse(error) && error.status === 404;
@@ -19,6 +20,11 @@ export const links: Route.LinksFunction = () => [{ rel: 'icon', href: '/favicon.
 
 export const meta: Route.MetaFunction = ({ error }) =>
   pageMeta(error ? (isNotFound(error) ? 'Not found' : isForbidden(error) ? 'Team only' : 'Something went wrong') : undefined);
+
+/** Only what the header needs; reading a cookie costs no network request. */
+export function loader({ request }: Route.LoaderArgs) {
+  return { signedIn: hasSessionCookie(request) };
+}
 
 export function Layout({ children }: { children: React.ReactNode }) {
   return (

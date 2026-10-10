@@ -52,12 +52,13 @@ jobs:
       - name: Size budget (free plan)
         run: npm run size
 
-  # Admin access, tested for real (E §1.7): a local copy of Supabase's open-source sign-in
-  # server, a throwaway database and the built site, then tests/e2e/admin-access.mjs tries
-  # every way into the admin pages without permission. All values here are throwaway and
-  # local to this job; no real accounts or secrets.
+  # Sign-in, admin access and claiming, tested for real (E §1.7): a local copy of Supabase's
+  # open-source sign-in server, a pretend email service, a throwaway database and the built
+  # site. tests/e2e/admin-access.mjs tries every way into the admin pages without
+  # permission; tests/e2e/claiming.mjs covers emailed codes and claims. All values here are
+  # throwaway and local to this job; no real accounts or secrets.
   admin-access:
-    name: Admin access tests
+    name: Sign-in, admin and claiming tests
     runs-on: ubuntu-24.04
     timeout-minutes: 20
     services:
@@ -96,8 +97,10 @@ jobs:
         run: bash scripts/e2e/build-auth-server.sh .e2e/auth-server
       - name: Prepare a throwaway database
         run: node scripts/e2e/prepare-db.mjs
-      - name: Start the sign-in server
+      - name: Start the pretend email service and the sign-in server
         run: |
+          nohup node scripts/e2e/mail-server.mjs > mail-server.log 2>&1 &
+          for i in $(seq 1 20); do curl -sf -o /dev/null http://127.0.0.1:8787/health && break; sleep 0.5; done
           . scripts/e2e/env.sh
           .e2e/auth-server migrate
           nohup .e2e/auth-server serve > auth-server.log 2>&1 &
@@ -111,11 +114,11 @@ jobs:
             sleep 1
           done
           echo "The site or sign-in server didn't start"; exit 1
-      - name: Admin access tests
+      - name: Sign-in, admin and claiming tests
         run: npm run test:e2e
       - name: Logs (only if something failed)
         if: failure()
-        run: tail -n 80 auth-server.log site.log || true
+        run: tail -n 80 auth-server.log site.log mail-server.log || true
 
   # Keeps the Supabase TEST project (localites-test) in step with this branch, only
   # after every check above has passed. Uses the encrypted repository secret

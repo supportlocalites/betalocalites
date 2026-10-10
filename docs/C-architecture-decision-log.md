@@ -30,6 +30,9 @@ ADR-026 (every review approved by an admin, with an email notice; D-06) added.
 go through Localites, including vendors paying Localites. ADR-025 accepted. ADR-027
 (Suggest a business, D-25) added.
 
+**Revision 7 changes (10 October 2026):** ADR-028 (signing in with an emailed code, and
+claiming a business; D-32, D-33 and D-35) added and accepted.
+
 **Revision 3 changes (product owner: no running costs):** ADR-003 and ADR-013 move to
 free plans. ADR-007 replaces Vercel with Cloudflare's free plan, because Vercel's free
 plan doesn't allow business use. ADR-005 adds a fit test for Cloudflare's free limits.
@@ -68,6 +71,7 @@ ADR-014 caveat updated. Nothing in the data model or security model changes.
 | ADR-025 | Paid vendor plans are recorded (which plan, until when) but paid for outside Localites | **Needs approval** (business model; D-24) | Accepted (D-24) |
 | ADR-026 | Every review is approved by an admin in the admin area; the team is emailed each new review | **Needs approval** (D-06) | Accepted (D-06) |
 | ADR-027 | Suggest a business: a three-question form, open to everyone, emailed to the team to vet | **Needs approval** (user experience; D-25) | Accepted (D-25) |
+| ADR-028 | The public signs in with an emailed 6-digit code; businesses claim listings, checked by the team, first approved wins | **Needs approval** (user experience; D-32, D-33, D-35) | Accepted (D-32, D-33, D-35) |
 
 ---
 
@@ -707,3 +711,83 @@ a warm lead for the team, at no cost.
 
 **Cost.** Suggestion emails count toward the free plan's 100 a day; if they become
 frequent, they're bundled into a daily summary.
+
+---
+
+## ADR-028 — Signing in with an emailed code, and claiming a business
+
+**Needs your approval** (user experience). **Accepted: D-32, D-33 and D-35, 10 October
+2026.** Stage 1.
+
+**Decision.** Everyone except the team signs in at **/join** ("Sign in or create an
+account", D-27) with a 6-digit code emailed to them: no passwords for the public. A
+signed-in person can claim a published business; the team checks each claim and approves
+or declines it on the **Claims** page. The team keeps its own sign-in (password, then an
+authenticator app, E §2).
+
+*Signing in (D-32).*
+- One screen for new and returning people: email address → code → (new people only) their
+  name. Supabase sends the code (its "Magic link or OTP" and "Confirm sign up" emails,
+  using our template `emails/sign-in-code.html`: the code only, no link, no name).
+- **Replies never say whether an address has an account.** Every outcome of "send me a
+  code" gets the same answer, and every unusable code (wrong, expired, too many tries, no
+  account) gets the same words.
+- **Our own limits**, because Supabase has no limit on wrong guesses for one code: 5 wrong
+  guesses per code; 3 codes per address per hour; 60 codes a day across the site (leaving
+  room in Resend's 100 a day); 10 tries a minute per internet address (Cloudflare's rate
+  limiter, never stored). Addresses are stored only as a SHA-256 fingerprint, for two days.
+  Codes last 15 minutes.
+- **We add a person to Localites (`app_user`) only after they've proved the address and
+  typed their name.** The name is never taken from Supabase, because Supabase keeps
+  whatever was sent with the first code request for an address, by anyone.
+- **A code sign-in never opens the team pages**, even for an admin: the admin gate requires
+  a password sign-in, so it signs the person out and sends them to the team sign-in.
+
+*Claiming (D-29, D-33, D-35).*
+- Only published listings can be claimed. The claimant says how they're connected (owner,
+  manager, employee, something else), may add a note for the team, and confirms they're
+  allowed to manage the listing. One person may have 3 claims waiting at a time.
+- **The team decides, on evidence (D-33).** The Claims page shows whether the claimant's
+  email address is at the business's own website (`src/lib/domain-match.ts`: the same
+  domain or a subdomain of it; personal email services and website platforms such as
+  Facebook or Wix never count). If it isn't, the team contacts the business at the phone
+  number or email **the business publishes itself**, never the details in the claim.
+  Approving asks how it was confirmed, and "their email matches" is refused when it
+  doesn't. A team member can't approve their own claim.
+- **First approved wins (D-35).** Approving, in one database transaction: the claim is
+  approved; the listing becomes claimed; the claimant becomes its owner; every other open
+  claim for it is declined with "Another claim for this business was approved."; the
+  status history and audit log record it all. The database allows only one active owner
+  per business. A claimed listing shows "This business manages its own listing" and can't
+  be claimed again.
+- **Declining needs a reason, which is emailed to the claimant.** If no other claims are
+  waiting, the listing goes back to unclaimed.
+- Approving a claim doesn't make a business verified: verification is a separate check with
+  recorded evidence (`verification_record`, B §3).
+- Emails (Resend, ADR-013): "we've received your claim" to the claimant, a note to the team
+  linking to the Claims page, and the decision. Each email to a person is recorded in
+  `notification` as sent or failed, with the reason; replies go to the team's address.
+
+**Why.** Codes avoid passwords people forget or reuse, and need nothing but the email
+address we'd use for notices anyway (D-26). A claim is the moment someone gets control of
+a business's listing, so a person on the team checks every one, with evidence the
+claimant can't fake.
+
+**Alternatives.** *Sign-in links* — a link in an email signs in whoever opens it, on
+whatever device, and is easily forwarded; a code is typed on the device being signed in.
+*Passwords* — more to forget, reset and protect. *Automatic approval when the email
+matches* — rejected for now; the team still decides (D-33).
+
+**Known limits.** Supabase sees every request as coming from Cloudflare, so its own
+per-internet-address limits apply to the whole site at once (ours apply per visitor).
+No "are you human" check yet (Cloudflare's free Turnstile can be added if bots appear).
+An address that asks for a code but never finishes leaves an unconfirmed Supabase
+account; a clean-up comes later. Supabase gives the same answer for "a code went to this
+address under a minute ago" and "the site has sent too many emails"; we tell them apart
+by our own records. Owners can't edit their listing yet: that comes next (D-34).
+
+**Cost.** $0: Supabase's sign-in and Resend's free plan (sign-in emails go through Resend
+once PO-13 is done).
+
+**Revisit when.** Sign-in emails approach Resend's daily limit, or the team can't keep up
+with checking claims.

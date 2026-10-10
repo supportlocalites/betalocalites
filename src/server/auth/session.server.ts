@@ -27,6 +27,12 @@ function readCookie(request: Request, name: string): string | undefined {
   return undefined;
 }
 
+/**
+ * Whether this browser holds a session, without asking Supabase: enough to choose between
+ * "Sign in" and "Your account" in the header. Pages that need an account check properly.
+ */
+export const hasSessionCookie = (request: Request) => Boolean(readCookie(request, REFRESH));
+
 export type SignedIn = { user: AuthUser; accessToken: string; claims: TokenClaims };
 
 /** Who is signed in, if anyone, plus any cookies the response must set (a refresh or a sign-out). */

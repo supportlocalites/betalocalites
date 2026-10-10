@@ -43,7 +43,7 @@ authenticated with scoped keys.
 |---|---|---|---|---|---|
 | Supabase Auth | 1 | Sign-in | Email; password held by Supabase | Sign-in unavailable; public pages fine | ADR-003 |
 | Supabase Storage | 1 | Vendor photos; **conversation files** (Stage 2) | Uploaded files (stored in Canada) | Uploads show retry; messages still send | ADR-003 |
-| Resend | 1 | Sign-in; message notices; booked notices; feedback requests | Recipient email; notice text (never message content) | Queued and retried; status recorded honestly | ADR-013 |
+| Resend | 1 | Sign-in codes (sent by Supabase through Resend, PO-13); claim notices; message notices; booked notices; feedback requests | Recipient email; notice text (never message content) | Queued and retried; status recorded honestly | ADR-013 |
 | Sentry | 1 | Error alerts | Error details; personal data and message text scrubbed | None to users | ADR-016 |
 | Cloudflare | 1 | Hosting (free plan); scheduled checks | Everything passes through | Roll back to previous version | ADR-007 |
 

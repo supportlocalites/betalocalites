@@ -1,0 +1,49 @@
+import { sql } from 'drizzle-orm';
+import { redirect } from 'react-router';
+import { withDb } from '../db.server';
+import type { ServerEnv } from '../env';
+import { loadSession, pagePath, withCookies } from './session.server';
+
+export type Member = { userId: string; name: string; email: string; accessToken: string };
+
+type Person = { name: string; email: string; closed: boolean };
+
+/** Our own record of a person (app_user), if they've finished joining. */
+export async function findPerson(env: ServerEnv, userId: string): Promise<Person | null> {
+  const [person] = await withDb(env, (db) =>
+    db.execute<Person>(sql`
+      select display_name as name, email::text as email, deleted_at is not null as closed
+      from app_user where id = ${userId}`),
+  );
+  return person ?? null;
+}
+
+/**
+ * Creates our record of a person once they've proved their email address (a code) and
+ * told us their name (ADR-028). The name is kept only here, never in Supabase.
+ */
+export async function createPerson(env: ServerEnv, user: { id: string; email: string }, name: string): Promise<void> {
+  await withDb(env, (db) =>
+    db.execute(sql`
+      insert into app_user (id, display_name, email) values (${user.id}, ${name}, ${user.email})
+      on conflict (id) do nothing`),
+  );
+}
+
+export async function renamePerson(env: ServerEnv, userId: string, name: string): Promise<void> {
+  await withDb(env, (db) => db.execute(sql`update app_user set display_name = ${name} where id = ${userId} and deleted_at is null`));
+}
+
+/**
+ * For pages that need an account (D-27): a live Supabase session and our own record of
+ * the person. Anyone else is sent to "Sign in or create an account" and brought back
+ * here afterwards.
+ */
+export async function memberGate(request: Request, env: ServerEnv): Promise<{ member: Member; setCookies: string[] }> {
+  const back = `/join?next=${encodeURIComponent(pagePath(request))}`;
+  const { session, setCookies } = await loadSession(request, env);
+  if (!session) throw redirect(back, withCookies(undefined, setCookies));
+  const person = await findPerson(env, session.user.id);
+  if (!person || person.closed) throw redirect(back, withCookies(undefined, setCookies));
+  return { member: { userId: session.user.id, name: person.name, email: person.email, accessToken: session.accessToken }, setCookies };
+}

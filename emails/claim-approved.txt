@@ -1,0 +1,9 @@
+Subject: You now manage {{business}} on Localites
+
+Hi {{name}},
+
+Good news: your claim for {{business}} is approved. You now manage its listing on Localites.
+{{note}}
+See it on your account page: {{accountUrl}}
+
+Localites

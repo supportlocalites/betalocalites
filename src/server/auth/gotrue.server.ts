@@ -64,12 +64,23 @@ const toSession = (raw: RawSession): AuthSession => ({
   user: toUser(raw.user),
 });
 
+/** Reads Supabase's error code from either response shape (or its header), never from the message text. */
+export function authErrorFrom(response: Pick<Response, 'status' | 'headers'>, body: Record<string, unknown> | null): AuthError {
+  const fromBody = typeof body?.code === 'string' ? body.code : (body?.error_code ?? body?.error);
+  const code = String(
+    response.headers.get('X-Sb-Error-Code') ?? fromBody ?? (response.status === 429 ? 'over_request_rate_limit' : 'unknown'),
+  );
+  const message = String(body?.message ?? body?.msg ?? body?.error_description ?? `Sign-in service answered ${response.status}`);
+  return new AuthError(code, response.status, message);
+}
+
 async function call<T>(
   env: ServerEnv,
   path: string,
   options: { method?: string; token?: string; body?: unknown } = {},
 ): Promise<T> {
-  const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+  // The versioned API gives every error a stable code (e.g. "otp_expired") to map to plain words.
+  const headers: Record<string, string> = { 'Content-Type': 'application/json', 'X-Supabase-Api-Version': '2024-01-01' };
   if (env.SUPABASE_PUBLISHABLE_KEY) headers.apikey = env.SUPABASE_PUBLISHABLE_KEY;
   if (options.token) headers.Authorization = `Bearer ${options.token}`;
   const response = await fetch(baseUrl(env) + path, {
@@ -79,11 +90,7 @@ async function call<T>(
   });
   if (response.status === 204) return undefined as T;
   const body = (await response.json().catch(() => null)) as Record<string, unknown> | null;
-  if (!response.ok) {
-    const code = String(body?.error_code ?? body?.error ?? (response.status === 429 ? 'over_request_rate_limit' : 'unknown'));
-    const message = String(body?.msg ?? body?.error_description ?? body?.message ?? `Sign-in service answered ${response.status}`);
-    throw new AuthError(code, response.status, message);
-  }
+  if (!response.ok) throw authErrorFrom(response, body);
   return body as T;
 }
 
@@ -100,6 +107,32 @@ export async function refreshSession(env: ServerEnv, refreshToken: string): Prom
 /** Checks the access token with Supabase (signature and that the session still exists). */
 export async function getUser(env: ServerEnv, accessToken: string): Promise<AuthUser> {
   return toUser(await call<RawUser>(env, '/user', { token: accessToken }));
+}
+
+/**
+ * Emails a 6-digit sign-in code (D-32). Creates the account if the address is new and
+ * sign-ups are open. Never sends `data`: Supabase would keep whatever a stranger typed
+ * for an address they don't own, so names are asked for after the code (ADR-028).
+ */
+export async function sendSignInCode(env: ServerEnv, email: string): Promise<void> {
+  await call(env, '/otp', { method: 'POST', body: { email, create_user: true } });
+}
+
+/** Checks a 6-digit code. Type "email" accepts codes for new and existing accounts. */
+export async function verifySignInCode(env: ServerEnv, email: string, code: string): Promise<AuthSession> {
+  return toSession(await call<RawSession>(env, '/verify', { method: 'POST', body: { type: 'email', email, token: code } }));
+}
+
+export type AuthSettings = { signUpOpen: boolean; emailConfirmed: boolean };
+let settingsCache: { at: number; value: AuthSettings } | null = null;
+
+/** Whether new accounts can be created (Supabase "Allow new users to sign up"), cached for 5 minutes. */
+export async function authSettings(env: ServerEnv): Promise<AuthSettings> {
+  if (settingsCache && Date.now() - settingsCache.at < 5 * 60_000) return settingsCache.value;
+  const raw = await call<{ disable_signup?: boolean; mailer_autoconfirm?: boolean }>(env, '/settings');
+  const value = { signUpOpen: raw.disable_signup !== true, emailConfirmed: raw.mailer_autoconfirm !== true };
+  settingsCache = { at: Date.now(), value };
+  return value;
 }
 
 export async function signOut(env: ServerEnv, accessToken: string): Promise<void> {

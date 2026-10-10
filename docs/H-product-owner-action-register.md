@@ -1,6 +1,6 @@
 # H — Product Owner Action Register
 
-**Last updated:** 2026-10-10 (revision 10)
+**Last updated:** 2026-10-10 (revision 11)
 
 This is the one place where everything that needs **you** is listed. If it isn't here,
 you don't need to do it.
@@ -47,6 +47,10 @@ Recorded from your messages of 9 and 10 October 2026. These now shape every docu
 | ✅ D-29 | **Businesses claim their listing; no teammates yet. Personal and business are joined in one login.** A vendor signs in once and switches between their personal side and their business from the menu, without signing out. The switch matters for vendors, the paying users. | ADR-022 confirmed. "Manage team" leaves Stage 1. The personal side arrives with consumer accounts in Stage 2. |
 | ✅ D-30 | **Activity reports: the more the better; trim later.** Per business: how often it appears in search and category lists and in what position; profile views, separate people and returning visitors; time on the profile, photos opened, services viewed; website, phone, email, directions, social and share taps; where visitors came from (Google, shared link, Localites search, category); phone or computer; approximate town; day and time; trends week over week and year over year; comparison with the category average (anonymous) and rank in category; "people asked for you" (Suggest a business); search demand in its category, including searches that found nothing. Stage 2 adds saves, inquiries, messages, reply time, added to events and booked, as a funnel. | ADR-023 extended; E §7a. **Everything is tracked, including the words people search**, linked to the visitor or account like the rest of the detail; the privacy policy says it's used to improve Localites and for vendor reports. Only the Localites team sees the detail; businesses see totals. Effort for activity tracking grows to about 1–1.5 weeks. The lawyer (PO-07) reviews the wording, the returning-visitor cookie and approximate town. |
 | ✅ D-31 | **The brand: a black map pin dots the "i" in Localites.** A plain black pin with a round window (chosen over a glossy one), sized to the lettering, wherever the name appears as the brand: the Welcome page, the header and the browser tab. | [design-system.md](./design-system.md) §6; `src/components/Wordmark.tsx`. |
+| ✅ D-32 | **Sign in with an emailed 6-digit code, for everyone but the team.** No passwords to remember: type your email, then the code we email you. New people also give their name. The team keeps its password and authenticator app. | ADR-028. Built: "Sign in or create an account" at `/join`. Needs PO-13 so codes reach everyone. |
+| ✅ D-33 | **Checking a claim: email match, else contact the business.** If the person's email address is at the business's own website (jane@sweettreats.ca for sweettreats.ca), the team can approve. Otherwise the team contacts the business at the phone number or email the business publishes itself, then decides. | ADR-028. The Claims page shows the evidence and the business's own details, and asks how each approval was confirmed. |
+| ✅ D-34 | **Owners' edits go live at once; the team can undo.** Changes a business makes to its own listing show straight away; the team gets a daily note of what changed and can undo any of it. | The next part we build (screen V2). Until then, owners email changes to supportlocalites@gmail.com. |
+| ✅ D-35 | **Two claims for one business: the first approved wins.** Any other waiting claims are declined automatically with a polite email; a claimed business shows "This business manages its own listing" with a way to contact us. | ADR-028; the database allows only one owner per business. |
 
 ---
 
@@ -57,6 +61,7 @@ Recorded from your messages of 9 and 10 October 2026. These now shape every docu
 | **ADR-005** | ✅ CPU time 8 ms with React Router (passes). A day after the speed improvements go live, glance at **Metrics** once more: CPU time, and whether any "Exceeded CPU" errors appear | Nothing; a final check | 2 min |
 | **PO-11** | Check the 28 test businesses (drafts) and publish the ones that are right (steps below) | Real listings on the test site | At your pace, ~5 min each |
 | **PO-12** | Let Localites send email from localites.ca: move the domain's settings to Cloudflare, then connect the free email service (steps below) | Suggest a business emails; business sign-up | 20 min, plus a wait |
+| **PO-13** | After PO-12: send Supabase's sign-in emails through Resend, paste our code email, and open sign-ups (steps below) | Businesses signing in and claiming their listings | 15 min |
 | **D-12** | Mailing address for the privacy policy and terms | Public launch | 1 min, later |
 
 **How to respond:** reply in the conversation with decision numbers and your choice,
@@ -816,6 +821,70 @@ domain you own and have proved is yours.
 **Done when:** Resend shows `localites.ca` as **Verified** and `/api/health` lists
 `RESEND_API_KEY`. Reply *"PO-12 done"*. Until then, suggestions are still saved and shown
 in the admin page; only the email to the team waits.
+
+### PO-13 — Switch on sign-in for businesses (emailed codes, D-32)
+**When:** After PO-12 shows `localites.ca` as **Verified** in Resend. **Cost:** $0
+(Supabase and Resend free plans). **Time:** about 15 minutes.
+**Why:** Businesses sign in with a 6-digit code we email them (D-32). Supabase's own email
+service only sends to the team's address, a couple of times an hour, and won't let us
+change its emails, so its sign-in emails must go through Resend, like the rest.
+Everything happens in the **localites-test** Supabase project; nothing is sent to us.
+
+*A. Send Supabase's emails through Resend*
+1. In Resend, open **API Keys** → **Create API Key**. Name: `supabase-sign-in`.
+   Permission: **Sending access**, domain `localites.ca`. Click **Add** and copy the key
+   (it's shown only once).
+2. In Supabase, open **Authentication** → **Emails** → **SMTP Settings** and turn on
+   **Enable custom SMTP**. Fill in:
+   - Sender email: `notices@localites.ca`
+   - Sender name: `Localites`
+   - Host: `smtp.resend.com`
+   - Port: `465`
+   - Username: `resend`
+   - Password: paste the key from step 1.
+
+   Click **Save**. (If Resend offers **Connect to Supabase** under its **Integrations**,
+   that fills in the same settings for you; either way is fine.)
+
+*B. Use our code email*
+3. Open our email on GitHub:
+   https://github.com/supportlocalites/localites/blob/claude/event-discovery-architecture-dz0qgf/emails/sign-in-code.html
+   and click the **Copy raw file** button (two overlapping squares, top right of the file).
+4. In Supabase, **Authentication** → **Emails** → **Templates** → **Magic link or OTP**
+   (it may be called **Magic Link**):
+   - Subject: `Your Localites code: {{ .Token }}`
+   - Body: delete what's there and paste. Click **Save**.
+5. Do the same for **Confirm sign up** (same subject, same body). New people get this
+   one; people who've signed in before get the other.
+
+*C. Open sign-ups*
+6. **Authentication** → **Sign In / Providers**. Turn **on** "Allow new users to sign up"
+   (you turned it off in PO-10). Under **Email**, make sure **Confirm email** is **on**,
+   set **Email OTP Expiration** to `900` (15 minutes) and **Email OTP Length** to `6`,
+   and turn **Secure email change** on. Click **Save**.
+7. Leave **Authentication** → **Rate Limits** as they are.
+
+*D. Try it*
+8. In a private browser window, open
+   https://localites.supportlocalites.workers.dev/join and enter a personal email address
+   (not supportlocalites@gmail.com). Within a minute you should get **"Your Localites
+   code: 123456"** from notices@localites.ca. Enter the code, then your name. You land
+   on **Your account**.
+9. Open one of the six fake **Test Vendor** businesses, click **Claim this business**, and
+   send a claim. Then, signed in to the admin page as the team, open **Claims**: approve
+   it ("I emailed the business at its published address" is fine for a test) or decline
+   it with a reason. Your personal address gets the email, and **Your account** shows the
+   result.
+
+**Your team sign-in doesn't change:** password, then the authenticator app, at
+`/sign-in`. A code sign-in never opens the team pages.
+
+**Never send us** the Resend key. If it's ever exposed, delete it in Resend, make a new
+one and paste it into step 2 again.
+
+**Done when:** the code arrives and step 8 lands on **Your account**. Reply *"PO-13
+done"*. Until then, the sign-in screen works only for addresses Supabase's own email
+service will send to.
 
 ---
 

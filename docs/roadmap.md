@@ -84,8 +84,12 @@ limit); live CPU time 8 ms, under the 10 ms limit, so the fit test passes. Team 
 with two-step codes and the admin page for listings are built and tested (D-28; switched
 on by PO-10, live). The 28 test businesses are loaded as drafts for the team to check and
 publish (PO-11). Suggest a business is built (D-25; its team email waits for PO-12).
-Next: vendor claiming with the sign-in screen (D-27, D-29), then the fuller activity
-reports (D-30).
+Signing in with an emailed code and claiming a business are built and tested (D-27,
+D-29, D-32, D-33, D-35, ADR-028): the "Sign in or create an account" screen, **Your
+account**, "Claim this business" on every unclaimed profile, and the team's **Claims**
+page (codes reach everyone once PO-12 and PO-13 are done). Next: owners editing their own
+listing, with the team's daily note and undo (D-34), then the fuller activity reports
+(D-30).
 
 **Outcome.** A real, public directory of local event vendors, useful to a parent on its
 own, with the admin tools to build it. **Local businesses claim their listings** so

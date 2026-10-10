@@ -315,27 +315,10 @@ create table moderation_report (
 );
 create index moderation_report_open on moderation_report (created_at) where status = 'open';
 
--- Every email Localites sends, with an honest status: "sent" only once the
--- provider accepted it.
-create table notification (
-  id              uuid primary key default gen_random_uuid(),
-  user_id         uuid not null references app_user(id),
-  kind            text not null check (kind in (
-                    'new_message', 'marked_booked', 'booking_unmarked', 'review_request',
-                    'review_reminder', 'review_published', 'review_reply', 'vendor_joined',
-                    'claim_decision')),
-  subject_type    text not null,
-  subject_id      uuid not null,
-  channel         text not null default 'email' check (channel in ('email')),
-  status          text not null default 'queued'
-                  check (status in ('queued', 'sent', 'failed', 'suppressed')),
-  sent_at         timestamptz,
-  failure_reason  text,
-  created_at      timestamptz not null default now(),
-  check ((status = 'sent') = (sent_at is not null)),
-  check (status <> 'failed' or failure_reason is not null)
-);
-create index notification_queued on notification (created_at) where status = 'queued';
+-- Every email Localites sends, with an honest status: the `notification` table now
+-- exists from migration 0004 (Stage 1 claim emails), with these Stage 2 and 3 kinds
+-- already allowed: new_message, marked_booked, booking_unmarked, review_request,
+-- review_reminder, review_published, review_reply, vendor_joined.
 
 -- =============================================================================
 -- FEEDBACK & REVIEWS
@@ -512,7 +495,7 @@ begin
   foreach t in array array[
     'event_type', 'event', 'event_vendor', 'conversation', 'message',
     'message_attachment', 'conversation_read_marker', 'vendor_interest',
-    'moderation_report', 'notification', 'review_request', 'review'
+    'moderation_report', 'review_request', 'review'
   ] loop
     execute format('alter table %I enable row level security', t);
     execute format('alter table %I force row level security', t);

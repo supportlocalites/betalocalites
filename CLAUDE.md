@@ -33,8 +33,12 @@ decisions are in [docs/H-product-owner-action-register.md](docs/H-product-owner-
 ## Working
 - Branch: `claude/event-discovery-architecture-dz0qgf`; Cloudflare builds and deploys it on push.
 - Before pushing: `npm run check`, `npm test`, `npm run test:db` (needs TEST_DATABASE_ADMIN_URL),
-  `npm run build && npm run size`; for sign-in or admin changes also `npm run test:e2e`, against a
-  local Supabase Auth server built by `scripts/e2e/build-auth-server.sh` (see the CI job).
+  `npm run build && npm run size`; for sign-in, claims or admin changes also `npm run test:e2e`,
+  against a local Supabase Auth server built by `scripts/e2e/build-auth-server.sh`, set up by
+  `scripts/e2e/env.sh`, with the pretend email service `scripts/e2e/mail-server.mjs` (see the CI job).
+- The public signs in at `/join` with emailed codes (ADR-028); the team at `/sign-in` with a
+  password and an authenticator app. Pages needing an account live under
+  `src/app/routes/member/` and pass `memberGate` (`src/server/auth/member.server.ts`).
 - Admin pages live under `src/app/routes/admin/`; every request passes `adminGate`
   (`src/server/auth/admin.server.ts`). Every admin change writes `audit_log`.
 - React Router 8 on Cloudflare Workers (free plan: 10 ms CPU per request). Database code lives in

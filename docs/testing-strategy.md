@@ -102,9 +102,11 @@ PostgreSQL. Mocked databases are where permission bugs hide.
 | Unit tests (price wording) | **3 / 3 passed** | 2026-10-10 |
 | Design-token and language checks | **Passed** | 2026-10-10 |
 | Screen-size check (manual, first pages): phone 390, tablet 768, desktop 1440 | **No sideways scrolling**; matches design G | 2026-10-10 |
-| Hosting size budget | **932 KiB, 30% of 3 MiB** (Next.js); **179 KiB, 6%** (React Router, with sign-in and admin) | 2026-10-10 |
+| Hosting size budget | **932 KiB, 30% of 3 MiB** (Next.js); **194 KiB, 6%** (React Router, with sign-in, admin and claiming) | 2026-10-10 |
 | First-admin and app-role checks ([db/tests/0003_admin_access.test.sql](../db/tests/0003_admin_access.test.sql)) | **12 / 12 passed** | 2026-10-10 |
 | Admin access tests ([tests/e2e/admin-access.mjs](../tests/e2e/admin-access.mjs)) against a local copy of Supabase's sign-in server: signed out, not on the team, no two-step, tampered token, cross-site form, cross-listing edit, status gatekeeper, removed role, cookies after sign-out, outside links; Suggest a business limits, bot trap and team-only actions | **43 / 43 passed**; confirmed to fail with the gate's two-step or team check removed | 2026-10-10 |
-| Unit tests (price wording, security headers, sign-in safety, IDs and web addresses, suggestions and email) | **35 / 35 passed** | 2026-10-10 |
+| Unit tests (price wording, security headers, sign-in safety, IDs and web addresses, suggestions and email, sign-in codes, claim inputs and emails, email-to-website matching) | **60 / 60 passed** | 2026-10-10 |
+| Claims and sign-in-code checks ([db/tests/0004_claims_and_sign_in.test.sql](../db/tests/0004_claims_and_sign_in.test.sql)) | **19 / 19 passed** | 2026-10-10 |
+| Sign-in and claiming tests ([tests/e2e/claiming.mjs](../tests/e2e/claiming.mjs)) against a local copy of Supabase's sign-in server and a pretend email service: replies that never reveal an account, the code email, wrong-guess, per-address, daily and per-internet-address limits, code sign-ins kept out of the team pages, claims needing an account, unpublished listings, people seeing only their own claims, only the team deciding, no approving your own claim, "email matches" only when it does, first approved wins, decline reasons, sign-out | **63 / 63 passed**; caught a real matching flaw (an address at a website's parent domain), fixed before release | 2026-10-10 |
 | Environment | PostgreSQL 16 + PostGIS, throwaway database per run (GitHub CI: `postgis/postgis:16-3.4`) | |
 | Automated run | Every push, via GitHub Actions ([.github/workflows/ci.yml](../.github/workflows/ci.yml)) | |

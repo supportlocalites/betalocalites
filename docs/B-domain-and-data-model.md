@@ -1,7 +1,7 @@
 # B — Domain & Data Model
 
 **Status:** Approved (D-00, 10 October 2026).
-**Last updated:** 2026-10-09
+**Last updated:** 2026-10-10 (claims: state machines for `vendor_claim` and `vendor.claim_status`; `sign_in_code_event`; `notification` moved to Stage 1)
 
 **Revision 2:** reworked around the two users, consumer and vendor, and the
 relationship between them. The commercial domain (quotes, vendor-confirmed bookings,
@@ -389,6 +389,22 @@ pending → rejected              (with reason shown to the author)
 draft → pending_review → published ⇄ unpublished → archived
 ```
 
+**`vendor_claim.status`** — the claimant submits; only the platform team decides (ADR-028).
+```
+submitted → approved   (team, with how it was confirmed; never their own claim)
+submitted → rejected   (team, with a reason emailed to the claimant; or automatically,
+                        when another claim for the same business is approved: D-35)
+submitted → withdrawn  (reserved; not offered yet)
+```
+
+**`vendor.claim_status`** — follows the claims, in the same transaction.
+```
+unclaimed     → claim_pending   (first claim submitted)
+claim_pending → claimed         (a claim approved: the claimant becomes the one active owner)
+claim_pending → unclaimed       (the last waiting claim declined)
+```
+Claimed doesn't mean verified: verification is its own check with recorded evidence.
+
 **`invitation.status`** — Stage 4, unchanged. Opening a link is recorded separately
 from RSVPing.
 
@@ -444,7 +460,8 @@ hiding there.
 | `platform_role` | People | S1 | Grants `admin` to the platform team. |
 | `municipality`, `category`, `attribute_*` | Reference | S1 | Places, taxonomy, typed filters |
 | `vendor` + `vendor_*` | Vendor | S1 | The business, its team, services, areas, attributes, media, links, slugs |
-| `vendor_claim`, `verification_record` | Vendor | S1 | Ownership claims; evidence-backed checks |
+| `vendor_claim`, `verification_record` | Vendor | S1 | Ownership claims (how the claimant is connected, their note, the team's decision and reason); evidence-backed checks |
+| `sign_in_code_event` | People | S1 | Our limits on emailed sign-in codes (ADR-028): a SHA-256 fingerprint of the address, "sent" or "wrong code", and when. Kept two days. |
 | `media_asset` | Media | S1 | Every stored file, with owner and visibility |
 | `collection`, `collection_item` | Discovery | S1 | Curated lists |
 | `status_change`, `audit_log` | Audit | S1 | Append-only history |
@@ -458,7 +475,7 @@ hiding there.
 | `conversation_read_marker` | Handshake | S2 | Private unread counts |
 | `vendor_interest` | Handshake | S2 | **Inquiries** (D-04, D-05): who asked about an unclaimed or unverified vendor, an optional note and event, and whether the team email was sent |
 | `moderation_report` | Safety | S2 | Reports of messages, conversations, reviews, listings |
-| `notification` | Comms | S2 | Log of every email sent, with honest status |
+| `notification` | Comms | S1 | Log of every email sent to a person (from Stage 1: claim emails), with honest status |
 | `review_request` | Reviews | S3 | "How was it?" prompts |
 | `review` | Reviews | S3 | Ratings, comments, vendor reply; whether it was planned on Localites (set by the database); published only by an admin (D-06) |
 | `vendor_plan` | Vendors | S5 | Which vendors have a paid plan and until when; set by an admin; no prices or payment details (D-24, ADR-025) |

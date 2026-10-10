@@ -14,7 +14,7 @@ export type Admin = { userId: string; email: string; name: string; sessionId: st
  * The only way into the admin pages (E §1–3). Every admin request, page or form,
  * passes all four checks on the server; hiding links is never the control:
  *   1. a valid Supabase session (checked with Supabase, so signing out takes effect at once);
- *   2. signed in with a password within the last ADMIN_SESSION_HOURS;
+ *   2. signed in with a password (not an emailed code) within the last ADMIN_SESSION_HOURS;
  *   3. an active admin role in our own database (platform_role), not anything the person can edit;
  *   4. the two-step code from their authenticator app for this session (aal2).
  * Throws a redirect or a 403 for the router to send. Returns cookies to set (after a refresh).
@@ -24,10 +24,12 @@ export async function adminGate(request: Request, env: ServerEnv): Promise<{ adm
   const { session, setCookies } = await loadSession(request, env);
   if (!session) throw redirect(`/sign-in?next=${here}`, withCookies(undefined, setCookies));
 
+  // Signed in with an emailed code (the public sign-in) or too long ago: the team sign-in again.
   const hours = session.claims.passwordAt ? (Date.now() / 1000 - session.claims.passwordAt) / 3600 : Infinity;
   if (hours > ADMIN_SESSION_HOURS) {
     await signOut(env, session.accessToken).catch(() => undefined);
-    throw redirect(`/sign-in?next=${here}&expired=1`, withCookies(undefined, clearedCookies()));
+    const why = session.claims.passwordAt ? 'expired=1' : 'team=1';
+    throw redirect(`/sign-in?next=${here}&${why}`, withCookies(undefined, clearedCookies()));
   }
 
   const [member] = await withDb(env, (db) =>

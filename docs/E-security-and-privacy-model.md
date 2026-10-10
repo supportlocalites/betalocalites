@@ -1,7 +1,7 @@
 # E — Security & Privacy Model
 
 **Status:** Approved (D-00, 10 October 2026).
-**Last updated:** 2026-10-09
+**Last updated:** 2026-10-10 (§2: emailed sign-in codes and claims, as built)
 
 **Revision 2:** rebuilt around the two users, consumer and vendor. Added
 conversations, shared files, consumer-marked bookings, and reviews. Removed the
@@ -25,7 +25,8 @@ concierge role and inquiry/quote/booking records.
 
 ## 2. Signing in
 
-- Provider: Supabase Auth (ADR-003). Email + password, or an emailed sign-in link.
+- Provider: Supabase Auth (ADR-003). The public signs in with a 6-digit code emailed to
+  them (D-32, ADR-028); the platform team with a password and an authenticator app.
 - Sessions in secure, HTTP-only cookies that page scripts can't read.
 - Localites code never sees or stores passwords.
 - Platform team accounts **must** use two-factor authentication, enforced on the server.
@@ -35,8 +36,25 @@ concierge role and inquiry/quote/booking records.
   is still live, a password sign-in within 12 hours, an active admin role in our own
   `platform_role` table, and a two-step code (an authenticator app) for this session.
   Forms from other websites are refused. Each admin change is written to `audit_log` with
-  the session it came from. Proven by `tests/e2e/admin-access.mjs` (27 checks) on every
+  the session it came from. Proven by `tests/e2e/admin-access.mjs` (43 checks) on every
   push.
+- **Emailed codes, as built (ADR-028):** "Sign in or create an account" (`/join`) never
+  says whether an address has an account: the same reply for every "send me a code", and
+  the same words for every unusable code. Our own limits: 5 wrong guesses per code, 3
+  codes per address an hour, 60 a day across the site, 10 tries a minute per internet
+  address (Cloudflare, never stored). Addresses are kept only as a SHA-256 fingerprint,
+  for two days (`sign_in_code_event`). A person is added to Localites only after proving
+  the address and typing their name. The email holds only the code: no link, no name.
+  **A code sign-in never opens the admin pages**, even for an admin. Pages that need an
+  account pass one gate (`src/server/auth/member.server.ts`) and show only the person's
+  own details and claims. Proven by `tests/e2e/claiming.mjs` (63 checks) on every push.
+- **Claims (ADR-028):** only the platform team approves or declines, never a claimant
+  (enforced by the admin gate); a team member can't approve their own claim; "their email
+  matches the business's website" is accepted only when it does; otherwise the team
+  contacts the business at its own published phone or email. One active owner per
+  business, enforced by the database.
+- **Email processors:** Supabase sends sign-in codes through Resend (PO-13), and our own
+  emails go through Resend (ADR-013). Resend sees each recipient's address and the email.
 - **Browsing needs no account.** Guests (Stage 4) never need one.
 
 ## 3. Roles

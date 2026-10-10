@@ -1,0 +1,11 @@
+Subject: About your claim for {{business}}
+
+Hi {{name}},
+
+We couldn't approve your claim for {{business}}.
+
+Our reason: {{reason}}
+
+If you think this is a mistake, reply to this email and we'll look again.
+
+Localites
