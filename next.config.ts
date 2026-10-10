@@ -9,6 +9,9 @@ const securityHeaders = [
 ];
 
 const nextConfig: NextConfig = {
+  // Leave the database library to the Cloudflare adapter, which then picks its
+  // Cloudflare build (encrypted connections the Workers way) instead of the Node one.
+  serverExternalPackages: ['postgres'],
   poweredByHeader: false,
   reactStrictMode: true,
   async headers() {

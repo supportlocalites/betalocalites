@@ -98,6 +98,18 @@ very unlikely, and recoverable when it happens.
   a fresh backup first (rule 4), set up before launch.
 - Hosted databases are always reached over an encrypted (TLS) connection.
 
+### Is the site connected to its database?
+
+Open `/api/health` on the site (for example `https://<site>.workers.dev/api/health`). It
+answers in plain words: `"database":"ok"` with the number of published listings, or the
+kind of problem (not configured, address unreadable, login refused, encryption failed,
+cannot reach) and what to do. It never shows the address or password. Uptime checks
+(§8) use the same page.
+
+**On Cloudflare**, the app connects through **Hyperdrive** when a `HYPERDRIVE` binding
+exists (Cloudflare's free database connector: it keeps the encrypted connection to
+Supabase and pools connections), otherwise directly with the `DATABASE_URL` secret.
+
 ### The app's own database login (ADR-004)
 
 Migration 0001 creates the restricted role `app_server` **without** a password. The

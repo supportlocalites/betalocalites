@@ -29,6 +29,7 @@
   "dependencies": {
     "@fontsource/jost": "5.3.0",
     "@fontsource/playfair-display": "5.3.0",
+    "@opennextjs/cloudflare": "1.20.10",
     "drizzle-orm": "0.45.4",
     "next": "16.3.8",
     "postgres": "3.4.9",
@@ -37,7 +38,6 @@
     "server-only": "0.0.1"
   },
   "devDependencies": {
-    "@opennextjs/cloudflare": "1.20.10",
     "@types/node": "22.18.8",
     "@types/react": "19.3.0",
     "@types/react-dom": "19.2.3",

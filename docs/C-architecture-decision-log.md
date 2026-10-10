@@ -197,6 +197,12 @@ own runtime (workerd, locally) against PostgreSQL as the restricted `app_server`
 the welcome page, Explore, search (including typos) and a business profile all worked.
 Next.js 16.4.0 was tried first and failed in that runtime (the adapter doesn't yet
 support a file 16.4 added), so we stay on 16.3.8 until the adapter catches up.
+**Finding (10 October 2026):** the database library must run as its Cloudflare build
+(`serverExternalPackages: ['postgres']` in `next.config.ts`); bundled as the Node build,
+Cloudflare's runtime rejects its encryption settings and every database page fails.
+Cloudflare also verifies database certificates, so if it doesn't trust Supabase's, the
+app connects through **Cloudflare Hyperdrive** (free plan; encrypts to Supabase and pools
+connections). The code supports both; `/api/health` reports which is in use.
 **Part 2, still to do on Cloudflare itself after PO-03:** time per request against the
 10 ms limit, on the real free plan, with a signed-in page.
 
