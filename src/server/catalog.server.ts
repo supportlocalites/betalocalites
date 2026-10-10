@@ -1,14 +1,14 @@
-import 'server-only';
 import { and, asc, eq, sql } from 'drizzle-orm';
 import { category, municipality, vendor, vendorCategory, vendorService } from '@/db/generated/schema';
 import { describePrice, type PricingModel } from '@/lib/price';
-import { withDb } from './db';
+import { withDb } from './db.server';
+import type { ServerEnv } from './env';
 
 export type CategorySummary = { slug: string; name: string; vendorCount: number };
 
 /** Top-level categories, in the order the team set, with how many published listings each has. */
-export async function listCategories(): Promise<CategorySummary[]> {
-  return withDb(async (db) => {
+export async function listCategories(env: ServerEnv): Promise<CategorySummary[]> {
+  return withDb(env, async (db) => {
     const rows = await db.execute<CategorySummary>(sql`
       select top.slug, top.name, (
         select count(distinct vc.vendor_id)::int
@@ -32,9 +32,9 @@ export type VendorResult = { slug: string; name: string; tagline: string | null;
  * Published listings matching the words typed, ordered only by how well they match
  * (search results are never paid for). Tolerates small typos via trigram similarity.
  */
-export async function searchVendors(query: string, categorySlug?: string): Promise<VendorResult[]> {
+export async function searchVendors(env: ServerEnv, query: string, categorySlug?: string): Promise<VendorResult[]> {
   const q = query.trim().slice(0, 100);
-  return withDb(async (db) => {
+  return withDb(env, async (db) => {
     const rows = await db.execute<VendorResult>(sql`
       select v.slug, v.display_name as name, v.tagline, m.name as town
       from vendor v
@@ -77,8 +77,8 @@ export type VendorProfile = {
 };
 
 /** One published listing by its web address, or null if there's no such public listing. */
-export async function getVendor(slug: string): Promise<VendorProfile | null> {
-  return withDb(async (db) => {
+export async function getVendor(env: ServerEnv, slug: string): Promise<VendorProfile | null> {
+  return withDb(env, async (db) => {
     const [v] = await db
       .select({
         id: vendor.id,

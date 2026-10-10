@@ -1,8 +1,9 @@
+import { Form } from 'react-router';
 import styles from './SearchBar.module.css';
 
 export function SearchBar({ defaultValue = '' }: { defaultValue?: string }) {
   return (
-    <form action="/search" method="get" role="search" className={styles.form}>
+    <Form action="/search" method="get" role="search" className={styles.form}>
       <label htmlFor="q" className="visually-hidden">
         Search local businesses
       </label>
@@ -19,6 +20,6 @@ export function SearchBar({ defaultValue = '' }: { defaultValue?: string }) {
       <button type="submit" className={`button button-primary ${styles.submit}`}>
         Search
       </button>
-    </form>
+    </Form>
   );
 }

@@ -35,7 +35,7 @@ describe('normalizeDatabaseUrl', () => {
   it('explains common mistakes without showing the address', () => {
     expect(() => normalizeDatabaseUrl(`postgresql://postgres.abc:[YOUR-PASSWORD]@${host}/postgres`)).toThrow(/still contains/);
     expect(() => normalizeDatabaseUrl('psql -h somewhere')).toThrow(/not a database address/);
-    expect(() => normalizeDatabaseUrl('JustAPassword123')).toThrow(/1 line, no "\:\/\/"/);
+    expect(() => normalizeDatabaseUrl('JustAPassword123')).toThrow(/1 line, no ":\/\/"/);
     expect(() => normalizeDatabaseUrl('')).toThrow(/empty/);
     for (const bad of ['postgresql://u:topsecret@ bad host/db', 'topsecret', 'user=u password=topsecret']) {
       try {

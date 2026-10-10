@@ -3,16 +3,17 @@
   // the Cloudflare dashboard by the product owner, never in this file.
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "localites",
-  "main": ".open-next/worker.js",
+  // The Worker's entry point. `npm run build` (React Router + Cloudflare's Vite plugin)
+  // bundles it with the pages and puts the browser files alongside as static assets.
+  "main": "./workers/app.ts",
   "compatibility_date": "2026-09-01",
   "compatibility_flags": ["nodejs_compat", "global_fetch_strictly_public"],
-  "assets": { "directory": ".open-next/assets", "binding": "ASSETS" },
   "observability": { "enabled": true },
   // Cloudflare Hyperdrive (free): the app's route to Supabase. It keeps the encrypted
   // connection to the database (SSL "require") and pools connections. The ID is not a
   // secret; the database login lives only in Cloudflare. localConnectionString is a
   // placeholder for local emulation only (Cloudflare's publish step requires one); it
-  // has no password and is never used by the live site. Override it for `wrangler dev`
+  // has no password and is never used by the live site. Override it for local runs
   // with CLOUDFLARE_HYPERDRIVE_LOCAL_CONNECTION_STRING_HYPERDRIVE.
   "hyperdrive": [
     {

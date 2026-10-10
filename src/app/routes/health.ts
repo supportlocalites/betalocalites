@@ -1,8 +1,8 @@
-import { getCloudflareContext } from '@opennextjs/cloudflare';
 import { sql } from 'drizzle-orm';
-import { connection, withDb } from '@/server/db';
-
-export const dynamic = 'force-dynamic';
+import { cloudflareContext } from '@/app/context';
+import { connection, withDb } from '@/server/db.server';
+import type { ServerEnv } from '@/server/env';
+import type { Route } from './+types/health';
 
 /**
  * Plain-words health check for the team and for uptime monitoring (runbook §8).
@@ -27,29 +27,26 @@ function explain(err: unknown): { database: string; detail: string } {
   if (/CONNECT_TIMEOUT|ETIMEDOUT|ECONNREFUSED/.test(`${text} ${code ?? ''}`))
     return { database: 'cannot reach', detail: 'The database did not answer. Check the address is the Supabase pooler one.' };
   if (/DATABASE_URL is not set/.test(text))
-    return { database: 'not configured', detail: 'The DATABASE_URL secret is not set in Cloudflare (step E).' };
+    return { database: 'not configured', detail: 'No database link: HYPERDRIVE is missing from wrangler.jsonc and no DATABASE_URL secret is set.' };
   if (/database address/.test(text)) return { database: 'address unreadable', detail: String(e?.message) };
   return { database: 'error', detail: code ? `Database error code ${code}.` : 'Unexpected error; see the Cloudflare logs.' };
 }
 
 /** Names (never values) of the settings the running site can see on Cloudflare. */
-function settingNames(): string[] {
-  try {
-    return Object.keys(getCloudflareContext().env)
-      .filter((k) => /^[A-Z][A-Z0-9_]*$/.test(k) && k !== 'ASSETS')
-      .sort();
-  } catch {
-    return [];
-  }
+function settingNames(env: ServerEnv): string[] {
+  return Object.keys(env)
+    .filter((k) => /^[A-Z][A-Z0-9_]*$/.test(k) && k !== 'ASSETS')
+    .sort();
 }
 
-export async function GET() {
+export async function loader({ context }: Route.LoaderArgs) {
+  const { env } = context.get(cloudflareContext);
   const headers = { 'Cache-Control': 'no-store' };
-  const about = { build: process.env.LOCALITES_BUILD ?? 'unknown', settingsSeen: settingNames() };
+  const about = { build: import.meta.env.LOCALITES_BUILD ?? 'unknown', settingsSeen: settingNames(env) };
   let via = 'none';
   try {
-    via = connection().via;
-    const rows = await withDb((db) =>
+    via = connection(env).via;
+    const rows = await withDb(env, (db) =>
       db.execute<{ n: number }>(sql`select count(*)::int as n from vendor where listing_status = 'published'`),
     );
     return Response.json({ website: 'ok', database: 'ok', via, publishedListings: rows[0]?.n ?? 0, ...about }, { headers });

@@ -1,15 +1,19 @@
-import type { Metadata } from 'next';
-import Link from 'next/link';
+import { Link } from 'react-router';
+import { cloudflareContext } from '@/app/context';
 import { SearchBar } from '@/components/SearchBar';
 import { SiteHeader } from '@/components/SiteHeader';
-import { listCategories } from '@/server/catalog';
+import { pageMeta } from '@/lib/meta';
+import { listCategories } from '@/server/catalog.server';
+import type { Route } from './+types/explore';
 import styles from './explore.module.css';
 
-export const dynamic = 'force-dynamic';
-export const metadata: Metadata = { title: 'Explore' };
+export const meta: Route.MetaFunction = () => pageMeta('Explore');
 
-export default async function Explore() {
-  const categories = await listCategories();
+export async function loader({ context }: Route.LoaderArgs) {
+  return { categories: await listCategories(context.get(cloudflareContext).env) };
+}
+
+export default function Explore({ loaderData: { categories } }: Route.ComponentProps) {
   return (
     <>
       <SiteHeader />
@@ -26,7 +30,7 @@ export default async function Explore() {
         <ul className={styles.grid}>
           {categories.map((c) => (
             <li key={c.slug}>
-              <Link href={`/search?category=${c.slug}`} className={styles.tile}>
+              <Link to={`/search?category=${c.slug}`} className={styles.tile}>
                 <span className={styles.tileName}>{c.name}</span>
                 <span className="muted">
                   {c.vendorCount === 0 ? 'Businesses being added' : `${c.vendorCount} local ${c.vendorCount === 1 ? 'business' : 'businesses'}`}

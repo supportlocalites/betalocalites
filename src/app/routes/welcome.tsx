@@ -1,5 +1,9 @@
-import Link from 'next/link';
-import styles from './page.module.css';
+import { Link } from 'react-router';
+import { pageMeta } from '@/lib/meta';
+import type { Route } from './+types/welcome';
+import styles from './welcome.module.css';
+
+export const meta: Route.MetaFunction = () => pageMeta();
 
 export default function Welcome() {
   return (
@@ -15,7 +19,7 @@ export default function Welcome() {
           </p>
         </div>
         <div className={styles.actions}>
-          <Link href="/explore" className="button button-primary">
+          <Link to="/explore" className="button button-primary">
             Browse local
           </Link>
         </div>

@@ -1,11 +1,11 @@
-import Link from 'next/link';
+import { Link } from 'react-router';
 import styles from './SiteHeader.module.css';
 
 /** The wordmark always returns Home (design system §7). */
 export function SiteHeader() {
   return (
     <header className={styles.header}>
-      <Link href="/explore" className={styles.wordmark}>
+      <Link to="/explore" className={styles.wordmark}>
         Localites
       </Link>
     </header>

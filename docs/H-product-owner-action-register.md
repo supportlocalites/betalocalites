@@ -48,7 +48,8 @@ Recorded from your messages of 9 and 10 October 2026. These now shape every docu
 
 | # | What | Blocks | Your effort |
 |---|---|---|---|
-| **ADR-005** | Tell us Cloudflare's CPU time figures (median and P99) and whether any "Exceeded CPU" errors appear (localites → Metrics) | The hosting fit test | 5 min |
+| **PO-03 G** | Change Cloudflare's three build commands for the switch to React Router (steps below) | The site updating; the new speed reading | 3 min |
+| **ADR-005** | A day after G, tell us Cloudflare's CPU time figures again (median and P99) and whether any "Exceeded CPU" errors appear (localites → Metrics) | Closing the hosting fit test | 5 min |
 | **D-12** | Mailing address for the privacy policy and terms | Public launch | 1 min, later |
 
 **How to respond:** reply in the conversation with decision numbers and your choice,
@@ -564,9 +565,10 @@ means a note on your own computer that you delete straight after.
    **supportlocalites** account, for **only** the `localites` repository.
 10. Use these settings exactly:
     - **Project name:** `localites`
-    - **Build command:** `npx opennextjs-cloudflare build`
-    - **Deploy command:** `npx opennextjs-cloudflare deploy`
-    - If it asks for a command for other branches: `npx opennextjs-cloudflare upload`
+    - **Build command:** `npm run build`
+    - **Deploy command:** `npx wrangler deploy`
+    - If it asks for a command for other branches: `npx wrangler versions upload`
+    *(Changed 10 October 2026 for React Router; see step G.)*
 11. Click **Create and deploy**. This first build may fail, because Cloudflare starts
     from the `main` branch, which doesn't hold the website yet. That's expected.
 11a. Point Cloudflare at the branch that holds the website: open the **localites**
@@ -600,6 +602,24 @@ means a note on your own computer that you delete straight after.
 **✅ Done (10 October 2026).** The test site is live at
 https://localites.supportlocalites.workers.dev, connected through Hyperdrive
 (`/api/health` reports `"database":"ok"`).
+
+*G. New build commands for React Router, added 10 October 2026*
+16. Next.js used too much processing per page for the free plan (ADR-005), so the site
+    now uses React Router, which Cloudflare builds with different commands. Until you
+    change them, Cloudflare's builds fail and the site **stays on the last working
+    version**, so nothing breaks in the meantime.
+17. In Cloudflare, open the **localites** Worker → **Settings** → **Build** → **Build
+    configuration** → the pencil (edit) icon. Change:
+    - **Build command:** `npm run build`
+    - **Deploy command:** `npx wrangler deploy`
+    - **Non-production branch deploy command** (if shown): `npx wrangler versions upload`
+    Leave everything else as it is, and click **Update** (or **Save**).
+18. Open the **Deployments** tab and choose **Retry build** on the newest one (or tell
+    us and we'll send a small update that starts a fresh build). When it shows green,
+    open https://localites.supportlocalites.workers.dev/api/health: you should see
+    `"database":"ok"` and a `"build"` code matching the newest change on GitHub.
+19. Use the site for a few minutes (open categories, search, open a business), then a
+    day later read **Metrics → CPU time** (median and P99) and send them to us.
 
 **Done when:** you reply *"PO-03 done"* with the `.workers.dev` address (an address,
 not a secret). We then run the speed half of the fit test (ADR-005) and check

@@ -1,22 +1,21 @@
-import type { Metadata } from 'next';
-import { notFound } from 'next/navigation';
+import { data } from 'react-router';
+import { cloudflareContext } from '@/app/context';
 import { SiteHeader } from '@/components/SiteHeader';
-import { getVendor } from '@/server/catalog';
+import { pageMeta } from '@/lib/meta';
+import { getVendor } from '@/server/catalog.server';
+import type { Route } from './+types/vendor';
 import styles from './vendor.module.css';
 
-export const dynamic = 'force-dynamic';
+export const meta: Route.MetaFunction = ({ loaderData }) =>
+  loaderData ? pageMeta(loaderData.vendor.name, loaderData.vendor.tagline ?? undefined) : pageMeta('Not found');
 
-type Props = { params: Promise<{ slug: string }> };
-
-export async function generateMetadata({ params }: Props): Promise<Metadata> {
-  const vendor = await getVendor((await params).slug);
-  return vendor ? { title: vendor.name, description: vendor.tagline ?? undefined } : { title: 'Not found' };
+export async function loader({ params, context }: Route.LoaderArgs) {
+  const vendor = await getVendor(context.get(cloudflareContext).env, params.slug);
+  if (!vendor) throw data(null, { status: 404 });
+  return { vendor };
 }
 
-export default async function VendorProfile({ params }: Props) {
-  const vendor = await getVendor((await params).slug);
-  if (!vendor) notFound();
-
+export default function VendorProfile({ loaderData: { vendor } }: Route.ComponentProps) {
   return (
     <>
       <SiteHeader />

@@ -1,5 +1,5 @@
-import Link from 'next/link';
-import type { VendorResult } from '@/server/catalog';
+import { Link } from 'react-router';
+import type { VendorResult } from '@/server/catalog.server';
 import styles from './ResultRow.module.css';
 
 export function ResultList({ vendors }: { vendors: VendorResult[] }) {
@@ -7,7 +7,7 @@ export function ResultList({ vendors }: { vendors: VendorResult[] }) {
     <ul className={styles.list}>
       {vendors.map((v) => (
         <li key={v.slug} className={styles.row}>
-          <Link href={`/vendors/${v.slug}`} className={styles.link}>
+          <Link to={`/vendors/${v.slug}`} className={styles.link}>
             <span className={styles.thumb} aria-hidden="true" />
             <span>
               <span className={styles.name}>{v.name}</span>

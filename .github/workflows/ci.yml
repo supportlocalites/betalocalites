@@ -31,7 +31,6 @@ jobs:
           --health-timeout 5s
           --health-retries 20
     env:
-      NEXT_TELEMETRY_DISABLED: '1'
       # A throwaway database inside this job only; not a real credential.
       TEST_DATABASE_ADMIN_URL: postgres://postgres:postgres@localhost:5432/postgres
     steps:
@@ -48,9 +47,9 @@ jobs:
       - name: Database checks (migrations + rules)
         run: npm run test:db
       - name: Cloudflare build
-        run: npm run cf:build
+        run: npm run build
       - name: Size budget (free plan)
-        run: npm run cf:size
+        run: npm run size
 
   # Keeps the Supabase TEST project (localites-test) in step with this branch, only
   # after every check above has passed. Uses the encrypted repository secret

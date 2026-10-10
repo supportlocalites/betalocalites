@@ -1,5 +1,5 @@
 // Hosting fit test, size part (ADR-005): the compressed worker must stay well under
-// Cloudflare's free-plan limit of 3 MiB. Run after `npm run cf:build`.
+// Cloudflare's free-plan limit of 3 MiB. Run after `npm run build`.
 import { execFileSync } from 'node:child_process';
 
 const LIMIT_KIB = 3 * 1024;

@@ -77,8 +77,11 @@ conversation (both sides), and an event plan with "Mark as booked".
 
 **Progress (10 October 2026):** foundations done: app skeleton in design G, first two
 database migrations with 51 checks, Welcome, Explore, search and business profile pages
-on fake test data, automatic checks on GitHub, and the local half of the hosting fit test
-(30% of the size limit). Next: PO-03 accounts, then the fit test on Cloudflare itself.
+on fake test data, automatic checks on GitHub, and the live test site on Cloudflare
+through Hyperdrive. The fit test found Next.js too heavy for the free plan (median 22.88 ms
+per page against 10 ms), so the site moved to React Router (ADR-005, 7% of the size
+limit). Next: Cloudflare's new build commands (PO-03 G) and the new speed reading, then
+vendor accounts, admin tools and Suggest a business.
 
 **Outcome.** A real, public directory of local event vendors, useful to a parent on its
 own, with the admin tools to build it. **Local businesses claim their listings** so

@@ -45,7 +45,7 @@ ADR-014 caveat updated. Nothing in the data model or security model changes.
 | ADR-002 | PostgreSQL is the single source of truth | Team | Accepted |
 | ADR-003 | Supabase (free plan) for database, sign-in, and file storage | Team ($0) | Accepted |
 | ADR-004 | The browser never talks to the database directly | Team | Accepted |
-| ADR-005 | Next.js + TypeScript, confirmed by a fit test on the free host | Team | Accepted |
+| ADR-005 | React Router + TypeScript (replaced Next.js after the fit test on the free host) | Team | Accepted (rev. 4) |
 | ADR-006 | Drizzle for database access, with SQL migrations in git | Team | Accepted |
 | ADR-007 | Cloudflare (free plan) for hosting | Team ($0) | Accepted (rev. 3) |
 | ADR-008 | Postgres full-text search for Stage 1; no search service | Team | Accepted |
@@ -170,14 +170,19 @@ explain.
 
 ---
 
-## ADR-005 — Next.js + TypeScript
+## ADR-005 — React Router + TypeScript
 
-**Decision.** Build the application with Next.js (React) in TypeScript.
+**Decision.** Build the application with React Router 8 (framework mode; React) in
+TypeScript, built for Cloudflare with Cloudflare's own Vite plugin. *(Revision 4,
+10 October 2026: replaces Next.js, which failed the fit test below. The product owner
+chose this planned fallback over Cloudflare's paid plan, keeping D-20's $0.)*
 
 **Why.** Pages render on the server, so vendor profiles load fast on phones and can be
 found through Google, which is central to a local directory. Server code and screens
-share one project and one set of types. It's the most widely used framework of its kind,
-so hiring and handover are easy.
+share one project and one set of types. React Router is built to run on Cloudflare:
+small, and light on processing per request. It is the same React, so screens carried
+over unchanged. *(Originally Next.js, chosen because it's the most widely used
+framework of its kind; it needed more processing per page than the free plan allows.)*
 
 **Alternatives.** *Remix / SvelteKit* — good, smaller talent pool. *Rails / Django* —
 excellent for this; rejected only to keep the codebase to one language.
@@ -209,7 +214,22 @@ reading from Cloudflare's metrics: **CPU time 20 ms** (percentile not yet known)
 the free plan's 10 ms. Next: median and P99, and whether any "Exceeded CPU" errors occur.
 If typical requests exceed the limit, the fallback above (React Router) applies; the
 paid plan (about US$5 a month) would break D-20 and needs the product owner's approval.
-The signed-in page is measured when sign-in is built.
+
+**Part 2 result (10 October 2026).** Cloudflare's metrics for the Next.js site over 95
+requests: **median CPU 22.88 ms, P99 251 ms**, against the free plan's 10 ms. A typical
+page used more than twice the limit with almost nothing built, so Next.js does not fit.
+The free plan's limit is per request, not per day (it allows 100,000 requests a day),
+so it is about how heavy each page is, not how many visitors there are. The product
+owner chose to switch to React Router (free) rather than pay for the larger limit.
+
+**Part 3: React Router (10 October 2026, local).** Same pages, look, database code and
+security headers. Size: **223 KiB compressed, 7% of the limit** (Next.js: about 1 MiB);
+`npm run size` still fails the build above 80%. Run in Cloudflare's runtime locally
+against PostgreSQL through Hyperdrive's local stand-in: welcome, Explore, search
+(including typos), a business profile, unknown addresses (404) and `/api/health` all
+worked, and pages move without full reloads. **Next:** the live CPU reading on Cloudflare
+once its build commands are changed (H, PO-03 step D). The signed-in page is measured
+when sign-in is built.
 
 ---
 

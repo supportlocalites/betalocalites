@@ -1,32 +1,24 @@
-import 'server-only';
-import { getCloudflareContext } from '@opennextjs/cloudflare';
 import { drizzle, type PostgresJsDatabase } from 'drizzle-orm/postgres-js';
 import postgres from 'postgres';
 import * as schema from '@/db/generated/schema';
 import { normalizeDatabaseUrl, requiresTls } from '@/lib/db-url.mjs';
+import type { ServerEnv } from './env';
 
 export type Db = PostgresJsDatabase<typeof schema>;
 
 type Connection = { url: string; ssl: 'require' | false; via: 'hyperdrive' | 'database_url' };
 
 /**
- * Where to connect. On Cloudflare, Hyperdrive (if bound) is preferred: it keeps the
- * encrypted connection to Supabase itself and pools connections. Otherwise the
- * DATABASE_URL secret is used, always encrypted to hosted databases.
+ * Where to connect. Hyperdrive (if bound) is preferred: it keeps the encrypted
+ * connection to Supabase itself and pools connections. Otherwise the DATABASE_URL
+ * secret is used, always encrypted to hosted databases.
  */
-export function connection(): Connection {
-  let secret = process.env.DATABASE_URL;
-  try {
-    const env = getCloudflareContext().env as { HYPERDRIVE?: { connectionString: string }; DATABASE_URL?: string };
-    if (env.HYPERDRIVE?.connectionString) {
-      return { url: env.HYPERDRIVE.connectionString, ssl: false, via: 'hyperdrive' };
-    }
-    secret = env.DATABASE_URL ?? secret;
-  } catch {
-    // Not running on Cloudflare (local development and tests).
+export function connection(env: ServerEnv): Connection {
+  if (env.HYPERDRIVE?.connectionString) {
+    return { url: env.HYPERDRIVE.connectionString, ssl: false, via: 'hyperdrive' };
   }
-  if (!secret) throw new Error('DATABASE_URL is not set.');
-  const url = normalizeDatabaseUrl(secret);
+  if (!env.DATABASE_URL) throw new Error('DATABASE_URL is not set.');
+  const url = normalizeDatabaseUrl(env.DATABASE_URL);
   return { url, ssl: requiresTls(url) ? 'require' : false, via: 'database_url' };
 }
 
@@ -35,8 +27,8 @@ export function connection(): Connection {
  * Cloudflare Workers can't keep connections between requests. The app connects as
  * the restricted app_server role (ADR-004).
  */
-export async function withDb<T>(fn: (db: Db) => Promise<T>): Promise<T> {
-  const { url, ssl } = connection();
+export async function withDb<T>(env: ServerEnv, fn: (db: Db) => Promise<T>): Promise<T> {
+  const { url, ssl } = connection(env);
   const client = postgres(url, {
     max: 1,
     prepare: false, // required by Supabase's transaction pooler

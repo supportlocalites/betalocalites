@@ -31,6 +31,29 @@ Every release and every database migration, in order. Appended before each deplo
 
 ## Releases
 
+### 2026-10-10 — Switch to React Router (Stage 1, not public)
+
+**Stage:** 1
+**What changed (plain English):** The fit test showed Next.js used a median of 22.88 ms
+of processing per page (P99 251 ms) against the free plan's 10 ms, so the website now
+runs on React Router, the planned fallback (ADR-005, revision 4). Visitors see the same
+pages and design; the database, its rules and the security model are unchanged. The
+website is now about a fifth of the size, and moving between pages no longer reloads
+the whole page. Cloudflare's build and deploy commands change to `npm run build` and
+`npx wrangler deploy` (H, PO-03 step D).
+**Migrations applied:** none.
+**Destructive?** No.
+**Tests run:** lint, types, design tokens, wording; unit tests 12/12 (new: security
+headers are the same on pages and static files); migration checks 51/51 and Stage 2–3
+proposal checks 56/56; every page checked in Cloudflare's runtime locally (welcome,
+Explore, category, search with a typo, profile, 404s, `/api/health`) and in a browser at
+390, 768 and 1440 wide: no errors, no sideways scrolling.
+**Fit test:** size 223 KiB compressed (7% of 3 MiB). Live CPU time to be read from
+Cloudflare once deployed (ADR-005).
+**How to roll back:** Cloudflare → localites → Deployments → previous version → Deploy
+(the Next.js version stays there), then restore Cloudflare's old build commands.
+**Approved by:** Product owner ("let's switch"), 10 October 2026.
+
 ### 2026-10-10 — First live test site (Stage 1, not public)
 
 **Stage:** 1
