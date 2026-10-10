@@ -1,7 +1,7 @@
 # C — Architecture Decision Log
 
-**Status:** Accepted (D-00, 10 October 2026). ADR-022 accepted with D-13. ADR-025 is
-proposed and awaits D-24.
+**Status:** Accepted (D-00, 10 October 2026). ADR-022 accepted with D-13; ADR-025 accepted
+with D-24.
 **Last updated:** 2026-10-10
 
 Each entry records a significant technical decision: what we chose, why, what we
@@ -25,6 +25,9 @@ added. ADR-015 is extended by ADR-023. Stages are unchanged.
 detailed records with no deletion date, for year-over-year reports (D-22, amended).
 ADR-025 (paid vendor plans, recorded but not charged in the app; proposed, D-24) and
 ADR-026 (every review approved by an admin, with an email notice; D-06) added.
+
+**Revision 6 changes (10 October 2026):** ADR-018 extended by D-24: no payments of any kind
+go through Localites, including vendors paying Localites. ADR-025 accepted.
 
 **Revision 3 changes (product owner: no running costs):** ADR-003 and ADR-013 move to
 free plans. ADR-007 replaces Vercel with Cloudflare's free plan, because Vercel's free
@@ -54,14 +57,14 @@ ADR-014 caveat updated. Nothing in the data model or security model changes.
 | ADR-015 | First-party counts in our own database; no third-party trackers (extended by ADR-023) | Team | Accepted |
 | ADR-016 | Sentry for error monitoring, free tier | Team | Accepted |
 | ADR-017 | One gatekeeper for every status change | Team | Accepted |
-| ADR-018 | **Localites never handles money**, and nothing in the system prepares for it | **Needs approval** (product commitment) | Accepted (D-16) |
+| ADR-018 | **Localites never handles money**, and nothing in the system prepares for it | **Needs approval** (product commitment) | Accepted (D-16; extended by D-24) |
 | ADR-019 | Messaging: stored conversations, polled updates, batched email notices | Team | Accepted |
 | ADR-020 | Files in conversations: private, participants only, limited types | Team | Accepted |
 | ADR-021 | "Booked" is the consumer's own record, labelled as such | **Needs approval** (user experience) | Accepted (D-18) |
 | ADR-022 | One account per person; acting as a vendor comes from team membership | **Needs approval** (user experience; D-13) | Accepted (D-13) |
 | ADR-023 | Activity tracking for vendor reports: detailed records kept for year-over-year reports, plus daily totals | **Needs approval** (privacy; D-22) | Accepted (D-22) |
 | ADR-024 | Unclaimed or unverified vendors get **Inquire**, which reaches the Localites team by email | **Needs approval** (user experience; D-04) | Accepted (D-04) |
-| ADR-025 | Paid vendor plans are recorded (which plan, until when) but paid for outside Localites | **Needs approval** (business model; D-24) | Proposed (awaits D-24) |
+| ADR-025 | Paid vendor plans are recorded (which plan, until when) but paid for outside Localites | **Needs approval** (business model; D-24) | Accepted (D-24) |
 | ADR-026 | Every review is approved by an admin in the admin area; the team is emailed each new review | **Needs approval** (D-06) | Accepted (D-06) |
 
 ---
@@ -408,6 +411,10 @@ delivers them like any other file and never reads, totals, or acts on them.
 **Revisit when.** Only by a new, explicit product decision. It would mean a new domain,
 new legal review, and new terms.
 
+**Extended by D-24 (10 October 2026).** This covers every payment, including vendors
+paying Localites for a paid plan or a featured spot. Those are arranged and paid outside
+the site; Localites records only which plan a vendor has and its dates (ADR-025).
+
 ---
 
 ## ADR-019 — Messaging design
@@ -564,7 +571,7 @@ they're bundled into a few summary emails a day.
 
 ## ADR-025 — Paid vendor plans: recorded in Localites, paid for outside it
 
-**Needs your approval** (business model). **Proposed: awaits D-24.**
+**Needs your approval** (business model). **Accepted: D-24, 10 October 2026.**
 
 **Decision.** Some features are for vendors on a paid plan, starting with the vendor
 dashboard (D-22). Localites records only **which plan a vendor has and its start and end
@@ -578,9 +585,8 @@ until explicitly approved, and ADR-018 keeps money out of the system. Recording 
 dates is enough to switch features on and off, costs nothing, and needs no payment
 company.
 
-**Revisit if** you want vendors to pay online by card. That needs a payment company
-(which charges a fee on each payment), a new decision, a security review, and changes
-to the terms.
+**Not planned.** Online payments of any kind (D-24). Changing that would need a new
+product decision, a payment company, a security review and new terms.
 
 ---
 

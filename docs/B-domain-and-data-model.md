@@ -324,8 +324,9 @@ Stages are unchanged.
   in a group chat, on social media or as a QR code). A reply through a group link carries
   the name the guest typed; the host matches it to a `guest`, so "not replied yet" stays
   accurate.
-- **Paid vendor plans** (D-24, proposed, ADR-025): `vendor_plan` records a vendor's plan
-  and its start and end dates, set by an admin. No prices or payment details.
+- **Paid vendor plans** (D-24, ADR-025): `vendor_plan` records a vendor's plan and its
+  start and end dates, set by an admin. Vendors pay outside Localites; no prices or
+  payment details are stored.
 
 ## 4. Lifecycle states and what they do NOT mean
 

@@ -31,6 +31,25 @@ Every release and every database migration, in order. Appended before each deplo
 
 ## Releases
 
+### 2026-10-10 — Stage 0 documentation, revision 8: no payments of any kind; pilot size
+
+**Stage:** 0
+**What changed (plain English):** The product owner decided:
+- **D-24:** no payment of any kind goes through Localites. Vendors paying Localites for a
+  paid plan or a featured spot pay outside the site, like everything else. ADR-018 is
+  extended to say so; ADR-025 is accepted (Localites stores only a vendor's plan and its
+  dates).
+- **D-12:** the business is named Localites in the privacy policy and terms; the mailing
+  address is left blank and must be added before launch.
+- **PO-08:** the launch is a pilot with at most 5 businesses per category. 28 suggestions
+  are marked in the research record and on the shortlist page for the product owner to
+  confirm or swap.
+**Documents:** H, A, B, C, roles and relationships, roadmap, launch research.
+**Migrations applied:** None.
+**Destructive?** No.
+**Tests run:** None needed; no schema change.
+**Approved by:** Product owner (D-12, D-24, PO-08 pilot size), 10 October 2026.
+
 ### 2026-10-10 — Stage 0 documentation, revision 7: remaining Stage 0 decisions
 
 **Stage:** 0

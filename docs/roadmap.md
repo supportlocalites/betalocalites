@@ -228,8 +228,8 @@ the host's account exists (D-10).
 ## Stage 5 — Growth
 
 Each item proposed and approved separately, based on real use: **vendor dashboard for
-vendors on a paid plan**, showing only their own anonymous counts (D-22; how they pay is
-D-24) · more communities (data only) · featured placements, clearly labelled and sold by
+vendors on a paid plan**, showing only their own anonymous counts (D-22; paid for
+outside Localites, D-24) · more communities (data only) · featured placements, clearly labelled and sold by
 the team (never affecting reviews) · text-message notices (needs a service and
 approval).
 

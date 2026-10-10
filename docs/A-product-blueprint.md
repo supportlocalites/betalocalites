@@ -142,8 +142,8 @@ is **designed for** now: the data model and permissions already have a place for
 ### H. Future, not committed
 More communities; the paid vendor dashboard (D-22, D-24); featured placements, clearly
 labelled (these never affect reviews or ratings); notifications by text message;
-richer coordination. Vendors pay for paid plans outside Localites unless you approve
-online payment separately (ADR-025).
+richer coordination. All payments, including vendors paying for a paid plan, happen
+outside Localites (D-24).
 
 **Never, without a new decision:** payments of any kind.
 
@@ -156,7 +156,7 @@ leads or revenue.
 ## 5. What we are explicitly not building
 
 Payments, deposits, checkout, card storage, payouts, invoicing, or billing between
-consumers and vendors · any wording that implies Localites handles money or confirms
+consumers and vendors, or between vendors and Localites (D-24) · any wording that implies Localites handles money or confirms
 bookings · real-time chat features (typing indicators, read receipts, presence) ·
 native mobile apps · automated recommendation engines · analytics dashboards before
 meaningful data exists · automated vendor availability · unapproved third-party
@@ -203,8 +203,8 @@ message on launch day has someone on the other end.
 
 ## 8. Open decisions
 
-All in [H](./H-product-owner-action-register.md). Still open: D-24 (how vendors pay for a
-paid plan) and the rest of D-12 (legal name and mailing address, before launch).
+All in [H](./H-product-owner-action-register.md). Still open: the mailing address for the
+privacy policy (D-12, before launch).
 Already decided: the architecture (D-00); the name and address, Localites at
 `localites.ca` (D-01, D-07); the design, direction G for phones and computers (D-21,
 [design-system.md](./design-system.md)); a curated launch list (D-03); website and phone
@@ -214,4 +214,6 @@ in Stage 1, then messaging with **Inquire** for businesses not yet on Localites 
 the consumer–vendor rules (D-13); reviews open to any real booking, each approved by an
 admin (D-06); reviews before RSVPs (D-14); invitations by personal and group links and
 QR codes (D-08); data-keeping rules, with events kept for as long as the host's account
-exists (D-10); and supportlocalites@gmail.com as the privacy contact (D-12).
+exists (D-10); the business name Localites and supportlocalites@gmail.com as the privacy contact
+(D-12); and no payments of any kind through Localites, including vendors paying
+Localites (D-24).

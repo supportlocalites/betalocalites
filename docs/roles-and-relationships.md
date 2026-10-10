@@ -122,7 +122,8 @@ These shape trust on both sides. **Approved by you as decision D-13** (10 Octobe
 ## 4. What Localites never does
 
 - **Handles money.** No payments, deposits, checkout, card details, payouts, or fees
-  between consumers and vendors. Not now, and not "later" without a new decision.
+  between consumers and vendors, and none from vendors to Localites either (D-24). Not
+  now, and not "later" without a new decision.
 - **Implies it handles money.** The product never uses words like *pay*, *checkout*,
   *deposit*, *secure booking*, *book now*, or *booking confirmed*. The button is
   **"Mark as booked"**, and it's the consumer's own record.

@@ -1,6 +1,6 @@
 # H — Product Owner Action Register
 
-**Last updated:** 2026-10-10 (revision 7)
+**Last updated:** 2026-10-10 (revision 8)
 
 This is the one place where everything that needs **you** is listed. If it isn't here,
 you don't need to do it.
@@ -18,7 +18,7 @@ Recorded from your messages of 9 and 10 October 2026. These now shape every docu
 | # | Decision | Effect |
 |---|---|---|
 | ✅ D-15 | **Two users: consumers and vendors.** The relationship between them is the core of the product. | New [roles-and-relationships.md](./roles-and-relationships.md); data model rebuilt around it. |
-| ✅ D-16 | **No payments. Localites doesn't handle cash and never says or implies it does.** | ADR-018. No payment features or fields anywhere. Language rules in [A §6](./A-product-blueprint.md#6-language-rules). |
+| ✅ D-16 | **No payments. Localites doesn't handle cash and never says or implies it does.** | ADR-018. No payment features or fields anywhere. Language rules in [A §6](./A-product-blueprint.md#6-language-rules). Extended by D-24: this includes vendors paying Localites. |
 | ✅ D-17 | **Localites is the digital handshake.** Consumers and vendors talk directly and plan together, and can share files (an invoice is just a file). | Messaging with files is the centre of Stage 2 (ADR-019, ADR-020). Quotes, vendor-confirmed bookings and agreements removed. |
 | ✅ D-18 | **"Add to event" and "Booked" are the consumer's tools.** | ADR-021. Only the consumer can set them (database-enforced). |
 | ✅ D-19 | **After the event, ask the consumer for feedback; that feeds reviews and ratings.** | Stage 3: feedback requests → reviews → ratings. |
@@ -27,7 +27,7 @@ Recorded from your messages of 9 and 10 October 2026. These now shape every docu
 | ✅ D-01 | **The product is called Localites, at `localites.ca`.** Renamed from Tallo; you bought the domain on 10 October 2026. | Every document, the proposed schemas and the design mockups say Localites. |
 | ✅ D-07 | **Pay for the web address.** Done: `localites.ca` is yours. | The only running cost (~CA$15–25 a year). Email can be set up on it when we get there. |
 | ✅ D-21 | **Build the app with design G, for phones and computers.** One website that adapts to the screen; all earlier designs kept for reference. | [design-system.md](./design-system.md); archive in [design/](./design/README.md); phone, tablet and desktop checks in [testing-strategy.md](./testing-strategy.md). |
-| ✅ D-03 | **A curated launch list.** We research Orillia-based businesses in the categories you choose (PO-05) and send a shortlist; you pick which go live. Start with businesses rated 4 stars or more on public review sites; others are added by hand later. | Listings use only what each business publishes itself, marked unclaimed, removed on request. The star rating is our private shortlist filter: never copied or shown on Localites. |
+| ✅ D-03 | **A curated launch list.** We research Orillia-based businesses in the categories you choose (PO-05) and send a shortlist; you pick which go live. Start with businesses rated 4 stars or more on public review sites; others are added by hand later. | Listings use only what each business publishes itself, marked unclaimed, removed on request. The star rating is our private shortlist filter: never copied or shown on Localites. **Pilot:** at most 5 businesses per category (PO-08). |
 | ✅ D-04 | **The stages stay as planned.** In Stage 1, vendor profiles show the business's own website and phone, and taps are counted. When messaging arrives in Stage 2, claimed, verified vendors get **Message**; unclaimed or unverified vendors get **Inquire**, which emails the Localites team at supportlocalites@gmail.com saying which vendor was requested and by whom. | [Roadmap](./roadmap.md) unchanged; ADR-024 (Stage 2). Settles D-05. |
 | ✅ D-09 | **Launch area:** Orillia plus Severn, Oro-Medonte and Ramara. | The first vendor list is Orillia-based (D-03); consumers can be anywhere in the area. |
 | ✅ D-11 | **supportlocalites@gmail.com is the Localites admin address**: every service account is registered to it, and all alerts and team emails go to it. | [F](./F-operational-runbook.md) monitoring; inquiry emails (D-04) too. |
@@ -36,7 +36,8 @@ Recorded from your messages of 9 and 10 October 2026. These now shape every docu
 | ✅ D-14 | **Reviews come before guest RSVPs.** | Stage 3 reviews, Stage 4 RSVPs ([roadmap](./roadmap.md)). |
 | ✅ D-08 | **Invitations are shared from the host's own phone**: text, WhatsApp, social media, email or a printable QR code, with a personal link per guest and a group link for group chats. | [roadmap](./roadmap.md) Stage 4; [E §5](./E-security-and-privacy-model.md#5-invitation-link-security). |
 | ✅ D-10 | **Data-keeping rules approved**, except that **events are kept for as long as the host's account exists**, so hosts can look back years later. | [E §8](./E-security-and-privacy-model.md#8-retention-and-deletion). |
-| ✅ D-12 (part) | **Privacy contact: supportlocalites@gmail.com.** Legal name and mailing address still to come. | Privacy policy and terms (PO-07). |
+| ✅ D-12 | **Business name: Localites. Privacy contact: supportlocalites@gmail.com.** Mailing address left blank for now; it must be added before launch. | Privacy policy and terms (PO-07). |
+| ✅ D-24 | **No payments of any kind go through Localites.** Consumers pay vendors, and vendors pay Localites (for a paid plan or a featured spot), entirely outside the site. | ADR-018 extended; ADR-025: Localites records only which plan a vendor has and its dates. |
 | ✅ D-22 | **Full activity tracking for vendor reports**: who and how many people see each vendor in search, open their profile, tap their website or phone (from Stage 1), and save, inquire, message, add them to an event or mark them booked (from Stage 2). | ADR-023; [E §7a](./E-security-and-privacy-model.md#7a-activity-tracking-d-22). Used to sell featured placements and help with renewals. **Amended:** detailed records kept with no deletion date, for year-over-year numbers; vendors see only anonymous counts, in a dashboard for paying vendors. |
 
 ---
@@ -45,12 +46,11 @@ Recorded from your messages of 9 and 10 October 2026. These now shape every docu
 
 | # | What | Blocks | Your effort |
 |---|---|---|---|
-| **PO-08** | Pick which researched businesses go on Localites at launch | Launch list (D-03) | 30 min |
-| **D-24** | How vendors pay for a paid plan (the dashboard, featured spots) | Stage 5 design; selling featured spots | 2 min |
-| **D-12** | Legal business name and mailing address | Privacy policy and terms (before launch) | 2 min |
+| **PO-08** | Confirm or swap the pilot list: our 28 suggestions, at most 5 per category | Launch list (D-03) | 10 min |
+| **D-12** | Mailing address for the privacy policy and terms | Public launch | 1 min, later |
 
 **How to respond:** reply in the conversation with decision numbers and your choice,
-e.g. *"D-24 recommended. D-12: Localites Inc., 123 Main St."* "I don't understand
+e.g. *"PO-08: suggestions OK, but swap Rotary Place for the Opera House."* "I don't understand
 this one" is a perfectly good answer.
 
 ---
@@ -203,7 +203,7 @@ with renewals.
 1. **Vendors see anonymous counts, never people.** "212 people saw you in search; 31
    opened your profile", never who. (They do see the people who message them, as part of
    the conversation.) Vendors on a **paid plan** see their counts in a dashboard
-   (Stage 5; how they pay is D-24); others get reports from the Localites team.
+   (Stage 5; paid for outside Localites, D-24); others get reports from the Localites team.
 2. **When selling to other vendors**, use category-level figures ("face painters on
    Localites averaged 180 profile views a month"), or one vendor's own numbers only with
    that vendor's permission.
@@ -226,20 +226,15 @@ everything, detail kept for year-over-year numbers).
 
 ### D-24 — How vendors pay for a paid plan
 
-**What.** You want the vendor dashboard to be for paying vendors only, and you plan to
-sell featured spots. How do vendors pay?
+**Decided (10 October 2026): outside Localites, always.** No payment of any kind goes
+through the site or app: not between consumers and vendors (D-16), and not from vendors
+to Localites for a paid plan or a featured spot. You arrange and collect those yourself
+(for example, an invoice paid by e-Transfer). Localites records only **which plan a vendor
+has and its start and end dates**, set by an admin, so the paid dashboard switches on and
+off. No prices, invoices, card details or payment status are stored (ADR-018, ADR-025).
+A reminder email before a plan ends tells the team when to renew.
 
-**Options.**
-| Option | How it works | Cost | Effort |
-|---|---|---|---|
-| **A. Outside Localites (recommended to start)** | You invoice the vendor; they pay by Interac e-Transfer or cheque. An admin switches their plan on in Localites with an end date. | $0 | Light; a renewal reminder email to you before each plan ends |
-| B. Card payments online | The vendor pays by card inside Localites through a payment company (such as Stripe). | A fee on every payment (typically around 3%); no monthly cost | 1–2 weeks more work, a security review, new terms. Needs your explicit approval (the original brief rules out payment processing until approved). |
-
-**Recommendation.** A. It's free, needs no card handling, and fits a small number of
-local vendors. Localites stores only the plan and its dates, never prices or payment
-details (ADR-025). Move to B only if manual invoicing becomes a burden.
-
-**Status:** ⏳ Awaiting you.
+**Status:** ✅ Decided, 10 October 2026.
 
 ---
 
@@ -417,10 +412,10 @@ for every service account (PO-03).
 Legal name, address, and privacy contact for the privacy policy and terms. Needed for
 PO-07.
 
-**Status:** Part decided, 10 October 2026: the privacy contact is
-**supportlocalites@gmail.com**. Still needed before launch: the legal business name
-(or your name, if Localites isn't incorporated yet) and a mailing address for the
-privacy policy and terms.
+**Status:** ✅ Decided for now, 10 October 2026: the business is named **Localites**, and
+the privacy contact is **supportlocalites@gmail.com**. The mailing address is left blank
+and **must be added before public launch**; it stays in the "Needed from you" list until
+then.
 
 ---
 
@@ -511,16 +506,20 @@ test alert there and you confirm it arrived.
 arrangements or payments between consumers and vendors**); review policy and how vendor
 flags are handled; the unclaimed-listing approach (D-03); emails we send (CASL);
 retention (D-10), including **keeping detailed activity records with no deletion date**
-(D-22), which the lawyer should specifically check. We'll prepare drafts and a one-page summary so the lawyer reviews
+(D-22), which the lawyer should specifically check; and the business name (D-12): if
+"Localites" isn't yet a registered business name, ask whether it needs registering in
+Ontario before launch. We'll prepare drafts and a one-page summary so the lawyer reviews
 rather than discovers. Ask for a fixed-fee quote. Not in the infrastructure budget.
 
 ### PO-08 — Starting vendor list, and early claims
 **When:** Stage 1, weeks 1–4.
 **What:** We research Orillia-based businesses in your categories (PO-05, D-03) and send
-you a shortlist; you pick which go live (aim: 30–50). **First research done (10 October
-2026):** 61 Orillia businesses and 17 nearby, in
-[launch/vendor-research-2026-10-10.md](./launch/vendor-research-2026-10-10.md); mark them
-on the shortlist page and paste your choices into the chat. Add any you know personally. **New in revision 2:** during Stage 1,
+you a shortlist; you pick which go live. **Pilot (your decision, 10 October 2026): at
+most 5 per category.** First research done: 61 Orillia businesses and 17 nearby, in
+[launch/vendor-research-2026-10-10.md](./launch/vendor-research-2026-10-10.md), with 28
+suggested for the pilot (5 per category; 3 in Activities, two of them just outside Orillia
+but inside the launch area). Confirm or swap them on the shortlist page and paste your
+choices into the chat. Add any you know personally. **New in revision 2:** during Stage 1,
 we'd like as many of them as possible to *claim* their listing, because only claimed
 businesses can receive messages when Stage 2 launches. We'll give you a short script
 for those calls and a claim link for each business.
@@ -544,3 +543,4 @@ computer through private preview links. You tell us what feels right. No code to
 | 2026-10-10 | D-00: architecture approved |
 | 2026-10-10 | D-03, D-04 (settling D-05), D-09, D-11 decided; D-22 activity tracking; stages unchanged |
 | 2026-10-10 | PO-05 categories; D-13, D-06, D-14, D-08, D-10 decided; D-12 privacy contact; D-22 amended |
+| 2026-10-10 | D-24 (no payments of any kind through Localites); D-12 business name; PO-08 pilot of 5 per category |
