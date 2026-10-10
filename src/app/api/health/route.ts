@@ -1,3 +1,4 @@
+import { getCloudflareContext } from '@opennextjs/cloudflare';
 import { sql } from 'drizzle-orm';
 import { connection, withDb } from '@/server/db';
 
@@ -31,16 +32,28 @@ function explain(err: unknown): { database: string; detail: string } {
   return { database: 'error', detail: code ? `Database error code ${code}.` : 'Unexpected error; see the Cloudflare logs.' };
 }
 
+/** Names (never values) of the settings the running site can see on Cloudflare. */
+function settingNames(): string[] {
+  try {
+    return Object.keys(getCloudflareContext().env)
+      .filter((k) => /^[A-Z][A-Z0-9_]*$/.test(k) && k !== 'ASSETS')
+      .sort();
+  } catch {
+    return [];
+  }
+}
+
 export async function GET() {
   const headers = { 'Cache-Control': 'no-store' };
+  const about = { build: process.env.LOCALITES_BUILD ?? 'unknown', settingsSeen: settingNames() };
   let via = 'none';
   try {
     via = connection().via;
     const rows = await withDb((db) =>
       db.execute<{ n: number }>(sql`select count(*)::int as n from vendor where listing_status = 'published'`),
     );
-    return Response.json({ website: 'ok', database: 'ok', via, publishedListings: rows[0]?.n ?? 0 }, { headers });
+    return Response.json({ website: 'ok', database: 'ok', via, publishedListings: rows[0]?.n ?? 0, ...about }, { headers });
   } catch (err) {
-    return Response.json({ website: 'ok', via, ...explain(err) }, { status: 503, headers });
+    return Response.json({ website: 'ok', via, ...explain(err), ...about }, { status: 503, headers });
   }
 }
