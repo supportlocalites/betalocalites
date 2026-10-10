@@ -1,6 +1,7 @@
 // Loads OBVIOUSLY FAKE test businesses ("Test Vendor …", example.com) into a TEST
 // database, for development and the hosting fit test. Never run against production:
-// it refuses unless the database name contains "test" or "dev".
+// it refuses unless the database name contains "test" or "dev", and never adds fake
+// businesses next to real ones. Once loaded, later runs do nothing.
 //
 // Usage: DATABASE_ADMIN_URL=postgres://.../localites_dev npm run db:seed:test
 import postgres from 'postgres';
@@ -35,8 +36,13 @@ const vendors = [
 
 const sql = postgres(url, { max: 1, onnotice: () => {}, ssl: requiresTls(url) ? 'require' : undefined });
 try {
+  // Already loaded: do nothing, so the team's later changes to them (archiving, edits) stay.
+  const [{ present }] = await sql`select count(*)::int as present from vendor where slug in ${sql(vendors.map((v) => v[0]))}`;
   const [{ real }] = await sql`select count(*)::int as real from vendor where slug not like 'test-%'`;
-  if (real > 0) {
+  if (present === vendors.length) {
+    console.log('The fake test businesses are already in this database; nothing to do.');
+    process.exit(0);
+  } else if (real > 0) {
     console.error(`Refusing: this database has ${real} real listing(s). Test data never goes next to real businesses.`);
     process.exitCode = 1;
   } else await sql.begin(async (tx) => {
