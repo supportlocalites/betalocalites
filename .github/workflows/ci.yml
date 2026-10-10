@@ -51,3 +51,33 @@ jobs:
         run: npm run cf:build
       - name: Size budget (free plan)
         run: npm run cf:size
+
+  # Keeps the Supabase TEST project (localites-test) in step with this branch, only
+  # after every check above has passed. Uses the encrypted repository secret
+  # SUPABASE_TEST_ADMIN_URL, which only the product owner enters. Never production:
+  # production gets its own manual, approved step before launch.
+  test-database:
+    name: Update the test database
+    needs: checks
+    if: github.event_name == 'push'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    env:
+      DATABASE_ADMIN_URL: ${{ secrets.SUPABASE_TEST_ADMIN_URL }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Apply migrations
+        run: |
+          if [ -z "$DATABASE_ADMIN_URL" ]; then
+            echo "::notice::SUPABASE_TEST_ADMIN_URL isn't set yet, so the test database wasn't updated."
+            exit 0
+          fi
+          npm run db:migrate
+      - name: Load fake test businesses
+        if: env.DATABASE_ADMIN_URL != ''
+        run: npm run db:seed:test -- --supabase-test-project

@@ -5,6 +5,9 @@ import * as schema from '@/db/generated/schema';
 
 export type Db = PostgresJsDatabase<typeof schema>;
 
+/** Hosted databases are always reached over an encrypted connection. */
+export const requiresTls = (url: string) => !/@(localhost|127\.0\.0\.1)[:/]/.test(url);
+
 /**
  * Runs `fn` with a database connection made for this request, then closes it.
  * Cloudflare Workers can't keep connections between requests, so each request
@@ -14,7 +17,13 @@ export type Db = PostgresJsDatabase<typeof schema>;
 export async function withDb<T>(fn: (db: Db) => Promise<T>): Promise<T> {
   const url = process.env.DATABASE_URL;
   if (!url) throw new Error('DATABASE_URL is not set.');
-  const client = postgres(url, { max: 1, prepare: false, connect_timeout: 10, idle_timeout: 5 });
+  const client = postgres(url, {
+    max: 1,
+    prepare: false, // required by Supabase's transaction pooler
+    connect_timeout: 10,
+    idle_timeout: 5,
+    ssl: requiresTls(url) ? 'require' : undefined,
+  });
   try {
     return await fn(drizzle(client, { schema }));
   } finally {

@@ -48,11 +48,11 @@ Recorded from your messages of 9 and 10 October 2026. These now shape every docu
 
 | # | What | Blocks | Your effort |
 |---|---|---|---|
-| **PO-03** | Create the free hosting and database accounts (step by step below) | Fit test and first preview | About 30 minutes |
+| **PO-03** | Part 3: connect GitHub, Supabase and Cloudflare (step by step below) | Fit test and first preview | About 30 minutes |
 | **D-12** | Mailing address for the privacy policy and terms | Public launch | 1 min, later |
 
 **How to respond:** reply in the conversation with decision numbers and your choice,
-e.g. *"PO-03 done."* "I don't understand
+e.g. *"PO-03 done: localites.example.workers.dev"* "I don't understand
 this one" is a perfectly good answer.
 
 ---
@@ -534,16 +534,76 @@ tell us what it says; these sites change their wording often.*
 
 *Expected:* you can see the Cloudflare dashboard.
 
-**Part 3: Connect them (later; we'll guide you step by step)**
-- In Cloudflare, you'll connect the GitHub repository `supportlocalites/localites` so
-  every change we push is built automatically, and we'll check together that Cloudflare's
-  free-plan terms allow business use (ADR-007).
-- You'll copy one connection address from Supabase's screen into Cloudflare's encrypted
-  "secrets" box, from one screen to the other. It never goes into chat or email.
-- Resend (email) and Sentry (error alerts) come later, also free.
+**Parts 1 and 2: ✅ done (10 October 2026).**
 
-**Done when:** you reply *"PO-03 part 1 and 2 done"*. Never send passwords, codes, or
-screenshots that show them.
+**Part 3: Connect them (about 30 minutes).** Wording on these sites changes often; if a
+screen doesn't match, tell us what it says. **Never paste a password or connection
+address into chat or email**; they go only into the boxes named below. A "private note"
+means a note on your own computer that you delete straight after.
+
+*A. Give GitHub the test database's admin address*
+1. In Supabase, open **localites-test** and click **Connect** at the top.
+2. Choose the **Session pooler** connection string (it contains `pooler.supabase.com`
+   and ends in `:5432/postgres`). Copy it into a private note.
+3. In the note, replace `[YOUR-PASSWORD]` (including the square brackets) with the
+   database password saved in Bitwarden in part 1.
+4. On GitHub, open **supportlocalites/localites** → **Settings** → **Secrets and
+   variables** → **Actions** → **New repository secret**. Name:
+   `SUPABASE_TEST_ADMIN_URL`. Secret: paste the edited text. Click **Add secret**, then
+   delete the note.
+
+*B. Let GitHub set up the test database*
+5. On GitHub, open the **Actions** tab, click the newest **CI** run, and choose
+   **Re-run all jobs**. In about five minutes both jobs should show green ticks. The
+   second, **Update the test database**, creates the tables and loads six fake
+   "Test Vendor" businesses. If anything is red, tell us; GitHub hides secrets in its
+   logs, so the logs are safe to look at.
+
+*C. Give the app its own password*
+6. In Bitwarden, generate a new password: 32 characters, **letters and numbers only**
+   (turn special characters off). Save it as "Supabase localites-test app_server
+   password".
+7. In Supabase, open **SQL Editor** → **New query** and paste
+   `alter role app_server login password 'PASTE-HERE';`, replacing `PASTE-HERE` with
+   that password (keep the quote marks). Click **Run**; expect "Success. No rows
+   returned".
+8. Delete that query from the SQL Editor's list (its **⋯** menu → **Delete**), so the
+   password isn't kept there.
+
+*D. Connect Cloudflare to GitHub*
+9. In Cloudflare, open **Workers & Pages** (it may sit under **Compute**) → **Create** →
+   **Import a repository**. When asked, allow Cloudflare's GitHub app on the
+   **supportlocalites** account, for **only** the `localites` repository.
+10. Use these settings exactly:
+    - **Project name:** `localites`
+    - **Production branch:** `claude/event-discovery-architecture-dz0qgf` (we'll switch
+      to `main` before launch)
+    - **Build command:** `npx opennextjs-cloudflare build`
+    - **Deploy command:** `npx opennextjs-cloudflare deploy`
+    - If it asks for a command for other branches: `npx opennextjs-cloudflare upload`
+11. Click **Create and deploy**. The first build takes a few minutes. The site will show
+    an error until step E is done; that's expected.
+
+*E. Give the site its database address*
+12. Back in Supabase **Connect**, copy the **Transaction pooler** string (it ends in
+    `:6543/postgres`) into a private note, and make two changes:
+    - The user name right after `postgresql://` looks like `postgres.abcdefghijk`.
+      Change only the word `postgres` at its start to `app_server`, keeping the dot and
+      the letters after it.
+    - Replace `[YOUR-PASSWORD]` with the app_server password from step 6.
+13. In Cloudflare, open the **localites** Worker → **Settings** → **Variables and
+    Secrets** → **Add**. Type: **Secret**. Name: `DATABASE_URL`. Value: paste. Save and
+    deploy, then delete the note.
+14. Open the address Cloudflare shows for the Worker (it ends in `.workers.dev`) and tap
+    **Browse local**. You should see six "Test Vendor" businesses.
+
+**Done when:** you reply *"PO-03 done"* with the `.workers.dev` address (an address,
+not a secret). We then run the speed half of the fit test (ADR-005) and check
+Cloudflare's numbers with you.
+
+**On Cloudflare's terms (ADR-007):** as far as we know, Cloudflare's free plan doesn't
+restrict business use (unlike Vercel's). We can't open Cloudflare's site from our side,
+so the lawyer's review (PO-07) should confirm it.
 
 ### PO-04 — Register the domain
 **✅ Done.** You bought `localites.ca` on 10 October 2026. Three things to check in your

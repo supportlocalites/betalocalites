@@ -90,6 +90,13 @@ very unlikely, and recoverable when it happens.
 - **Applied to Supabase** with `npm run db:migrate`, using the database's admin
   connection string held in an encrypted secret (a GitHub or Cloudflare secret the
   product owner pastes in), never written in git or chat.
+- **Test project:** after every push whose checks pass, GitHub's "Update the test
+  database" job migrates `localites-test` and reloads the fake test businesses, using
+  the secret `SUPABASE_TEST_ADMIN_URL`. The loader refuses to run on any database that
+  holds a real listing.
+- **Production** will have its own manual step, with the product owner's approval and
+  a fresh backup first (rule 4), set up before launch.
+- Hosted databases are always reached over an encrypted (TLS) connection.
 
 ### The app's own database login (ADR-004)
 

@@ -13,8 +13,11 @@ import postgres from 'postgres';
 const here = path.dirname(fileURLToPath(import.meta.url));
 export const MIGRATIONS_DIR = path.join(here, '..', 'db', 'migrations');
 
+/** Hosted databases are always reached over an encrypted connection. */
+export const requiresTls = (url) => !/@(localhost|127\.0\.0\.1)[:/]/.test(url);
+
 export async function migrate(url, { log = console.log } = {}) {
-  const sql = postgres(url, { max: 1, onnotice: () => {} });
+  const sql = postgres(url, { max: 1, onnotice: () => {}, ssl: requiresTls(url) ? 'require' : undefined });
   try {
     await sql`
       create table if not exists schema_migrations (

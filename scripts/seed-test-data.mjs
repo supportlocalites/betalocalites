@@ -4,6 +4,7 @@
 //
 // Usage: DATABASE_ADMIN_URL=postgres://.../localites_dev npm run db:seed:test
 import postgres from 'postgres';
+import { requiresTls } from './migrate.mjs';
 
 const url = process.env.DATABASE_ADMIN_URL;
 if (!url) {
@@ -26,9 +27,13 @@ const vendors = [
   ['test-vendor-photos', 'Test Vendor 6: Party Photos', 'photographers', 'ramara', 'Event photography (test listing).', [['Two hours of coverage', 'starting_at', 35000]]],
 ];
 
-const sql = postgres(url, { max: 1, onnotice: () => {} });
+const sql = postgres(url, { max: 1, onnotice: () => {}, ssl: requiresTls(url) ? 'require' : undefined });
 try {
-  await sql.begin(async (tx) => {
+  const [{ real }] = await sql`select count(*)::int as real from vendor where slug not like 'test-%'`;
+  if (real > 0) {
+    console.error(`Refusing: this database has ${real} real listing(s). Test data never goes next to real businesses.`);
+    process.exitCode = 1;
+  } else await sql.begin(async (tx) => {
     for (const [slug, name, catSlug, town, tagline, services] of vendors) {
       const [v] = await tx`
         insert into vendor (slug, display_name, tagline, primary_municipality_id, website_url, source, listing_status, published_at)
@@ -48,7 +53,7 @@ try {
       }
     }
   });
-  console.log(`Loaded ${vendors.length} test businesses into ${dbName}.`);
+  if (!process.exitCode) console.log(`Loaded ${vendors.length} test businesses into ${dbName}.`);
 } finally {
   await sql.end({ timeout: 5 });
 }
