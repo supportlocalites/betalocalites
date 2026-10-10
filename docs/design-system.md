@@ -98,7 +98,7 @@ Icons are thin line drawings (1.2–1.6px) with square corners, as in D's menu.
 
 | Component | Looks like | Notes |
 |---|---|---|
-| Wordmark | "Localites" in Playfair 700 | Always links to Home |
+| Wordmark | "Localites" in Playfair 700, **the dot of the "i" is a plain black map pin** (round window, no gloss; D-31) | Always links to Home. Use the `Wordmark` component everywhere the name is drawn large or as the brand (Welcome, header); never type "Localites" with an ordinary dot there. The pin is also the browser-tab icon. |
 | Primary button | Black, light text, capitals | One per screen area |
 | Secondary button | Clear, gold outline, capitals | e.g. "Add to event", "Not yet" |
 | Text link | Small capitals, underlined | "View", "Change", "Find vendors" |

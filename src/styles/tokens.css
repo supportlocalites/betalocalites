@@ -64,6 +64,12 @@
   --focus-ring: 2px;
   --underline-offset: 3px;
 
+  /* Wordmark (§6): the dot of the "i" is a black map pin, D-31. In em, so it scales with the type. */
+  --pin-width: 0.2em;
+  --pin-width-small: 0.22em; /* a touch larger at header size, so the pin still reads */
+  --pin-lift: 0.575em; /* pin tip above the baseline: just over the dotless i (0.53em in Playfair 700) */
+  --pin-centre: 0.158em; /* middle of the dotless i's stem */
+
   /* Component sizes */
   --size-thumb: 72px;
   --size-tile-min: 160px;

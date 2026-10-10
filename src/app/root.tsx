@@ -12,6 +12,10 @@ import type { Route } from './+types/root';
 
 const isNotFound = (error: unknown) => isRouteErrorResponse(error) && error.status === 404;
 
+// The black map pin from the wordmark (D-31). The file repeats the ink colour from
+// tokens.css, because a browser-tab icon can't read the site's styles.
+export const links: Route.LinksFunction = () => [{ rel: 'icon', href: '/favicon.svg', type: 'image/svg+xml' }];
+
 export const meta: Route.MetaFunction = ({ error }) =>
   pageMeta(error ? (isNotFound(error) ? 'Not found' : 'Something went wrong') : undefined);
 

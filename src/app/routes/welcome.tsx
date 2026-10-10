@@ -1,4 +1,5 @@
 import { Link } from 'react-router';
+import { Wordmark } from '@/components/Wordmark';
 import { pageMeta } from '@/lib/meta';
 import type { Route } from './+types/welcome';
 import styles from './welcome.module.css';
@@ -11,7 +12,9 @@ export default function Welcome() {
       <div className={styles.frame}>
         <div className={styles.words}>
           <span className="label">Welcome to</span>
-          <h1 className={styles.name}>Localites.</h1>
+          <h1 className={styles.name}>
+            <Wordmark suffix="." />
+          </h1>
           <div className={styles.rule} aria-hidden="true" />
           <p className={styles.sub}>
             <span>See what your community</span>

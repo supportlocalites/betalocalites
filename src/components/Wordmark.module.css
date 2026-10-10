@@ -1,0 +1,30 @@
+.mark {
+  white-space: nowrap;
+}
+
+/* A zero-size point on the text baseline, so the pin sits the same at every size. */
+.anchor {
+  display: inline-block;
+  width: 0;
+  height: 0;
+  position: relative;
+  vertical-align: baseline;
+}
+
+.pin {
+  position: absolute;
+  left: var(--pin-centre);
+  bottom: var(--pin-lift);
+  width: var(--pin-width);
+  height: auto;
+  transform: translateX(-50%);
+  overflow: visible;
+}
+
+.small .pin {
+  width: var(--pin-width-small);
+}
+
+.body {
+  fill: currentColor;
+}
