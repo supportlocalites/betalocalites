@@ -42,8 +42,10 @@ with a check that rejects any outside it, and a check for banned wording. GitHub
 runs every check on every push. Nothing is deployed and no real business is loaded:
 pages were tested with six obviously fake "Test Vendor" listings in a local database.
 **Migrations applied:** `0001_stage1_foundation.sql` and
-`0002_launch_places_and_categories.sql`, to **local throwaway databases only**. Not
-applied to Supabase (no account yet, PO-03).
+`0002_launch_places_and_categories.sql`, to local throwaway databases first. **Then
+applied to the Supabase test project `localites-test`** (Canada) on 10 October 2026 by
+GitHub's "Update the test database" job (CI run 38019493681), with the six fake test
+businesses. Not applied to any production database (none exists yet).
 **Destructive?** No.
 **Tests run:** migration checks 51/51; Stage 2–3 proposal checks on top of the real
 migrations 56/56; unit tests 3/3; token, wording, lint and type checks passed; pages
