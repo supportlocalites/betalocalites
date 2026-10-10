@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Start a conversation · G</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,600;0,700;1,500;1,600&amp;family=Jost:wght@400;500;600;700&amp;display=swap">
+<style>
+body{margin:0}
+a{color:#141414}a:hover{color:#5C554D}
+.k{font-family:'Jost',system-ui,sans-serif;color:#141414;font-size:15px;line-height:1.55}
+.k *{box-sizing:border-box}
+.i{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round;flex:none}
+.d2{font:600 26px/1.18 'Playfair Display',Georgia,serif;letter-spacing:-.005em;margin:0}
+.d3{font:600 18px/1.3 'Playfair Display',Georgia,serif;margin:0}
+.cap{font:600 10.5px/1.4 'Jost',sans-serif;letter-spacing:.2em;text-transform:uppercase}
+.mu{color:#6B655E}.sm{font-size:13px}
+.hr{height:1px;background:#DCD6CE}
+.gl{height:1px;background:#B8955A}
+.ib{width:44px;height:44px;border-radius:999px;border:1px solid #DCD6CE;background:#FBFAF8;display:flex;align-items:center;justify-content:center;color:#141414;flex:none}
+.btn{display:flex;align-items:center;justify-content:center;height:56px;width:100%;border-radius:12px;background:#141414;color:#F7F5F1;border:0;font:500 13px/1 'Jost',sans-serif;letter-spacing:.18em;text-transform:uppercase;text-decoration:none}
+.lk{display:inline-block;font:600 10.5px/1 'Jost',sans-serif;letter-spacing:.18em;text-transform:uppercase;color:#141414;text-decoration:none;border:0;border-bottom:1px solid #141414;padding:0 0 4px;background:none}
+.ta{width:100%;height:160px;border:0;border-bottom:1px solid #B8955A;padding:0;font:400 16px/1.6 'Jost',sans-serif;color:#141414;background:transparent;resize:none;border-radius:0}
+</style>
+</helmet>
+<div class="k" style="width: 390px; height: 844px; background: #F7F5F1; display: flex; flex-direction: column; overflow: hidden">
+  <div style="display: flex; align-items: center; justify-content: space-between; padding: 12px 16px">
+    <button class="ib" type="button" aria-label="Close"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+    <span class="cap">New message</span>
+    <span style="width: 44px"></span>
+  </div>
+  <div style="flex: 1; overflow: hidden; padding: 18px 24px 0; display: flex; flex-direction: column; gap: 20px">
+    <div>
+      <div class="cap mu">To</div>
+      <h1 class="d2" style="margin-top: 6px">Brightside Face Painting</h1>
+    </div>
+    <div class="gl"></div>
+    <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 16px">
+      <div>
+        <div class="cap mu">Regarding</div>
+        <div class="d3" style="margin-top: 6px">Sam's 6th birthday</div>
+        <div class="sm mu">Saturday 14 November · Orillia · 15 guests</div>
+      </div>
+      <button class="lk" type="button" style="margin-top: 4px">Change</button>
+    </div>
+    <p class="sm mu" style="margin: 0">Brightside will see the occasion, date, town and guest count. Never your guest list, budget or notes.</p>
+    <div class="hr"></div>
+    <div>
+      <label class="cap mu" for="msg" style="display: block; margin-bottom: 12px">Message</label>
+      <textarea class="ta" id="msg" readonly>Hello Dana. Would you be available on Saturday 14 November, from one until four, for a sixth birthday in Orillia? We expect around fifteen children.</textarea>
+    </div>
+    <div><button class="lk" type="button">Attach a photo or PDF</button></div>
+  </div>
+  <div style="padding: 14px 24px 24px; display: flex; flex-direction: column; gap: 12px; flex: none">
+    <button class="btn" type="button">Send message</button>
+    <div class="sm mu" style="text-align: center">Localites doesn't process payments. Arrange payment directly with the business.</div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

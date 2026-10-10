@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Conversation · D's colours, A's layout</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&amp;family=Jost:wght@400;500;600;700&amp;display=swap">
+<style>
+body{margin:0}
+a{color:#141414}a:hover{color:#5C554D}
+.k{font-family:'Jost',system-ui,sans-serif;color:#141414;font-size:15px;line-height:1.45}
+.k *{box-sizing:border-box}
+.i{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round;flex:none}
+.s{width:18px;height:18px}
+.h3{font:600 17px/1.25 'Playfair Display',Georgia,serif;margin:0}
+.mu{color:#6B655E}.sm{font-size:13px}.xs{font-size:12px}
+.ib{width:44px;height:44px;border-radius:999px;border:1px solid #DCD6CE;background:#FBFAF8;display:flex;align-items:center;justify-content:center;color:#141414;flex:none}
+.mini{display:inline-flex;align-items:center;gap:6px;height:36px;padding:0 14px;border-radius:999px;background:#141414;color:#F7F5F1;font:700 13px 'Jost',sans-serif;border:0}
+.b{max-width:282px;padding:11px 14px;border-radius:18px;font-size:15px}
+.them{background:#FBFAF8;border:1px solid #DCD6CE;border-bottom-left-radius:6px;align-self:flex-start}
+.me{background:#141414;color:#F7F5F1;border-bottom-right-radius:6px;align-self:flex-end}
+.ts{font-size:11px;color:#6B655E;margin-top:2px}
+.file{display:flex;align-items:center;gap:10px;margin-top:8px;padding:10px 12px;border-radius:12px;border:1px solid #B8955A;background:#F7F5F1}
+.p-face{background:#F2E4D6 url(/_blob/d44d01f0c564eb449ab6c546ba0a7ad6) center/cover no-repeat}
+</style>
+</helmet>
+<div class="k" style="width: 390px; height: 844px; background: #F7F5F1; display: flex; flex-direction: column; overflow: hidden">
+  <div style="display: flex; align-items: center; gap: 12px; padding: 12px 16px; border-bottom: 1px solid #DCD6CE">
+    <button class="ib" type="button" aria-label="Back"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg></button>
+    <div class="p-face" style="width: 40px; height: 40px; border-radius: 999px; flex: none"></div>
+    <div style="flex: 1; min-width: 0"><div class="h3">Brightside Face Painting</div><div class="xs mu">About Sam's 6th · Sat 14 Nov</div></div>
+    <button class="ib" type="button" aria-label="More options"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><circle cx="5" cy="12" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/></svg></button>
+  </div>
+  <div style="display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 10px 16px; border-bottom: 1px solid #DCD6CE">
+    <span class="sm"><span class="mu">On your event:</span> <b>Considering</b></span>
+    <button class="mini" type="button"><svg class="i s" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7"/></svg>Mark as booked</button>
+  </div>
+  <div style="flex: 1; overflow: hidden; padding: 16px; display: flex; flex-direction: column; gap: 10px">
+    <div class="xs mu" style="text-align: center">Tuesday</div>
+    <div class="b me">Hi! Are you free Sat Nov 14, 1–4 pm, for a 6th birthday in Orillia? About 15 kids.<div class="ts" style="color: #CFC8BE">2:14 pm</div></div>
+    <div class="b them">Hi Jordan! Yes, that afternoon works. Two hours is usually right for 15 kids. Our packages are attached.
+      <div class="file"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 3h7l5 5v13H7z"/><path d="M14 3v5h5"/></svg><div><div class="sm" style="font-weight: 700">Brightside-packages.pdf</div><div class="xs mu">PDF · 240 KB</div></div></div>
+      <div class="ts">Dana · 4:02 pm</div></div>
+    <div class="xs mu" style="text-align: center">Wednesday</div>
+    <div class="b me">Perfect, the 2-hour package please.<div class="ts" style="color: #CFC8BE">9:30 am</div></div>
+    <div class="b them">Great! Invoice attached. E-transfer me whenever suits.
+      <div class="file"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 3h7l5 5v13H7z"/><path d="M14 3v5h5"/></svg><div><div class="sm" style="font-weight: 700">Invoice-1042.pdf</div><div class="xs mu">PDF · 96 KB</div></div></div>
+      <div class="ts">Dana · 10:12 am</div></div>
+  </div>
+  <div style="padding: 8px 12px 6px; display: flex; align-items: center; gap: 8px; flex: none">
+    <button class="ib" type="button" aria-label="Attach a file"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 11.5l-7.8 7.8a5 5 0 0 1-7-7l8.3-8.3a3.3 3.3 0 0 1 4.7 4.7l-8.2 8.2a1.7 1.7 0 0 1-2.4-2.4l7.3-7.3"/></svg></button>
+    <label for="reply" style="position: absolute; left: -9999px">Write a message</label>
+    <input id="reply" style="flex: 1; height: 44px; border-radius: 999px; border: 1px solid #DCD6CE; background: #FBFAF8; padding: 0 16px; font: 400 15px Jost, sans-serif; color: #141414" placeholder="Write a message">
+    <button type="button" aria-label="Send" style="width: 44px; height: 44px; border-radius: 999px; background: #141414; color: #F7F5F1; border: 0; display: flex; align-items: center; justify-content: center"><svg class="i s" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12l16-8-6 16-2.5-6.5z"/></svg></button>
+  </div>
+  <div class="xs mu" style="text-align: center; padding: 2px 16px 20px; flex: none">Localites doesn't process payments. Arrange payment directly with the business.</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

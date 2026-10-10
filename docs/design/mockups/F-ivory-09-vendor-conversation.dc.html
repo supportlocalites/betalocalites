@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Conversation, vendor side · D's colours, A's layout</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&amp;family=Jost:wght@400;500;600;700&amp;display=swap">
+<style>
+body{margin:0}
+a{color:#141414}a:hover{color:#5C554D}
+.k{font-family:'Jost',system-ui,sans-serif;color:#141414;font-size:15px;line-height:1.45}
+.k *{box-sizing:border-box}
+.i{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round;flex:none}
+.s{width:18px;height:18px}
+.h3{font:600 17px/1.25 'Playfair Display',Georgia,serif;margin:0}
+.mu{color:#6B655E}.sm{font-size:13px}.xs{font-size:12px}
+.ib{width:44px;height:44px;border-radius:999px;border:1px solid #DCD6CE;background:#FBFAF8;display:flex;align-items:center;justify-content:center;color:#141414;flex:none}
+.lk{font:600 13px 'Jost',sans-serif;color:#141414;background:none;border:0;padding:0;text-decoration:underline;text-underline-offset:3px;white-space:nowrap}
+.kv{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px 16px}
+.b{max-width:282px;padding:11px 14px;border-radius:18px;font-size:15px}
+.them{background:#FBFAF8;border:1px solid #DCD6CE;border-bottom-left-radius:6px;align-self:flex-start}
+.me{background:#141414;color:#F7F5F1;border-bottom-right-radius:6px;align-self:flex-end}
+.ts{font-size:11px;color:#6B655E;margin-top:2px}
+.file{display:flex;align-items:center;gap:10px;margin-top:8px;padding:10px 12px;border-radius:12px;border:1px solid #B8955A;background:#F7F5F1;color:#141414}
+</style>
+</helmet>
+<div class="k" style="width: 390px; height: 844px; background: #F7F5F1; display: flex; flex-direction: column; overflow: hidden">
+  <div style="display: flex; align-items: center; justify-content: space-between; padding: 8px 16px; background: #EDE8E1; border-bottom: 1px solid #B8955A; flex: none">
+    <span class="xs" style="font-weight: 700">Brightside Face Painting · Business</span>
+    <button class="lk" type="button" style="font-size: 12px">Switch account</button>
+  </div>
+  <div style="display: flex; align-items: center; gap: 12px; padding: 12px 16px; border-bottom: 1px solid #DCD6CE">
+    <button class="ib" type="button" aria-label="Back to inbox"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg></button>
+    <div style="width: 40px; height: 40px; border-radius: 999px; background: #DDD6CB; flex: none; display: flex; align-items: center; justify-content: center; font: 600 17px 'Playfair Display', Georgia, serif">J</div>
+    <div style="flex: 1; min-width: 0"><div class="h3">Jordan</div><div class="xs mu">Customer</div></div>
+    <button class="ib" type="button" aria-label="More options"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><circle cx="5" cy="12" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/></svg></button>
+  </div>
+  <div style="padding: 12px 16px 0; display: flex; flex-direction: column; gap: 10px; flex: none">
+    <div style="border: 1px solid #DCD6CE; border-radius: 18px; background: #FBFAF8; padding: 12px 14px">
+      <div class="kv">
+        <div><div class="xs mu">Occasion</div><div class="sm" style="font-weight: 600">Kids birthday</div></div>
+        <div><div class="xs mu">Date</div><div class="sm" style="font-weight: 600">Sat 14 Nov</div></div>
+        <div><div class="xs mu">Town</div><div class="sm" style="font-weight: 600">Orillia</div></div>
+        <div><div class="xs mu">Guests</div><div class="sm" style="font-weight: 600">About 15</div></div>
+      </div>
+    </div>
+    <div style="display: flex; align-items: center; justify-content: space-between; gap: 10px; border: 1px solid #B8955A; border-radius: 14px; padding: 10px 14px">
+      <span class="sm" style="display: inline-flex; align-items: center; gap: 6px"><svg class="i s" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7"/></svg><span><b>Jordan marked you as booked</b> <span class="mu">· 7 Oct</span></span></span>
+      <button class="lk" type="button">Not right?</button>
+    </div>
+  </div>
+  <div style="flex: 1; overflow: hidden; padding: 14px 16px; display: flex; flex-direction: column; gap: 10px">
+    <div class="xs mu" style="text-align: center">Wednesday</div>
+    <div class="b them">Perfect, the 2-hour package please.<div class="ts">Jordan · 9:30 am</div></div>
+    <div class="b me">Great! Invoice attached. E-transfer me whenever suits.
+      <div class="file"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 3h7l5 5v13H7z"/><path d="M14 3v5h5"/></svg><div><div class="sm" style="font-weight: 700">Invoice-1042.pdf</div><div class="xs mu">PDF · 96 KB</div></div></div>
+      <div class="ts" style="color: #CFC8BE">Dana · 10:12 am</div></div>
+    <div class="b them">Sent! Thank you, see you on the 14th.<div class="ts">Jordan · 10:40 am</div></div>
+  </div>
+  <div style="padding: 8px 12px 6px; display: flex; align-items: center; gap: 8px; flex: none">
+    <button class="ib" type="button" aria-label="Attach a file"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 11.5l-7.8 7.8a5 5 0 0 1-7-7l8.3-8.3a3.3 3.3 0 0 1 4.7 4.7l-8.2 8.2a1.7 1.7 0 0 1-2.4-2.4l7.3-7.3"/></svg></button>
+    <label for="reply" style="position: absolute; left: -9999px">Write a reply</label>
+    <input id="reply" style="flex: 1; height: 44px; border-radius: 999px; border: 1px solid #DCD6CE; background: #FBFAF8; padding: 0 16px; font: 400 15px Jost, sans-serif; color: #141414" placeholder="Write a reply">
+    <button type="button" aria-label="Send" style="width: 44px; height: 44px; border-radius: 999px; background: #141414; color: #F7F5F1; border: 0; display: flex; align-items: center; justify-content: center"><svg class="i s" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12l16-8-6 16-2.5-6.5z"/></svg></button>
+  </div>
+  <div class="xs mu" style="text-align: center; padding: 2px 16px 20px; flex: none">Localites doesn't process payments. Arrange payment directly with your customer.</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Start a conversation · Between A and D</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&amp;family=Figtree:wght@400;500;600;700&amp;display=swap">
+<style>
+body{margin:0}
+a{color:#1C5A61}a:hover{color:#134247}
+.k{font-family:'Figtree',system-ui,sans-serif;color:#1A1D1F;font-size:15px;line-height:1.5}
+.k *{box-sizing:border-box}
+.i{width:21px;height:21px;fill:none;stroke:currentColor;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round;flex:none}
+.s{width:17px;height:17px}
+.d2{font:400 32px/1.08 'Instrument Serif',Georgia,serif;margin:0}
+.it{font-style:italic}
+.cap{font:600 11px/1.4 'Figtree',sans-serif;letter-spacing:.14em;text-transform:uppercase}
+.mu{color:#62686B}.sm{font-size:13px}.xs{font-size:12px}
+.ib{width:44px;height:44px;border-radius:999px;border:1px solid #E3DED6;background:#fff;display:flex;align-items:center;justify-content:center;color:#1A1D1F;flex:none}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;height:52px;padding:0 18px;border-radius:12px;background:#1C5A61;color:#fff;font:600 15px 'Figtree',sans-serif;border:0;text-decoration:none}
+.sel{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 14px;border:1px solid #DDD7CE;border-radius:12px;background:#fff}
+.note{border-radius:12px;background:#EEF4F4;padding:12px 14px;font-size:13px}
+.ta{width:100%;height:140px;border:1px solid #1C5A61;border-radius:12px;padding:12px 14px;font:400 15px/1.5 'Figtree',sans-serif;color:#1A1D1F;resize:none;background:#fff}
+.lk{display:inline-flex;align-items:center;gap:6px;font:600 14px 'Figtree',sans-serif;color:#1C5A61;background:none;border:0;padding:0}
+</style>
+</helmet>
+<div class="k" style="width: 390px; height: 844px; background: #FBFAF7; display: flex; flex-direction: column; overflow: hidden">
+  <div style="display: flex; align-items: center; gap: 12px; padding: 12px 18px">
+    <button class="ib" type="button" aria-label="Close"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+    <span class="cap mu">New message</span>
+  </div>
+  <div style="flex: 1; overflow: hidden; padding: 10px 18px 0; display: flex; flex-direction: column; gap: 16px">
+    <h1 class="d2">Say hello to <span class="it">Brightside Face Painting</span></h1>
+    <div>
+      <div class="cap mu" style="margin-bottom: 8px">About</div>
+      <div class="sel"><div><div style="font-weight: 600">Sam's 6th birthday</div><div class="sm mu">Sat 14 Nov · Orillia · 15 guests</div></div><svg class="i s" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></div>
+    </div>
+    <div class="note"><b>Brightside will see</b> the event type, date, town and guest count. <span class="mu">Never your guest list, budget or notes.</span></div>
+    <div>
+      <label class="cap mu" for="msg" style="display: block; margin-bottom: 8px">Your message</label>
+      <textarea class="ta" id="msg" readonly>Hi Dana! Are you free Saturday Nov 14, 1–4 pm, for a 6th birthday in Orillia? About 15 kids.</textarea>
+    </div>
+    <button class="lk" type="button"><svg class="i s" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 11.5l-7.8 7.8a5 5 0 0 1-7-7l8.3-8.3a3.3 3.3 0 0 1 4.7 4.7l-8.2 8.2a1.7 1.7 0 0 1-2.4-2.4l7.3-7.3"/></svg>Add a photo or PDF</button>
+  </div>
+  <div style="padding: 12px 18px 24px; display: flex; flex-direction: column; gap: 10px; flex: none">
+    <button class="btn" type="button"><svg class="i s" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12l16-8-6 16-2.5-6.5z"/></svg>Send message</button>
+    <div class="xs mu" style="text-align: center">Localites doesn't process payments. Arrange payment directly with the business.</div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

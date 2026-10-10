@@ -191,7 +191,8 @@ message on launch day has someone on the other end.
 ## 8. Open decisions
 
 All in [H](./H-product-owner-action-register.md). The ones that shape the work now:
-D-00 (approve architecture), D-01 (web address; the name, Localites, is decided), D-03
-(listing businesses before they join), D-04 (contact before messaging), D-05 (messaging
-unclaimed businesses), D-06 (review rule), D-07 (the web address, the only cost), D-09
-(launch area), D-11 (who's on call), D-13 (consumer–vendor rules), D-14 (stage order).
+D-00 (approve architecture), D-03 (listing businesses before they join), D-04 (contact
+before messaging), D-05 (messaging unclaimed businesses), D-06 (review rule), D-09 (launch
+area), D-11 (who's on call), D-13 (consumer–vendor rules), D-14 (stage order).
+Already decided: the name and address, Localites at `localites.ca` (D-01, D-07), and the
+design, direction G for phones and computers (D-21, [design-system.md](./design-system.md)).

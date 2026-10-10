@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Start a conversation · Minimal luxury</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;1,500&amp;family=Jost:wght@300;400;500&amp;display=swap">
+<style>
+body{margin:0}
+a{color:#141414}a:hover{color:#5C554D}
+.k{font-family:'Jost',system-ui,sans-serif;color:#141414;font-size:15px;line-height:1.55;font-weight:400}
+.k *{box-sizing:border-box}
+.i{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.2;stroke-linecap:round;stroke-linejoin:round;flex:none}
+.d2{font:500 30px/1.1 'Cormorant Garamond',Georgia,serif;margin:0}
+.d3{font:500 21px/1.25 'Cormorant Garamond',Georgia,serif;margin:0}
+.it{font-style:italic}
+.cap{font:500 11px/1.4 'Jost',sans-serif;letter-spacing:.22em;text-transform:uppercase}
+.mu{color:#6B655E}.sm{font-size:13px}
+.hr{height:1px;background:#DCD6CE}
+.ib{width:44px;height:44px;display:flex;align-items:center;justify-content:center;background:none;border:0;color:#141414;flex:none}
+.btn{display:flex;align-items:center;justify-content:center;height:54px;width:100%;background:#141414;color:#F7F5F1;border:0;border-radius:0;font:500 12px/1 'Jost',sans-serif;letter-spacing:.22em;text-transform:uppercase;text-decoration:none}
+.lk{display:inline-block;font:500 11px/1 'Jost',sans-serif;letter-spacing:.2em;text-transform:uppercase;color:#141414;text-decoration:none;border:0;border-bottom:1px solid #141414;padding:0 0 4px;background:none}
+.ta{width:100%;height:170px;border:0;border-bottom:1px solid #141414;padding:0;font:300 17px/1.6 'Jost',sans-serif;color:#141414;background:transparent;resize:none;border-radius:0}
+</style>
+</helmet>
+<div class="k" style="width: 390px; height: 844px; background: #F7F5F1; display: flex; flex-direction: column; overflow: hidden">
+  <div style="display: flex; align-items: center; justify-content: space-between; padding: 10px 12px">
+    <button class="ib" type="button" aria-label="Close"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+    <span class="cap">New message</span>
+    <span style="width: 44px"></span>
+  </div>
+  <div style="flex: 1; overflow: hidden; padding: 22px 24px 0; display: flex; flex-direction: column; gap: 22px">
+    <div>
+      <div class="cap mu">To</div>
+      <h1 class="d2" style="margin-top: 6px">Brightside Face Painting</h1>
+    </div>
+    <div class="hr"></div>
+    <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 16px">
+      <div>
+        <div class="cap mu">Regarding</div>
+        <div class="d3" style="margin-top: 6px">Sam's 6th birthday</div>
+        <div class="sm mu" style="font-weight: 300">Saturday 14 November · Orillia · 15 guests</div>
+      </div>
+      <button class="lk" type="button" style="margin-top: 4px">Change</button>
+    </div>
+    <p class="sm mu" style="margin: 0; font-weight: 300">Brightside will see the occasion, date, town and guest count. Never your guest list or notes.</p>
+    <div class="hr"></div>
+    <div>
+      <label class="cap mu" for="msg" style="display: block; margin-bottom: 12px">Message</label>
+      <textarea class="ta" id="msg" readonly>Hello Dana. Would you be available on Saturday 14 November, from one until four, for a sixth birthday in Orillia? We expect around fifteen children.</textarea>
+    </div>
+    <div><button class="lk" type="button">Attach a photograph or PDF</button></div>
+  </div>
+  <div style="padding: 14px 24px 24px; display: flex; flex-direction: column; gap: 12px; flex: none">
+    <button class="btn" type="button">Send</button>
+    <div class="sm mu" style="text-align: center; font-weight: 300">Payment is arranged directly with the business.</div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

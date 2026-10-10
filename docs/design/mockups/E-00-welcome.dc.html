@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Welcome · Between A and D</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600&amp;family=Figtree:wght@500;600&amp;display=swap">
+<style>
+body{margin:0}
+a{color:#1C5A61}a:hover{color:#134247}
+.k{font-family:'Figtree',system-ui,sans-serif;color:#1A1D1F;font-size:15px;line-height:1.5}
+.k *{box-sizing:border-box}
+.tag{font:600 32px/1.18 'Fraunces',Georgia,serif;letter-spacing:-.015em;margin:0}
+.tag span{display:block;white-space:nowrap}
+.btn{display:flex;align-items:center;justify-content:center;height:58px;width:100%;border-radius:14px;font:600 17px 'Figtree',sans-serif;text-decoration:none}
+.b1{background:#1C5A61;color:#fff}
+.b2{background:transparent;color:#1A1D1F;border:1.5px solid #1A1D1F}
+</style>
+</helmet>
+<div class="k" style="width: 390px; height: 844px; box-sizing: border-box; background: #FBFAF7; display: flex; flex-direction: column; justify-content: center; padding: 0 28px; gap: 44px">
+  <h1 class="tag"><span>Welcome to Localites.</span> <span>How can we help?</span></h1>
+  <div style="display: flex; flex-direction: column; gap: 12px">
+    <a class="btn b1" href="#">Browse local</a>
+    <a class="btn b2" href="#">Plan an event</a>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

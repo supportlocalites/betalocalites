@@ -1,0 +1,810 @@
+{
+ "v": 3,
+ "attachments": {},
+ "boards": {
+  "A-00-welcome.dc.html": {
+   "h": 844,
+   "page": "compare",
+   "title": "A · Welcome",
+   "w": 390,
+   "x": 0,
+   "y": 0
+  },
+  "A-P03-search.dc.html": {
+   "h": 844,
+   "page": "compare",
+   "title": "A · Search results",
+   "w": 390,
+   "x": 940,
+   "y": 0
+  },
+  "A-P04-profile.dc.html": {
+   "h": 844,
+   "page": "compare",
+   "title": "A · Vendor profile",
+   "w": 390,
+   "x": 1410,
+   "y": 0
+  },
+  "D-00-welcome.dc.html": {
+   "h": 844,
+   "page": "compare",
+   "title": "D · Welcome",
+   "w": 390,
+   "x": 0,
+   "y": 2600
+  },
+  "D-01-home.dc.html": {
+   "h": 844,
+   "page": "compare",
+   "title": "D · Home",
+   "w": 390,
+   "x": 470,
+   "y": 2600
+  },
+  "D-02-search.dc.html": {
+   "h": 844,
+   "page": "compare",
+   "title": "D · Search results",
+   "w": 390,
+   "x": 940,
+   "y": 2600
+  },
+  "D-03-profile.dc.html": {
+   "h": 844,
+   "page": "compare",
+   "title": "D · Vendor profile",
+   "w": 390,
+   "x": 1410,
+   "y": 2600
+  },
+  "D-04-start-conversation.dc.html": {
+   "h": 844,
+   "page": "compare",
+   "title": "D · Start a conversation",
+   "w": 390,
+   "x": 1880,
+   "y": 2600
+  },
+  "D-05-conversation.dc.html": {
+   "h": 844,
+   "page": "compare",
+   "title": "D · Conversation",
+   "w": 390,
+   "x": 2350,
+   "y": 2600
+  },
+  "D-06-event-plan.dc.html": {
+   "h": 844,
+   "page": "compare",
+   "title": "D · Occasion plan",
+   "w": 390,
+   "x": 2820,
+   "y": 2600
+  },
+  "D-07-mark-booked.dc.html": {
+   "h": 844,
+   "page": "compare",
+   "title": "D · Mark as booked",
+   "w": 390,
+   "x": 3290,
+   "y": 2600
+  },
+  "D-08-how-was-it.dc.html": {
+   "h": 844,
+   "page": "compare",
+   "title": "D · How was it?",
+   "w": 390,
+   "x": 3760,
+   "y": 2600
+  },
+  "D-09-vendor-conversation.dc.html": {
+   "h": 844,
+   "page": "compare",
+   "title": "D · Conversation (vendor side)",
+   "w": 390,
+   "x": 4230,
+   "y": 2600
+  },
+  "E-00-welcome.dc.html": {
+   "h": 844,
+   "page": "compare",
+   "title": "E · Welcome",
+   "w": 390,
+   "x": 0,
+   "y": 1300
+  },
+  "E-01-home.dc.html": {
+   "h": 844,
+   "page": "compare",
+   "title": "E · Home (Browse local)",
+   "w": 390,
+   "x": 470,
+   "y": 1300
+  },
+  "E-02-search.dc.html": {
+   "h": 844,
+   "page": "compare",
+   "title": "E · Search results",
+   "w": 390,
+   "x": 940,
+   "y": 1300
+  },
+  "E-03-profile.dc.html": {
+   "h": 844,
+   "page": "compare",
+   "title": "E · Vendor profile",
+   "w": 390,
+   "x": 1410,
+   "y": 1300
+  },
+  "E-04-start-conversation.dc.html": {
+   "h": 844,
+   "page": "compare",
+   "title": "E · Start a conversation",
+   "w": 390,
+   "x": 1880,
+   "y": 1300
+  },
+  "F-ivory-00-welcome.dc.html": {
+   "h": 844,
+   "page": "compare",
+   "title": "F · Welcome",
+   "w": 390,
+   "x": 0,
+   "y": 3900
+  },
+  "F-ivory-01-home.dc.html": {
+   "h": 844,
+   "page": "compare",
+   "title": "F · Home (Browse local)",
+   "w": 390,
+   "x": 470,
+   "y": 3900
+  },
+  "F-ivory-02-search.dc.html": {
+   "h": 844,
+   "page": "compare",
+   "title": "F · Search results",
+   "w": 390,
+   "x": 940,
+   "y": 3900
+  },
+  "F-ivory-03-profile.dc.html": {
+   "h": 844,
+   "page": "compare",
+   "title": "F · Vendor profile",
+   "w": 390,
+   "x": 1410,
+   "y": 3900
+  },
+  "F-ivory-04-start-conversation.dc.html": {
+   "h": 844,
+   "page": "compare",
+   "title": "F · Start a conversation",
+   "w": 390,
+   "x": 1880,
+   "y": 3900
+  },
+  "F-ivory-05-conversation.dc.html": {
+   "h": 844,
+   "page": "compare",
+   "title": "F · Conversation",
+   "w": 390,
+   "x": 2350,
+   "y": 3900
+  },
+  "F-ivory-06-event-plan.dc.html": {
+   "h": 844,
+   "page": "compare",
+   "title": "F · Event plan",
+   "w": 390,
+   "x": 2820,
+   "y": 3900
+  },
+  "F-ivory-07-mark-booked.dc.html": {
+   "h": 844,
+   "page": "compare",
+   "title": "F · Mark as booked",
+   "w": 390,
+   "x": 3290,
+   "y": 3900
+  },
+  "F-ivory-08-how-was-it.dc.html": {
+   "h": 844,
+   "page": "compare",
+   "title": "F · How was it?",
+   "w": 390,
+   "x": 3760,
+   "y": 3900
+  },
+  "F-ivory-09-vendor-conversation.dc.html": {
+   "h": 844,
+   "page": "compare",
+   "title": "F · Conversation (vendor side)",
+   "w": 390,
+   "x": 4230,
+   "y": 3900
+  },
+  "Main.dc.html": {
+   "h": 844,
+   "page": "compare",
+   "title": "A · Home",
+   "w": 390,
+   "x": 470,
+   "y": 0
+  },
+  "G-00-welcome.dc.html": {
+   "x": 0,
+   "y": 5200,
+   "w": 390,
+   "h": 844,
+   "title": "G · Welcome",
+   "page": "compare",
+   "is_interactive": true
+  },
+  "G-01-home.dc.html": {
+   "x": 470,
+   "y": 5200,
+   "w": 390,
+   "h": 844,
+   "title": "G · Home (Browse local)",
+   "page": "compare",
+   "is_interactive": true
+  },
+  "G-02-search.dc.html": {
+   "x": 940,
+   "y": 5200,
+   "w": 390,
+   "h": 844,
+   "title": "G · Search results",
+   "page": "compare",
+   "is_interactive": true
+  },
+  "G-03-profile.dc.html": {
+   "x": 1410,
+   "y": 5200,
+   "w": 390,
+   "h": 844,
+   "title": "G · Vendor profile",
+   "page": "compare"
+  },
+  "G-04-start-conversation.dc.html": {
+   "x": 1880,
+   "y": 5200,
+   "w": 390,
+   "h": 844,
+   "title": "G · Start a conversation",
+   "page": "compare"
+  },
+  "G-05-conversation.dc.html": {
+   "x": 2350,
+   "y": 5200,
+   "w": 390,
+   "h": 844,
+   "title": "G · Conversation",
+   "page": "compare"
+  },
+  "G-06-event-plan.dc.html": {
+   "x": 2820,
+   "y": 5200,
+   "w": 390,
+   "h": 844,
+   "title": "G · Event plan",
+   "page": "compare",
+   "is_interactive": true
+  },
+  "G-07-mark-booked.dc.html": {
+   "x": 3290,
+   "y": 5200,
+   "w": 390,
+   "h": 844,
+   "title": "G · Mark as booked",
+   "page": "compare"
+  },
+  "G-08-how-was-it.dc.html": {
+   "x": 3760,
+   "y": 5200,
+   "w": 390,
+   "h": 844,
+   "title": "G · How was it?",
+   "page": "compare"
+  },
+  "G-09-vendor-conversation.dc.html": {
+   "x": 4230,
+   "y": 5200,
+   "w": 390,
+   "h": 844,
+   "title": "G · Conversation (vendor side)",
+   "page": "compare"
+  },
+  "G-10-invite-guests.dc.html": {
+   "x": 4700,
+   "y": 5200,
+   "w": 390,
+   "h": 844,
+   "title": "G · Invite guests (host)",
+   "page": "compare",
+   "is_interactive": true
+  },
+  "G-11-invitation.dc.html": {
+   "x": 5170,
+   "y": 5200,
+   "w": 390,
+   "h": 844,
+   "title": "G · Invitation (guest view)",
+   "page": "compare",
+   "is_interactive": true
+  },
+  "G-12-guest-list.dc.html": {
+   "x": 5640,
+   "y": 5200,
+   "w": 390,
+   "h": 844,
+   "title": "G · Guest list & RSVPs (host)",
+   "page": "compare",
+   "is_interactive": true
+  },
+  "G-13-guest-updates.dc.html": {
+   "x": 6110,
+   "y": 5200,
+   "w": 390,
+   "h": 844,
+   "title": "G · Updates to guests (host)",
+   "page": "compare",
+   "is_interactive": true
+  },
+  "G-14-guest-event.dc.html": {
+   "x": 6580,
+   "y": 5200,
+   "w": 390,
+   "h": 844,
+   "title": "G · Event page (guest view)",
+   "page": "compare",
+   "is_interactive": true
+  },
+  "H-00-welcome.dc.html": {
+   "x": 0,
+   "y": 6500,
+   "w": 390,
+   "h": 844,
+   "title": "H · Welcome",
+   "page": "compare",
+   "is_interactive": true
+  },
+  "H-01-home.dc.html": {
+   "x": 470,
+   "y": 6500,
+   "w": 390,
+   "h": 844,
+   "title": "H · Home (Browse local)",
+   "page": "compare",
+   "is_interactive": true
+  },
+  "H-02-search.dc.html": {
+   "x": 940,
+   "y": 6500,
+   "w": 390,
+   "h": 844,
+   "title": "H · Search results",
+   "page": "compare",
+   "is_interactive": true
+  },
+  "H-03-profile.dc.html": {
+   "x": 1410,
+   "y": 6500,
+   "w": 390,
+   "h": 844,
+   "title": "H · Vendor profile",
+   "page": "compare",
+   "is_interactive": true
+  },
+  "H-04-start-conversation.dc.html": {
+   "x": 1880,
+   "y": 6500,
+   "w": 390,
+   "h": 844,
+   "title": "H · Start a conversation",
+   "page": "compare",
+   "is_interactive": true
+  },
+  "H-05-conversation.dc.html": {
+   "x": 2350,
+   "y": 6500,
+   "w": 390,
+   "h": 844,
+   "title": "H · Conversation",
+   "page": "compare",
+   "is_interactive": true
+  },
+  "H-06-event-plan.dc.html": {
+   "x": 2820,
+   "y": 6500,
+   "w": 390,
+   "h": 844,
+   "title": "H · Event plan",
+   "page": "compare",
+   "is_interactive": true
+  },
+  "H-07-mark-booked.dc.html": {
+   "x": 3290,
+   "y": 6500,
+   "w": 390,
+   "h": 844,
+   "title": "H · Mark as booked",
+   "page": "compare",
+   "is_interactive": true
+  },
+  "H-08-how-was-it.dc.html": {
+   "x": 3760,
+   "y": 6500,
+   "w": 390,
+   "h": 844,
+   "title": "H · How was it?",
+   "page": "compare",
+   "is_interactive": true
+  },
+  "H-09-vendor-conversation.dc.html": {
+   "x": 4230,
+   "y": 6500,
+   "w": 390,
+   "h": 844,
+   "title": "H · Conversation (vendor side)",
+   "page": "compare",
+   "is_interactive": true
+  },
+  "H-10-invite-guests.dc.html": {
+   "x": 4700,
+   "y": 6500,
+   "w": 390,
+   "h": 844,
+   "title": "H · Invite guests (host)",
+   "page": "compare",
+   "is_interactive": true
+  },
+  "H-11-invitation.dc.html": {
+   "x": 5170,
+   "y": 6500,
+   "w": 390,
+   "h": 844,
+   "title": "H · Invitation (guest view)",
+   "page": "compare",
+   "is_interactive": true
+  },
+  "H-12-guest-list.dc.html": {
+   "x": 5640,
+   "y": 6500,
+   "w": 390,
+   "h": 844,
+   "title": "H · Guest list & RSVPs (host)",
+   "page": "compare",
+   "is_interactive": true
+  },
+  "H-13-guest-updates.dc.html": {
+   "x": 6110,
+   "y": 6500,
+   "w": 390,
+   "h": 844,
+   "title": "H · Updates to guests (host)",
+   "page": "compare",
+   "is_interactive": true
+  },
+  "H-14-guest-event.dc.html": {
+   "x": 6580,
+   "y": 6500,
+   "w": 390,
+   "h": 844,
+   "title": "H · Event page (guest view)",
+   "page": "compare",
+   "is_interactive": true
+  },
+  "G-D1-welcome.dc.html": {
+   "x": 0,
+   "y": 7800,
+   "w": 1440,
+   "h": 900,
+   "title": "G desktop · Welcome",
+   "page": "compare",
+   "expand": "fill",
+   "is_interactive": true
+  },
+  "G-D2-home.dc.html": {
+   "x": 1520,
+   "y": 7800,
+   "w": 1440,
+   "h": 1300,
+   "title": "G desktop · Home",
+   "page": "compare",
+   "expand": "fill",
+   "is_interactive": true
+  },
+  "G-D3-search.dc.html": {
+   "x": 3040,
+   "y": 7800,
+   "w": 1440,
+   "h": 1080,
+   "title": "G desktop · Search results",
+   "page": "compare",
+   "expand": "fill",
+   "is_interactive": true
+  },
+  "G-D4-profile.dc.html": {
+   "x": 4560,
+   "y": 7800,
+   "w": 1440,
+   "h": 960,
+   "title": "G desktop · Vendor profile",
+   "page": "compare",
+   "expand": "fill",
+   "is_interactive": true
+  },
+  "G-D5-messages.dc.html": {
+   "x": 6080,
+   "y": 7800,
+   "w": 1440,
+   "h": 940,
+   "title": "G desktop · Messages",
+   "page": "compare",
+   "expand": "fill",
+   "is_interactive": true
+  },
+  "G-D6-event-plan.dc.html": {
+   "x": 7600,
+   "y": 7800,
+   "w": 1440,
+   "h": 1000,
+   "title": "G desktop · Event plan",
+   "page": "compare",
+   "expand": "fill",
+   "is_interactive": true
+  }
+ },
+ "createdOnFiles": {
+  "at": "2026-10-09T19:10:00Z",
+  "v": 1
+ },
+ "designSystems": [],
+ "launch": {
+  "view": "canvas"
+ },
+ "notes": {
+  "a-title": {
+   "kind": "title1",
+   "maxW": 4620,
+   "page": "compare",
+   "text": "A · Browse (round 1)",
+   "w": 240,
+   "x": 0,
+   "y": -260
+  },
+  "a-why": {
+   "fill": "teal",
+   "page": "compare",
+   "text": "A · Browse\nDiscovery first. Works like apps people already know: search bar on top, photo cards, bottom tabs.\nRound 1 covered Home, Search and Profile; the welcome page was added later.",
+   "w": 380,
+   "x": -460,
+   "y": 0
+  },
+  "d-title": {
+   "kind": "title1",
+   "maxW": 4620,
+   "page": "compare",
+   "text": "D · Minimal luxury",
+   "w": 240,
+   "x": 0,
+   "y": 2340
+  },
+  "d-why": {
+   "fill": "gray",
+   "page": "compare",
+   "text": "D · Minimal luxury\nQuiet and exclusive: ivory ground, fine serif headlines, hairline rules, square black buttons, generous space. No bright colours, no rounded pills, no badges. Photography does the selling.",
+   "w": 380,
+   "x": -460,
+   "y": 2600
+  },
+  "e-gap": {
+   "fill": "gray",
+   "page": "compare",
+   "text": "E stops here. Conversation, Event plan, Mark as booked, How was it? and the vendor side were not built for E.",
+   "w": 390,
+   "x": 2350,
+   "y": 1300
+  },
+  "e-title": {
+   "kind": "title1",
+   "maxW": 4620,
+   "page": "compare",
+   "text": "E · Between A and D: warm and refined",
+   "w": 240,
+   "x": 0,
+   "y": 1040
+  },
+  "e-why": {
+   "fill": "teal",
+   "page": "compare",
+   "text": "E · Between A and D\nFrom A: the familiar layout, search on top, the featured photo row, bottom tabs, friendly body text.\nFrom D: serif headlines, calm warm-white palette, hairlines, space.\nAdded warmth: one deep-teal accent, softly rounded corners and bubbles, personal wording.",
+   "w": 380,
+   "x": -460,
+   "y": 1300
+  },
+  "f-sponsored": {
+   "fill": "blue",
+   "page": "compare",
+   "text": "Featured row = paid placement, so it is labelled \"Featured\" with a Sponsored tag on each card, never \"Popular\". Search results stay unpaid and fairly ordered.",
+   "w": 380,
+   "x": -460,
+   "y": 4460
+  },
+  "f-title": {
+   "kind": "title1",
+   "maxW": 4620,
+   "page": "compare",
+   "text": "F · D's colours, A's layout, a touch of gold",
+   "w": 240,
+   "x": 0,
+   "y": 3640
+  },
+  "f-why": {
+   "fill": "gray",
+   "page": "compare",
+   "text": "F · D's colours, A's layout\nColours from D: ivory ground, black ink and buttons, warm grey, stone photo tones.\nLayout from A: search bar on top, filter chips, the featured photo row, photo cards, bottom tabs, sticky Add to event / Message buttons.\nType: Playfair Display headlines, Jost for everything else.\nGold: only on a few lines and outlines, never on text.",
+   "w": 380,
+   "x": -460,
+   "y": 3900
+  },
+  "sample": {
+   "fill": "orange",
+   "page": "compare",
+   "text": "Sample content only. Every business, person, price, message and review here is made up.",
+   "w": 380,
+   "x": -460,
+   "y": -260
+  },
+  "g-title": {
+   "kind": "title1",
+   "maxW": 4620,
+   "page": "compare",
+   "text": "G · F's look with D's planning screens",
+   "x": 0,
+   "y": 4940
+  },
+  "g-why": {
+   "fill": "gray",
+   "page": "compare",
+   "w": 380,
+   "x": -460,
+   "y": 5200,
+   "text": "G · F + D\nHome: D's calm layout with the search bar on top and the paid Featured row first.\nSearch and Profile: as F, with square photos.\nStart a conversation through to the vendor side: D's layouts in F's type, ivory, black buttons and gold lines.\nNavigation: tapping 'Localites' always returns to Home. Account sits top right on Home. The bottom bar has four tabs, like D. Back buttons appear only when there is somewhere to go back to."
+  },
+  "g-guests-title": {
+   "kind": "title1",
+   "maxW": 2270,
+   "page": "compare",
+   "text": "G · Invites, RSVPs & guest updates",
+   "x": 4700,
+   "y": 4940
+  },
+  "g-guests-why": {
+   "fill": "blue",
+   "page": "compare",
+   "w": 380,
+   "x": 7050,
+   "y": 5200,
+   "text": "Guests and invites\nGuests open the invite from a link: no account or app needed.\nThey see only the event name, time, place, the host's note and the RSVP date. Never vendors, budget, notes or other guests' replies.\nThe host sees every reply, the expected head-count, and who still needs a reminder.\nUpdates go to everyone or a chosen group (e.g. Going & Maybe). Guests can reply, and only the host sees replies."
+  },
+  "h-title": {
+   "kind": "title1",
+   "maxW": 4620,
+   "page": "compare",
+   "text": "H · Soft pastel: calm, with a touch of colour",
+   "x": 0,
+   "y": 6240
+  },
+  "h-guests-title": {
+   "kind": "title1",
+   "maxW": 2270,
+   "page": "compare",
+   "text": "H · Invites, RSVPs & guest updates",
+   "x": 4700,
+   "y": 6240
+  },
+  "h-why": {
+   "fill": "green",
+   "page": "compare",
+   "w": 380,
+   "x": -460,
+   "y": 6500,
+   "text": "H · Soft pastel\nInspired by your two screenshots: a warm blush background, white rounded cards, and a misty blue for the screens guests see.\nColour with meaning: sage = going, booked and main buttons; honey = maybe and star ratings; dusty rose = can't go; soft blue = information.\nType: DM Sans for reading, Source Serif for event names and the Localites name.\nSame screens and navigation rules as G: Localites returns to Home, Account top right, four bottom tabs."
+  },
+  "gd-title": {
+   "kind": "title1",
+   "maxW": 9040,
+   "page": "compare",
+   "text": "G on desktop: the same look on a computer screen",
+   "x": 0,
+   "y": 7540
+  },
+  "gd-why": {
+   "fill": "gray",
+   "page": "compare",
+   "w": 380,
+   "x": -460,
+   "y": 7800,
+   "text": "G on desktop\nThe same G style, laid out for a wide screen.\nThe phone's bottom tabs become a menu across the top, next to a wide search bar. Localites (top left) always returns to Home.\nWide screens show more side by side: filters beside results, the inbox + conversation + event details together, and the guest counts beside the vendor list.\nOpen any of these full-window to see them at real size; they also rearrange to fit narrower windows."
+  }
+ },
+ "order": [
+  "Main.dc.html",
+  "A-00-welcome.dc.html",
+  "A-P03-search.dc.html",
+  "A-P04-profile.dc.html",
+  "E-00-welcome.dc.html",
+  "E-01-home.dc.html",
+  "E-02-search.dc.html",
+  "E-03-profile.dc.html",
+  "E-04-start-conversation.dc.html",
+  "D-00-welcome.dc.html",
+  "D-01-home.dc.html",
+  "D-02-search.dc.html",
+  "D-03-profile.dc.html",
+  "D-04-start-conversation.dc.html",
+  "D-05-conversation.dc.html",
+  "D-06-event-plan.dc.html",
+  "D-07-mark-booked.dc.html",
+  "D-08-how-was-it.dc.html",
+  "D-09-vendor-conversation.dc.html",
+  "F-ivory-00-welcome.dc.html",
+  "F-ivory-01-home.dc.html",
+  "F-ivory-02-search.dc.html",
+  "F-ivory-03-profile.dc.html",
+  "F-ivory-04-start-conversation.dc.html",
+  "F-ivory-05-conversation.dc.html",
+  "F-ivory-06-event-plan.dc.html",
+  "F-ivory-07-mark-booked.dc.html",
+  "F-ivory-08-how-was-it.dc.html",
+  "F-ivory-09-vendor-conversation.dc.html",
+  "G-00-welcome.dc.html",
+  "G-01-home.dc.html",
+  "G-02-search.dc.html",
+  "G-03-profile.dc.html",
+  "G-04-start-conversation.dc.html",
+  "G-05-conversation.dc.html",
+  "G-06-event-plan.dc.html",
+  "G-07-mark-booked.dc.html",
+  "G-08-how-was-it.dc.html",
+  "G-09-vendor-conversation.dc.html",
+  "G-10-invite-guests.dc.html",
+  "G-11-invitation.dc.html",
+  "G-12-guest-list.dc.html",
+  "G-13-guest-updates.dc.html",
+  "G-14-guest-event.dc.html",
+  "H-00-welcome.dc.html",
+  "H-01-home.dc.html",
+  "H-02-search.dc.html",
+  "H-03-profile.dc.html",
+  "H-04-start-conversation.dc.html",
+  "H-05-conversation.dc.html",
+  "H-06-event-plan.dc.html",
+  "H-07-mark-booked.dc.html",
+  "H-08-how-was-it.dc.html",
+  "H-09-vendor-conversation.dc.html",
+  "H-10-invite-guests.dc.html",
+  "H-11-invitation.dc.html",
+  "H-12-guest-list.dc.html",
+  "H-13-guest-updates.dc.html",
+  "H-14-guest-event.dc.html",
+  "G-D1-welcome.dc.html",
+  "G-D2-home.dc.html",
+  "G-D3-search.dc.html",
+  "G-D4-profile.dc.html",
+  "G-D5-messages.dc.html",
+  "G-D6-event-plan.dc.html"
+ ],
+ "pages": [
+  {
+   "id": "compare",
+   "name": "Compare · A, E, D, F, G (phone and desktop) and H"
+  }
+ ],
+ "title": "Localites Screen Directions"
+}

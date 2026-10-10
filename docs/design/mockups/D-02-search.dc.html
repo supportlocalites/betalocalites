@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Search results · Minimal luxury</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;1,500&amp;family=Jost:wght@300;400;500&amp;display=swap">
+<style>
+body{margin:0}
+a{color:#141414}a:hover{color:#5C554D}
+.k{font-family:'Jost',system-ui,sans-serif;color:#141414;font-size:15px;line-height:1.55;font-weight:400}
+.k *{box-sizing:border-box}
+.i{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.2;stroke-linecap:round;stroke-linejoin:round;flex:none}
+.d1{font:500 40px/1.04 'Cormorant Garamond',Georgia,serif;margin:0}
+.d3{font:500 22px/1.2 'Cormorant Garamond',Georgia,serif;margin:0}
+.it{font-style:italic}
+.cap{font:500 11px/1.4 'Jost',sans-serif;letter-spacing:.22em;text-transform:uppercase}
+.mu{color:#6B655E}.sm{font-size:13px}
+.hr{height:1px;background:#DCD6CE}
+.ib{width:44px;height:44px;display:flex;align-items:center;justify-content:center;background:none;border:0;color:#141414;flex:none}
+.ph{background:#E5DFD6;display:flex;align-items:flex-end;justify-content:flex-start;color:rgba(20,20,20,.35)}
+.fl{font:500 11px/1 'Jost',sans-serif;letter-spacing:.18em;text-transform:uppercase;color:#141414;background:none;border:0;padding:0 0 4px;border-bottom:1px solid transparent}
+.fl.on{border-bottom-color:#141414}
+.nav{display:flex;justify-content:space-around;border-top:1px solid #DCD6CE;padding:12px 8px 22px;background:#F7F5F1;flex:none}
+.nv{display:flex;flex-direction:column;align-items:center;gap:7px;font:500 10px/1 'Jost',sans-serif;letter-spacing:.18em;text-transform:uppercase;color:#8A847C;text-decoration:none;min-width:70px}
+.nv.on{color:#141414}
+.p-face{background:#F2E4D6 url(/_blob/d44d01f0c564eb449ab6c546ba0a7ad6) center/cover no-repeat}
+.p-gecko{background:#DCEBE2 url(/_blob/8451c81d9cbd2a0c5a13fa4126dc49a6) center/cover no-repeat}
+</style>
+</helmet>
+<div class="k" style="width: 390px; height: 844px; background: #F7F5F1; display: flex; flex-direction: column; overflow: hidden">
+  <div style="display: flex; align-items: center; justify-content: space-between; padding: 10px 12px">
+    <button class="ib" type="button" aria-label="Back"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg></button>
+    <span class="cap">Entertainment</span>
+    <button class="ib" type="button" aria-label="Refine"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 8h16M7 16h10"/></svg></button>
+  </div>
+  <div style="flex: 1; overflow: hidden; padding: 14px 24px 0; display: flex; flex-direction: column; gap: 18px">
+    <div>
+      <h1 class="d1">Face painting</h1>
+      <div class="mu" style="margin-top: 6px; font-weight: 300">Eight artists serving Orillia</div>
+    </div>
+    <div style="display: flex; gap: 22px">
+      <button class="fl on" type="button">Orillia &amp; area</button>
+      <button class="fl" type="button">Travels to you</button>
+      <button class="fl" type="button">Indoor</button>
+    </div>
+    <div class="hr"></div>
+    <div style="display: flex; flex-direction: column; gap: 10px">
+      <div class="ph p-face" style="height: 220px; padding: 12px 14px"></div>
+      <div style="display: flex; justify-content: space-between; align-items: baseline; gap: 12px">
+        <h2 class="d3">Brightside Face Painting</h2>
+        <span class="sm" style="white-space: nowrap">From $150</span>
+      </div>
+      <div class="cap mu">Orillia · Verified</div>
+    </div>
+    <div style="display: flex; flex-direction: column; gap: 10px">
+      <div class="ph p-gecko" style="height: 220px; padding: 12px 14px"></div>
+      <div style="display: flex; justify-content: space-between; align-items: baseline; gap: 12px">
+        <h2 class="d3">Glitter Gecko Face Art</h2>
+        <span class="sm" style="white-space: nowrap">Price on request</span>
+      </div>
+      <div class="cap mu">Severn</div>
+    </div>
+  </div>
+  <nav class="nav" aria-label="Main">
+    <a class="nv on" href="#"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6.5"/><path d="m20 20-4-4"/></svg>Discover</a>
+    <a class="nv" href="#"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 4h10v17l-5-4-5 4z"/></svg>Saved</a>
+    <a class="nv" href="#"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="5" width="16" height="15"/><path d="M8 3v4M16 3v4M4 10h16"/></svg>Occasions</a>
+    <a class="nv" href="#"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h16v11H9l-5 4z"/></svg>Messages</a>
+  </nav>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

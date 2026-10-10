@@ -1,7 +1,7 @@
 # Testing Strategy
 
-**Status:** Proposed (Stage 0, revision 2).
-**Last updated:** 2026-10-09
+**Status:** Proposed (Stage 0, revision 3: phone, tablet and desktop checks).
+**Last updated:** 2026-10-10
 
 ## What "done" means
 
@@ -13,7 +13,10 @@ not a finished feature.
 - [ ] Permissions are enforced on the server, **for the right side** (consumer or
       vendor), with tests that try to break them
 - [ ] Loading, empty, error, and success states exist
-- [ ] It works on a 360px-wide phone and with a keyboard
+- [ ] It works on a phone (360px wide), a tablet (768px) and a desktop (1440px), and
+      with a keyboard
+- [ ] It follows the [design system](./design-system.md): built from the shared
+      components, with no colour, font or size set outside the tokens file
 - [ ] Automated accessibility checks pass
 - [ ] No wording implies Localites handles money or confirms bookings ([A §6](./A-product-blueprint.md#6-language-rules))
 - [ ] The stage's acceptance tests pass
@@ -28,7 +31,9 @@ not a finished feature.
 | **Permission tests** | Every cell of [E §4](./E-security-and-privacy-model.md#4-permission-matrix): cross-account, cross-conversation, cross-vendor, side impersonation, role escalation | Vitest against real PostgreSQL | Every change |
 | **Integration tests** | Modules work together with the real database | Vitest against real PostgreSQL | Every change |
 | **Migration tests** | Each migration applies cleanly to the current and previous schema | Scripted | Changes touching migrations |
-| **End-to-end tests** | Key journeys in a real browser at phone size | Playwright | Every change |
+| **End-to-end tests** | Key journeys in a real browser, at phone size and desktop size | Playwright | Every change |
+| **Screen-size checks** | Every page at 390 × 844, 768 × 1024 and 1440 × 900: nothing cut off, overlapping or scrolling sideways; screenshots compared with the last approved version so an unintended change on either size is caught | Playwright | Every change |
+| **Design-token check** | No colour, font or size is written anywhere except the one tokens file, so a change to the look always reaches every screen | Scripted (lint rule) | Every change |
 | **Language check** | Banned words don't appear in screens or email templates | Scripted | Every change |
 | **Accessibility** | Automated checks on every page | axe-core in Playwright | Every change |
 | **Restore drill** | Backups can actually be restored | Scripted | Monthly |

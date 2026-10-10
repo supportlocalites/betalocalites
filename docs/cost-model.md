@@ -30,7 +30,7 @@ stops working.
 | **Sentry** | The smoke alarm: alerts when something breaks | Free (1 user) | $0 | Error volume cap; ample for us | To confirm at signup |
 | **GitHub** | Where the code lives; runs automated tests | Free | $0 | Monthly allowance of test-running minutes for private repositories | Existing account |
 | **Nightly backup** | A copy of the data kept outside Supabase | Free storage | $0 | Small while the database is small | Location chosen in Stage 1, week 1 |
-| **Domain** | The web address, e.g. `localites.ca` | Registrar | **~CA$15–25/year** | — | Quoted with D-01 |
+| **Domain** | The web address, `localites.ca` | Registrar | **~CA$15–25/year** | — | Bought by you, 10 Oct 2026 (D-01, D-07) |
 
 ## Why the domain is the one cost worth keeping
 

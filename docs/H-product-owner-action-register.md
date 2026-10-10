@@ -1,6 +1,6 @@
 # H — Product Owner Action Register
 
-**Last updated:** 2026-10-10 (revision 3)
+**Last updated:** 2026-10-10 (revision 4)
 
 This is the one place where everything that needs **you** is listed. If it isn't here,
 you don't need to do it.
@@ -23,7 +23,9 @@ Recorded from your messages of 9 and 10 October 2026. These now shape every docu
 | ✅ D-18 | **"Add to event" and "Booked" are the consumer's tools.** | ADR-021. Only the consumer can set them (database-enforced). |
 | ✅ D-19 | **After the event, ask the consumer for feedback; that feeds reviews and ratings.** | Stage 3: feedback requests → reviews → ratings. |
 | ✅ D-20 | **No running costs.** Every service runs on a free plan. | [cost-model.md](./cost-model.md) revision 3. Supabase, email, error alerts and backups on free plans; hosting moved from Vercel to Cloudflare's free plan (ADR-007). Only the web address remains (D-07). |
-| ✅ D-01 (name) | **The product is called Localites** (renamed from Tallo, 10 October 2026). | Every document, the proposed schemas and the design mockups say Localites. The web address is still to choose ([D-01](#d-01--product-name-and-web-address)). |
+| ✅ D-01 | **The product is called Localites, at `localites.ca`.** Renamed from Tallo; you bought the domain on 10 October 2026. | Every document, the proposed schemas and the design mockups say Localites. |
+| ✅ D-07 | **Pay for the web address.** Done: `localites.ca` is yours. | The only running cost (~CA$15–25 a year). Email can be set up on it when we get there. |
+| ✅ D-21 | **Build the app with design G, for phones and computers.** One website that adapts to the screen; all earlier designs kept for reference. | [design-system.md](./design-system.md); archive in [design/](./design/README.md); phone, tablet and desktop checks in [testing-strategy.md](./testing-strategy.md). |
 
 ---
 
@@ -36,10 +38,8 @@ Recorded from your messages of 9 and 10 October 2026. These now shape every docu
 | **D-05** | Messaging businesses that haven't joined Localites | Stage 2 design | 2 min |
 | **D-06** | Who may leave a review | Stage 3 design | 5 min |
 | **D-14** | After the handshake: reviews first, or guest RSVPs first? | Roadmap | 2 min |
-| **D-01** | Web address (the name, Localites, is decided) | Stage 1 launch | 5 min |
 | **D-03** | List businesses before they join? | Stage 1 content | 15 min + lawyer |
 | **D-04** | How consumers contact vendors in Stage 1 | Stage 1 build | 2 min |
-| **D-07** | The one cost: the web address (~CA$15–25/year) | Email, launch | 2 min |
 | **D-09** | Launch area | Stage 1 content | 2 min |
 | **D-11** | Who responds when the live site breaks | Stage 1 launch | 10 min |
 
@@ -156,21 +156,32 @@ recorded from Stage 2, and Stage 3 asks about any event in the previous 60 days.
 
 ---
 
+### D-21 — Design direction
+
+**Decided.** Localites is built with mockup **G**: F's ivory, black and gold look, with D's calm
+layouts for conversations, the event plan, booking and reviews, and the guest invite and RSVP
+screens. It's one website that works on phones, tablets and computers, so every change
+appears on all of them at once. All earlier designs (A to H) are saved in
+[design/](./design/README.md). The rules the build follows are in
+[design-system.md](./design-system.md).
+
+**Status:** ✅ Decided, 10 October 2026.
+
+---
+
 ### D-01 — Product name and web address
 
 **Name: decided.** The product is called **Localites** (your message of 10 October
 2026). It replaces the working name, Tallo.
 
-**Still needed: the web address.** The domain appears in every shared vendor link and
-invitation. Changing it later breaks links already in group chats.
+**Web address: decided.** You bought **`localites.ca`** on 10 October 2026. Every vendor
+link and invitation will use it.
 
-**Recommendation.** A `.ca` domain under the product name, such as `localites.ca`, if
-it's available (not a town name, which becomes wrong when you expand). Requires Canadian
-presence, which you have. Before registering, we'll check together that the name is
-clear to use: that the domain is free, and a quick search of the Canadian trademarks
-database (free) for another business or app already trading under the name.
+**Still recommended.** A quick, free search of the Canadian trademarks database for
+"Localites", and a mention to your lawyer (PO-07) that an unrelated travel app called
+"Localites" exists in some app stores. Neither blocks building.
 
-**Status:** Name ✅ decided. Web address ⏳ awaiting you. Then PO-04.
+**Status:** ✅ Decided (name and web address).
 
 ---
 
@@ -242,7 +253,7 @@ messaging notices and reviews) depends on it.
 **Standing rule.** Nothing else that costs money is added without your written
 approval. When a free plan approaches its limit, we tell you at 80%, with options.
 
-**Status:** ⏳ Awaiting you.
+**Status:** ✅ Decided: A. You bought `localites.ca` on 10 October 2026.
 
 ---
 
@@ -357,8 +368,17 @@ Full step-by-step instructions, checked against the live sites, will be added he
 that point.
 
 ### PO-04 — Register the domain
-**When:** After D-01. Earlier is safer. **Cost:** ~CA$15–25/year. Verified instructions
-for a recommended registrar will be added once the web address is chosen (D-01).
+**✅ Done.** You bought `localites.ca` on 10 October 2026. Three things to check in your
+domain company's account (the registrar), today:
+1. **Two-step login is on** for that account, and its password is saved in Bitwarden
+   (PO-02). The domain is valuable: whoever controls this account controls the address.
+2. **Auto-renew is on**, with a card that won't expire soon, so the address can't lapse.
+3. **Privacy is on** for your contact details. For `.ca` addresses owned by an
+   individual this is usually automatic; check that your home address isn't shown.
+
+Later, when we create the hosting accounts (PO-03), we'll point the domain at Cloudflare
+together, live, from your screen. **Never send the registrar password to anyone, including
+us.**
 
 ### PO-05 — Confirm the starting category list
 **When:** Stage 1, week 1. We send a proposed list; you mark it up from local knowledge.
@@ -383,10 +403,10 @@ businesses can receive messages when Stage 2 launches. We'll give you a short sc
 for those calls and a claim link for each business.
 
 ### PO-09 — Review prototypes
-**When:** After D-00.
-**What:** Clickable screens on your phone: home, search, vendor profile, a
-**conversation** (as the consumer and as the vendor), and an **event plan with "Mark as
-booked"**. You tell us what feels right. No code to read.
+**Partly done.** The design mockups were reviewed on the canvas, and direction G was chosen
+(D-21).
+**Still to come, after D-00:** the real screens from the build, on your own phone and
+computer through private preview links. You tell us what feels right. No code to read.
 
 ---
 
@@ -395,4 +415,6 @@ booked"**. You tell us what feels right. No code to read.
 | Date | Item |
 |---|---|
 | 2026-10-09 | D-15 to D-19 decided (see top of this document) |
-| 2026-10-10 | D-01, name part: the product is called Localites |
+| 2026-10-10 | D-01: the product is called Localites, at `localites.ca` |
+| 2026-10-10 | D-07 and PO-04: domain bought |
+| 2026-10-10 | D-21: design direction G, for phones and computers |

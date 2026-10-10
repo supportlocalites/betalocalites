@@ -5,8 +5,10 @@ maintain from day one. Everything here is written to be read **without reading s
 code**.
 
 **Status: Stage 0 (Discovery & Architecture), revision 2. Proposed, awaiting approval.**
-No application code has been written. No infrastructure has been created. No money has
-been spent.
+No application code has been written. No infrastructure has been created. The only
+spending so far is the web address, `localites.ca`, bought by the product owner. The
+design is chosen: direction G, one website for phones and computers
+([Design System](./design-system.md)).
 
 **Revision 2** reworks the plan around the product owner's clarification: two users
 (consumer and vendor), Localites as the digital handshake between them, direct messaging
@@ -50,6 +52,8 @@ and "Booked" that lead to post-event feedback and reviews.
 | [Cost Model](./cost-model.md) | Monthly costs, with sources |
 | [API & Integration Strategy](./api-strategy.md) | Internal contracts, messaging delivery, third-party services |
 | [Testing Strategy](./testing-strategy.md) | What we test and what "done" means |
+| [Design System](./design-system.md) | How Localites looks and behaves on phones and computers (direction G) |
+| [Design archive](./design/README.md) | Every mockup explored (A to H), kept for reference |
 | [Proposed schema: Stage 1](./schema/stage1-proposed.sql) · [checks](./schema/stage1-proposed.test.sql) | Vendors and discovery tables (not applied) |
 | [Proposed schema: Stages 2–3](./schema/stage2-3-proposed.sql) · [checks](./schema/stage2-3-proposed.test.sql) | Events, conversations, files, reviews (not applied) |
 

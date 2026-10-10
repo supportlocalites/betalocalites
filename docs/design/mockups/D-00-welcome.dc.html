@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Welcome · Minimal luxury</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500&amp;family=Jost:wght@400;500&amp;display=swap">
+<style>
+body{margin:0}
+a{color:#141414}a:hover{color:#5C554D}
+.k{font-family:'Jost',system-ui,sans-serif;color:#141414;font-size:15px;line-height:1.55;font-weight:400}
+.k *{box-sizing:border-box}
+.tag{font:500 38px/1.1 'Cormorant Garamond',Georgia,serif;margin:0}
+.tag span{display:block;white-space:nowrap}
+.btn{display:flex;align-items:center;justify-content:center;height:54px;width:100%;background:#141414;color:#F7F5F1;border:0;border-radius:0;font:500 12px/1 'Jost',sans-serif;letter-spacing:.22em;text-transform:uppercase;text-decoration:none}
+.btn2{display:flex;align-items:center;justify-content:center;height:54px;width:100%;background:transparent;color:#141414;border:1px solid #141414;border-radius:0;font:500 12px/1 'Jost',sans-serif;letter-spacing:.22em;text-transform:uppercase;text-decoration:none}
+</style>
+</helmet>
+<div class="k" style="width: 390px; height: 844px; box-sizing: border-box; background: #F7F5F1; display: flex; flex-direction: column; justify-content: center; padding: 0 24px; gap: 44px">
+  <h1 class="tag"><span>Welcome to Localites.</span> <span>How can we help?</span></h1>
+  <div style="display: flex; flex-direction: column; gap: 12px">
+    <a class="btn" href="#">Browse local</a>
+    <a class="btn2" href="#">Plan an event</a>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

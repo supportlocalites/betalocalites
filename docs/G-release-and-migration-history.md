@@ -31,6 +31,24 @@ Every release and every database migration, in order. Appended before each deplo
 
 ## Releases
 
+### 2026-10-10 — Stage 0 documentation, revision 5: design G chosen; localites.ca bought
+
+**Stage:** 0
+**What changed (plain English):** The product owner chose mockup G as the app's design
+(D-21) and bought the web address `localites.ca` (D-01, D-07; PO-04 done). New
+[Design System](./design-system.md): one website that adapts to phones, tablets and
+computers, with G's colours, type, building blocks, navigation and screen-by-screen
+phone and desktop arrangements, so every change reaches every screen size. Every design
+explored (A to H, plus G's desktop pages) is saved in [design/](./design/README.md).
+Testing strategy adds checks at phone, tablet and desktop sizes, and a check that the
+look is only ever set in one place.
+**Documents:** design-system (new), design archive (new), H, A, README, cost model,
+testing strategy.
+**Migrations applied:** None. Data model and schemas unchanged.
+**Destructive?** No.
+**Tests run:** None needed; no schema change.
+**Approved by:** Product owner (design and domain), 10 October 2026.
+
 ### 2026-10-10 — Stage 0 documentation, revision 4: renamed to Localites
 
 **Stage:** 0

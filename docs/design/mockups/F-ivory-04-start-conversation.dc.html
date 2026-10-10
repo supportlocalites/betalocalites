@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Start a conversation · D's colours, A's layout</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&amp;family=Jost:wght@400;500;600;700&amp;display=swap">
+<style>
+body{margin:0}
+a{color:#141414}a:hover{color:#5C554D}
+.k{font-family:'Jost',system-ui,sans-serif;color:#141414;font-size:15px;line-height:1.45}
+.k *{box-sizing:border-box}
+.i{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round;flex:none}
+.s{width:18px;height:18px}
+.h3{font:600 18px/1.25 'Playfair Display',Georgia,serif;margin:0}
+.mu{color:#6B655E}.sm{font-size:13px}.xs{font-size:12px}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;height:52px;padding:0 20px;border-radius:14px;background:#141414;color:#F7F5F1;font:700 15px 'Jost',sans-serif;border:0;text-decoration:none}
+.ib{width:44px;height:44px;border-radius:999px;border:1px solid #DCD6CE;background:#FBFAF8;display:flex;align-items:center;justify-content:center;color:#141414;flex:none}
+.lbl{display:block;font-size:13px;font-weight:700;margin-bottom:6px}
+.sel{display:flex;align-items:center;justify-content:space-between;height:52px;border:1.5px solid #DCD6CE;border-radius:12px;padding:0 14px;font-weight:600;background:#FBFAF8}
+.ta{width:100%;height:150px;border:1.5px solid #141414;border-radius:12px;padding:12px 14px;font:500 15px/1.45 'Jost',sans-serif;color:#141414;resize:none;background:#FBFAF8}
+.note{border-radius:14px;border:1px solid #B8955A;padding:12px 14px;font-size:13px}
+.lk{display:inline-flex;align-items:center;gap:6px;font:700 14px 'Jost',sans-serif;color:#141414;background:none;border:0;padding:0;text-decoration:underline;text-underline-offset:3px}
+</style>
+</helmet>
+<div class="k" style="width: 390px; height: 844px; background: #F7F5F1; display: flex; flex-direction: column; overflow: hidden">
+  <div style="display: flex; align-items: center; gap: 12px; padding: 14px 16px; border-bottom: 1px solid #DCD6CE">
+    <button class="ib" type="button" aria-label="Close"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+    <div><div class="xs mu" style="font-weight: 700; letter-spacing: .04em">NEW MESSAGE TO</div><div class="h3">Brightside Face Painting</div></div>
+  </div>
+  <div style="flex: 1; overflow: hidden; padding: 18px 16px 0; display: flex; flex-direction: column; gap: 16px">
+    <div>
+      <span class="lbl">Is this about one of your events?</span>
+      <div class="sel"><span>Sam's 6th birthday · Sat 14 Nov</span><svg class="i s" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></div>
+    </div>
+    <div class="note">
+      <div style="font-weight: 700; margin-bottom: 4px">Brightside will see</div>
+      <div>Kids birthday · Sat 14 Nov · Orillia · about 15 guests</div>
+      <div class="mu" style="margin-top: 6px">Not your guest list, budget or notes.</div>
+    </div>
+    <div>
+      <label class="lbl" for="msg">Your message</label>
+      <textarea class="ta" id="msg" readonly>Hi! Are you free Sat Nov 14, 1–4 pm, for a 6th birthday in Orillia? About 15 kids.</textarea>
+    </div>
+    <button class="lk" type="button"><svg class="i s" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 11.5l-7.8 7.8a5 5 0 0 1-7-7l8.3-8.3a3.3 3.3 0 0 1 4.7 4.7l-8.2 8.2a1.7 1.7 0 0 1-2.4-2.4l7.3-7.3"/></svg>Add a photo or PDF</button>
+  </div>
+  <div style="padding: 12px 16px 24px; display: flex; flex-direction: column; gap: 10px; flex: none">
+    <button class="btn" type="button"><svg class="i s" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12l16-8-6 16-2.5-6.5z"/></svg>Send message</button>
+    <div class="xs mu" style="text-align: center">Localites doesn't process payments. Arrange payment directly with the business.</div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>
