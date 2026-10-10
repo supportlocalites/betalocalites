@@ -27,14 +27,22 @@ describe('normalizeDatabaseUrl', () => {
     expect(new URL(url).password).toBe('Secret99');
   });
 
+  it('finds the address inside extra pasted text', () => {
+    const pasted = `DATABASE_URL="postgresql://postgres.abc123:Pass1234@${host}/postgres"\nDIRECT_URL="postgresql://other"`;
+    expect(new URL(normalizeDatabaseUrl(pasted)).password).toBe('Pass1234');
+  });
+
   it('explains common mistakes without showing the address', () => {
     expect(() => normalizeDatabaseUrl(`postgresql://postgres.abc:[YOUR-PASSWORD]@${host}/postgres`)).toThrow(/still contains/);
-    expect(() => normalizeDatabaseUrl('psql -h somewhere')).toThrow(/expected form/);
+    expect(() => normalizeDatabaseUrl('psql -h somewhere')).toThrow(/not a database address/);
+    expect(() => normalizeDatabaseUrl('JustAPassword123')).toThrow(/1 line, no "\:\/\/"/);
     expect(() => normalizeDatabaseUrl('')).toThrow(/empty/);
-    try {
-      normalizeDatabaseUrl('postgresql://u:topsecret@ bad host/db');
-    } catch (err) {
-      expect(String(err)).not.toContain('topsecret');
+    for (const bad of ['postgresql://u:topsecret@ bad host/db', 'topsecret', 'user=u password=topsecret']) {
+      try {
+        normalizeDatabaseUrl(bad);
+      } catch (err) {
+        expect(String(err)).not.toContain('topsecret');
+      }
     }
   });
 });
