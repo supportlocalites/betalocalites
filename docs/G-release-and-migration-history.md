@@ -49,7 +49,10 @@ proposal checks 56/56; every page checked in Cloudflare's runtime locally (welco
 Explore, category, search with a typo, profile, 404s, `/api/health`) and in a browser at
 390, 768 and 1440 wide: no errors, no sideways scrolling.
 **Fit test:** size 223 KiB compressed (7% of 3 MiB). Live CPU time to be read from
-Cloudflare once deployed (ADR-005).
+Cloudflare after a day of use (ADR-005).
+**Live:** deployed 10 October 2026 after the product owner changed Cloudflare's build
+commands (PO-03 G); `/api/health`: database ok via Hyperdrive, 6 published test
+listings, build `4df99e0`.
 **How to roll back:** Cloudflare → localites → Deployments → previous version → Deploy
 (the Next.js version stays there), then restore Cloudflare's old build commands.
 **Approved by:** Product owner ("let's switch"), 10 October 2026.

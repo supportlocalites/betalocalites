@@ -48,7 +48,6 @@ Recorded from your messages of 9 and 10 October 2026. These now shape every docu
 
 | # | What | Blocks | Your effort |
 |---|---|---|---|
-| **PO-03 G** | Change Cloudflare's three build commands for the switch to React Router (steps below) | The site updating; the new speed reading | 3 min |
 | **ADR-005** | A day after G, tell us Cloudflare's CPU time figures again (median and P99) and whether any "Exceeded CPU" errors appear (localites → Metrics) | Closing the hosting fit test | 5 min |
 | **D-12** | Mailing address for the privacy policy and terms | Public launch | 1 min, later |
 
@@ -620,6 +619,9 @@ https://localites.supportlocalites.workers.dev, connected through Hyperdrive
     `"database":"ok"` and a `"build"` code matching the newest change on GitHub.
 19. Use the site for a few minutes (open categories, search, open a business), then a
     day later read **Metrics → CPU time** (median and P99) and send them to us.
+
+**✅ G done (10 October 2026).** New commands saved; the React Router version is live
+(`/api/health`: database ok via Hyperdrive, build `4df99e0`).
 
 **Done when:** you reply *"PO-03 done"* with the `.workers.dev` address (an address,
 not a secret). We then run the speed half of the fit test (ADR-005) and check
