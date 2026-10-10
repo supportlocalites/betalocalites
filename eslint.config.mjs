@@ -9,5 +9,5 @@ export default defineConfig(
   js.configs.recommended,
   tseslint.configs.recommended,
   reactHooks.configs.flat.recommended,
-  { files: ['scripts/**/*.mjs', 'src/lib/**/*.mjs', '*.config.{ts,mjs}'], languageOptions: { globals: globals.node } },
+  { files: ['scripts/**/*.mjs', 'src/lib/**/*.mjs', 'tests/**/*.mjs', '*.config.{ts,mjs}'], languageOptions: { globals: globals.node } },
 );

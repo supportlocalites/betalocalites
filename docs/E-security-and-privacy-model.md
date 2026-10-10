@@ -29,6 +29,14 @@ concierge role and inquiry/quote/booking records.
 - Sessions in secure, HTTP-only cookies that page scripts can't read.
 - Localites code never sees or stores passwords.
 - Platform team accounts **must** use two-factor authentication, enforced on the server.
+- **As built (10 October 2026):** our server calls Supabase Auth; the browser never does.
+  Session cookies are `__Host-` prefixed, HttpOnly, Secure and SameSite=Lax. Every admin
+  request passes one gate (`src/server/auth/admin.server.ts`): a session Supabase confirms
+  is still live, a password sign-in within 12 hours, an active admin role in our own
+  `platform_role` table, and a two-step code (an authenticator app) for this session.
+  Forms from other websites are refused. Each admin change is written to `audit_log` with
+  the session it came from. Proven by `tests/e2e/admin-access.mjs` (27 checks) on every
+  push.
 - **Browsing needs no account.** Guests (Stage 4) never need one.
 
 ## 3. Roles

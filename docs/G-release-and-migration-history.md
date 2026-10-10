@@ -31,6 +31,32 @@ Every release and every database migration, in order. Appended before each deplo
 
 ## Releases
 
+### 2026-10-10 — Team sign-in and the admin page (Stage 1, not public)
+
+**Stage:** 1 (D-28)
+**What changed (plain English):** The Localites team can sign in (email and password,
+then a code from an authenticator app) and use the admin page: list every listing, add a
+business as a draft, edit its details, categories and services with honest prices,
+publish, hide or archive it, and see its history. Every change is recorded with who made
+it. Renamed listings keep their old web address working. Nobody else can sign up yet.
+**Migrations applied:** `0003_admin_access.sql` (lets the app untick categories and other
+link rows; adds the one-time first-admin command). Not destructive. Applied to the test
+project by GitHub after this push.
+**Destructive?** No.
+**Tests run:** database checks 51/51, 12/12 (new) and 56/56; unit tests 19/19; admin access
+tests 27/27 against a local copy of Supabase's sign-in server (new, now on every push);
+each was shown to fail when the gate was deliberately broken. Browser run-through at
+phone and desktop sizes: sign-in, two-step set-up, add, edit, publish, hide, history.
+**Security tests:** signed out, not on the team (with and without two-step), admin
+without two-step, tampered token, form from another website, editing one listing's
+service through another, forbidden status change, removed admin role, reused cookies
+after sign-out, sign-in link to another website: all refused.
+**Not yet live:** needs PO-10 (Supabase settings, first admin, two Cloudflare secrets).
+Until then the sign-in page says sign-in isn't switched on.
+**How to roll back:** Cloudflare → localites → Deployments → previous version → Deploy.
+The migration can stay (it only adds).
+**Approved by:** Product owner (D-28, "go ahead"), 10 October 2026.
+
 ### 2026-10-10 — Speed improvements (Stage 1, not public)
 
 **Stage:** 1

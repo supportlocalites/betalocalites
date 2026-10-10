@@ -1,12 +1,18 @@
 import type { ExecutionContext, Hyperdrive } from '@cloudflare/workers-types';
 
 /**
- * What the Worker receives from Cloudflare: bindings from wrangler.jsonc and secrets set
- * in the Cloudflare dashboard. Secret values are never logged or shown (runbook §8).
+ * What the Worker receives from Cloudflare: bindings from wrangler.jsonc and settings
+ * set in the Cloudflare dashboard. Secret values are never logged or shown (runbook §8).
  */
 export type ServerEnv = {
   HYPERDRIVE?: Hyperdrive;
   DATABASE_URL?: string;
+  /** The Supabase project's address, e.g. https://abcd.supabase.co (sign-in, ADR-003). */
+  SUPABASE_URL?: string;
+  /** Supabase's publishable key: identifies the project to its sign-in service. */
+  SUPABASE_PUBLISHABLE_KEY?: string;
+  /** Local development only: a local sign-in server's address, used instead of the two above. */
+  SUPABASE_AUTH_URL?: string;
 };
 
 export type Cloudflare = { env: ServerEnv; ctx: ExecutionContext };

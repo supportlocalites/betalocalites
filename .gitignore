@@ -2,6 +2,7 @@ node_modules/
 build/
 .react-router/
 .wrangler/
+.e2e/
 coverage/
 test-results/
 playwright-report/

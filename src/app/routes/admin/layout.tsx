@@ -1,0 +1,60 @@
+import { Form, Link, NavLink, Outlet } from 'react-router';
+import { adminContext, cloudflareContext } from '@/app/context';
+import { Wordmark } from '@/components/Wordmark';
+import { adminGate } from '@/server/auth/admin.server';
+import type { Route } from './+types/layout';
+import styles from './admin.module.css';
+
+/**
+ * Every admin page and form sits under this route, so every admin request passes the
+ * gate first (session, team role in our database, two-step code, fresh sign-in).
+ */
+export const middleware: Route.MiddlewareFunction[] = [
+  async ({ request, context }, next) => {
+    const { env } = context.get(cloudflareContext);
+    const { admin, setCookies } = await adminGate(request, env);
+    context.set(adminContext, admin);
+    const response = await next();
+    response.headers.set('Cache-Control', 'no-store');
+    response.headers.set('X-Robots-Tag', 'noindex');
+    for (const cookie of setCookies) response.headers.append('Set-Cookie', cookie);
+    return response;
+  },
+];
+
+export function loader({ context }: Route.LoaderArgs) {
+  const admin = context.get(adminContext);
+  return { name: admin.name, email: admin.email };
+}
+
+export default function AdminLayout({ loaderData }: Route.ComponentProps) {
+  return (
+    <>
+      <header className={styles.header}>
+        <Link to="/admin" className={styles.wordmark}>
+          <Wordmark small />
+          <span className="label"> Team</span>
+        </Link>
+        <nav aria-label="Admin" className={styles.nav}>
+          <NavLink to="/admin" end className="text-link">
+            Listings
+          </NavLink>
+          <Link to="/explore" className="text-link">
+            Public site
+          </Link>
+        </nav>
+        <div className={styles.account}>
+          <span className="muted">{loaderData.email}</span>
+          <Form method="post" action="/sign-out">
+            <button type="submit" className={`text-link ${styles.linkButton}`}>
+              Sign out
+            </button>
+          </Form>
+        </div>
+      </header>
+      <main className="page">
+        <Outlet />
+      </main>
+    </>
+  );
+}

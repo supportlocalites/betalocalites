@@ -19,6 +19,7 @@
     "check": "npm run lint && npm run typecheck && npm run check:tokens && npm run check:words",
     "test": "vitest run",
     "test:db": "node scripts/test-db.mjs",
+    "test:e2e": "node tests/e2e/admin-access.mjs",
     "size": "node scripts/worker-size.mjs",
     "db:migrate": "node scripts/migrate.mjs",
     "db:seed:test": "node scripts/seed-test-data.mjs",
@@ -32,7 +33,8 @@
     "postgres": "3.4.9",
     "react": "19.3.0",
     "react-dom": "19.3.0",
-    "react-router": "8.4.0"
+    "react-router": "8.4.0",
+    "zod": "4.6.5"
   },
   "devDependencies": {
     "@cloudflare/vite-plugin": "1.63.1",

@@ -1,6 +1,7 @@
 # Runs on every push and pull request. Free on GitHub (no paid services).
 # Proves: lint, types, design tokens and wording; unit tests; every database rule
-# against real PostgreSQL + PostGIS; the Cloudflare build and its size budget.
+# against real PostgreSQL + PostGIS; the Cloudflare build and its size budget; and that
+# the admin pages refuse everyone who shouldn't get in.
 name: CI
 
 on:
@@ -50,6 +51,71 @@ jobs:
         run: npm run build
       - name: Size budget (free plan)
         run: npm run size
+
+  # Admin access, tested for real (E §1.7): a local copy of Supabase's open-source sign-in
+  # server, a throwaway database and the built site, then tests/e2e/admin-access.mjs tries
+  # every way into the admin pages without permission. All values here are throwaway and
+  # local to this job; no real accounts or secrets.
+  admin-access:
+    name: Admin access tests
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    services:
+      postgres:
+        image: postgis/postgis:16-3.4
+        env:
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
+    env:
+      E2E_DATABASE_ADMIN_URL: postgres://postgres:postgres@localhost:5432/localites_e2e_test
+      E2E_AUTH_DATABASE_URL: postgres://postgres:postgres@localhost:5432/localites_e2e_test?search_path=auth&sslmode=disable
+      E2E_AUTH_JWT_SECRET: e2e-throwaway-secret-not-a-real-credential-0123
+      E2E_APP_PASSWORD: e2e-local-only
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.27'
+          cache: false
+      - uses: actions/cache@v4
+        with:
+          path: .e2e/auth-server
+          key: auth-server-${{ hashFiles('scripts/e2e/build-auth-server.sh') }}
+      - run: npm ci
+      - name: Build the local sign-in server
+        run: bash scripts/e2e/build-auth-server.sh .e2e/auth-server
+      - name: Prepare a throwaway database
+        run: node scripts/e2e/prepare-db.mjs
+      - name: Start the sign-in server
+        run: |
+          . scripts/e2e/env.sh
+          .e2e/auth-server migrate
+          nohup .e2e/auth-server serve > auth-server.log 2>&1 &
+      - name: Build and start the site
+        run: |
+          printf 'CLOUDFLARE_HYPERDRIVE_LOCAL_CONNECTION_STRING_HYPERDRIVE=postgres://app_server:%s@localhost:5432/localites_e2e_test\nSUPABASE_AUTH_URL=http://127.0.0.1:9999\n' "$E2E_APP_PASSWORD" > .env
+          npm run build
+          nohup npx vite preview --port 4173 --strictPort > site.log 2>&1 &
+          for i in $(seq 1 60); do
+            curl -sf -o /dev/null http://127.0.0.1:9999/health && curl -sf -o /dev/null http://localhost:4173/ && exit 0
+            sleep 1
+          done
+          echo "The site or sign-in server didn't start"; exit 1
+      - name: Admin access tests
+        run: npm run test:e2e
+      - name: Logs (only if something failed)
+        if: failure()
+        run: tail -n 80 auth-server.log site.log || true
 
   # Keeps the Supabase TEST project (localites-test) in step with this branch, only
   # after every check above has passed. Uses the encrypted repository secret

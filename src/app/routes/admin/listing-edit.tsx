@@ -1,0 +1,368 @@
+import { data, Form, Link, redirect, useNavigation } from 'react-router';
+import { adminContext, cloudflareContext } from '@/app/context';
+import { ListingFields, type ListingValues } from '@/components/admin/ListingFields';
+import { isUuid } from '@/lib/ids';
+import { pageMeta } from '@/lib/meta';
+import { describePrice, type PricingModel } from '@/lib/price';
+import { ADMIN_TRANSITIONS, type ListingStatus, PRICING_MODELS, STATUS_LABEL } from '@/lib/listing-status';
+import { fieldErrors, formValues, listingInput, serviceInput } from '@/server/admin/listing-input';
+import {
+  changeListingStatus,
+  formOptions,
+  getListing,
+  ListingConflict,
+  saveService,
+  setServiceActive,
+  updateListing,
+} from '@/server/admin/listings.server';
+import type { Route } from './+types/listing-edit';
+import styles from './admin.module.css';
+
+export const meta: Route.MetaFunction = ({ loaderData }) => [
+  ...pageMeta(loaderData ? `${loaderData.listing.name} · Team` : 'Listing · Team'),
+  { name: 'robots', content: 'noindex' },
+];
+
+export async function loader({ params, request, context }: Route.LoaderArgs) {
+  if (!isUuid(params.id)) throw data(null, { status: 404 });
+  const { env } = context.get(cloudflareContext);
+  const [listing, options] = await Promise.all([getListing(env, params.id), formOptions(env)]);
+  if (!listing) throw data(null, { status: 404 });
+  return { listing, options, saved: new URL(request.url).searchParams.get('saved') };
+}
+
+const ACTION_WORDS: Record<ListingStatus, string> = {
+  published: 'Publish',
+  unpublished: 'Hide from the public',
+  archived: 'Archive',
+  draft: 'Back to draft',
+  pending_review: 'Send for review',
+};
+
+export async function action({ params, request, context }: Route.ActionArgs) {
+  if (!isUuid(params.id)) throw data(null, { status: 404 });
+  const { env } = context.get(cloudflareContext);
+  const admin = context.get(adminContext);
+  const form = await request.formData();
+  const intent = String(form.get('intent') ?? '');
+  const back = (saved: string) => redirect(`/admin/listings/${params.id}?saved=${saved}`);
+  try {
+    if (intent === 'details') {
+      const raw = formValues(form, ['categoryIds']);
+      const parsed = listingInput.safeParse(raw);
+      if (!parsed.success) return data({ intent, errors: fieldErrors(parsed.error), values: raw }, { status: 400 });
+      await updateListing(env, admin, params.id, parsed.data);
+      return back('details');
+    }
+    if (intent === 'status') {
+      const to = String(form.get('to') ?? '') as ListingStatus;
+      if (!(to in STATUS_LABEL)) return data({ intent, errors: { form: 'Choose what to do with the listing.' } }, { status: 400 });
+      const reason = String(form.get('reason') ?? '').trim().slice(0, 500) || null;
+      await changeListingStatus(env, admin, params.id, to, reason);
+      return back(to);
+    }
+    if (intent === 'service') {
+      const serviceId = String(form.get('serviceId') ?? '');
+      if (serviceId && !isUuid(serviceId)) throw data(null, { status: 400 });
+      const raw = formValues(form);
+      const parsed = serviceInput.safeParse(raw);
+      if (!parsed.success) {
+        return data({ intent, serviceId, errors: fieldErrors(parsed.error), values: raw }, { status: 400 });
+      }
+      await saveService(env, admin, params.id, serviceId || null, parsed.data);
+      return back('service');
+    }
+    if (intent === 'service-visibility') {
+      const serviceId = String(form.get('serviceId') ?? '');
+      if (!isUuid(serviceId)) throw data(null, { status: 400 });
+      await setServiceActive(env, admin, params.id, serviceId, form.get('active') === 'true');
+      return back('service');
+    }
+    return data({ intent, errors: { form: 'Unknown request.' } }, { status: 400 });
+  } catch (err) {
+    if (err instanceof ListingConflict) {
+      return data({ intent, errors: { [err.field]: err.message }, values: formValues(form, ['categoryIds']) }, { status: 409 });
+    }
+    throw err;
+  }
+}
+
+const SAVED: Record<string, string> = {
+  created: 'Draft saved. Nobody sees it until you publish it.',
+  details: 'Details saved.',
+  service: 'Services saved.',
+  published: 'Published: it’s now on Localites.',
+  unpublished: 'Hidden: it no longer shows on Localites.',
+  archived: 'Archived.',
+  draft: 'Moved back to draft.',
+};
+
+const PRICING_LABEL: Record<(typeof PRICING_MODELS)[number], string> = {
+  fixed: 'A set price',
+  starting_at: 'From a price',
+  hourly: 'Per hour',
+  on_request: 'Price on request',
+  not_listed: 'Don’t show a price',
+};
+
+type ServiceValues = { name: string; description: string | null; pricingModel: string; price: string; priceNote: string | null };
+
+function ServiceFields({ prefix, values, errors = {} }: { prefix: string; values: ServiceValues; errors?: Record<string, string> }) {
+  const err = (k: string) =>
+    errors[k] ? (
+      <p className="field-error" id={`${prefix}-${k}-error`}>
+        {errors[k]}
+      </p>
+    ) : null;
+  return (
+    <>
+      <div className={styles.twoColumns}>
+        <div className="field">
+          <label htmlFor={`${prefix}-name`} className="field-label">
+            Service
+          </label>
+          <input id={`${prefix}-name`} name="name" defaultValue={values.name} className="input" maxLength={120} aria-invalid={errors.name ? true : undefined} />
+          {err('name')}
+        </div>
+        <div className="field">
+          <label htmlFor={`${prefix}-pricingModel`} className="field-label">
+            Price shown as
+          </label>
+          <select id={`${prefix}-pricingModel`} name="pricingModel" defaultValue={values.pricingModel} className="input">
+            {PRICING_MODELS.map((m) => (
+              <option key={m} value={m}>
+                {PRICING_LABEL[m]}
+              </option>
+            ))}
+          </select>
+          {err('pricingModel')}
+        </div>
+        <div className="field">
+          <label htmlFor={`${prefix}-price`} className="field-label">
+            Price in dollars (only for a set, from or hourly price)
+          </label>
+          <input id={`${prefix}-price`} name="price" defaultValue={values.price} className="input" inputMode="decimal" maxLength={12} aria-invalid={errors.price ? true : undefined} />
+          {err('price')}
+        </div>
+        <div className="field">
+          <label htmlFor={`${prefix}-priceNote`} className="field-label">
+            Price note (optional)
+          </label>
+          <input id={`${prefix}-priceNote`} name="priceNote" defaultValue={values.priceNote ?? ''} className="input" maxLength={200} />
+          {err('priceNote')}
+        </div>
+      </div>
+      <div className="field">
+        <label htmlFor={`${prefix}-description`} className="field-label">
+          Description (optional)
+        </label>
+        <input id={`${prefix}-description`} name="description" defaultValue={values.description ?? ''} className="input" maxLength={2000} />
+        {err('description')}
+      </div>
+    </>
+  );
+}
+
+const when = new Intl.DateTimeFormat('en-CA', { dateStyle: 'medium', timeStyle: 'short', timeZone: 'America/Toronto' });
+
+const HISTORY_WORDS: Record<string, string> = {
+  'vendor.create': 'Created',
+  'vendor.update': 'Details changed',
+  'vendor.service.add': 'Service added',
+  'vendor.service.update': 'Service changed',
+  'vendor.service.hide': 'Service hidden',
+  'vendor.service.show': 'Service shown again',
+};
+
+const FIELD_WORDS: Record<string, string> = {
+  name: 'name',
+  slug: 'web address',
+  tagline: 'short description',
+  description: 'about',
+  municipalityId: 'town',
+  websiteUrl: 'website',
+  publicEmail: 'email',
+  publicPhone: 'phone',
+  primaryCategoryId: 'main category',
+  categoryIds: 'categories',
+};
+
+type ActionResult = { intent: string; serviceId?: string; errors: Record<string, string>; values?: Record<string, unknown> };
+
+export default function EditListing({ loaderData, actionData: rawResult }: Route.ComponentProps) {
+  const actionData = rawResult as ActionResult | undefined;
+  const { listing, options, saved } = loaderData;
+  const busy = useNavigation().state === 'submitting';
+  const archived = listing.status === 'archived';
+  const errorsFor = (intent: string, serviceId = '') =>
+    actionData?.intent === intent && (intent !== 'service' || actionData.serviceId === serviceId) ? actionData.errors : undefined;
+  const detailValues: ListingValues =
+    actionData?.intent === 'details' && actionData.values ? (actionData.values as unknown as ListingValues) : listing;
+  const newServiceErrors = errorsFor('service', '');
+  const newServiceValues =
+    newServiceErrors && actionData?.values
+      ? (actionData.values as unknown as ServiceValues)
+      : { name: '', description: '', pricingModel: 'on_request', price: '', priceNote: '' };
+
+  return (
+    <>
+      <Link to="/admin" className="text-link">
+        ← All listings
+      </Link>
+      <h1 className="title-1 section-gap">{listing.name}</h1>
+      <div className="title-rule" aria-hidden="true" />
+      <p className="muted">
+        <span className={`${styles.status} ${listing.status === 'published' ? styles.statusLive : ''}`}>
+          {STATUS_LABEL[listing.status]}
+        </span>{' '}
+        · {listing.claimStatus === 'claimed' ? 'Claimed by the business' : 'Not claimed'}
+        {listing.status === 'published' && (
+          <>
+            {' '}
+            ·{' '}
+            <a href={`/vendors/${listing.slug}`} target="_blank" rel="noopener" className="text-link">
+              View public page
+            </a>
+          </>
+        )}
+      </p>
+      {saved && SAVED[saved] && (
+        <p className="notice" role="status">
+          {SAVED[saved]}
+        </p>
+      )}
+      {actionData?.errors?.form && (
+        <p className="notice" role="alert">
+          {actionData.errors.form}
+        </p>
+      )}
+
+      {ADMIN_TRANSITIONS[listing.status].length > 0 && (
+        <Form method="post" className={styles.statusPanel}>
+          <input type="hidden" name="intent" value="status" />
+          {ADMIN_TRANSITIONS[listing.status].some((s) => s !== 'published') && (
+            <div className={`field ${styles.reasonField}`}>
+              <label htmlFor="reason" className="field-label">
+                Reason (optional; kept in the history)
+              </label>
+              <input id="reason" name="reason" className="input" maxLength={500} />
+            </div>
+          )}
+          {ADMIN_TRANSITIONS[listing.status].map((to) => (
+            <button
+              key={to}
+              type="submit"
+              name="to"
+              value={to}
+              className={to === 'published' ? 'button button-primary' : 'button button-secondary'}
+              disabled={busy}
+            >
+              {ACTION_WORDS[to]}
+            </button>
+          ))}
+        </Form>
+      )}
+
+      <section className={styles.section} aria-labelledby="details-heading">
+        <h2 id="details-heading">Details</h2>
+        {errorsFor('details') && !actionData?.errors?.form && (
+          <p className="notice" role="alert">
+            Some details need another look. They’re marked below.
+          </p>
+        )}
+        <Form method="post" noValidate key={saved ?? 'details'}>
+          <input type="hidden" name="intent" value="details" />
+          <fieldset disabled={archived} className={styles.plainFieldset}>
+            <ListingFields values={detailValues} options={options} errors={errorsFor('details')} />
+            <button type="submit" className="button button-primary" disabled={busy}>
+              {busy ? 'Saving…' : 'Save details'}
+            </button>
+          </fieldset>
+        </Form>
+      </section>
+
+      <section className={styles.section} aria-labelledby="services-heading">
+        <h2 id="services-heading">Services and prices</h2>
+        <p className="muted">Prices exactly as the business publishes them. Hidden services stay in the history.</p>
+        {listing.services.map((s) => {
+          const errors = errorsFor('service', s.id);
+          const values =
+            errors && actionData?.values
+              ? (actionData.values as unknown as ServiceValues)
+              : { ...s, price: s.priceCents === null ? '' : String(s.priceCents / 100) };
+          const shown = describePrice(s.pricingModel as PricingModel, s.priceCents);
+          return (
+            <div key={s.id} className={`${styles.service} ${s.isActive ? '' : styles.serviceHidden}`}>
+              <p className="label">
+                {s.isActive ? 'Shown' : 'Hidden'}
+                {shown ? ` · ${shown}` : ''}
+              </p>
+              <Form method="post" noValidate key={`${s.id}-${saved ?? ''}`}>
+                <input type="hidden" name="intent" value="service" />
+                <input type="hidden" name="serviceId" value={s.id} />
+                <fieldset disabled={archived} className={styles.plainFieldset}>
+                  <ServiceFields prefix={`s-${s.id}`} values={values} errors={errors} />
+                  <div className={styles.buttons}>
+                    <button type="submit" className="button button-secondary" disabled={busy}>
+                      Save service
+                    </button>
+                  </div>
+                </fieldset>
+              </Form>
+              <Form method="post" className={styles.buttons}>
+                <input type="hidden" name="intent" value="service-visibility" />
+                <input type="hidden" name="serviceId" value={s.id} />
+                <input type="hidden" name="active" value={s.isActive ? 'false' : 'true'} />
+                <button type="submit" className={`text-link ${styles.linkButton}`} disabled={busy || archived}>
+                  {s.isActive ? 'Hide this service' : 'Show this service again'}
+                </button>
+              </Form>
+            </div>
+          );
+        })}
+        {!archived && (
+          <div className={styles.service}>
+            <p className="label">Add a service</p>
+            <Form method="post" noValidate key={`new-${saved ?? ''}`}>
+              <input type="hidden" name="intent" value="service" />
+              <input type="hidden" name="serviceId" value="" />
+              <ServiceFields prefix="new" values={newServiceValues} errors={newServiceErrors} />
+              <button type="submit" className="button button-secondary" disabled={busy}>
+                Add service
+              </button>
+            </Form>
+          </div>
+        )}
+      </section>
+
+      <section className={styles.section} aria-labelledby="history-heading">
+        <h2 id="history-heading">History</h2>
+        {listing.history.length === 0 ? (
+          <p className="muted">No changes recorded yet.</p>
+        ) : (
+          <ul className={styles.history}>
+            {listing.history.map((h, i) => (
+              <li key={i}>
+                <strong>
+                  {HISTORY_WORDS[h.action] ??
+                    (h.action.startsWith('vendor.status.')
+                      ? `Status: ${STATUS_LABEL[h.action.slice(14) as ListingStatus] ?? h.action.slice(14)}`
+                      : h.action)}
+                </strong>{' '}
+                <span className="muted">
+                  · {h.actor ?? 'System'} · {when.format(new Date(h.at))}
+                  {h.reason ? ` · “${h.reason}”` : ''}
+                  {h.changes && typeof h.changes === 'object' && h.action === 'vendor.update'
+                    ? ` · ${Object.keys(h.changes as object)
+                        .map((k) => FIELD_WORDS[k] ?? k)
+                        .join(', ')}`
+                    : ''}
+                </span>
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
+    </>
+  );
+}

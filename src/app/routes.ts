@@ -7,4 +7,13 @@ export default [
   route('search', 'routes/search.tsx'),
   route('vendors/:slug', 'routes/vendor.tsx'),
   route('api/health', 'routes/health.ts'),
+  route('sign-in', 'routes/sign-in.tsx'),
+  route('two-step', 'routes/two-step.tsx'),
+  route('sign-out', 'routes/sign-out.ts'),
+  // Team only: every request under /admin passes the gate in routes/admin/layout.tsx.
+  route('admin', 'routes/admin/layout.tsx', [
+    index('routes/admin/listings.tsx'),
+    route('listings/new', 'routes/admin/listing-new.tsx'),
+    route('listings/:id', 'routes/admin/listing-edit.tsx'),
+  ]),
 ] satisfies RouteConfig;

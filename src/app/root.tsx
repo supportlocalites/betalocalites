@@ -5,19 +5,20 @@ import '@fontsource/jost/400.css';
 import '@fontsource/jost/500.css';
 import '@fontsource/jost/600.css';
 import './globals.css';
-import { isRouteErrorResponse, Link, Links, Meta, Outlet, Scripts, ScrollRestoration } from 'react-router';
+import { Form, isRouteErrorResponse, Link, Links, Meta, Outlet, Scripts, ScrollRestoration } from 'react-router';
 import { SiteHeader } from '@/components/SiteHeader';
 import { pageMeta } from '@/lib/meta';
 import type { Route } from './+types/root';
 
 const isNotFound = (error: unknown) => isRouteErrorResponse(error) && error.status === 404;
+const isForbidden = (error: unknown) => isRouteErrorResponse(error) && error.status === 403;
 
 // The black map pin from the wordmark (D-31). The file repeats the ink colour from
 // tokens.css, because a browser-tab icon can't read the site's styles.
 export const links: Route.LinksFunction = () => [{ rel: 'icon', href: '/favicon.svg', type: 'image/svg+xml' }];
 
 export const meta: Route.MetaFunction = ({ error }) =>
-  pageMeta(error ? (isNotFound(error) ? 'Not found' : 'Something went wrong') : undefined);
+  pageMeta(error ? (isNotFound(error) ? 'Not found' : isForbidden(error) ? 'Team only' : 'Something went wrong') : undefined);
 
 export function Layout({ children }: { children: React.ReactNode }) {
   return (
@@ -43,6 +44,23 @@ export default function App() {
 
 /** Shown for unknown addresses, unlisted businesses and unexpected errors. */
 export function ErrorBoundary({ error }: Route.ErrorBoundaryProps) {
+  if (isForbidden(error)) {
+    return (
+      <>
+        <SiteHeader />
+        <main className="page narrow">
+          <h1 className="title-1">This page is for the Localites team</h1>
+          <div className="title-rule" aria-hidden="true" />
+          <p className="muted">You’re signed in, but this account isn’t on the team.</p>
+          <Form method="post" action="/sign-out">
+            <button type="submit" className="button button-secondary">
+              Sign out
+            </button>
+          </Form>
+        </main>
+      </>
+    );
+  }
   const notFound = isNotFound(error);
   return (
     <>

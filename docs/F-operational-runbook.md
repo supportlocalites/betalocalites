@@ -128,6 +128,33 @@ owner sets its password in Supabase's SQL editor with
 the matching connection string into Cloudflare's encrypted secret `DATABASE_URL`. We
 guide this live (PO-03 part 3). Changing the password later is the same two steps.
 
+### Team sign-in and admins (D-28)
+
+- **How sign-in works.** The site calls Supabase Auth from the server only (the browser
+  never talks to Supabase). The session lives in two cookies page scripts can't read.
+  Admin pages pass a gate on every request: a valid Supabase session (checked with
+  Supabase, so signing out works at once), a password sign-in within 12 hours, an
+  active row in `platform_role`, and the two-step code for this session. Settings:
+  Cloudflare secrets `SUPABASE_URL` and `SUPABASE_PUBLISHABLE_KEY` (PO-10).
+- **First admin:** `select grant_first_admin('<email>');` in Supabase's SQL editor
+  (migration 0003). It refuses once any admin exists.
+- **Add another admin** (until the Users & roles page, X10, exists): create their account
+  as in PO-10 B, have them sign in once, then in the SQL editor:
+  `insert into platform_role (user_id, role, granted_by) select n.id, 'admin', g.id from app_user n, app_user g where n.email = '<new>' and g.email = '<you>';`
+  and record it: `insert into audit_log (actor_user_id, action, subject_type, subject_id, reason) select g.id, 'platform_role.grant', 'app_user', n.id, '<why>' from app_user n, app_user g where n.email = '<new>' and g.email = '<you>';`
+- **Remove an admin:** `update platform_role set revoked_at = now() where role = 'admin' and revoked_at is null and user_id = (select id from app_user where email = '<email>');`
+  (plus an audit_log row as above, action `platform_role.revoke`). Takes effect on their
+  next click.
+- **Lost phone (authenticator):** in the SQL editor, `delete from auth.mfa_factors where user_id = (select id from auth.users where email = '<email>');`
+  Their next sign-in shows a new square code to scan.
+- **Forgotten password:** until password reset by email is built (screen A3), set a new
+  one in the SQL editor:
+  `update auth.users set encrypted_password = extensions.crypt('<new password>', extensions.gen_salt('bf')) where email = '<email>';`
+  then delete that query from the editor's list, as in PO-03 C.
+- **Known limit:** Supabase limits sign-in attempts per address, and every request comes
+  from Cloudflare's servers. At team scale this never matters; revisit before public
+  sign-up opens.
+
 ## 5. Backups
 
 | Layer | What | Frequency | Retention | Source |

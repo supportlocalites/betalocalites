@@ -31,6 +31,7 @@ npm run dev                           # runs inside Cloudflare's own runtime (wo
 npm run check                         # lint, types, design tokens, wording
 npm test                              # unit tests
 npm run test:db                       # every migration + database rule, on a throwaway DB
+npm run test:e2e                      # admin access, against a local sign-in server (scripts/e2e)
 npm run build && npm run size         # Cloudflare build and size budget
 npm run preview                       # the built Worker, locally
 ```

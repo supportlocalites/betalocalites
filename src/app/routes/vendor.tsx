@@ -1,8 +1,8 @@
-import { data } from 'react-router';
+import { data, redirect } from 'react-router';
 import { cloudflareContext } from '@/app/context';
 import { SiteHeader } from '@/components/SiteHeader';
 import { pageMeta } from '@/lib/meta';
-import { getVendor } from '@/server/catalog.server';
+import { findRenamed, getVendor } from '@/server/catalog.server';
 import type { Route } from './+types/vendor';
 import styles from './vendor.module.css';
 
@@ -10,8 +10,14 @@ export const meta: Route.MetaFunction = ({ loaderData }) =>
   loaderData ? pageMeta(loaderData.vendor.name, loaderData.vendor.tagline ?? undefined) : pageMeta('Not found');
 
 export async function loader({ params, context }: Route.LoaderArgs) {
-  const vendor = await getVendor(context.get(cloudflareContext).env, params.slug);
-  if (!vendor) throw data(null, { status: 404 });
+  const { env } = context.get(cloudflareContext);
+  const vendor = await getVendor(env, params.slug);
+  if (!vendor) {
+    // A renamed listing: its old web address keeps working (shared links, Google).
+    const current = await findRenamed(env, params.slug);
+    if (current) throw redirect(`/vendors/${current}`, 301);
+    throw data(null, { status: 404 });
+  }
   return { vendor };
 }
 

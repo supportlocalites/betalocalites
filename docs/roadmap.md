@@ -80,8 +80,9 @@ database migrations with 51 checks, Welcome, Explore, search and business profil
 on fake test data, automatic checks on GitHub, and the live test site on Cloudflare
 through Hyperdrive. The fit test found Next.js too heavy for the free plan (median 22.88 ms
 per page against 10 ms), so the site moved to React Router (ADR-005, 7% of the size
-limit); live CPU time 8 ms, under the 10 ms limit, so the fit test passes. Next:
-sign-in with two-step codes for the team and the admin page (D-28), then Suggest a
+limit); live CPU time 8 ms, under the 10 ms limit, so the fit test passes. Team sign-in
+with two-step codes and the admin page for listings are built and tested (D-28; switched
+on by PO-10). Next: load the test businesses through the admin page, then Suggest a
 business, vendor claiming with the sign-in screen (D-27, D-29), and the fuller activity
 reports (D-30).
 

@@ -133,3 +133,15 @@ export async function getVendor(env: ServerEnv, slug: string): Promise<VendorPro
     };
   });
 }
+
+/** The current web address of a published listing that used to be at `oldSlug`, if any. */
+export async function findRenamed(env: ServerEnv, oldSlug: string): Promise<string | null> {
+  return withDb(env, async (db) => {
+    const [row] = await db.execute<{ slug: string }>(sql`
+      select v.slug::text as slug
+      from vendor_slug_history h join vendor v on v.id = h.vendor_id
+      where h.slug = ${oldSlug} and v.listing_status = 'published' and v.slug <> ${oldSlug}
+    `);
+    return row?.slug ?? null;
+  });
+}

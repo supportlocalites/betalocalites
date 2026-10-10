@@ -55,6 +55,7 @@ Recorded from your messages of 9 and 10 October 2026. These now shape every docu
 | # | What | Blocks | Your effort |
 |---|---|---|---|
 | **ADR-005** | ✅ CPU time 8 ms with React Router (passes). A day after the speed improvements go live, glance at **Metrics** once more: CPU time, and whether any "Exceeded CPU" errors appear | Nothing; a final check | 2 min |
+| **PO-10** | Switch on sign-in for the team and make yourself the first admin (steps below) | Using the admin page | 15 min |
 | **D-12** | Mailing address for the privacy policy and terms | Public launch | 1 min, later |
 
 **How to respond:** reply in the conversation with decision numbers and your choice,
@@ -696,6 +697,57 @@ for those calls and a claim link for each business.
 (D-21).
 **Still to come, now that D-00 is approved:** the real screens from the build, on your own phone and
 computer through private preview links. You tell us what feels right. No code to read.
+
+### PO-10 — Switch on sign-in for the team (admin page, D-28)
+**When:** Now. **Cost:** $0. **Time:** about 15 minutes. You'll need your phone.
+Nothing here is sent to us: you type every password and key straight into Supabase or
+Cloudflare.
+
+*A. Keep sign-ups closed for now (Supabase)*
+1. In Supabase, open the **localites-test** project → **Authentication** → **Sign In /
+   Providers** (it may be under **Settings**). Turn **off** "Allow new users to sign up"
+   and save. Only accounts you create can sign in until businesses can claim their
+   listings; we'll turn it back on then.
+2. In **Authentication** → **Multi-Factor**, check that **TOTP (App Authenticator)** is
+   enabled (it is by default).
+
+*B. Create your team account (Supabase)*
+3. **Authentication** → **Users** → **Add user** → **Create new user**. Email:
+   **supportlocalites@gmail.com**. Password: a new one, only for Localites, kept with your
+   passwords. Tick **Auto Confirm User**. Click **Create user**.
+
+*C. Make it the first admin (Supabase)*
+4. **SQL Editor** → **New query** → paste exactly:
+   `select grant_first_admin('supportlocalites@gmail.com');` → **Run**. Expect
+   *"Done: supportlocalites@gmail.com is now a Localites admin."* This only works once:
+   after that, admins are added from the admin page. If it says the command doesn't
+   exist, GitHub hasn't updated the test database yet: wait ten minutes and try again.
+
+*D. Tell the website how to reach Supabase's sign-in (Supabase → Cloudflare)*
+5. In Supabase, open **Project Settings** → **Data API** (or the **Connect** button) and
+   copy the **Project URL** (it looks like `https://abcd….supabase.co`).
+6. In Cloudflare, open the **localites** Worker → **Settings** → **Variables and Secrets**
+   → **Add**. Type: **Secret**. Name: `SUPABASE_URL`. Value: paste. Save.
+7. In Supabase, open **Project Settings** → **API Keys** and copy the **Publishable key**
+   (it starts with `sb_publishable_`). It's designed to be public, but keep it in
+   Cloudflare rather than anywhere else.
+8. In Cloudflare, **Add** again. Type: **Secret**. Name: `SUPABASE_PUBLISHABLE_KEY`.
+   Value: paste. Then **Deploy** (or save and deploy).
+
+*E. Sign in and set up your phone*
+9. Install **Google Authenticator** or **Microsoft Authenticator** (both free) on your phone.
+10. Open https://localites.supportlocalites.workers.dev/admin and sign in with the email
+    and password from step 3.
+11. The site shows a square code. In the app, add an account and scan it (or type the
+    setup key shown under it). Enter the 6-digit code the app shows. You're in.
+12. From now on, signing in asks for your password and then a code from the app. For
+    safety, team sign-ins last 12 hours.
+
+**Never send us** the password, the codes, or a photo of the square code: anyone with the
+square code can make your codes. If you lose your phone, tell us and we'll remove the old
+authenticator so you can set up a new one (runbook, "Team sign-in and admins").
+
+**Done when:** you see the **Listings** page. Reply *"PO-10 done"*.
 
 ---
 

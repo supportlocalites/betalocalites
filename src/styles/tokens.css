@@ -76,6 +76,10 @@
   --size-tile-height: 96px;
   --size-search-max: 640px;
   --size-photo-max: 560px;
+  --size-form-narrow: 440px;
+  --size-form-wide: 760px;
+  --size-qr: 200px;
+  --size-textarea: 140px;
 }
 
 @media (min-width: 768px) {

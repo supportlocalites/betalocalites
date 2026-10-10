@@ -102,6 +102,9 @@ PostgreSQL. Mocked databases are where permission bugs hide.
 | Unit tests (price wording) | **3 / 3 passed** | 2026-10-10 |
 | Design-token and language checks | **Passed** | 2026-10-10 |
 | Screen-size check (manual, first pages): phone 390, tablet 768, desktop 1440 | **No sideways scrolling**; matches design G | 2026-10-10 |
-| Hosting size budget | **932 KiB, 30% of 3 MiB** | 2026-10-10 |
+| Hosting size budget | **932 KiB, 30% of 3 MiB** (Next.js); **179 KiB, 6%** (React Router, with sign-in and admin) | 2026-10-10 |
+| First-admin and app-role checks ([db/tests/0003_admin_access.test.sql](../db/tests/0003_admin_access.test.sql)) | **12 / 12 passed** | 2026-10-10 |
+| Admin access tests ([tests/e2e/admin-access.mjs](../tests/e2e/admin-access.mjs)) against a local copy of Supabase's sign-in server: signed out, not on the team, no two-step, tampered token, cross-site form, cross-listing edit, status gatekeeper, removed role, cookies after sign-out, outside links | **27 / 27 passed**; confirmed to fail with the gate's two-step or team check removed | 2026-10-10 |
+| Unit tests (price wording, security headers, sign-in safety) | **19 / 19 passed** | 2026-10-10 |
 | Environment | PostgreSQL 16 + PostGIS, throwaway database per run (GitHub CI: `postgis/postgis:16-3.4`) | |
 | Automated run | Every push, via GitHub Actions ([.github/workflows/ci.yml](../.github/workflows/ci.yml)) | |
