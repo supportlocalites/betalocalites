@@ -6,7 +6,7 @@ files, and keep track of who they've booked; after the event, their feedback bec
 reviews. Localites is the digital handshake and never handles payments. First market:
 Orillia, Ontario.
 
-**Current stage:** Stage 0 (architecture, revision 2), awaiting product owner approval.
-No application code yet.
+**Current stage:** Stage 0. Architecture approved by the product owner (10 October 2026);
+Stage 1 not started. No application code yet.
 
 **Start here:** [docs/README.md](./docs/README.md)

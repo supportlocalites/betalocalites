@@ -1,6 +1,6 @@
 # Testing Strategy
 
-**Status:** Proposed (Stage 0, revision 4: Inquire and activity-tracking checks).
+**Status:** Proposed (Stage 0, revision 5: review approval and invitation-link checks).
 **Last updated:** 2026-10-10
 
 ## What "done" means
@@ -74,20 +74,25 @@ PostgreSQL. Mocked databases are where permission bugs hide.
 
 **Stage 3: feedback & reviews**
 13. The morning after the event, the consumer receives "How was it?", leaves 5 stars;
-    the platform team publishes it; the vendor replies once.
-14. A consumer who marked a vendor booked but never talked with them on Localites can't
-    review them (if D-06 option A).
+    the team gets an email with a link (not an approve button); an admin signs in and
+    approves it; it appears on the profile; the vendor replies once.
+14. A consumer who marked a vendor booked but never talked with them on Localites leaves
+    a review: it's labelled "Planned outside Localites" and stays hidden until an admin
+    approves it. A non-admin who follows the email's link can't approve it.
 15. A flagged booking can't be reviewed until resolved.
 
 **Stage 4: guests**
 16. Consumer invites three guests; a guest RSVPs on a phone with a plus-one; a revoked
     link shows "no longer valid" and nothing else.
+17. Host shares a group link in a group chat and as a QR code; two guests reply by typing
+    their names; the host matches them to the list; the attendance view shows the third
+    guest as "No reply yet"; the group-link page never shows other guests.
 
 ## Current results
 
 | Suite | Result | Date |
 |---|---|---|
-| Stage 1 schema checks ([stage1-proposed.test.sql](./schema/stage1-proposed.test.sql)) | **29 / 29 passed** | 2026-10-09 |
-| Consumer–vendor relationship checks ([stage2-3-proposed.test.sql](./schema/stage2-3-proposed.test.sql)) | **53 / 53 passed**, each rejection confirmed to fail for the intended reason | 2026-10-09 |
+| Stage 1 schema checks ([stage1-proposed.test.sql](./schema/stage1-proposed.test.sql)) | **29 / 29 passed** | 2026-10-10 |
+| Consumer–vendor relationship checks ([stage2-3-proposed.test.sql](./schema/stage2-3-proposed.test.sql)) | **56 / 56 passed**, each rejection confirmed to fail for the intended reason (review rule updated for D-06) | 2026-10-10 |
 | Environment | PostgreSQL 16.15 + PostGIS, scratch database, discarded after | |
 | Everything else | Not yet applicable: no application code | — |

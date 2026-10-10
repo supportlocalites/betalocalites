@@ -287,6 +287,7 @@ erDiagram
     INVITATION {
         uuid id PK
         bytea token_hash "token itself never stored"
+        text kind "personal|group"
         text status "active|revoked|expired"
         timestamptz first_opened_at
     }
@@ -294,6 +295,8 @@ erDiagram
         uuid id PK
         text response "attending|not_attending|maybe"
         int  party_size
+        text typed_name "group link only"
+        uuid matched_guest_id "set by the host"
     }
 ```
 
@@ -305,10 +308,24 @@ Invitation-link security is in [E §5](./E-security-and-privacy-model.md#5-invit
 Stages are unchanged.
 - **Inquiries** (D-04, D-05, ADR-024, Stage 2): `vendor_interest` gains an optional note,
   an optional event, and the status of the email to the Localites team.
-- **Activity tracking** (D-22, ADR-023): `activity_event` (detail, 90 days) and
+- **Activity tracking** (D-22, ADR-023): `activity_event` (detail, no deletion date) and
   `vendor_daily_stats` (daily totals, kept) replace the planned `analytics_event`. Both are
   built in Stage 1 and record what exists then (seen in search, profile views, website
   and phone taps); saves, inquiries, conversations and messages are added in Stage 2.
+  Detailed records have no deletion date (D-22, amended); they're unlinked from anyone
+  who deletes their account, and older ones move to archive storage if the database
+  nears its free limit.
+- **Reviews** (D-06, option B): no conversation required. `review.planned_on_localites`
+  is set by the database (did the vendor reply to the host on Localites?) and can't be
+  changed; false shows "Planned outside Localites". Checked in the proposed schema.
+- **Events** are kept for as long as the host's account exists (D-10). Guest names and
+  replies stay; guest phone numbers and emails are erased 90 days after the event.
+- **Invitations** (D-08): `invitation.kind` is `personal` (one guest) or `group` (shared
+  in a group chat, on social media or as a QR code). A reply through a group link carries
+  the name the guest typed; the host matches it to a `guest`, so "not replied yet" stays
+  accurate.
+- **Paid vendor plans** (D-24, proposed, ADR-025): `vendor_plan` records a vendor's plan
+  and its start and end dates, set by an admin. No prices or payment details.
 
 ## 4. Lifecycle states and what they do NOT mean
 
@@ -426,7 +443,7 @@ hiding there.
 | `media_asset` | Media | S1 | Every stored file, with owner and visibility |
 | `collection`, `collection_item` | Discovery | S1 | Curated lists |
 | `status_change`, `audit_log` | Audit | S1 | Append-only history |
-| `activity_event` | Analytics | S1 | One meaningful action on a vendor (profile view and source, tap; from Stage 2 save, inquiry, conversation, message): time, vendor, person or visitor ID. Kept 90 days (D-22, ADR-023). |
+| `activity_event` | Analytics | S1 | One meaningful action on a vendor (profile view and source, tap; from Stage 2 save, inquiry, conversation, message): time, vendor, person or visitor ID. Kept with no deletion date (D-22, ADR-023). |
 | `vendor_daily_stats` | Analytics | S1 | Per vendor, day, placement and town: seen in search, views, taps (from Stage 2 also saves, inquiries, conversations, messages), unique people. Kept. |
 | `saved_vendor` | Consumer | S2 | Private bookmarks |
 | `event_type`, `event` | Event | S2 | The consumer's event |
@@ -437,7 +454,8 @@ hiding there.
 | `moderation_report` | Safety | S2 | Reports of messages, conversations, reviews, listings |
 | `notification` | Comms | S2 | Log of every email sent, with honest status |
 | `review_request` | Reviews | S3 | "How was it?" prompts |
-| `review` | Reviews | S3 | Ratings, comments, vendor reply |
+| `review` | Reviews | S3 | Ratings, comments, vendor reply; whether it was planned on Localites (set by the database); published only by an admin (D-06) |
+| `vendor_plan` | Vendors | S5 | Which vendors have a paid plan and until when; set by an admin; no prices or payment details (D-24, ADR-025) |
 | `vendor_rating_summary` | Reviews | S3 | Calculated view. Average shown only at 3+ reviews. |
 | `guest`, `invitation`, `event_question`, `rsvp`, `rsvp_answer`, `event_update` | Guests | S4 | Invitations and RSVPs |
 | `entitlement`, `placement` | Commercial | Future | Designed only, if ever approved |

@@ -1,6 +1,7 @@
 # C — Architecture Decision Log
 
-**Status:** Accepted (D-00, 10 October 2026), except ADR-022, which awaits D-13.
+**Status:** Accepted (D-00, 10 October 2026). ADR-022 accepted with D-13. ADR-025 is
+proposed and awaits D-24.
 **Last updated:** 2026-10-10
 
 Each entry records a significant technical decision: what we chose, why, what we
@@ -19,6 +20,11 @@ handshake. ADR-018 to ADR-022 added.
 **Revision 4 changes (10 October 2026):** ADR-023 (activity tracking for vendor reports,
 D-22) and ADR-024 (Inquire for unclaimed or unverified vendors, Stage 2, D-04 and D-05)
 added. ADR-015 is extended by ADR-023. Stages are unchanged.
+
+**Revision 5 changes (10 October 2026):** ADR-022 accepted (D-13). ADR-023 now keeps
+detailed records with no deletion date, for year-over-year reports (D-22, amended).
+ADR-025 (paid vendor plans, recorded but not charged in the app; proposed, D-24) and
+ADR-026 (every review approved by an admin, with an email notice; D-06) added.
 
 **Revision 3 changes (product owner: no running costs):** ADR-003 and ADR-013 move to
 free plans. ADR-007 replaces Vercel with Cloudflare's free plan, because Vercel's free
@@ -52,9 +58,11 @@ ADR-014 caveat updated. Nothing in the data model or security model changes.
 | ADR-019 | Messaging: stored conversations, polled updates, batched email notices | Team | Accepted |
 | ADR-020 | Files in conversations: private, participants only, limited types | Team | Accepted |
 | ADR-021 | "Booked" is the consumer's own record, labelled as such | **Needs approval** (user experience) | Accepted (D-18) |
-| ADR-022 | One account per person; acting as a vendor comes from team membership | **Needs approval** (user experience; D-13) | Proposed (awaits D-13) |
-| ADR-023 | Activity tracking for vendor reports: detailed for 90 days, then daily totals | **Needs approval** (privacy; D-22) | Accepted (D-22) |
+| ADR-022 | One account per person; acting as a vendor comes from team membership | **Needs approval** (user experience; D-13) | Accepted (D-13) |
+| ADR-023 | Activity tracking for vendor reports: detailed records kept for year-over-year reports, plus daily totals | **Needs approval** (privacy; D-22) | Accepted (D-22) |
 | ADR-024 | Unclaimed or unverified vendors get **Inquire**, which reaches the Localites team by email | **Needs approval** (user experience; D-04) | Accepted (D-04) |
+| ADR-025 | Paid vendor plans are recorded (which plan, until when) but paid for outside Localites | **Needs approval** (business model; D-24) | Proposed (awaits D-24) |
+| ADR-026 | Every review is approved by an admin in the admin area; the team is emailed each new review | **Needs approval** (D-06) | Accepted (D-06) |
 
 ---
 
@@ -350,7 +358,7 @@ Google Analytics, Meta Pixel, or similar.
 next to the data they describe, so vendor insights can be built directly.
 
 **Extended by ADR-023** (10 October 2026): tracking now covers every vendor interaction,
-with detail kept for 90 days (D-22).
+with detail kept for year-over-year reports (D-22).
 
 ---
 
@@ -467,7 +475,7 @@ ask for feedback, without pretending to be a booking system.
 
 ## ADR-022 — One account per person; vendor capability through team membership
 
-**Needs your approval** (sign-up experience; part of D-13).
+**Needs your approval** (sign-up experience; part of D-13). **Accepted: D-13, 10 October 2026.**
 
 **Decision.** Everyone signs up the same way. Every account can act as a consumer. A
 person acts **as a vendor** only through membership of a vendor's team. Someone who is
@@ -491,7 +499,9 @@ creates duplicate identities later.
   tap; from Stage 2: save, inquiry, conversation started, message sent, reply time, added
   to an event, marked booked) are stored as individual records with the time, the vendor
   and the person: their account if signed in, otherwise a random visitor ID kept in our
-  own cookie. Kept 90 days.
+  own cookie. Kept with no deletion date, so year-over-year reports can use them
+  (D-22). When someone deletes their account, their records stay but the link to them
+  is removed.
 - **"Seen in search"** is counted when a vendor's card is at least half on screen for a
   moment, once per visit per page. The browser sends these in one batch per page, not one
   request per card, and they're stored straight away as **daily totals** per vendor,
@@ -499,20 +509,32 @@ creates duplicate identities later.
 - Each night, the detailed records are added into the same **daily totals**, which are
   kept. Reports read only the totals.
 - Vendors and anyone outside the team see totals only. The Localites team can look at the
-  detail while it exists; every look is recorded in the audit log.
+  detail; every look is recorded in the audit log.
+- If the database nears its free limit, older detailed records move to archive storage
+  (the free storage that holds backups). They're still kept and still usable for reports;
+  they just leave the live database.
 
 **Why.** Vendor reports are central to selling featured placements and renewals (D-22).
 Keeping it in our own database costs nothing, involves no third party, and puts the
 numbers beside the data they describe. Storing "seen in search" as totals keeps us inside
 the free database: at 1,000 visitors a day seeing about 30 cards each, individual rows
-would add about 900,000 a month; daily totals add a few thousand.
+would add about 900,000 a month; daily totals add a few thousand. Detailed records of
+actions are far fewer: at 1,000 visitors a day making about 4 tracked actions each, they
+grow by roughly 200 MB a year, which is why older detail moves to archive storage rather
+than being deleted.
 
 **Rejected.** Google Analytics or similar (third-party profiling, consent banners, and no
 reliable link to individual vendors). Storing every impression (outgrows the free
 database within months).
 
-**Revisit if** the totals approach 80% of the free database, or vendors need same-day
-numbers.
+**Revisit if** the database approaches 80% of its free limit (move older detail to the
+archive), or vendors need same-day numbers.
+
+**Privacy note.** Canadian privacy law expects personal information to be kept only as
+long as it's needed for a stated purpose. The privacy policy will name year-over-year
+vendor reporting as that purpose, and the legal review (PO-07) checks it. If the lawyer
+advises a limit, detail older than that limit can have the link to the person removed,
+which keeps every count intact.
 
 ---
 
@@ -537,3 +559,45 @@ happen directly on Localites (D-17).
 
 **Cost.** Inquiry emails count toward the free plan's 100 a day. If they become frequent,
 they're bundled into a few summary emails a day.
+
+---
+
+## ADR-025 — Paid vendor plans: recorded in Localites, paid for outside it
+
+**Needs your approval** (business model). **Proposed: awaits D-24.**
+
+**Decision.** Some features are for vendors on a paid plan, starting with the vendor
+dashboard (D-22). Localites records only **which plan a vendor has and its start and end
+dates**, set by an admin and written to the audit log. The vendor pays the Localites team
+outside the app (for example, an invoice paid by Interac e-Transfer). No prices, card
+details, payment status or invoices are stored. Featured placements are sold the same
+way.
+
+**Why.** The original brief rules out payment processing, billing and card storage
+until explicitly approved, and ADR-018 keeps money out of the system. Recording a plan's
+dates is enough to switch features on and off, costs nothing, and needs no payment
+company.
+
+**Revisit if** you want vendors to pay online by card. That needs a payment company
+(which charges a fee on each payment), a new decision, a security review, and changes
+to the terms.
+
+---
+
+## ADR-026 — Every review is approved by an admin
+
+**Needs your approval** (trust). **Accepted: D-06, 10 October 2026.**
+
+**Decision.** Every new review starts as pending and is invisible to everyone except its
+author and the platform team (already enforced by the database). Localites emails the
+team at supportlocalites@gmail.com for each new review, with the business, the star
+rating and a link to that review in the admin area. An admin signs in and taps **Approve**
+(publish) or **Decline** (with a reason). Admin rights are checked on the server.
+
+**Why not approve straight from the email.** A one-tap approve link in an email can be
+forwarded, and email security scanners open links automatically, which could publish a
+review nobody read. Signing in keeps every approval tied to a named admin in the audit
+log.
+
+**Cost.** Review emails count toward the free plan's 100 a day. If they become frequent,
+they're bundled into a daily summary.

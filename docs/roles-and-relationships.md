@@ -106,8 +106,7 @@ actually having been recorded.
 
 ## 3. Rules we propose for the relationship
 
-These shape trust on both sides. Each is a recommendation awaiting your approval as
-decision **D-13**. You can accept them as a set or object to any one.
+These shape trust on both sides. **Approved by you as decision D-13** (10 October 2026).
 
 | # | Rule | Why |
 |---|---|---|
@@ -137,7 +136,7 @@ consumer and a vendor. The lawyer's review (PO-07) should confirm the wording.
 
 ## 5. Reviews: how feedback becomes ratings
 
-Proposed for decision **D-06**.
+Decided as **D-06, option B**, with an admin approving every review (10 October 2026).
 
 1. A consumer marks a vendor **booked** on an event.
 2. The morning after the event date, Localites asks the consumer *"How was [Vendor]?"*, by
@@ -145,25 +144,23 @@ Proposed for decision **D-06**.
    60 days, we stop asking.
 3. **A consumer can review a vendor only if all of these are true:**
    - they marked that vendor booked on one of their events;
-   - the event date has passed;
-   - they and the vendor have **exchanged messages on Localites** (the vendor replied at
-     least once);
+   - the event date has passed, within 60 days;
    - the vendor hasn't flagged the booking as not real.
+
+   A Localites conversation isn't required. The database records whether the two talked
+   on Localites; if they didn't, the review is labelled **"Planned outside Localites"**.
 4. One review per booked vendor per event. A star rating (1–5) and optional written
    comments.
-5. The platform team checks each review against a short written policy before it's
-   published. Reviews are never edited by Localites, only published or declined.
+5. **Every review is checked before anyone else sees it.** Each new review is emailed to
+   the Localites team (supportlocalites@gmail.com) with a link to it in the admin area,
+   where an admin taps **Approve** to publish it or **Decline** with a reason. Reviews
+   are never edited by Localites, only published or declined (ADR-026).
 6. The vendor can post **one** public reply.
 7. A vendor's **average rating appears only once they have three published reviews**,
    so one unhappy (or overly kind) review doesn't define a business.
 
-**Why require a Localites conversation?** Because "booked" is the consumer's word alone.
-Requiring that the two actually talked on Localites means every review comes from a
-relationship the platform recorded on both sides, which matches the preference in your
-original brief. It also means vendors who haven't joined Localites can't be reviewed.
-That's fairer to them, and another honest reason to claim their listing.
-
-**The trade-off:** fewer reviews early on, because consumers who phoned a vendor
-directly can't review them. Option B in D-06 drops the conversation requirement and
-labels those reviews differently. We recommend the stricter rule for launch; it's easy
-to relax later and very hard to tighten once unverifiable reviews are published.
+**What option B means.** More reviews early on, including from consumers who phoned a
+vendor directly. Because "booked" is the consumer's word alone, two safeguards carry the
+weight: the vendor can flag a booking that isn't real, and an admin reads every review
+before it's published. Businesses that haven't joined Localites can also be reviewed;
+they can't reply until they claim their listing.

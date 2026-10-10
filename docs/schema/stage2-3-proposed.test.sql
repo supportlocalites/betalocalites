@@ -208,9 +208,19 @@ insert into message (conversation_id, author_user_id, author_side, body) values
   ('60000000-0000-7000-8000-000000000003', '10000000-0000-7000-8000-000000000001', 'consumer', 'Hi there');
 insert into event_vendor (id, event_id, vendor_id, added_by, status, booked_at) values
   ('90000000-0000-7000-8000-000000000003', '50000000-0000-7000-8000-000000000001', '30000000-0000-7000-8000-000000000003', '10000000-0000-7000-8000-000000000001', 'booked', now());
-select pg_temp.expect_reject('review with no conversation reply from the vendor on Localites',
-  $q$insert into review (event_vendor_id, author_user_id, rating)
-     values ('90000000-0000-7000-8000-000000000003', '10000000-0000-7000-8000-000000000001', 1)$q$);
+-- D-06 option B: allowed, but recorded as planned outside Localites, even if the
+-- app claims otherwise.
+select pg_temp.expect_accept('review with no conversation reply from the vendor (D-06 B)',
+  $q$insert into review (id, event_vendor_id, author_user_id, rating, planned_on_localites)
+     values ('a0000000-0000-7000-8000-000000000003', '90000000-0000-7000-8000-000000000003', '10000000-0000-7000-8000-000000000001', 1, true)$q$);
+do $$ begin
+  if (select planned_on_localites from review where id = 'a0000000-0000-7000-8000-000000000003') then
+    raise exception 'FAIL  a review with no vendor reply was recorded as planned on Localites';
+  end if;
+  raise notice 'PASS  review with no vendor reply is recorded as planned outside Localites (app''s claim ignored)';
+end $$;
+select pg_temp.expect_reject('changing whether a review was planned on Localites',
+  $q$update review set planned_on_localites = true where id = 'a0000000-0000-7000-8000-000000000003'$q$);
 
 -- Test Vendor 4: they talked, but the vendor flagged the booking as not real.
 insert into conversation (id, consumer_user_id, vendor_id) values
@@ -240,6 +250,12 @@ select pg_temp.expect_reject('review that skips the platform team''s check',
 select pg_temp.expect_accept('A reviews Test Vendor 1: booked, event passed, they talked',
   $q$insert into review (id, event_vendor_id, author_user_id, rating, body)
      values ('a0000000-0000-7000-8000-000000000001', '90000000-0000-7000-8000-000000000001', '10000000-0000-7000-8000-000000000001', 5, 'Test review')$q$);
+do $$ begin
+  if not (select planned_on_localites from review where id = 'a0000000-0000-7000-8000-000000000001') then
+    raise exception 'FAIL  a review after a Localites conversation was not recorded as planned on Localites';
+  end if;
+  raise notice 'PASS  review after a Localites conversation is recorded as planned on Localites';
+end $$;
 select pg_temp.expect_reject('second review of the same booking',
   $q$insert into review (event_vendor_id, author_user_id, rating)
      values ('90000000-0000-7000-8000-000000000001', '10000000-0000-7000-8000-000000000001', 4)$q$);

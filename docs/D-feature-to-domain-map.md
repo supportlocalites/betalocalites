@@ -86,7 +86,8 @@ that module writes to them. Others go through its public functions.
 | Schedule "How was it?" | System | `event_vendor` (booked), `event` | `review_request` | reviews | 📐 |
 | Send request + one reminder | System | `review_request` | `review_request`, `notification` | reviews, notifications | 📐 |
 | Write a review | Consumer | eligibility chain | `review` | reviews | 📐 |
-| Moderate reviews | Admin | `review` | `review`, `audit_log` | reviews | 📐 |
+| Email the team about each new review (D-06) | System | `review` | `notification` | reviews, notifications | 📐 |
+| Approve or decline reviews | Admin | `review` | `review`, `audit_log` | reviews | 📐 |
 | Resolve booking flags | Admin | `event_vendor` | `event_vendor`, `audit_log` | events | 📐 |
 | Reply to a review | Vendor | `review` | `review.vendor_reply` | reviews | 📐 |
 | Reviews and rating on profile | Visitor | `review`, `vendor_rating_summary` | — | reviews | 📐 |
@@ -96,13 +97,14 @@ that module writes to them. Others go through its public functions.
 | Capability | Side | Writes | Module | Status |
 |---|---|---|---|---|
 | Guest list | Consumer | `guest` | guests | 📐 |
-| Invitation links, revoke | Consumer | `invitation` | guests | 📐 |
+| Personal and group invitation links, QR code, revoke (D-08) | Consumer | `invitation` | guests | 📐 |
+| Match group-link replies to the guest list | Consumer | `rsvp`, `guest` | `rsvp.matched_guest_id` | guests | 📐 |
 | Open invitation; RSVP | Guest | `invitation.first_opened_at`, `rsvp`, `rsvp_answer` | guests | 📐 |
 | Attendance view; event updates | Consumer | `event_update` | guests | 📐 |
 
 ### Stage 5 — Growth (each approved separately)
 
-Vendor insights dashboard (from `vendor_daily_stats`, `conversation`, `event_vendor`, `review`) ·
+Paid vendor dashboard (D-24; from `vendor_daily_stats`, `conversation`, `event_vendor`, `review`) ·
 more communities (data only) · labelled sponsored placements or subscriptions, if
 approved · text-message notifications, if approved.
 
@@ -112,7 +114,8 @@ approved · text-message notifications, if approved.
    vendor record is possible.
 2. `conversation.vendor_id → vendor.id` and `conversation.event_id → event.id` (the
    consumer's own). The handshake reuses both.
-3. `review.event_vendor_id → event_vendor.id` (booked), whose event has passed, whose
-   consumer talked with the vendor. No review without a recorded relationship.
+3. `review.event_vendor_id → event_vendor.id` (booked), whose event has passed. No
+   review without a recorded booking; whether the two talked on Localites is recorded
+   on the review by the database (D-06).
 4. `message_attachment → message → conversation`. No file without a conversation.
 5. `rsvp → invitation → event` (Stage 4). RSVPs can't float free of an event.

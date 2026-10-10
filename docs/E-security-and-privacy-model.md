@@ -113,9 +113,12 @@ membership ends. Their past messages stay, attributed to the business.
 ### 4.5 Review eligibility (enforced by the database)
 
 A consumer can review a vendor only if: they marked that vendor booked on their own
-event; the event date has passed; it's within 60 days; the vendor hasn't flagged the
-booking (or the platform team confirmed it); and **they exchanged messages on Localites,
-with at least one reply from the vendor** (D-06, recommended). One review per booking.
+event; the event date has passed; it's within 60 days; and the vendor hasn't flagged the
+booking (or the platform team confirmed it). A Localites conversation isn't required
+(D-06, option B); the database records whether there was one, and the app can't change
+that record. One review per booking. Every review stays hidden until an admin approves
+it in the admin area (ADR-026); the team is emailed each new review with a link there,
+never a one-tap approve link.
 
 ### 4.6 Guests (Stage 4)
 
@@ -136,6 +139,8 @@ Stage 4. Unchanged from revision 1:
 | Guest sees other guests | Never in the page's data |
 | Search engines | `noindex`; excluded in `robots.txt` |
 | Link left in browser history | Swapped for a short-lived cookie; address bar shows no token |
+| **Group link** in a group chat or social post (D-08) | Anyone holding it can reply, so it asks for a name, is rate-limited, shows nothing about other guests, and the host can switch it off or replace it at any time. Replies are matched to the guest list by the host. |
+| **QR code** | The same link drawn as a square, with the same protections. A printed code can't be revoked, so a QR for a group link is replaced, not reused, if it leaks. |
 
 ## 6. Conversation and file safety
 
@@ -184,9 +189,9 @@ to sell featured placements.
 
 | Who | Sees |
 |---|---|
-| A vendor's team | Totals for their own business only: seen in search, profile views, website and phone taps, saves, inquiries, conversations, messages, reply times (later, bookings marked). **Never who** viewed or saved them. They see the people who message them, as part of the conversation. |
+| A vendor's team (dashboard on a paid plan, Stage 5; until then, reports from the team) | Totals for their own business only: seen in search, profile views, website and phone taps, saves, inquiries, conversations, messages, reply times (later, bookings marked). **Never who** viewed or saved them. They see the people who message them, as part of the conversation. |
 | Other vendors and prospective vendors | Category-level figures, or one vendor's own numbers only with that vendor's permission |
-| The Localites team (platform admins) | The detailed records, for 90 days, to run the service and prepare reports. Every look is recorded in the audit log. |
+| The Localites team (platform admins) | The detailed records, to run the service, prepare reports and compare year over year. Every look is recorded in the audit log. |
 | Anyone else | Nothing. Tracking data is never sold. |
 
 - **Told plainly** in the privacy policy, in everyday words. Visitors who aren't signed in
@@ -194,22 +199,28 @@ to sell featured placements.
   review (PO-07) confirms whether a notice is also needed on first visit.
 - **Counted, not watched:** we record that something happened (a profile view, a tap), not
   what someone typed or read.
-- **Retention:** detailed records 90 days, then only daily totals (§8).
+- **Retention:** detailed records are kept with no deletion date, for year-over-year
+  reports (D-22, §8). When someone deletes their account, their records stay but the link
+  to them is removed. Canadian privacy law expects personal information to be kept only
+  as long as a stated purpose needs it; the privacy policy names that purpose, and the
+  legal review (PO-07) confirms it.
 - **Starts with each feature:** seen in search, profile views and taps from Stage 1;
   saves, inquiries, conversations and messages from Stage 2, when those exist.
 
 ## 8. Retention and deletion
 
-Proposed defaults. **D-10 asks you to approve these.**
+**Approved as D-10 (10 October 2026)**, with events kept for as long as the host's
+account exists, and detailed activity records kept for year-over-year reports (D-22).
 
 | Data | Kept for | Then |
 |---|---|---|
+| Events and event plans (type, date, place, vendors, bookings, guest names and replies) | As long as the host's account exists, with no time limit, so hosts can look back years later | Deleted with the account |
 | Conversations and files | While both parties' accounts exist, up to 3 years after the last message | Deleted |
 | When a consumer deletes their account | — | Their events, plans and saved vendors are deleted. In conversations, their messages show as *"Former Localites member"* and their files are deleted, so the vendor keeps a record of their own side. |
 | When a vendor leaves Localites | — | The listing is archived. Consumers keep their copies of conversations, shown as *"This business has left Localites"*. Published reviews stay, without the reply option. |
 | Published reviews | While the listing exists | The author is shown as *"A Localites member"* if they delete their account |
-| Guest contact details (Stage 4) | Until 90 days after the event | Erased; RSVP counts kept |
-| Detailed activity records (§7a) | 90 days | Rolled into daily totals per vendor; the totals are kept |
+| Guest phone numbers and emails (Stage 4) | Until 90 days after the event | Erased. Guest names and their replies stay with the event so the host can look back |
+| Detailed activity records (§7a) | No deletion date (D-22), for year-over-year reports | Daily totals are also kept. If the database nears its free limit, older detail moves to archive storage. Unlinked from anyone who deletes their account |
 | Email delivery log | 1 year | Deleted |
 | Audit log | 2 years | Deleted |
 | Verification evidence | While verified + 1 year | Deleted; outcome kept |
@@ -265,9 +276,9 @@ Every row of §4 becomes automated tests run before every deployment, including:
 - **Role escalation:** vendor staff attempt owner actions; consumers attempt admin
   actions. All must fail.
 
-**Current results (database layer, 2026-10-09):** 82 of 82 checks passed on PostgreSQL
-16 + PostGIS. That's 29 for Stage 1 rules and 53 for the consumer–vendor relationship
-rules. Application-layer tests will be added with the code.
+**Current results (database layer, 2026-10-10):** 85 of 85 checks passed on PostgreSQL
+16. That's 29 for Stage 1 rules and 56 for the consumer–vendor relationship rules,
+including the review rule chosen in D-06. Application-layer tests will be added with the code.
 
 ## 13. Legal context (not legal advice)
 

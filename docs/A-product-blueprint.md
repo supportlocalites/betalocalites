@@ -56,7 +56,7 @@ Each principle has a technical control that makes it checkable.
 | Each side owns its own actions. | Only consumers start conversations and mark bookings; only vendors reply and flag. Enforced in the database. |
 | Events and conversations are private. | Default-deny permissions; staff don't read conversations unless reported. |
 | We never claim something happened that didn't. | "Booked" is labelled as the consumer's record. An email is "sent" only when it really was. |
-| Reviews come from real, recorded relationships. | The database refuses reviews that don't trace to a booked vendor, a past event, and a Localites conversation. |
+| Reviews come from real, recorded bookings, and a person approves each one. | The database refuses reviews that don't trace to a booked vendor and a past event, records whether the two talked on Localites, and keeps every review hidden until an admin approves it (D-06). |
 | Collect as little personal information as possible. | No child profiles, no birthdates, no guest accounts. |
 | Nothing hardcoded to birthdays or Orillia. | Event types and places are reference data. |
 | Calm, not enterprise. | Mobile-first; no dashboards before there's data worth showing. |
@@ -88,7 +88,8 @@ is **designed for** now: the data model and permissions already have a place for
 - **See consumers who marked them booked; flag any that aren't real** — Stage 2
 - **Reply once to each review** — Stage 3
 - Activity is counted from Stage 1 (D-22) and reported to vendors by the Localites
-  team; a dashboard where vendors see their own numbers — Stage 5
+  team; a dashboard for vendors on a **paid plan**, showing only their own anonymous
+  totals — Stage 5 (D-22, D-24)
 - Availability calendars — **not built.** No reliable integration; we won't imply
   availability we can't know.
 
@@ -112,14 +113,20 @@ is **designed for** now: the data model and permissions already have a place for
 
 ### E. Feedback, reviews and ratings — Stage 3
 - The morning after an event, consumers are asked about each vendor they marked booked
-- Reviews: 1–5 stars and comments, checked by the platform team before publishing
-- Strict eligibility (D-06): booked + event passed + talked on Localites + not flagged
+- Reviews: 1–5 stars and comments. Every new review is emailed to the Localites team
+  (supportlocalites@gmail.com) and published only when an admin approves it (D-06,
+  ADR-026)
+- Eligibility (D-06, option B): booked + event passed + not flagged. Reviews where the
+  two didn't talk on Localites are labelled "Planned outside Localites"
 - Vendor's one public reply
 - Average rating shown once a vendor has three published reviews
 
 ### F. Guests, invitations, RSVPs — Stage 4
-- Guest list; secure, revocable invitation links shared through the consumer's own
-  phone or email
+- Guest list; a personal link for each guest, and a group link for group chats and
+  social posts, shared from the consumer's own phone by text, WhatsApp, social media,
+  email or a printable QR code (D-08)
+- Who has opened and who has replied, per guest; group-link replies are matched to the
+  guest list by the host
 - Account-free RSVP, plus-ones, host-defined questions
 - Attendance view; event updates to guests
 - Guests are not users and never interact with vendors
@@ -133,9 +140,10 @@ is **designed for** now: the data model and permissions already have a place for
 - Every staff action logged; staff permissions enforced on the server
 
 ### H. Future, not committed
-More communities; vendor insights; clearly labelled sponsored placements or vendor
-subscriptions, if the business model calls for them (these would never affect reviews
-or ratings); notifications by text message; richer coordination.
+More communities; the paid vendor dashboard (D-22, D-24); featured placements, clearly
+labelled (these never affect reviews or ratings); notifications by text message;
+richer coordination. Vendors pay for paid plans outside Localites unless you approve
+online payment separately (ADR-025).
 
 **Never, without a new decision:** payments of any kind.
 
@@ -195,11 +203,15 @@ message on launch day has someone on the other end.
 
 ## 8. Open decisions
 
-All in [H](./H-product-owner-action-register.md). The ones that shape the work now:
-D-13 (consumer–vendor rules), D-06 (review rule), D-14 (stage order).
+All in [H](./H-product-owner-action-register.md). Still open: D-24 (how vendors pay for a
+paid plan) and the rest of D-12 (legal name and mailing address, before launch).
 Already decided: the architecture (D-00); the name and address, Localites at
 `localites.ca` (D-01, D-07); the design, direction G for phones and computers (D-21,
 [design-system.md](./design-system.md)); a curated launch list (D-03); website and phone
 in Stage 1, then messaging with **Inquire** for businesses not yet on Localites in Stage 2
 (D-04, D-05); the launch area (D-09); all team emails to the product owner's address
-(D-11); and activity tracking for vendor reports (D-22).
+(D-11); activity tracking for vendor reports, kept for year-over-year comparison (D-22);
+the consumer–vendor rules (D-13); reviews open to any real booking, each approved by an
+admin (D-06); reviews before RSVPs (D-14); invitations by personal and group links and
+QR codes (D-08); data-keeping rules, with events kept for as long as the host's account
+exists (D-10); and supportlocalites@gmail.com as the privacy contact (D-12).

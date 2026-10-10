@@ -1,6 +1,6 @@
 # H — Product Owner Action Register
 
-**Last updated:** 2026-10-10 (revision 6)
+**Last updated:** 2026-10-10 (revision 7)
 
 This is the one place where everything that needs **you** is listed. If it isn't here,
 you don't need to do it.
@@ -31,7 +31,13 @@ Recorded from your messages of 9 and 10 October 2026. These now shape every docu
 | ✅ D-04 | **The stages stay as planned.** In Stage 1, vendor profiles show the business's own website and phone, and taps are counted. When messaging arrives in Stage 2, claimed, verified vendors get **Message**; unclaimed or unverified vendors get **Inquire**, which emails the Localites team at supportlocalites@gmail.com saying which vendor was requested and by whom. | [Roadmap](./roadmap.md) unchanged; ADR-024 (Stage 2). Settles D-05. |
 | ✅ D-09 | **Launch area:** Orillia plus Severn, Oro-Medonte and Ramara. | The first vendor list is Orillia-based (D-03); consumers can be anywhere in the area. |
 | ✅ D-11 | **supportlocalites@gmail.com is the Localites admin address**: every service account is registered to it, and all alerts and team emails go to it. | [F](./F-operational-runbook.md) monitoring; inquiry emails (D-04) too. |
-| ✅ D-22 | **Full activity tracking for vendor reports**: who and how many people see each vendor in search, open their profile, tap their website or phone (from Stage 1), and save, inquire, message, add them to an event or mark them booked (from Stage 2). | ADR-023; [E §7a](./E-security-and-privacy-model.md#7a-activity-tracking-d-22). Used to sell featured placements and help with renewals. |
+| ✅ D-13 | **The consumer–vendor rules R1–R8 are approved.** | [roles-and-relationships.md §3](./roles-and-relationships.md#3-rules-we-propose-for-the-relationship); ADR-022 accepted. |
+| ✅ D-06 | **Reviews: option B, and an admin approves every one.** Any real booking can be reviewed after the event (no Localites conversation needed); each new review is emailed to supportlocalites@gmail.com and goes live only when an admin approves it. | ADR-026; database rule updated and checked (56 of 56). Reviews without a Localites conversation are labelled "Planned outside Localites". |
+| ✅ D-14 | **Reviews come before guest RSVPs.** | Stage 3 reviews, Stage 4 RSVPs ([roadmap](./roadmap.md)). |
+| ✅ D-08 | **Invitations are shared from the host's own phone**: text, WhatsApp, social media, email or a printable QR code, with a personal link per guest and a group link for group chats. | [roadmap](./roadmap.md) Stage 4; [E §5](./E-security-and-privacy-model.md#5-invitation-link-security). |
+| ✅ D-10 | **Data-keeping rules approved**, except that **events are kept for as long as the host's account exists**, so hosts can look back years later. | [E §8](./E-security-and-privacy-model.md#8-retention-and-deletion). |
+| ✅ D-12 (part) | **Privacy contact: supportlocalites@gmail.com.** Legal name and mailing address still to come. | Privacy policy and terms (PO-07). |
+| ✅ D-22 | **Full activity tracking for vendor reports**: who and how many people see each vendor in search, open their profile, tap their website or phone (from Stage 1), and save, inquire, message, add them to an event or mark them booked (from Stage 2). | ADR-023; [E §7a](./E-security-and-privacy-model.md#7a-activity-tracking-d-22). Used to sell featured placements and help with renewals. **Amended:** detailed records kept with no deletion date, for year-over-year numbers; vendors see only anonymous counts, in a dashboard for paying vendors. |
 
 ---
 
@@ -39,13 +45,12 @@ Recorded from your messages of 9 and 10 October 2026. These now shape every docu
 
 | # | What | Blocks | Your effort |
 |---|---|---|---|
-| **PO-05** | Send the vendor categories you want at launch, or edit our starter list | Vendor research (D-03) | 10 min |
-| **D-13** | Approve the consumer–vendor rules | Stage 2 design | 10 min |
-| **D-06** | Who may leave a review | Stage 3 design | 5 min |
-| **D-14** | After the handshake: reviews first, or guest RSVPs first? | Roadmap | 2 min |
+| **PO-08** | Pick which researched businesses go on Localites at launch | Launch list (D-03) | 30 min |
+| **D-24** | How vendors pay for a paid plan (the dashboard, featured spots) | Stage 5 design; selling featured spots | 2 min |
+| **D-12** | Legal business name and mailing address | Privacy policy and terms (before launch) | 2 min |
 
 **How to respond:** reply in the conversation with decision numbers and your choice,
-e.g. *"D-13 approve. D-06 recommended. D-14 recommended."* "I don't understand
+e.g. *"D-24 recommended. D-12: Localites Inc., 123 Main St."* "I don't understand
 this one" is a perfectly good answer.
 
 ---
@@ -91,7 +96,7 @@ with that vendor. We'd tell the consumer this clearly when they tap "Mark as boo
 The alternative is to keep "booked" completely private, which removes the flagging
 protection.
 
-**Status:** ⏳ Awaiting you.
+**Status:** ✅ Approved, 10 October 2026 (all eight rules).
 
 ---
 
@@ -139,8 +144,11 @@ interactions the platform recorded, and it can't be gamed by marking a random bu
 "booked". Relaxing to B later is easy. Tightening after unverifiable reviews are public
 is not.
 
-**Status:** ⏳ Awaiting you. Needed before Stage 3, but it shapes Stage 2's design, so
-earlier is better.
+**Status:** ✅ Decided, 10 October 2026: **option B, with an admin approving every
+review.** Each new review is emailed to supportlocalites@gmail.com with a link to it in
+the admin area, where an admin taps **Approve** or **Decline**. For safety, the email
+doesn't contain a one-tap approve button: email security scanners open links on their
+own, and a forwarded email could publish a review nobody read (ADR-026).
 
 ---
 
@@ -156,7 +164,7 @@ Parents already have workable RSVP tools (Evite, group chats); nobody else has
 reviews tied to real local bookings. No feedback is lost in the meantime: bookings are
 recorded from Stage 2, and Stage 3 asks about any event in the previous 60 days.
 
-**Status:** ⏳ Awaiting you.
+**Status:** ✅ Decided, 10 October 2026: reviews first, then RSVPs.
 
 ---
 
@@ -191,23 +199,47 @@ with renewals.
 | Conversations and messages *(from Stage 2)* | Someone starts a conversation; messages each way; how quickly the business replies |
 | Added to an event, marked booked *(from Stage 2)* | From the event plan |
 
-**How we keep it trustworthy and private.** Recommended rules; tell us if you'd like any
-changed:
-1. **Vendors see totals, never people.** "212 people saw you in search; 31 opened your
-   profile", never who. (They do see the people who message them, as part of the
-   conversation.)
+**How we keep it trustworthy and private** (amended by you, 10 October 2026):
+1. **Vendors see anonymous counts, never people.** "212 people saw you in search; 31
+   opened your profile", never who. (They do see the people who message them, as part of
+   the conversation.) Vendors on a **paid plan** see their counts in a dashboard
+   (Stage 5; how they pay is D-24); others get reports from the Localites team.
 2. **When selling to other vendors**, use category-level figures ("face painters on
    Localites averaged 180 profile views a month"), or one vendor's own numbers only with
    that vendor's permission.
-3. **Who-did-what stays with the Localites team**, for running the service and preparing
-   reports. Every look at it is logged. It's never sold.
+3. **Admins see the full detail** (who did what, when), for running the service,
+   preparing reports and comparing year over year. Every look is logged. It's never
+   sold.
 4. **Said plainly in the privacy policy**, and checked in the legal review (PO-07).
 5. **No outside trackers** (no Google Analytics or ad pixels). Everything is counted in
    our own database (ADR-023).
-6. **Detailed records are kept 90 days**, then rolled into daily totals, which are kept.
-   This also keeps us inside the free database limits.
+6. **Detailed records are never deleted**, so you can run year-over-year numbers. If they
+   near the free database limit, older ones move to our free archive storage instead.
+   When someone deletes their account, their records stay but the link to them is
+   removed (recommended, so the privacy policy can promise deletion of the person; the
+   legal review confirms).
 
-**Status:** ✅ Decided, 10 October 2026 (rules 1–6 recommended; reply if you'd change any).
+**Status:** ✅ Decided, 10 October 2026; amended the same day (paid dashboard, admins see
+everything, detail kept for year-over-year numbers).
+
+---
+
+### D-24 — How vendors pay for a paid plan
+
+**What.** You want the vendor dashboard to be for paying vendors only, and you plan to
+sell featured spots. How do vendors pay?
+
+**Options.**
+| Option | How it works | Cost | Effort |
+|---|---|---|---|
+| **A. Outside Localites (recommended to start)** | You invoice the vendor; they pay by Interac e-Transfer or cheque. An admin switches their plan on in Localites with an end date. | $0 | Light; a renewal reminder email to you before each plan ends |
+| B. Card payments online | The vendor pays by card inside Localites through a payment company (such as Stripe). | A fee on every payment (typically around 3%); no monthly cost | 1–2 weeks more work, a security review, new terms. Needs your explicit approval (the original brief rules out payment processing until approved). |
+
+**Recommendation.** A. It's free, needs no card handling, and fits a small number of
+local vendors. Localites stores only the plan and its dates, never prices or payment
+details (ADR-025). Move to B only if manual invoicing becomes a burden.
+
+**Status:** ⏳ Awaiting you.
 
 ---
 
@@ -318,7 +350,16 @@ approval. When a free plan approaches its limit, we tell you at 80%, with option
 Facebook or email, with one-tap share buttons. Localites doesn't email guests. Free, and
 avoids anti-spam issues.
 
-**Status:** Not needed yet.
+**Status:** ✅ Decided, 10 October 2026: shared from the host's own phone by text,
+WhatsApp, social media, email, or a printable QR code. Localites doesn't send texts or
+emails to guests (no cost, no spam risk). Two kinds of link:
+- **Personal link** (one per guest): Localites knows exactly who opened it and who
+  replied. Best when you want to track everyone.
+- **Group link** (one for a group chat, a social post or a QR code on a printed
+  invitation): anyone with it can reply and is asked for their name. Localites can't tell
+  who in a group chat has *seen* it, but each reply comes with a name, and the host
+  matches it to their guest list with one tap. Everyone on the list without a reply shows
+  as **No reply yet**, so the host still knows who to chase.
 
 ---
 
@@ -338,7 +379,12 @@ Approve or amend [E §8](./E-security-and-privacy-model.md#8-retention-and-delet
 including how conversations are handled when one side deletes their account. Recommend:
 approve as written, subject to the lawyer's review.
 
-**Status:** Not needed yet.
+**Status:** ✅ Decided, 10 October 2026: approved, except **events are kept for as long
+as the host's account exists**, so they can look back years later. Kept with the event:
+type, date, place, vendors, bookings, guest names and replies. Guest phone numbers and
+emails are still erased 90 days after the event, because guests never agreed to
+Localites keeping them. Tell us if you'd like those kept too. Detailed activity records
+are kept with no deletion date (D-22).
 
 ---
 
@@ -371,7 +417,10 @@ for every service account (PO-03).
 Legal name, address, and privacy contact for the privacy policy and terms. Needed for
 PO-07.
 
-**Status:** Not needed yet.
+**Status:** Part decided, 10 October 2026: the privacy contact is
+**supportlocalites@gmail.com**. Still needed before launch: the legal business name
+(or your name, if Localites isn't incorporated yet) and a mailing address for the
+privacy policy and terms.
 
 ---
 
@@ -415,7 +464,7 @@ Every account is registered to the Localites admin address, **supportlocalites@g
 1. **Supabase** (you've used it before): create two free projects, "localites" and
    "localites-test", in the Canada region.
 2. **Cloudflare**: create a free account and connect it to the project's GitHub
-   repository (it can keep its current name, `Tallo`), so every change we push is built
+   repository, `supportlocalites/localites`, so every change we push is built
    automatically. Before connecting, we read Cloudflare's terms together to confirm
    business use is allowed on the free plan (ADR-007).
 3. **Connect them**: copy the database connection details from Supabase's dashboard
@@ -441,19 +490,16 @@ together, live, from your screen. **Never send the registrar password to anyone,
 us.**
 
 ### PO-05 — Choose the starting categories
-**When:** Now. Vendor research (D-03) starts as soon as we have them.
-**What:** Reply with the categories you want at launch, or edit this starter list:
-- **Entertainment:** face painting · magicians · balloon twisting · character and princess
-  parties · clowns and entertainers · DJs and music · animal and reptile shows
-- **Activities:** craft and painting parties · science parties · sports and active parties
-  · bouncy castles and inflatables
-- **Food:** cakes and cupcakes · cookies and treats · catering
-- **Places:** party rooms and venues · play centres · community halls
-- **Rentals and decor:** tables, chairs and tents · balloons and decor · photo booths
+**Status:** ✅ Done, 10 October 2026. Your six categories, with what we've put in each:
+- **Venue:** party rooms, halls, indoor play, bowling and activity centres, event spaces
+- **Food & Beverage:** caterers, food trucks, party trays, mobile bars
+- **Sweets:** custom cakes, cupcakes, cookies, chocolates, dessert tables, ice cream
+- **Rentals & Decor:** tents, tables and chairs, bouncy castles, balloons, decor, photo
+  booths
+- **Activities:** entertainers (face painters, magicians, balloon twisters, characters,
+  DJs, animal shows) and activities (crafts, science, sports). There's no separate
+  "Entertainment" category; tell us if you'd like one.
 - **Photography:** photographers and videographers
-
-We then research Orillia-based businesses in each one and send you a shortlist to choose
-from.
 
 ### PO-06 — Alert email address
 **When:** Just before launch. Alerts go to supportlocalites@gmail.com (D-11); we'll send a
@@ -464,13 +510,17 @@ test alert there and you confirm it arrived.
 **Scope:** privacy policy; terms of use (especially that **Localites is not a party to
 arrangements or payments between consumers and vendors**); review policy and how vendor
 flags are handled; the unclaimed-listing approach (D-03); emails we send (CASL);
-retention (D-10). We'll prepare drafts and a one-page summary so the lawyer reviews
+retention (D-10), including **keeping detailed activity records with no deletion date**
+(D-22), which the lawyer should specifically check. We'll prepare drafts and a one-page summary so the lawyer reviews
 rather than discovers. Ask for a fixed-fee quote. Not in the infrastructure budget.
 
 ### PO-08 — Starting vendor list, and early claims
 **When:** Stage 1, weeks 1–4.
 **What:** We research Orillia-based businesses in your categories (PO-05, D-03) and send
-you a shortlist; you pick which go live (aim: 30–50). Add any you know personally. **New in revision 2:** during Stage 1,
+you a shortlist; you pick which go live (aim: 30–50). **First research done (10 October
+2026):** 61 Orillia businesses and 17 nearby, in
+[launch/vendor-research-2026-10-10.md](./launch/vendor-research-2026-10-10.md); mark them
+on the shortlist page and paste your choices into the chat. Add any you know personally. **New in revision 2:** during Stage 1,
 we'd like as many of them as possible to *claim* their listing, because only claimed
 businesses can receive messages when Stage 2 launches. We'll give you a short script
 for those calls and a claim link for each business.
@@ -493,3 +543,4 @@ computer through private preview links. You tell us what feels right. No code to
 | 2026-10-10 | D-21: design direction G, for phones and computers |
 | 2026-10-10 | D-00: architecture approved |
 | 2026-10-10 | D-03, D-04 (settling D-05), D-09, D-11 decided; D-22 activity tracking; stages unchanged |
+| 2026-10-10 | PO-05 categories; D-13, D-06, D-14, D-08, D-10 decided; D-12 privacy contact; D-22 amended |

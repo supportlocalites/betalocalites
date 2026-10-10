@@ -31,6 +31,39 @@ Every release and every database migration, in order. Appended before each deplo
 
 ## Releases
 
+### 2026-10-10 — Stage 0 documentation, revision 7: remaining Stage 0 decisions
+
+**Stage:** 0
+**What changed (plain English):** The product owner answered the open questions:
+- **PO-05:** launch categories are Venue, Food & Beverage, Sweets, Rentals & Decor,
+  Activities (which includes entertainers) and Photography. Vendor research started.
+- **D-13:** the consumer–vendor rules R1–R8 are approved; ADR-022 accepted.
+- **D-06:** reviews use option B. Any real booking can be reviewed after the event, and
+  an admin approves every review before it's published. The team is emailed each new
+  review, with a link to the admin area rather than an approve button (ADR-026).
+- **D-14:** reviews before guest RSVPs.
+- **D-22 amended:** a vendor dashboard for vendors on a paid plan (anonymous counts only);
+  admins see the full detail; detailed records are kept with no deletion date, for
+  year-over-year numbers. How vendors pay is a new question, D-24 (ADR-025, proposed).
+- **D-10:** data-keeping rules approved, with events kept for as long as the host's
+  account exists.
+- **D-08:** invitations shared from the host's phone by text, WhatsApp, social media,
+  email or QR code, using personal links and a group link with name matching.
+- **D-12 (part):** the privacy contact is supportlocalites@gmail.com.
+**Documents:** H, A, B, C, D, E, roles and relationships, roadmap, screen inventory,
+testing strategy.
+**Migrations applied:** None. The proposed Stage 2–3 schema changes the review rule:
+a Localites conversation is no longer required; instead the database records
+`review.planned_on_localites` itself and refuses any change to it.
+**Destructive?** No (proposal only; no database exists).
+**Tests run:** Both proposed schemas applied to a scratch PostgreSQL 16.15 + PostGIS
+database: Stage 1, 29 of 29 passed; consumer–vendor checks, 56 of 56 passed (three new
+checks for the review rule). Scratch database discarded.
+**Approved by:** Product owner (PO-05, D-06, D-08, D-10, D-12 in part, D-13, D-14, D-22
+amendments), 10 October 2026.
+**Repository:** the product owner moved the code from `igbarker/Tallo` to
+`supportlocalites/localites` the same day. Links in the documents now point there.
+
 ### 2026-10-10 — Stage 0 documentation, revision 6: launch list, Inquire, activity tracking
 
 **Stage:** 0

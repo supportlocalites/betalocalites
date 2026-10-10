@@ -5,7 +5,9 @@
 
 **10 October 2026:** stages and estimates unchanged. Your answers on the launch list
 (D-03), launch area (D-09), team emails (D-11), Inquire (D-04, D-05) and activity
-tracking (D-22) are placed in the existing stages below.
+tracking (D-22) are placed in the existing stages below. Later the same day: reviews
+before RSVPs (D-14), review rule option B with admin approval (D-06), invitation links
+and QR codes (D-08), and the paid vendor dashboard in Stage 5 (D-22, D-24).
 
 **Revision 2:** stages reorganised around the consumer–vendor handshake. Messaging
 moves from a late, optional stage to the centre of Stage 2. Quotes, vendor-confirmed
@@ -55,7 +57,7 @@ happened.
 | 2 | **Roles & the consumer–vendor relationship** | [roles-and-relationships.md](./roles-and-relationships.md) | ✅ New |
 | 3 | Screen inventory | [screen-inventory.md](./screen-inventory.md) | ✅ Revised |
 | 4 | Domain model & diagrams | [B](./B-domain-and-data-model.md) | ✅ Revised |
-| 5 | Proposed database: Stage 1 and Stages 2–3 | [schema/](./schema/) | ✅ 82/82 checks pass |
+| 5 | Proposed database: Stage 1 and Stages 2–3 | [schema/](./schema/) | ✅ 85/85 checks pass |
 | 6 | Permissions & privacy | [E](./E-security-and-privacy-model.md) | ✅ Revised |
 | 7 | Architecture & deployment | [C](./C-architecture-decision-log.md), [F](./F-operational-runbook.md) | ✅ Revised |
 | 8 | API & integrations | [api-strategy.md](./api-strategy.md) | ✅ Revised |
@@ -191,11 +193,13 @@ build vendors' reputations; vendors can reply.
 
 **In scope.** Feedback requests the morning after (email + in-app) and one reminder ·
 retroactive requests for events in the previous 60 days · review form (stars +
-comments) · eligibility per D-06 · moderation queue with written policy · booking-flag
-resolution · publication on profiles · vendor reply (once) · rating summary (from 3
-reviews).
+comments) · eligibility per D-06 (option B: any real booking; reviews without a
+Localites conversation labelled "Planned outside Localites") · **every new review
+emailed to the team with a link to approve or decline it in the admin area** (ADR-026) ·
+moderation queue with written policy · booking-flag resolution · publication on
+profiles · vendor reply (once) · rating summary (from 3 reviews).
 
-**Dependencies.** Stage 2; D-06; review policy reviewed by the lawyer.
+**Dependencies.** Stage 2 (D-06 and D-14 decided); review policy reviewed by the lawyer.
 
 **Effort.** 2–3 weeks.
 
@@ -210,19 +214,23 @@ without a recorded moderator. Ratings appear only from three reviews.
 **Outcome.** Consumers invite guests with secure links and collect RSVPs without guests
 creating accounts.
 
-**In scope.** Guest list · per-guest and open invitation links · revoke/expire ·
-account-free RSVP with plus-ones and host questions · attendance view · event updates.
+**In scope.** Guest list · a personal link per guest, and a group link for group chats
+and social posts (guests type their name; the host matches it to the list) · share by
+text, WhatsApp, social media or email from the host's phone, or as a printable QR code
+(D-08) · revoke/expire · account-free RSVP with plus-ones and host questions · attendance
+view showing who has replied and who hasn't · event updates · events kept for as long as
+the host's account exists (D-10).
 
-**Dependencies.** Stage 2; D-08, D-10. **Effort:** 3–4 weeks.
+**Dependencies.** Stage 3 (D-14); D-08 and D-10 decided. **Effort:** 3–4 weeks.
 
 ---
 
 ## Stage 5 — Growth
 
-Each item proposed and approved separately, based on real use: vendor insights (visits,
-clicks, conversations, bookings marked, reviews) · more communities (data only) ·
-clearly labelled sponsored placements or vendor subscriptions, if the business model
-calls for them (never affecting reviews) · text-message notices (needs a service and
+Each item proposed and approved separately, based on real use: **vendor dashboard for
+vendors on a paid plan**, showing only their own anonymous counts (D-22; how they pay is
+D-24) · more communities (data only) · featured placements, clearly labelled and sold by
+the team (never affecting reviews) · text-message notices (needs a service and
 approval).
 
 ---
@@ -234,7 +242,7 @@ approval).
 | Vendors don't claim, so messaging has nobody to talk to | Claim drive during Stage 1 (PO-08); **Inquire** reaches the team for every unclaimed business (D-04); measure claim rate weekly |
 | Vendors don't reply, so consumers lose trust | Email notices; reply-rate visible to the platform team; later, a gentle "replies usually within a day" on profiles (only once true) |
 | Messaging misuse: spam, harassment, fake invoices | Vendors can't start conversations; block/report; "Localites doesn't process payments" notice; reports reviewed daily |
-| Fake bookings used to post unfair reviews | Consumer-only "booked"; vendor flag; D-06 conversation requirement; moderation |
+| Fake bookings used to post unfair reviews | Consumer-only "booked"; vendor flag; an admin approves every review (D-06); "Planned outside Localites" label |
 | Nobody available when messaging breaks | Alerts by email to you; a ready-made note for starting a fix session (D-11) |
 | A free-plan limit is reached (most likely email at 100/day, then file storage) | Free plans stop rather than bill. We warn you at 80% with free options first: tighter email batching, a second free email service, photo compression ([cost-model.md](./cost-model.md)) |
 | Cloudflare's free plan doesn't fit, or its terms don't allow business use | Fit test and terms check before real building starts; options brought to you before anything costs money |

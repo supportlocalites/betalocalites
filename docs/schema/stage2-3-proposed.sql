@@ -388,6 +388,9 @@ create table review (
   vendor_reply       text check (char_length(vendor_reply) <= 1500),
   vendor_replied_by  uuid references app_user(id),
   vendor_replied_at  timestamptz,
+  -- Set by the database, never by the app: true if the vendor replied to the host
+  -- in a Localites conversation. False shows the label "Planned outside Localites".
+  planned_on_localites boolean not null default false,
   created_at         timestamptz not null default now(),
   check (moderation_status = 'pending' or (moderated_by is not null and moderated_at is not null)),
   check (moderation_status <> 'published' or published_at is not null),
@@ -396,9 +399,11 @@ create table review (
   check ((vendor_reply is null) = (vendor_replied_by is null))
 );
 
--- [D-06] Who may review: the host, for a vendor they marked booked, after the
--- event, within 60 days, if the vendor hasn't flagged the booking, and if the
--- two exchanged messages on Localites (the vendor replied at least once).
+-- [D-06, option B] Who may review: the host, for a vendor they marked booked,
+-- after the event, within 60 days, if the vendor hasn't flagged the booking.
+-- A Localites conversation is not required; the database records whether there
+-- was one (the vendor replied at least once), so the label can't be faked.
+-- Every review starts pending and is published only by the platform team.
 create function enforce_review_eligibility() returns trigger
 language plpgsql as $$
 declare
@@ -426,13 +431,12 @@ begin
   if ev.vendor_flagged_at is not null and ev.flag_outcome is distinct from 'booking_stands' then
     raise exception 'the business has said this booking is not real; it can be reviewed only if the platform team confirms it';
   end if;
-  if not exists (select 1 from conversation c
-                 join message m on m.conversation_id = c.id
-                 where c.consumer_user_id = e.host_user_id
-                   and c.vendor_id = ev.vendor_id
-                   and m.author_side = 'vendor') then
-    raise exception 'a vendor can only be reviewed after you have exchanged messages with them on Localites';
-  end if;
+  new.planned_on_localites := exists (
+    select 1 from conversation c
+    join message m on m.conversation_id = c.id
+    where c.consumer_user_id = e.host_user_id
+      and c.vendor_id = ev.vendor_id
+      and m.author_side = 'vendor');
   if new.moderation_status <> 'pending' then
     raise exception 'new reviews start as pending until the platform team checks them';
   end if;
@@ -453,6 +457,9 @@ declare
 begin
   if new.event_vendor_id <> old.event_vendor_id or new.author_user_id <> old.author_user_id then
     raise exception 'a review cannot be moved to another booking or author';
+  end if;
+  if new.planned_on_localites <> old.planned_on_localites then
+    raise exception 'whether a booking was planned on Localites is recorded by the database and cannot be changed';
   end if;
   if old.moderation_status <> 'pending'
      and (new.rating <> old.rating or new.body is distinct from old.body) then

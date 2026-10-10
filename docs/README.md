@@ -48,12 +48,13 @@ and "Booked" that lead to post-event feedback and reviews.
 
 | Doc | What it answers |
 |---|---|
-| [Screen Inventory](./screen-inventory.md) | All 62 screens, by user and stage |
+| [Screen Inventory](./screen-inventory.md) | All 63 screens, by user and stage |
 | [Roadmap & Estimates](./roadmap.md) | Stage scope, effort, dependencies, risks, acceptance criteria |
 | [Cost Model](./cost-model.md) | Monthly costs, with sources |
 | [API & Integration Strategy](./api-strategy.md) | Internal contracts, messaging delivery, third-party services |
 | [Testing Strategy](./testing-strategy.md) | What we test and what "done" means |
 | [Design System](./design-system.md) | How Localites looks and behaves on phones and computers (direction G) |
+| [Launch vendor research](./launch/vendor-research-2026-10-10.md) | Researched Orillia-area businesses for the launch list (PO-08) |
 | [Design archive](./design/README.md) | Every mockup explored (A to H), kept for reference |
 | [Proposed schema: Stage 1](./schema/stage1-proposed.sql) · [checks](./schema/stage1-proposed.test.sql) | Vendors and discovery tables (not applied) |
 | [Proposed schema: Stages 2–3](./schema/stage2-3-proposed.sql) · [checks](./schema/stage2-3-proposed.test.sql) | Events, conversations, files, reviews (not applied) |

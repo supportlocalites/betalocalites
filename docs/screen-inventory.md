@@ -1,7 +1,7 @@
 # Screen Inventory
 
 **Status:** Proposed (Stage 0, revision 2).
-**Last updated:** 2026-10-10 (Inquire and vendor activity reports added; stages unchanged)
+**Last updated:** 2026-10-10 (Inquire, vendor activity reports, review approval, invitation links and the paid vendor dashboard)
 
 Every screen in the intended product, grouped by who uses it. **★** marks the screens
 we'll prototype first (PO-09) so you can judge the experience on your phone. Every
@@ -54,8 +54,8 @@ added; quotes, bookings and the concierge queue removed.
 | C10 | Inquire | For unclaimed or unverified businesses: their own contact details, an optional note and event; says honestly what happens next (D-04) | 2 |
 | C11 | How was it? | From the feedback email: stars + comments, one per booked vendor | 3 |
 | C12 | My reviews | Status: checking, published, declined (with reason) | 3 |
-| C13 | Guests | Guest list and invitation status | 4 |
-| C14 | Invitation setup | Wording, questions, share buttons | 4 |
+| C13 | Guests | Guest list; who has opened and replied; match names from the group link; "No reply yet" list (D-08) | 4 |
+| C14 | Invitation setup | Wording, questions; personal links per guest and a group link; share by text, WhatsApp, social media or email; printable QR code (D-08) | 4 |
 | C15 | RSVP results | | 4 |
 | C16 | Event updates to guests | | 4 |
 
@@ -72,7 +72,7 @@ added; quotes, bookings and the concierge queue removed.
 | V7 ★ | Conversation (vendor view) | Messages and files; event summary panel (type, date, town, guest estimate) when shared | 2 |
 | V8 | Bookings marked | Consumers who marked the business booked; **"This isn't right"** to flag | 2 |
 | V9 | Reviews | Published reviews; reply once | 3 |
-| V10 | Insights | Visits, clicks, conversations, bookings marked, reviews | 5 |
+| V10 | Dashboard (paid plan) | The vendor's own anonymous counts: seen in search, profile views, taps, saves, inquiries, messages, bookings marked, reviews; compared with last year (D-22, D-24) | 5 |
 
 ## Guest — invitation link only, no account
 
@@ -101,7 +101,7 @@ added; quotes, bookings and the concierge queue removed.
 | X12 | Event types | | 2 |
 | X13 | Reports | Reported messages, conversations, listings. Opening a conversation is logged. | 2 |
 | X14 | Inquiries | Every inquiry, by business, to follow up and invite (D-04) | 2 |
-| X15 | Review moderation | Publish or decline against the written policy | 3 |
+| X15 | Review moderation | Approve or decline each review against the written policy; opened from the new-review email (D-06, ADR-026) | 3 |
 | X16 | Booking flags | Resolve vendor flags | 3 |
 | X17 | Operations report | Listings, claims, conversations, reply rates, reviews | 3 |
 | X18 | Vendor activity reports | One vendor's totals by period (seen in search, views, taps; later saves, inquiries, messages), to share with that vendor; category-level figures for others (D-22) | 1 |
