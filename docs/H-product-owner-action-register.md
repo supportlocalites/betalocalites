@@ -1,6 +1,6 @@
 # H — Product Owner Action Register
 
-**Last updated:** 2026-10-10 (revision 4)
+**Last updated:** 2026-10-10 (revision 5)
 
 This is the one place where everything that needs **you** is listed. If it isn't here,
 you don't need to do it.
@@ -23,6 +23,7 @@ Recorded from your messages of 9 and 10 October 2026. These now shape every docu
 | ✅ D-18 | **"Add to event" and "Booked" are the consumer's tools.** | ADR-021. Only the consumer can set them (database-enforced). |
 | ✅ D-19 | **After the event, ask the consumer for feedback; that feeds reviews and ratings.** | Stage 3: feedback requests → reviews → ratings. |
 | ✅ D-20 | **No running costs.** Every service runs on a free plan. | [cost-model.md](./cost-model.md) revision 3. Supabase, email, error alerts and backups on free plans; hosting moved from Vercel to Cloudflare's free plan (ADR-007). Only the web address remains (D-07). |
+| ✅ D-00 | **The architecture is approved** (10 October 2026): one application, one PostgreSQL database, the consumer–vendor data model, the security model and the staged roadmap. | Stage 0 documents marked approved; technical decisions accepted in [C](./C-architecture-decision-log.md). Stage 1 is approved separately. |
 | ✅ D-01 | **The product is called Localites, at `localites.ca`.** Renamed from Tallo; you bought the domain on 10 October 2026. | Every document, the proposed schemas and the design mockups say Localites. |
 | ✅ D-07 | **Pay for the web address.** Done: `localites.ca` is yours. | The only running cost (~CA$15–25 a year). Email can be set up on it when we get there. |
 | ✅ D-21 | **Build the app with design G, for phones and computers.** One website that adapts to the screen; all earlier designs kept for reference. | [design-system.md](./design-system.md); archive in [design/](./design/README.md); phone, tablet and desktop checks in [testing-strategy.md](./testing-strategy.md). |
@@ -33,7 +34,6 @@ Recorded from your messages of 9 and 10 October 2026. These now shape every docu
 
 | # | What | Blocks | Your effort |
 |---|---|---|---|
-| **D-00** | Approve the revised architecture (separately from Stage 1) | Everything | Read the blueprint page; reply |
 | **D-13** | Approve the consumer–vendor rules | Stage 2 design | 10 min |
 | **D-05** | Messaging businesses that haven't joined Localites | Stage 2 design | 2 min |
 | **D-06** | Who may leave a review | Stage 3 design | 5 min |
@@ -63,7 +63,7 @@ spending, any recurring cost, or any future feature.
 **Recommendation.** Approve, then approve Stage 1 separately after reviewing the
 prototypes.
 
-**Status:** ⏳ Awaiting you.
+**Status:** ✅ Approved, 10 October 2026.
 
 ---
 
@@ -405,7 +405,7 @@ for those calls and a claim link for each business.
 ### PO-09 — Review prototypes
 **Partly done.** The design mockups were reviewed on the canvas, and direction G was chosen
 (D-21).
-**Still to come, after D-00:** the real screens from the build, on your own phone and
+**Still to come, now that D-00 is approved:** the real screens from the build, on your own phone and
 computer through private preview links. You tell us what feels right. No code to read.
 
 ---
@@ -418,3 +418,4 @@ computer through private preview links. You tell us what feels right. No code to
 | 2026-10-10 | D-01: the product is called Localites, at `localites.ca` |
 | 2026-10-10 | D-07 and PO-04: domain bought |
 | 2026-10-10 | D-21: design direction G, for phones and computers |
+| 2026-10-10 | D-00: architecture approved |

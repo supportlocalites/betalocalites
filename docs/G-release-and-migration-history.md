@@ -31,6 +31,19 @@ Every release and every database migration, in order. Appended before each deplo
 
 ## Releases
 
+### 2026-10-10 — Architecture approved (D-00)
+
+**Stage:** 0
+**What changed (plain English):** The product owner approved the architecture: one
+application, one PostgreSQL database, the consumer–vendor data model, the security model
+and the staged roadmap. Stage 0 documents are marked approved and the technical decisions
+in C are accepted, except ADR-022, which waits for the consumer–vendor rules (D-13).
+Stage 1 still needs its own approval; nothing has been built or spent beyond the domain.
+**Migrations applied:** None.
+**Destructive?** No.
+**Tests run:** None needed; no schema change.
+**Approved by:** Product owner (D-00), 10 October 2026.
+
 ### 2026-10-10 — Stage 0 documentation, revision 5: design G chosen; localites.ca bought
 
 **Stage:** 0
@@ -83,7 +96,7 @@ roadmap, API strategy updated.
 **Migrations applied:** None. Data model and schemas unchanged.
 **Destructive?** No.
 **Tests run:** None needed; no schema change.
-**Approved by:** Pending (D-00).
+**Approved by:** Product owner (D-00), 10 October 2026.
 
 ### 2026-10-09 — Stage 0 documentation, revision 2: consumer–vendor handshake
 
@@ -107,7 +120,7 @@ database. Stage 1 checks: 29/29 passed. Consumer–vendor relationship checks
 passed, each rejection confirmed to fail for the intended reason. Scratch database
 discarded.
 **Existing functionality affected:** None (no application code exists).
-**Approved by:** Pending (D-00).
+**Approved by:** Product owner (D-00), 10 October 2026.
 
 ### 2026-10-09 — Stage 0 documentation
 
@@ -124,4 +137,4 @@ passed (honest pricing, honest statuses, typed attributes, audit log append-only
 browser-facing roles read nothing). Scratch database discarded. No application code
 exists yet.
 **Existing functionality affected:** None.
-**Approved by:** Pending (D-00).
+**Approved by:** Product owner (D-00), 10 October 2026.

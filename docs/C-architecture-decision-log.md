@@ -1,7 +1,7 @@
 # C — Architecture Decision Log
 
-**Status:** Proposed (Stage 0, revision 2). Awaiting product owner approval.
-**Last updated:** 2026-10-09
+**Status:** Accepted (D-00, 10 October 2026), except ADR-022, which awaits D-13.
+**Last updated:** 2026-10-10
 
 Each entry records a significant technical decision: what we chose, why, what we
 rejected, what it costs, and what would make us reconsider. Once approved, entries are
@@ -27,28 +27,28 @@ ADR-014 caveat updated. Nothing in the data model or security model changes.
 
 | # | Decision | Who decides | Status |
 |---|---|---|---|
-| ADR-001 | One application (modular monolith), not microservices | Team | Proposed |
-| ADR-002 | PostgreSQL is the single source of truth | Team | Proposed |
-| ADR-003 | Supabase (free plan) for database, sign-in, and file storage | Team ($0) | Proposed |
-| ADR-004 | The browser never talks to the database directly | Team | Proposed |
-| ADR-005 | Next.js + TypeScript, confirmed by a fit test on the free host | Team | Proposed |
-| ADR-006 | Drizzle for database access, with SQL migrations in git | Team | Proposed |
-| ADR-007 | Cloudflare (free plan) for hosting | Team ($0) | Proposed (rev. 3) |
-| ADR-008 | Postgres full-text search for Stage 1; no search service | Team | Proposed |
-| ADR-009 | UUID v7 identifiers plus human-readable slugs | Team | Proposed |
-| ADR-010 | Invitation links: random, hashed, revocable, expiring | Team | Proposed |
-| ADR-011 | Three-tier metadata (columns, typed attributes, display extras) | Team | Proposed |
-| ADR-012 | One `vendor` table with team membership; no `organization` yet | Team | Proposed |
-| ADR-013 | Email via Resend (free plan): sign-in, message notices, feedback requests | Team ($0) | Proposed |
-| ADR-014 | Data stored in Canada | **Needs approval** (trust/legal) | Proposed |
-| ADR-015 | First-party counts in our own database; no third-party trackers | Team | Proposed |
-| ADR-016 | Sentry for error monitoring, free tier | Team | Proposed |
-| ADR-017 | One gatekeeper for every status change | Team | Proposed |
-| ADR-018 | **Localites never handles money**, and nothing in the system prepares for it | **Needs approval** (product commitment) | Proposed |
-| ADR-019 | Messaging: stored conversations, polled updates, batched email notices | Team | Proposed |
-| ADR-020 | Files in conversations: private, participants only, limited types | Team | Proposed |
-| ADR-021 | "Booked" is the consumer's own record, labelled as such | **Needs approval** (user experience) | Proposed |
-| ADR-022 | One account per person; acting as a vendor comes from team membership | **Needs approval** (user experience; D-13) | Proposed |
+| ADR-001 | One application (modular monolith), not microservices | Team | Accepted |
+| ADR-002 | PostgreSQL is the single source of truth | Team | Accepted |
+| ADR-003 | Supabase (free plan) for database, sign-in, and file storage | Team ($0) | Accepted |
+| ADR-004 | The browser never talks to the database directly | Team | Accepted |
+| ADR-005 | Next.js + TypeScript, confirmed by a fit test on the free host | Team | Accepted |
+| ADR-006 | Drizzle for database access, with SQL migrations in git | Team | Accepted |
+| ADR-007 | Cloudflare (free plan) for hosting | Team ($0) | Accepted (rev. 3) |
+| ADR-008 | Postgres full-text search for Stage 1; no search service | Team | Accepted |
+| ADR-009 | UUID v7 identifiers plus human-readable slugs | Team | Accepted |
+| ADR-010 | Invitation links: random, hashed, revocable, expiring | Team | Accepted |
+| ADR-011 | Three-tier metadata (columns, typed attributes, display extras) | Team | Accepted |
+| ADR-012 | One `vendor` table with team membership; no `organization` yet | Team | Accepted |
+| ADR-013 | Email via Resend (free plan): sign-in, message notices, feedback requests | Team ($0) | Accepted |
+| ADR-014 | Data stored in Canada | **Needs approval** (trust/legal) | Accepted |
+| ADR-015 | First-party counts in our own database; no third-party trackers | Team | Accepted |
+| ADR-016 | Sentry for error monitoring, free tier | Team | Accepted |
+| ADR-017 | One gatekeeper for every status change | Team | Accepted |
+| ADR-018 | **Localites never handles money**, and nothing in the system prepares for it | **Needs approval** (product commitment) | Accepted (D-16) |
+| ADR-019 | Messaging: stored conversations, polled updates, batched email notices | Team | Accepted |
+| ADR-020 | Files in conversations: private, participants only, limited types | Team | Accepted |
+| ADR-021 | "Booked" is the consumer's own record, labelled as such | **Needs approval** (user experience) | Accepted (D-18) |
+| ADR-022 | One account per person; acting as a vendor comes from team membership | **Needs approval** (user experience; D-13) | Proposed (awaits D-13) |
 
 ---
 

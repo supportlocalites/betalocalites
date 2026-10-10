@@ -59,7 +59,7 @@ happened.
 | 10 | Testing strategy | [testing-strategy.md](./testing-strategy.md) | ✅ Revised |
 | 11 | Roadmap | This document | ✅ Revised |
 | 12 | Decisions & actions | [H](./H-product-owner-action-register.md) | ✅ Revised |
-| — | Clickable prototypes (5 screens, PO-09) | — | ⏳ After D-00 |
+| — | Clickable prototypes (5 screens, PO-09) | — | ⏳ Next (D-00 approved; design G chosen, D-21) |
 
 **Remaining:** ~0.5–1 week for prototypes of home, search, vendor profile, a
 conversation (both sides), and an event plan with "Mark as booked".
@@ -83,7 +83,7 @@ production environment, monitoring, backups, restore drill.
 **Excluded.** Consumer accounts, events, messaging, reviews (later stages). Anything
 involving payment (never).
 
-**Dependencies.** D-00, D-01, D-03, D-04, D-07, D-09, D-11; PO-03, PO-05, PO-07 (before
+**Dependencies.** D-03, D-04, D-09, D-11 (D-00, D-01 and D-07 are done); PO-03, PO-05, PO-07 (before
 public launch), PO-08.
 
 **Effort.** 5–7 weeks.

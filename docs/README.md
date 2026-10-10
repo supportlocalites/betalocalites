@@ -4,7 +4,8 @@ This folder is the permanent home for the documents the product owner asked us t
 maintain from day one. Everything here is written to be read **without reading source
 code**.
 
-**Status: Stage 0 (Discovery & Architecture), revision 2. Proposed, awaiting approval.**
+**Status: Stage 0 (Discovery & Architecture). Architecture approved by the product owner
+(D-00, 10 October 2026). Stage 1 is approved separately and hasn't started.**
 No application code has been written. No infrastructure has been created. The only
 spending so far is the web address, `localites.ca`, bought by the product owner. The
 design is chosen: direction G, one website for phones and computers

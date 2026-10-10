@@ -1,6 +1,6 @@
 # E — Security & Privacy Model
 
-**Status:** Proposed (Stage 0, revision 2). Awaiting product owner approval.
+**Status:** Approved (D-00, 10 October 2026).
 **Last updated:** 2026-10-09
 
 **Revision 2:** rebuilt around the two users, consumer and vendor. Added

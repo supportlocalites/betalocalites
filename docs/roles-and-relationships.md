@@ -1,6 +1,7 @@
 # Roles & Relationships: Consumers and Vendors
 
-**Status:** Proposed (Stage 0, revision 2). Awaiting product owner approval.
+**Status:** Approved in direction (D-00, 10 October 2026). The eight consumer–vendor rules (R1–R8)
+still await D-13.
 **Last updated:** 2026-10-09
 
 Localites has **two users**: the **consumer**, who is planning an event, and the
