@@ -10,7 +10,15 @@
   "observability": { "enabled": true },
   // Cloudflare Hyperdrive (free): the app's route to Supabase. It keeps the encrypted
   // connection to the database (SSL "require") and pools connections. The ID is not a
-  // secret; the database login lives only in Cloudflare. For `wrangler dev`, set
-  // CLOUDFLARE_HYPERDRIVE_LOCAL_CONNECTION_STRING_HYPERDRIVE to a local database.
-  "hyperdrive": [{ "binding": "HYPERDRIVE", "id": "4e3e6b64b1cb4015a679dd85ad7a8daa" }]
+  // secret; the database login lives only in Cloudflare. localConnectionString is a
+  // placeholder for local emulation only (Cloudflare's publish step requires one); it
+  // has no password and is never used by the live site. Override it for `wrangler dev`
+  // with CLOUDFLARE_HYPERDRIVE_LOCAL_CONNECTION_STRING_HYPERDRIVE.
+  "hyperdrive": [
+    {
+      "binding": "HYPERDRIVE",
+      "id": "4e3e6b64b1cb4015a679dd85ad7a8daa",
+      "localConnectionString": "postgres://postgres@localhost:5432/localites_dev"
+    }
+  ]
 }
