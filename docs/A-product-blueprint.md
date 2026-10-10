@@ -79,6 +79,9 @@ is **designed for** now: the data model and permissions already have a place for
 - Unclaimed listings show the business's own website and phone (D-03, D-04)
 - Activity counted for each vendor: seen in search, profile views, website and phone taps
   (D-22)
+- **Suggest a business**: anyone who doesn't see a business can suggest it with three
+  questions (name, website, phone or email). It's emailed to the Localites team, who vet
+  and add it (D-25)
 
 ### B. The vendor side — Stage 1 foundation, Stage 2 messaging
 - Claim a listing; manage profile, services, areas, photos — Stage 1
@@ -175,6 +178,7 @@ Words carry promises. These apply to every screen, email, and help page.
 | Use | Never use |
 |---|---|
 | Message, conversation, reply | Request a quote, request to book |
+| **Suggest a business** (the team vets it first, D-25) | Add a vendor, list a business (nothing is listed until the team adds it) |
 | **Inquire**, only on businesses not yet on Localites (it reaches the Localites team, D-04) | Inquire on a claimed business; anything implying the business has already been contacted |
 | Add to event · Considering | Shortlist confirmed, reserved |
 | **Mark as booked** · You marked this booked | Book now, booking confirmed, secure your booking |
@@ -216,4 +220,4 @@ admin (D-06); reviews before RSVPs (D-14); invitations by personal and group lin
 QR codes (D-08); data-keeping rules, with events kept for as long as the host's account
 exists (D-10); the business name Localites and supportlocalites@gmail.com as the privacy contact
 (D-12); and no payments of any kind through Localites, including vendors paying
-Localites (D-24).
+Localites (D-24); and **Suggest a business** for businesses not yet on Localites (D-25).

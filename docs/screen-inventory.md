@@ -1,7 +1,7 @@
 # Screen Inventory
 
 **Status:** Proposed (Stage 0, revision 2).
-**Last updated:** 2026-10-10 (Inquire, vendor activity reports, review approval, invitation links and the paid vendor dashboard)
+**Last updated:** 2026-10-10 (Inquire, vendor activity reports, review approval, invitation links, the paid vendor dashboard and Suggest a business)
 
 Every screen in the intended product, grouped by who uses it. **★** marks the screens
 we'll prototype first (PO-09) so you can judge the experience on your phone. Every
@@ -27,6 +27,7 @@ added; quotes, bookings and the concierge queue removed.
 | P8 | Claim or remove this listing | From an unclaimed profile | 1 |
 | P9 | Privacy · Terms · Review policy · Contact | | 1 |
 | P10 | 404 / error | Friendly, with a way back | 1 |
+| P11 | Suggest a business | Three questions (name; website; phone or email), then an honest "our team will look into it" (D-25) | 1 |
 
 ## Account
 
@@ -105,14 +106,15 @@ added; quotes, bookings and the concierge queue removed.
 | X16 | Booking flags | Resolve vendor flags | 3 |
 | X17 | Operations report | Listings, claims, conversations, reply rates, reviews | 3 |
 | X18 | Vendor activity reports | One vendor's totals by period (seen in search, views, taps; later saves, inquiries, messages), to share with that vendor; category-level figures for others (D-22) | 1 |
+| X19 | Suggested businesses | Every suggestion, with likely duplicates; mark added, declined or duplicate; link to the new listing (D-25) | 1 |
 
 ## Counts
 
 | Stage | Screens |
 |---|---|
-| 1 — Discovery & vendors | 31 |
+| 1 — Discovery & vendors | 33 |
 | 2 — The handshake | 17 |
 | 3 — Feedback & reviews | 6 |
 | 4 — Guests & RSVPs | 8 |
 | 5 — Growth | 1 |
-| **Total** | **63** |
+| **Total** | **65** |

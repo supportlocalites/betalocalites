@@ -46,6 +46,7 @@ that module writes to them. Others go through its public functions.
 | Website / phone tap counting (D-04, D-22) | Visitor | — | `activity_event` | analytics | 📐 |
 | "Seen in search" counting, batched per page (D-22) | Visitor | — | `vendor_daily_stats` | analytics | 📐 |
 | Vendor activity reports (team only, D-22) | Admin | `vendor_daily_stats`, `activity_event` | `audit_log` | analytics | 📐 |
+| Suggest a business; team email; admin list with likely duplicates (D-25) | Visitor | `vendor`, `category` | `vendor_suggestion`, `notification`, `activity_event` | discovery, notifications | 📐 |
 | Vendor sign-up / sign-in | Vendor | `app_user` | `app_user` | identity | 📐 |
 | Claim a listing | Vendor | `vendor` | `vendor_claim`, `status_change` | vendors | 📐 |
 | Edit own listing, submit for review | Vendor | `vendor` + children | `vendor` + children, `status_change`, `audit_log` | vendors | 📐 |

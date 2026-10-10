@@ -1,6 +1,6 @@
 # Testing Strategy
 
-**Status:** Proposed (Stage 0, revision 5: review approval and invitation-link checks).
+**Status:** Proposed (Stage 0, revision 6: Suggest a business checks).
 **Last updated:** 2026-10-10
 
 ## What "done" means
@@ -56,6 +56,11 @@ PostgreSQL. Mocked databases are where permission bugs hide.
     and a profile view and a website tap each add one to that vendor's daily totals. The
     team's report for one vendor shows only that vendor; a vendor's team and a visitor
     can't read any other business's numbers.
+5b. A visitor searches for a magician, finds no match, taps **Suggest a business** and
+    answers the three questions. The team email is sent (or the admin list says honestly
+    that it wasn't), the suggestion appears in the admin list, and nothing appears
+    publicly until an admin adds the business. Twenty quick submissions from one visitor
+    are stopped.
 
 **Stage 2: the handshake**
 6. Consumer finds a vendor, taps **Message**, shares their event (seeing exactly what the

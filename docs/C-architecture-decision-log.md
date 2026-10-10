@@ -27,7 +27,8 @@ ADR-025 (paid vendor plans, recorded but not charged in the app; proposed, D-24)
 ADR-026 (every review approved by an admin, with an email notice; D-06) added.
 
 **Revision 6 changes (10 October 2026):** ADR-018 extended by D-24: no payments of any kind
-go through Localites, including vendors paying Localites. ADR-025 accepted.
+go through Localites, including vendors paying Localites. ADR-025 accepted. ADR-027
+(Suggest a business, D-25) added.
 
 **Revision 3 changes (product owner: no running costs):** ADR-003 and ADR-013 move to
 free plans. ADR-007 replaces Vercel with Cloudflare's free plan, because Vercel's free
@@ -66,6 +67,7 @@ ADR-014 caveat updated. Nothing in the data model or security model changes.
 | ADR-024 | Unclaimed or unverified vendors get **Inquire**, which reaches the Localites team by email | **Needs approval** (user experience; D-04) | Accepted (D-04) |
 | ADR-025 | Paid vendor plans are recorded (which plan, until when) but paid for outside Localites | **Needs approval** (business model; D-24) | Accepted (D-24) |
 | ADR-026 | Every review is approved by an admin in the admin area; the team is emailed each new review | **Needs approval** (D-06) | Accepted (D-06) |
+| ADR-027 | Suggest a business: a three-question form, open to everyone, emailed to the team to vet | **Needs approval** (user experience; D-25) | Accepted (D-25) |
 
 ---
 
@@ -607,3 +609,35 @@ log.
 
 **Cost.** Review emails count toward the free plan's 100 a day. If they become frequent,
 they're bundled into a daily summary.
+
+---
+
+## ADR-027 — Suggest a business
+
+**Needs your approval** (user experience). **Accepted: D-25, 10 October 2026.** Stage 1.
+
+**Decision.** Search results, category pages and empty results carry the line *"Don't see
+who you're looking for? **Suggest a business**."* It opens a short form with three
+questions: the business's name (required), its website or social page (optional), and a
+phone number or email for it (optional). We save the suggestion (`vendor_suggestion`)
+with the category or search the person was on, count it (ADR-023), and email the team at
+supportlocalites@gmail.com. The person sees: *"Thanks. Our team will look into this
+business and add it if it's a fit."*
+
+- **Open to everyone, no account needed.** Spam protection: a hidden field that only
+  bots fill in, and a limit of a few suggestions per visitor per hour (IP addresses used
+  briefly for this and never stored, as in E §7). If spam still gets through, we add
+  Cloudflare's free Turnstile check.
+- **From Stage 2**, a signed-in person's suggestion is linked to their account, and they
+  get an email when the business is added.
+- **The team vets every suggestion** in the admin list, which shows likely duplicates of
+  businesses already on Localites. A business goes live only from its own public
+  information, marked unclaimed (D-03). Details the person typed are used only to find
+  and contact the business, never published, because a phone number or email someone
+  else gives may be personal.
+
+**Why.** The directory grows from what local people actually want, and each suggestion is
+a warm lead for the team, at no cost.
+
+**Cost.** Suggestion emails count toward the free plan's 100 a day; if they become
+frequent, they're bundled into a daily summary.

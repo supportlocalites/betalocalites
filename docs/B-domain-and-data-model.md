@@ -324,6 +324,10 @@ Stages are unchanged.
   in a group chat, on social media or as a QR code). A reply through a group link carries
   the name the guest typed; the host matches it to a `guest`, so "not replied yet" stays
   accurate.
+- **Suggested businesses** (D-25, ADR-027, Stage 1): `vendor_suggestion` holds the name,
+  website and phone or email someone gave, which category or search they were on, who
+  suggested it if signed in (from Stage 2), its status (new, added, declined, duplicate),
+  the vendor it became, and whether the team email was sent.
 - **Paid vendor plans** (D-24, ADR-025): `vendor_plan` records a vendor's plan and its
   start and end dates, set by an admin. Vendors pay outside Localites; no prices or
   payment details are stored.
@@ -446,6 +450,7 @@ hiding there.
 | `status_change`, `audit_log` | Audit | S1 | Append-only history |
 | `activity_event` | Analytics | S1 | One meaningful action on a vendor (profile view and source, tap; from Stage 2 save, inquiry, conversation, message): time, vendor, person or visitor ID. Kept with no deletion date (D-22, ADR-023). |
 | `vendor_daily_stats` | Analytics | S1 | Per vendor, day, placement and town: seen in search, views, taps (from Stage 2 also saves, inquiries, conversations, messages), unique people. Kept. |
+| `vendor_suggestion` | Discovery | S1 | Businesses people suggest (D-25): name, website, phone or email, where on the site, status, the vendor it became, whether the team email was sent |
 | `saved_vendor` | Consumer | S2 | Private bookmarks |
 | `event_type`, `event` | Event | S2 | The consumer's event |
 | `event_vendor` | Event | S2 | Considering → booked |

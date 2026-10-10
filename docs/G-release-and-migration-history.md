@@ -31,6 +31,25 @@ Every release and every database migration, in order. Appended before each deplo
 
 ## Releases
 
+### 2026-10-10 — Stage 0 documentation, revision 9: Suggest a business
+
+**Stage:** 0
+**What changed (plain English):** The product owner added a feature (D-25): anyone who
+doesn't see a business they want can suggest it with three questions (name, website,
+phone or email). It's emailed to supportlocalites@gmail.com, and the team vets and adds
+it. Planned for Stage 1 with spam protection; signed-in suggestions get a "now on
+Localites" email from Stage 2 (ADR-027). Two new screens (P11, X19). Stage 1 gains about a
+quarter of a week. The product owner also set the launch test set (PO-08): the 28
+suggested businesses, up to 5 per category, used to test the app before launch; the
+vendor list will be refreshed later. Five isn't a limit in the app. Approving Stage 1 is
+now the open decision (D-23).
+**Documents:** H, A, B, C, D, E, roadmap, screen inventory, testing strategy, design
+system, launch research.
+**Migrations applied:** None.
+**Destructive?** No.
+**Tests run:** None needed; no schema change.
+**Approved by:** Product owner (D-25, PO-08 clarification), 10 October 2026.
+
 ### 2026-10-10 — Stage 0 documentation, revision 8: no payments of any kind; pilot size
 
 **Stage:** 0

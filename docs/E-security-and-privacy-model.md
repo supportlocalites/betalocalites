@@ -70,6 +70,7 @@ grants more, and every admin action is recorded in `audit_log`.
 | Verification evidence | — (outcome only) | — (outcome only) | R (own) | — | R C U |
 | Categories, attributes, places, event types | R | R | R | R | R C U X |
 | Activity totals (seen in search, visits, taps, saves, inquiries, messages; §7a) | — | — | R (own) | R (own) | R (detail, logged) |
+| Suggest a business (D-25) | C (rate-limited) | C; R (own, from Stage 2) | — | — | R U |
 
 ### 4.2 Consumer planning (Stage 2)
 
@@ -221,6 +222,7 @@ account exists, and detailed activity records kept for year-over-year reports (D
 | Published reviews | While the listing exists | The author is shown as *"A Localites member"* if they delete their account |
 | Guest phone numbers and emails (Stage 4) | Until 90 days after the event | Erased. Guest names and their replies stay with the event so the host can look back |
 | Detailed activity records (§7a) | No deletion date (D-22), for year-over-year reports | Daily totals are also kept. If the database nears its free limit, older detail moves to archive storage. Unlinked from anyone who deletes their account |
+| Suggested businesses (D-25) | Kept | On a declined suggestion, the phone number or email typed in is erased after 1 year; the count stays for reports |
 | Email delivery log | 1 year | Deleted |
 | Audit log | 2 years | Deleted |
 | Verification evidence | While verified + 1 year | Deleted; outcome kept |

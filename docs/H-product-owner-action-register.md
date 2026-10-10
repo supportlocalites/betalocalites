@@ -1,6 +1,6 @@
 # H — Product Owner Action Register
 
-**Last updated:** 2026-10-10 (revision 8)
+**Last updated:** 2026-10-10 (revision 9)
 
 This is the one place where everything that needs **you** is listed. If it isn't here,
 you don't need to do it.
@@ -27,7 +27,7 @@ Recorded from your messages of 9 and 10 October 2026. These now shape every docu
 | ✅ D-01 | **The product is called Localites, at `localites.ca`.** Renamed from Tallo; you bought the domain on 10 October 2026. | Every document, the proposed schemas and the design mockups say Localites. |
 | ✅ D-07 | **Pay for the web address.** Done: `localites.ca` is yours. | The only running cost (~CA$15–25 a year). Email can be set up on it when we get there. |
 | ✅ D-21 | **Build the app with design G, for phones and computers.** One website that adapts to the screen; all earlier designs kept for reference. | [design-system.md](./design-system.md); archive in [design/](./design/README.md); phone, tablet and desktop checks in [testing-strategy.md](./testing-strategy.md). |
-| ✅ D-03 | **A curated launch list.** We research Orillia-based businesses in the categories you choose (PO-05) and send a shortlist; you pick which go live. Start with businesses rated 4 stars or more on public review sites; others are added by hand later. | Listings use only what each business publishes itself, marked unclaimed, removed on request. The star rating is our private shortlist filter: never copied or shown on Localites. **Pilot:** at most 5 businesses per category (PO-08). |
+| ✅ D-03 | **A curated launch list.** We research Orillia-based businesses in the categories you choose (PO-05) and send a shortlist; you pick which go live. Start with businesses rated 4 stars or more on public review sites; others are added by hand later. | Listings use only what each business publishes itself, marked unclaimed, removed on request. The star rating is our private shortlist filter: never copied or shown on Localites. **Test set:** our 28 suggestions, up to 5 per category, to test the app; you'll refresh the list later (PO-08). |
 | ✅ D-04 | **The stages stay as planned.** In Stage 1, vendor profiles show the business's own website and phone, and taps are counted. When messaging arrives in Stage 2, claimed, verified vendors get **Message**; unclaimed or unverified vendors get **Inquire**, which emails the Localites team at supportlocalites@gmail.com saying which vendor was requested and by whom. | [Roadmap](./roadmap.md) unchanged; ADR-024 (Stage 2). Settles D-05. |
 | ✅ D-09 | **Launch area:** Orillia plus Severn, Oro-Medonte and Ramara. | The first vendor list is Orillia-based (D-03); consumers can be anywhere in the area. |
 | ✅ D-11 | **supportlocalites@gmail.com is the Localites admin address**: every service account is registered to it, and all alerts and team emails go to it. | [F](./F-operational-runbook.md) monitoring; inquiry emails (D-04) too. |
@@ -38,6 +38,7 @@ Recorded from your messages of 9 and 10 October 2026. These now shape every docu
 | ✅ D-10 | **Data-keeping rules approved**, except that **events are kept for as long as the host's account exists**, so hosts can look back years later. | [E §8](./E-security-and-privacy-model.md#8-retention-and-deletion). |
 | ✅ D-12 | **Business name: Localites. Privacy contact: supportlocalites@gmail.com.** Mailing address left blank for now; it must be added before launch. | Privacy policy and terms (PO-07). |
 | ✅ D-24 | **No payments of any kind go through Localites.** Consumers pay vendors, and vendors pay Localites (for a paid plan or a featured spot), entirely outside the site. | ADR-018 extended; ADR-025: Localites records only which plan a vendor has and its dates. |
+| ✅ D-25 | **Suggest a business.** Anyone who doesn't see a business they want can suggest it by answering three questions: its name, its website (if any), and a phone number or email (if known). It's emailed to supportlocalites@gmail.com; the team vets it and adds it. | ADR-027; Stage 1. Screens P11 and X19. |
 | ✅ D-22 | **Full activity tracking for vendor reports**: who and how many people see each vendor in search, open their profile, tap their website or phone (from Stage 1), and save, inquire, message, add them to an event or mark them booked (from Stage 2). | ADR-023; [E §7a](./E-security-and-privacy-model.md#7a-activity-tracking-d-22). Used to sell featured placements and help with renewals. **Amended:** detailed records kept with no deletion date, for year-over-year numbers; vendors see only anonymous counts, in a dashboard for paying vendors. |
 
 ---
@@ -46,11 +47,11 @@ Recorded from your messages of 9 and 10 October 2026. These now shape every docu
 
 | # | What | Blocks | Your effort |
 |---|---|---|---|
-| **PO-08** | Confirm or swap the pilot list: our 28 suggestions, at most 5 per category | Launch list (D-03) | 10 min |
+| **D-23** | Approve Stage 1: the public directory and vendor accounts | Building starts | Read Stage 1 in the [roadmap](./roadmap.md); reply |
 | **D-12** | Mailing address for the privacy policy and terms | Public launch | 1 min, later |
 
 **How to respond:** reply in the conversation with decision numbers and your choice,
-e.g. *"PO-08: suggestions OK, but swap Rotary Place for the Opera House."* "I don't understand
+e.g. *"D-23 approve."* "I don't understand
 this one" is a perfectly good answer.
 
 ---
@@ -235,6 +236,56 @@ off. No prices, invoices, card details or payment status are stored (ADR-018, AD
 A reminder email before a plan ends tells the team when to renew.
 
 **Status:** ✅ Decided, 10 October 2026.
+
+---
+
+### D-25 — Suggest a business
+
+**Decided (10 October 2026).** When someone doesn't see a business they want on
+Localites, they can suggest it. We ask three simple questions:
+1. **What's the business called?** (required)
+2. **Do they have a website or social page?** (optional)
+3. **Do you have a phone number or email for them?** (optional)
+
+The suggestion is emailed to supportlocalites@gmail.com. The team vets it and, if it's a
+fit, adds the business. Details recommended by us; tell us if you'd change any:
+- **Where it appears:** "Don't see who you're looking for? **Suggest a business**" on
+  search results, category pages and empty results. We also note which category or
+  search the person was on, without asking.
+- **The button says "Suggest a business", not "Add a vendor"**, because nothing is added
+  until the team vets it, and "Add" already means *Add to event*.
+- **Open to everyone from Stage 1**, no account needed, with spam protection. From
+  Stage 2, a signed-in person's suggestion is linked to their account and they get an
+  email when the business is added.
+- **What the person sees afterwards:** *"Thanks. Our team will look into this business
+  and add it if it's a fit."* Nothing suggests it's already listed.
+- **What gets published:** only the business's own public information, marked unclaimed
+  (D-03). A phone number or email someone else typed in is used only to contact the
+  business, never shown, because it may be personal.
+- **Counted** like every other activity (D-22), so you can see which categories people
+  want most.
+
+**Status:** ✅ Decided, 10 October 2026.
+
+---
+
+### D-23 — Approve Stage 1
+
+**What.** Start building Stage 1: the public directory (browse, search, vendor profiles),
+vendor accounts and claiming, the admin tools, activity tracking (D-22) and Suggest a
+business (D-25), loaded with the test set of businesses (PO-08). Estimate: 5–7 weeks,
+plus about three-quarters of a week for tracking and Suggest a business. Details in the
+[roadmap](./roadmap.md#stage-1--discovery--vendor-foundation).
+
+**What approval means.** Building starts. On day one we create the free hosting and
+database accounts together, live, on your screen (PO-03), registered to
+supportlocalites@gmail.com. It doesn't approve any running cost (still $0 apart from the
+domain) or any later stage. You'll see real screens through private preview links as
+they're built (PO-09).
+
+**Recommendation.** Approve.
+
+**Status:** ⏳ Awaiting you.
 
 ---
 
@@ -514,12 +565,13 @@ rather than discovers. Ask for a fixed-fee quote. Not in the infrastructure budg
 ### PO-08 — Starting vendor list, and early claims
 **When:** Stage 1, weeks 1–4.
 **What:** We research Orillia-based businesses in your categories (PO-05, D-03) and send
-you a shortlist; you pick which go live. **Pilot (your decision, 10 October 2026): at
-most 5 per category.** First research done: 61 Orillia businesses and 17 nearby, in
+you a shortlist; you pick which go live. **Test set (your decision, 10 October 2026):**
+the 28 businesses we suggested, up to 5 per category, are used to test the app before
+launch. You'll refresh the vendor list later. Five isn't a limit in the app; more can be
+added at any time, including from Suggest a business (D-25). First research done: 61 Orillia businesses and 17 nearby, in
 [launch/vendor-research-2026-10-10.md](./launch/vendor-research-2026-10-10.md), with 28
-suggested for the pilot (5 per category; 3 in Activities, two of them just outside Orillia
-but inside the launch area). Confirm or swap them on the shortlist page and paste your
-choices into the chat. Add any you know personally. **New in revision 2:** during Stage 1,
+in the test set (5 per category; 3 in Activities, two of them just outside Orillia but
+inside the launch area). Add any you know personally. **New in revision 2:** during Stage 1,
 we'd like as many of them as possible to *claim* their listing, because only claimed
 businesses can receive messages when Stage 2 launches. We'll give you a short script
 for those calls and a claim link for each business.
@@ -544,3 +596,5 @@ computer through private preview links. You tell us what feels right. No code to
 | 2026-10-10 | D-03, D-04 (settling D-05), D-09, D-11 decided; D-22 activity tracking; stages unchanged |
 | 2026-10-10 | PO-05 categories; D-13, D-06, D-14, D-08, D-10 decided; D-12 privacy contact; D-22 amended |
 | 2026-10-10 | D-24 (no payments of any kind through Localites); D-12 business name; PO-08 pilot of 5 per category |
+| 2026-10-10 | D-25 Suggest a business |
+| 2026-10-10 | PO-08: test set of our 28 suggested businesses (up to 5 per category); vendor list to be refreshed later |

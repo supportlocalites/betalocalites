@@ -14,21 +14,22 @@ recorded (no owners' personal names, home addresses or personal phone numbers).
 **Status:** *Looks active* = recent signs it's operating · *Check first* = real, but the town, events
 service or activity needs confirming · *Doubtful* = may not exist any more.
 
-**Pilot (PO-08, 10 October 2026):** at most 5 businesses per category. The *Pilot* column shows our
-suggestions (28 in all; 3 in Activities, two of them just outside Orillia but inside the launch area).
-The product owner confirms or swaps them on the shortlist page; the final picks are recorded in H.
+**Test set (PO-08, 10 October 2026):** the 28 businesses marked *Yes* in the *Test set* column (up to 5
+per category; 3 in Activities, two of them just outside Orillia but inside the launch area) are used to
+test the app before launch. The product owner will refresh the vendor list later. Five isn't a limit in
+the app.
 
 ## Orillia
 
 ### Venue
 
-| Business | Type | Town | Rating seen | Status | Pilot | Notes |
+| Business | Type | Town | Rating seen | Status | Test set | Notes |
 |---|---|---|---|---|---|---|
-| [Brewery Bay Food Co. / Couchiching Craft Brewing](https://www.opentable.co.th/r/brewery-bay-food-co-orillia) | Brewery restaurant with event space | Orillia | 4.6 (92 reviews, OpenTable) | Looks active | Suggested | Taproom, two-floor restaurant, patio, and indoor and outdoor event space downtown. The rating is for the restaurant. Confirm which business books private events. |
-| [Orillia Museum of Art & History (OMAH)](https://www.orilliamuseum.org/book-an-event/) | Museum and gallery event space | Orillia | not seen | Looks active | Suggested | Meeting room and gallery spaces with tables, chairs and AV; optional bartender and catering. Also runs birthday parties. Active rental page. |
-| [Orillia Bowl](https://orillia.cioc.ca/record/ORI0496) | Bowling centre | Orillia | not seen | Check first | Suggested | 18 lanes of 5-pin bowling, glow nights, food and drinks; lanes rent by the hour. Directory last updated 2023; the address may now be 'Rainbow Lanes'. Party packages not confirmed. |
-| [Orillia Recreation Centre](https://www.orillia.ca/en/living-here/multi-purpose-meeting-rooms.aspx) | Recreation centre (City of Orillia) | Orillia | not seen | Check first | Suggested | Pools, gyms and a multi-purpose room; the City offers rooms for private parties and has a birthday-party page. City facility, not a private business. Party packages and prices not confirmed. |
-| [Rotary Place](https://www.orillia.ca/en/living-here/multi-purpose-meeting-rooms.aspx) | Community rooms (City of Orillia) | Orillia | not seen | Check first | Suggested | Three rooms rented for parties and special events. City facility. Prices are on the City's booking page. |
+| [Brewery Bay Food Co. / Couchiching Craft Brewing](https://www.opentable.co.th/r/brewery-bay-food-co-orillia) | Brewery restaurant with event space | Orillia | 4.6 (92 reviews, OpenTable) | Looks active | Yes | Taproom, two-floor restaurant, patio, and indoor and outdoor event space downtown. The rating is for the restaurant. Confirm which business books private events. |
+| [Orillia Museum of Art & History (OMAH)](https://www.orilliamuseum.org/book-an-event/) | Museum and gallery event space | Orillia | not seen | Looks active | Yes | Meeting room and gallery spaces with tables, chairs and AV; optional bartender and catering. Also runs birthday parties. Active rental page. |
+| [Orillia Bowl](https://orillia.cioc.ca/record/ORI0496) | Bowling centre | Orillia | not seen | Check first | Yes | 18 lanes of 5-pin bowling, glow nights, food and drinks; lanes rent by the hour. Directory last updated 2023; the address may now be 'Rainbow Lanes'. Party packages not confirmed. |
+| [Orillia Recreation Centre](https://www.orillia.ca/en/living-here/multi-purpose-meeting-rooms.aspx) | Recreation centre (City of Orillia) | Orillia | not seen | Check first | Yes | Pools, gyms and a multi-purpose room; the City offers rooms for private parties and has a birthday-party page. City facility, not a private business. Party packages and prices not confirmed. |
+| [Rotary Place](https://www.orillia.ca/en/living-here/multi-purpose-meeting-rooms.aspx) | Community rooms (City of Orillia) | Orillia | not seen | Check first | Yes | Three rooms rented for parties and special events. City facility. Prices are on the City's booking page. |
 | [Orillia Opera House](https://www.orilliaoperahouse.ca/who-we-are/rent-our-space/) | Performing-arts venue for rent | Orillia | not seen | Looks active |  | Auditorium, studio theatre and lounge for private events; licensed bar; help with tech and catering. City-owned. Better suited to larger or adult events. |
 | [Best Western Plus Mariposa Inn & Conference Centre](https://www.weddingwire.ca/hotel-weddings/best-western-plus-mariposa-inn-&-conference-centre--e61929) | Hotel banquet rooms | Orillia | TripAdvisor: 274 reviews, mostly 4 and 5 stars (no average shown) | Check first |  | Several banquet rooms for up to about 200–260 guests, with in-house catering and planning. The review breakdown is undated. Check the current rating. |
 | [Cards & Coasters Game Café](https://orilliamatters.com/local-news/downtown-cafe-is-the-newest-game-in-town-1176718) | Board game café | Orillia | not seen | Check first |  | Hundreds of board games, some arcade games, treats and ice cream; has hosted group events. News coverage stops around 2021. Check it's still open. |
@@ -42,13 +43,13 @@ The product owner confirms or swaps them on the shortlist page; the final picks 
 
 ### Food & Beverage
 
-| Business | Type | Town | Rating seen | Status | Pilot | Notes |
+| Business | Type | Town | Rating seen | Status | Test set | Notes |
 |---|---|---|---|---|---|---|
-| [Eclectic Café & Catering](https://eclecticcafe.ca/catering) | Café and caterer | Orillia | Yelp 4.8 (13); TripAdvisor 4.4 (22); Google 4.8 (269) as reported by another site | Looks active | Suggested | Custom menus for about 25–250 guests: birthdays, showers, anniversaries, weddings; caters at venues across Simcoe County. Grew its catering side in 2022. |
-| [Krew Catering Co](https://www.facebook.com/krewcateringco/) | Caterer | Orillia | Birdeye 4.6 (67) | Check first | Suggested | Seasonal, local menus from plated dinners to casual BBQ; tastings available. Directories list four different addresses; confirm where it's based. |
-| [Swan and Company (formerly Era 67)](https://swanco.ca/era67) | Restaurant with catering and party room | Orillia | TripAdvisor 4.3 (631), mostly under the old name | Check first | Suggested | Catering for birthdays, anniversaries and banquets; private party room. New owners since June 2025; most reviews are from before. |
-| [Laforet Catering](https://laforetcatering.ca/) | Live-fire caterer and private chef | Orillia | not seen | Looks active | Suggested | Outdoor live-fire cooking for private dinners and events, up to 75 guests. Upscale (from about $100 per person); suits adult events. |
-| [Ebony Bites](https://ebonybites.com/) | Caribbean food truck and caterer | Orillia | not seen | Check first | Suggested | Jamaican catering spreads such as jerk chicken, poutine and vegan stew. Moved from Durham to Orillia about a year ago; the truck is likely seasonal. |
+| [Eclectic Café & Catering](https://eclecticcafe.ca/catering) | Café and caterer | Orillia | Yelp 4.8 (13); TripAdvisor 4.4 (22); Google 4.8 (269) as reported by another site | Looks active | Yes | Custom menus for about 25–250 guests: birthdays, showers, anniversaries, weddings; caters at venues across Simcoe County. Grew its catering side in 2022. |
+| [Krew Catering Co](https://www.facebook.com/krewcateringco/) | Caterer | Orillia | Birdeye 4.6 (67) | Check first | Yes | Seasonal, local menus from plated dinners to casual BBQ; tastings available. Directories list four different addresses; confirm where it's based. |
+| [Swan and Company (formerly Era 67)](https://swanco.ca/era67) | Restaurant with catering and party room | Orillia | TripAdvisor 4.3 (631), mostly under the old name | Check first | Yes | Catering for birthdays, anniversaries and banquets; private party room. New owners since June 2025; most reviews are from before. |
+| [Laforet Catering](https://laforetcatering.ca/) | Live-fire caterer and private chef | Orillia | not seen | Looks active | Yes | Outdoor live-fire cooking for private dinners and events, up to 75 guests. Upscale (from about $100 per person); suits adult events. |
+| [Ebony Bites](https://ebonybites.com/) | Caribbean food truck and caterer | Orillia | not seen | Check first | Yes | Jamaican catering spreads such as jerk chicken, poutine and vegan stew. Moved from Durham to Orillia about a year ago; the truck is likely seasonal. |
 | [Marigold Unique Flavours](https://www.yelp.ca/search?cflt=catering&find_loc=Orillia%2C+ON) | Caterer | Orillia | Yelp 5.0 (2) | Doubtful |  | Catering; no details found. Only seen in a Yelp list; couldn't confirm it exists. |
 | [Sunshine & Whiskey Bartending](https://www.weddingwire.ca/event-rentals/sunshine-&-whiskey-bartending--e69771) | Mobile bar | Orillia | not seen | Looks active |  | Licensed bartenders, bar rentals, mixology classes and cocktail kits. Adult events only. |
 | [Chef Simon's Kitchen](https://orilliamatters.com/directory/restaurants-pizza) | Pizzeria | Orillia | not seen | Check first |  | Neapolitan-style pizza for takeout. Large or party orders not confirmed. |
@@ -61,13 +62,13 @@ The product owner confirms or swaps them on the shortlist page; the final picks 
 
 ### Sweets
 
-| Business | Type | Town | Rating seen | Status | Pilot | Notes |
+| Business | Type | Town | Rating seen | Status | Test set | Notes |
 |---|---|---|---|---|---|---|
-| [Mariposa Market](https://www.mariposamarket.ca/catering/) | Bakery and market | Orillia | Yelp 4.3 (about 92); Restaurantji 4.2 (166) | Looks active | Suggested | Long-running downtown bakery: custom cakes and cupcakes, plus sandwich, cheese and hot-appetizer party trays. Also fits Food & Beverage for its trays. |
-| [My Best Friends Cupcakes](https://www.instagram.com/mbfcupcakes/) | Home cupcake baker | Orillia | Yelp 5.0 (1) | Looks active | Suggested | Made-to-order cupcakes for parties and events. Bio said bookings were full until 1 August 2026. A US business has the same name. |
-| [Jillian's Bakery](https://www.weddingwire.ca/wedding-cakes/jillians-bakery--e67137) | Bakery | Orillia | not seen | Looks active | Suggested | Custom cakes with a tasting; diabetic, lactose-free, nut-free and vegan options; free delivery in Orillia. May be the same business as 'Jillian Jiggs Baking'. |
-| [Sugar Dessert Bar](https://www.facebook.com/SugarDessertBarOrillia/) | Licensed home bakery | Orillia | not seen | Looks active | Suggested | Themed custom cakes and dessert spreads; won Food Network's The Big Bake. Health-unit inspected. Hours not listed. |
-| [Kathy's Kakes](https://shoporillia.com/kathyskakes) | Home custom cakes | Orillia | not seen | Check first | Suggested | Birthday and smash cakes, cupcakes, truffles and chocolates. May or may not be linked to Kathy's Bakery on Colborne St. |
+| [Mariposa Market](https://www.mariposamarket.ca/catering/) | Bakery and market | Orillia | Yelp 4.3 (about 92); Restaurantji 4.2 (166) | Looks active | Yes | Long-running downtown bakery: custom cakes and cupcakes, plus sandwich, cheese and hot-appetizer party trays. Also fits Food & Beverage for its trays. |
+| [My Best Friends Cupcakes](https://www.instagram.com/mbfcupcakes/) | Home cupcake baker | Orillia | Yelp 5.0 (1) | Looks active | Yes | Made-to-order cupcakes for parties and events. Bio said bookings were full until 1 August 2026. A US business has the same name. |
+| [Jillian's Bakery](https://www.weddingwire.ca/wedding-cakes/jillians-bakery--e67137) | Bakery | Orillia | not seen | Looks active | Yes | Custom cakes with a tasting; diabetic, lactose-free, nut-free and vegan options; free delivery in Orillia. May be the same business as 'Jillian Jiggs Baking'. |
+| [Sugar Dessert Bar](https://www.facebook.com/SugarDessertBarOrillia/) | Licensed home bakery | Orillia | not seen | Looks active | Yes | Themed custom cakes and dessert spreads; won Food Network's The Big Bake. Health-unit inspected. Hours not listed. |
+| [Kathy's Kakes](https://shoporillia.com/kathyskakes) | Home custom cakes | Orillia | not seen | Check first | Yes | Birthday and smash cakes, cupcakes, truffles and chocolates. May or may not be linked to Kathy's Bakery on Colborne St. |
 | Bakes By The Lake | Bakery | Orillia | Yelp 5.0 (4) | Check first |  | Custom cakes, including gluten-free. Only seen in Yelp lists; contact details not found. |
 | [DWN Craft Chocolatier](https://dwnchocolate.com) | Craft chocolates | Orillia | not seen | Looks active |  | Small-batch chocolate bars and treats; good for favours or gift tables. Active (5th anniversary in March 2026). Its website wasn't opened. |
 | [Cool Cones](https://wanderlog.com/place/details/10164707/cool-cones) | Ice cream parlour | Orillia | not seen | Check first |  | Soft serve, sundaes and funnel cakes. Walk-in and seasonal; no event service seen. |
@@ -79,32 +80,32 @@ The product owner confirms or swaps them on the shortlist page; the final picks 
 
 ### Rentals & Decor
 
-| Business | Type | Town | Rating seen | Status | Pilot | Notes |
+| Business | Type | Town | Rating seen | Status | Test set | Notes |
 |---|---|---|---|---|---|---|
-| [Bouncy Castle Rentals](https://www.bouncycastlerentals.ca/) | Bouncy castles | Orillia | not seen | Check first | Suggested | Bouncy castles you pick up and return yourself. Pick-up spot may be in Severn rather than Orillia. |
-| [Complete Rent-Alls](https://www.completerentallsorillia.com/) | Party and equipment rentals | Orillia | not seen | Check first | Suggested | Large rental shop including tents, tables and chairs; in Orillia since 1968. A 4.3 rating online belongs to a different store in Hamilton. |
-| [Mandys Floral and Wedding Designs](https://weddingwire.ca/event-rentals/mandys-floral-and-wedding-designs--e36077) | Decor and florals | Orillia | not seen | Check first | Suggested | Arches, centrepieces, lighting, drapery and flowers, with set-up. Home-based; mostly weddings. |
-| [Special Occasion Tent Rentals](https://sotr.ca/) | Tents, tables, chairs, linens | Orillia | not seen | Check first | Suggested | Tents, tables, chairs, linens and dance floors, delivered and set up. Current activity not confirmed. |
-| [White House Events](https://www.weddingwire.ca/event-rentals/white-house-events--e59001) | Styled party rentals | Orillia | not seen | Check first | Suggested | Mobile bar, candy and sweet carts, backdrops, balloon garlands and a photo booth, with delivery and set-up. Only seen on WeddingWire. A good fit for kids' parties if active. |
+| [Bouncy Castle Rentals](https://www.bouncycastlerentals.ca/) | Bouncy castles | Orillia | not seen | Check first | Yes | Bouncy castles you pick up and return yourself. Pick-up spot may be in Severn rather than Orillia. |
+| [Complete Rent-Alls](https://www.completerentallsorillia.com/) | Party and equipment rentals | Orillia | not seen | Check first | Yes | Large rental shop including tents, tables and chairs; in Orillia since 1968. A 4.3 rating online belongs to a different store in Hamilton. |
+| [Mandys Floral and Wedding Designs](https://weddingwire.ca/event-rentals/mandys-floral-and-wedding-designs--e36077) | Decor and florals | Orillia | not seen | Check first | Yes | Arches, centrepieces, lighting, drapery and flowers, with set-up. Home-based; mostly weddings. |
+| [Special Occasion Tent Rentals](https://sotr.ca/) | Tents, tables, chairs, linens | Orillia | not seen | Check first | Yes | Tents, tables, chairs, linens and dance floors, delivered and set up. Current activity not confirmed. |
+| [White House Events](https://www.weddingwire.ca/event-rentals/white-house-events--e59001) | Styled party rentals | Orillia | not seen | Check first | Yes | Mobile bar, candy and sweet carts, backdrops, balloon garlands and a photo booth, with delivery and set-up. Only seen on WeddingWire. A good fit for kids' parties if active. |
 | [Dream Event Decorator](https://www.weddingwire.ca/wedding-decorations/dream-event-decorator--e67445) | Event decor | Orillia | not seen | Doubtful |  | Centrepieces, drapery and floral backdrops. Only a WeddingWire listing with no reviews. |
 | [LEAP Events Inc.](https://www.facebook.com/LEAPEventsInc/) | Bouncy castles and carnival food | Orillia | not seen | Doubtful |  | Bouncy castles plus carnival-style party food. Only one Facebook result found. |
 
 ### Activities
 
-| Business | Type | Town | Rating seen | Status | Pilot | Notes |
+| Business | Type | Town | Rating seen | Status | Test set | Notes |
 |---|---|---|---|---|---|---|
-| [Kerry's Party Magic](https://www.facebook.com/KerrysPartyMagic/) | Children's entertainer | Orillia (unclear) | not seen | Check first | Suggested | Magic shows, face painting, balloon animals, clowning and kids' karaoke. Page says it works around Barrie; may be Barrie-based or inactive. |
+| [Kerry's Party Magic](https://www.facebook.com/KerrysPartyMagic/) | Children's entertainer | Orillia (unclear) | not seen | Check first | Yes | Magic shows, face painting, balloon animals, clowning and kids' karaoke. Page says it works around Barrie; may be Barrie-based or inactive. |
 | [Artistic Visions](https://www.gigsalad.com/Variety/Face-Painter/ON/Orillia) | Face painter | Orillia | not seen | Doubtful |  | Face painting for parties and outdoor events. Weak evidence; no website or social page found. |
 
 ### Photography
 
-| Business | Type | Town | Rating seen | Status | Pilot | Notes |
+| Business | Type | Town | Rating seen | Status | Test set | Notes |
 |---|---|---|---|---|---|---|
-| [Vaughn Barry Photography](https://www.weddingwire.ca/wedding-photography/vaughn-barry-photography--e3809) | Wedding and family photographer | Orillia (or Severn) | Birdeye 5.0 (116) | Looks active | Suggested | Candid wedding and family photography. Mainly weddings; ask about parties. Directories disagree on Orillia or Severn. |
-| [Jay.Elle.Que Photography](https://weddingwire.ca/wedding-photography/jay-elle-que-photography--e59907) | Wedding and portrait photographer | Orillia | WeddingWire 5.0 (2) | Check first | Suggested | Weddings and portraits; a reviewer mentions family photos. Latest review from 2020. |
-| [Heather Bennink Photography](https://www.weddingwire.ca/wedding-photography/heather-bennink-photography--e21173) | Wedding and family photographer | Orillia | not seen | Looks active | Suggested | Weddings and family portraits. Looks active. |
-| [Forever & Always Photography](https://www.weddingwire.ca/wedding-photography/forever-&-always-photography--e16318) | Budget photographer | Orillia | not seen | Check first | Suggested | Short, low-cost coverage from about 2 hours, plus newborn and family sessions. A Barrie listing has the same name; may be one business. |
-| [Little Bear Photography](https://littlebearphotographystudio.com/) | Family and newborn photographer | Orillia | not seen | Check first | Suggested | Family, couples and newborn sessions. A different business in BC shares the name. |
+| [Vaughn Barry Photography](https://www.weddingwire.ca/wedding-photography/vaughn-barry-photography--e3809) | Wedding and family photographer | Orillia (or Severn) | Birdeye 5.0 (116) | Looks active | Yes | Candid wedding and family photography. Mainly weddings; ask about parties. Directories disagree on Orillia or Severn. |
+| [Jay.Elle.Que Photography](https://weddingwire.ca/wedding-photography/jay-elle-que-photography--e59907) | Wedding and portrait photographer | Orillia | WeddingWire 5.0 (2) | Check first | Yes | Weddings and portraits; a reviewer mentions family photos. Latest review from 2020. |
+| [Heather Bennink Photography](https://www.weddingwire.ca/wedding-photography/heather-bennink-photography--e21173) | Wedding and family photographer | Orillia | not seen | Looks active | Yes | Weddings and family portraits. Looks active. |
+| [Forever & Always Photography](https://www.weddingwire.ca/wedding-photography/forever-&-always-photography--e16318) | Budget photographer | Orillia | not seen | Check first | Yes | Short, low-cost coverage from about 2 hours, plus newborn and family sessions. A Barrie listing has the same name; may be one business. |
+| [Little Bear Photography](https://littlebearphotographystudio.com/) | Family and newborn photographer | Orillia | not seen | Check first | Yes | Family, couples and newborn sessions. A different business in BC shares the name. |
 | [Heidman Definition](https://threebestrated.ca/videographers-in-orillia-on) | Videographer | Orillia | not seen | Check first |  | Corporate and story-style video. Event work not confirmed. |
 | [Jennifer Koziel Photography](https://weddingwire.ca/wedding-photography/jennifer-koziel-photography--e55487) | Wedding, family and newborn photographer | Orillia | not seen | Check first |  | Weddings, newborn and family sessions. No website found. |
 | [Jessica Burke Photography](https://www.weddingwire.ca/wedding-photography/jessica-burke-photography--e60893) | Wedding photographer | Orillia | not seen | Check first |  | Candid wedding coverage. Weddings only; fit for parties unclear. |
@@ -115,7 +116,7 @@ The product owner confirms or swaps them on the shortlist page; the final picks 
 
 ### Venue
 
-| Business | Type | Town | Rating seen | Status | Pilot | Notes |
+| Business | Type | Town | Rating seen | Status | Test set | Notes |
 |---|---|---|---|---|---|---|
 | [Burl's Creek Event Grounds](https://www.orillialakecountry.ca/?p=53465) | Large outdoor event grounds | Oro-Medonte | not seen | Check first |  | Regional festival and event site. Festival-sized; unlikely to suit a birthday party. |
 | [Casino Rama Resort](https://www.amimagazine.global/Meeting-Event-Venues/Orillia-ON/Convention-Hotel/Casino-Rama-Resort-p59870650) | Resort conference space | Rama (Ramara) | not seen | Check first |  | Five meeting rooms. Casino resort: adult events only. |
@@ -127,7 +128,7 @@ The product owner confirms or swaps them on the shortlist page; the final picks 
 
 ### Food & Beverage
 
-| Business | Type | Town | Rating seen | Status | Pilot | Notes |
+| Business | Type | Town | Rating seen | Status | Test set | Notes |
 |---|---|---|---|---|---|---|
 | [Shaws Catering and Maple Syrup Bush](https://shawscatering.com) | Caterer and pig roasts | Oro-Medonte | Yelp 4.0 (7) | Looks active |  | Event catering and do-it-yourself pig roasts, May to November. Family business. |
 | [Captain Jack's Chip Truck](https://www.yelp.ca/search?cflt=foodtrucks&find_loc=Orillia%2C+ON) | Chip truck | Brechin (Ramara) | Yelp 5.0 (2) | Check first |  | Fries and casual food. Event bookings not confirmed. |
@@ -136,21 +137,21 @@ The product owner confirms or swaps them on the shortlist page; the final picks 
 
 ### Sweets
 
-| Business | Type | Town | Rating seen | Status | Pilot | Notes |
+| Business | Type | Town | Rating seen | Status | Test set | Notes |
 |---|---|---|---|---|---|---|
 | Chelsea Chocolates | Chocolate factory and shop | Craighurst | not seen | Check first |  | Chocolates for favours or gift tables. Craighurst straddles Oro-Medonte and Springwater; check which. |
 
 ### Activities
 
-| Business | Type | Town | Rating seen | Status | Pilot | Notes |
+| Business | Type | Town | Rating seen | Status | Test set | Notes |
 |---|---|---|---|---|---|---|
-| [Scales Nature Park](https://www.orillialakecountry.ca/item/scalesnaturepark/) | Reptile outreach shows | Oro-Medonte | not seen | Check first | Suggested | Conservation centre that brings live reptiles to birthday parties, schools and groups. Confirm outreach is still offered. |
-| [Steve's DJ Service](https://weddingwire.ca/wedding-dj/steves-dj-service--e29415) | DJ and MC | Severn | not seen | Check first | Suggested | DJ and MC with karaoke and lighting for parties, school dances and weddings. Running since 1982; latest review seen from 2022. |
+| [Scales Nature Park](https://www.orillialakecountry.ca/item/scalesnaturepark/) | Reptile outreach shows | Oro-Medonte | not seen | Check first | Yes | Conservation centre that brings live reptiles to birthday parties, schools and groups. Confirm outreach is still offered. |
+| [Steve's DJ Service](https://weddingwire.ca/wedding-dj/steves-dj-service--e29415) | DJ and MC | Severn | not seen | Check first | Yes | DJ and MC with karaoke and lighting for parties, school dances and weddings. Running since 1982; latest review seen from 2022. |
 | [The Handy DJ](https://threebestrated.ca/djs-in-orillia-on) | DJ | Washago (Severn) | not seen | Check first |  | Mobile DJ for parties, proms and weddings. Current activity not confirmed. |
 
 ### Photography
 
-| Business | Type | Town | Rating seen | Status | Pilot | Notes |
+| Business | Type | Town | Rating seen | Status | Test set | Notes |
 |---|---|---|---|---|---|---|
 | [Wayne Sierra Photography](https://www.gigsalad.com/Event-Services/Event-Photographer/ON/Rama) | Event photographer | Ramara | GigSalad 5.0 (1) | Check first |  | Event photography. Very little information found. |
 | [Eye in the Sky Photography](https://www.eventective.com/hawkestone-on/photographers/) | Event and drone photography | Hawkestone (not confirmed) | not seen | Check first |  | Event photography from the ground and the air. Town and current activity not confirmed. |

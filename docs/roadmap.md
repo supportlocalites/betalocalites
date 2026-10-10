@@ -7,7 +7,8 @@
 (D-03), launch area (D-09), team emails (D-11), Inquire (D-04, D-05) and activity
 tracking (D-22) are placed in the existing stages below. Later the same day: reviews
 before RSVPs (D-14), review rule option B with admin approval (D-06), invitation links
-and QR codes (D-08), and the paid vendor dashboard in Stage 5 (D-22, D-24).
+and QR codes (D-08), the paid vendor dashboard in Stage 5 (D-22, D-24), and **Suggest a
+business** in Stage 1 (D-25).
 
 **Revision 2:** stages reorganised around the consumer–vendor handshake. Messaging
 moves from a late, optional stage to the centre of Stage 2. Quotes, vendor-confirmed
@@ -82,7 +83,8 @@ they're ready for messaging.
 attributes, keyword, typo-tolerant) · vendor profiles (mobile-first, fast, findable on
 Google) · honest empty states · vendor website/phone (D-04) · activity counted for each
 vendor (seen in search, profile views, website and phone taps) and reports prepared by
-the team (D-22)
+the team (D-22) · **Suggest a business**: a three-question form open to everyone, emailed
+to the team, with an admin list for vetting (D-25)
 · vendor accounts: sign up, claim, edit, submit for review, manage team · admin:
 create, review, publish, claims, verification, categories, attributes, places,
 collections · image upload · audit trail · privacy policy and terms (from PO-07) ·
@@ -91,10 +93,12 @@ production environment, monitoring, backups, restore drill.
 **Excluded.** Consumer accounts, events, messaging, reviews (later stages). Anything
 involving payment (never).
 
-**Dependencies.** D-00, D-01, D-03, D-04, D-07, D-09 and D-11 are decided; PO-03, PO-05,
-PO-07 (before public launch), PO-08.
+**Dependencies.** Your approval (D-23). D-00, D-01, D-03, D-04, D-07, D-09 and D-11 are
+decided; PO-05 and PO-08 are done (test set of 28 businesses); PO-03 on day one; PO-07
+before public launch.
 
-**Effort.** 5–7 weeks, plus about half a week for the fuller activity tracking (D-22).
+**Effort.** 5–7 weeks, plus about three-quarters of a week for the fuller activity tracking
+(D-22) and Suggest a business (D-25).
 | Work | Weeks |
 |---|---|
 | **Fit test (first day):** one vendor page, one search, one signed-in page on Cloudflare's free plan; confirm it fits the free limits (ADR-005) | 0.2 |
@@ -103,6 +107,7 @@ PO-07 (before public launch), PO-08.
 | Public discovery: landing, browse, search, profile, SEO | 1.5–2 |
 | Vendor accounts, claiming, self-editing, team | 1 |
 | Activity tracking and vendor reports (D-22) | 0.5 |
+| Suggest a business: form, spam protection, team email, admin list (D-25) | 0.25 |
 | Hardening: accessibility, security tests, restore drill, launch checklist | 0.5–1 |
 
 **Acceptance criteria.**
@@ -118,7 +123,9 @@ PO-07 (before public launch), PO-08.
 9. Every service is on a free plan; the only payment is the domain.
 10. Activity is counted for each vendor (seen in search, profile views, taps); only the
     Localites team can see another business's numbers (tested).
-11. **Success measure to watch:** how many listed businesses claim their profile.
+11. Anyone can suggest a business in under a minute; the team email arrives; the
+    suggestion is in the admin list; nothing is published until an admin adds the business.
+12. **Success measure to watch:** how many listed businesses claim their profile.
 
 **Risks.** Too few vendors (high; mitigated by D-03 B and D-09 B) · a business objects to
 being listed (medium; clear labels, fast removal, personal contact) · legal review
@@ -149,6 +156,8 @@ see who marked them booked.
   team (supportlocalites@gmail.com) naming the business and the person asking; plus a notice
   when the business joins (D-04, D-05, ADR-024)
 - Activity tracking extended to saves, inquiries, conversations and messages (D-22)
+- Suggestions from signed-in people linked to their account, with an email when the
+  business is added (D-25)
 - Per-person database rules on events, conversations, messages and files (ADR-004)
 - "Localites doesn't process payments" notice in every conversation (ADR-018)
 
