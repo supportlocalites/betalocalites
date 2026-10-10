@@ -56,6 +56,7 @@ Recorded from your messages of 9 and 10 October 2026. These now shape every docu
 |---|---|---|---|
 | **ADR-005** | ✅ CPU time 8 ms with React Router (passes). A day after the speed improvements go live, glance at **Metrics** once more: CPU time, and whether any "Exceeded CPU" errors appear | Nothing; a final check | 2 min |
 | **PO-11** | Check the 28 test businesses (drafts) and publish the ones that are right (steps below) | Real listings on the test site | At your pace, ~5 min each |
+| **PO-12** | Let Localites send email from localites.ca: move the domain's settings to Cloudflare, then connect the free email service (steps below) | Suggest a business emails; business sign-up | 20 min, plus a wait |
 | **D-12** | Mailing address for the privacy policy and terms | Public launch | 1 min, later |
 
 **How to respond:** reply in the conversation with decision numbers and your choice,
@@ -771,6 +772,50 @@ research link and what to check.
    way.
 
 Nothing is ever deleted: every change is kept in the listing's history.
+
+### PO-12 — Email from localites.ca (ADR-013)
+**When:** Now, while we build Suggest a business. **Cost:** $0 (Cloudflare and Resend
+free plans; the domain you already pay for). **Time:** about 20 minutes, then a wait of
+up to a few hours for the internet to catch up.
+**Why:** Localites must email the team about each suggested business (D-25), and soon
+send businesses their sign-up emails. Email services only deliver reliably from a
+domain you own and have proved is yours.
+
+*A. Let Cloudflare manage the domain's settings (one-time)*
+1. In Cloudflare (supportlocalites@gmail.com), choose **Add a domain** (on the home page,
+   or **Websites** → **Add a site**). Type `localites.ca`, continue, and choose the
+   **Free** plan.
+2. Cloudflare checks for existing settings; click **Continue**. It then shows **two
+   nameservers** (two addresses ending in `ns.cloudflare.com`). Keep that page open.
+3. Sign in where you bought `localites.ca`. Find **Nameservers** (sometimes under
+   **DNS** or **Manage domain**), choose **custom nameservers**, and replace what's there
+   with Cloudflare's two. Save.
+4. Back in Cloudflare, click **Check nameservers**. It can take from minutes to a few
+   hours; Cloudflare emails you when `localites.ca` is **Active**. The live test site
+   isn't affected: it stays at its `.workers.dev` address.
+
+*B. Connect the email service (after A shows Active)*
+5. Go to **resend.com** and sign up with **supportlocalites@gmail.com** (free plan; turn
+   on two-step login in its settings).
+6. **Domains** → **Add Domain** → `localites.ca` → keep the suggested region → **Add**.
+7. Choose **Auto configure** (or **Sign in to Cloudflare**) and allow it for
+   `localites.ca` only; Resend adds its records for you. If that option isn't shown,
+   tell us: we'll walk you through adding the records by hand in Cloudflare's **DNS**
+   page.
+8. Click **Verify**. Within a few minutes the domain shows **Verified**.
+
+*C. Give the website its sending key*
+9. In Resend, **API Keys** → **Create API Key**. Name: `localites-website`. Permission:
+   **Sending access**, domain `localites.ca`. Copy the key (it's shown only once).
+10. In Cloudflare, open the **localites** Worker → **Settings** → **Variables and
+    Secrets** → **Add**. Type: **Secret**. Name: `RESEND_API_KEY`. Value: paste. Deploy.
+
+**Never send us** the key. If it's ever exposed, delete it in Resend and make a new one
+(steps 9–10).
+
+**Done when:** Resend shows `localites.ca` as **Verified** and `/api/health` lists
+`RESEND_API_KEY`. Reply *"PO-12 done"*. Until then, suggestions are still saved and shown
+in the admin page; only the email to the team waits.
 
 ---
 
