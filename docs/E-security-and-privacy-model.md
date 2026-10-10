@@ -198,15 +198,19 @@ to sell featured placements.
 - **Told plainly** in the privacy policy, in everyday words. Visitors who aren't signed in
   get a random visitor ID in Localites' own cookie, with no outside trackers. The legal
   review (PO-07) confirms whether a notice is also needed on first visit.
-- **Counted, not watched:** we record that something happened (a profile view, a tap), not
-  what someone typed or read.
+- **Counted, not watched:** we record that something happened (a profile view, a tap, how
+  long a profile was open, which photos were opened), not the content of anything
+  someone wrote. **Search words** (D-30) are kept only as anonymous daily totals per
+  category, never linked to a visitor or account. Approximate town is city level, from
+  Cloudflare. The legal review (PO-07) checks the returning-visitor cookie and town.
 - **Retention:** detailed records are kept with no deletion date, for year-over-year
   reports (D-22, §8). When someone deletes their account, their records stay but the link
   to them is removed. Canadian privacy law expects personal information to be kept only
   as long as a stated purpose needs it; the privacy policy names that purpose, and the
   legal review (PO-07) confirms it.
-- **Starts with each feature:** seen in search, profile views and taps from Stage 1;
-  saves, inquiries, conversations and messages from Stage 2, when those exist.
+- **Starts with each feature:** seen in search, profile views, taps and the D-30 additions
+  from Stage 1; saves, inquiries, conversations and messages from Stage 2, when those
+  exist.
 
 ## 8. Retention and deletion
 

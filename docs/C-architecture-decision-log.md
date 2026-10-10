@@ -543,6 +543,9 @@ both switches between "My events" and "My business".
 two separate account systems would duplicate people, which the brief forbids. The
 screens keep the two sides clearly separate.
 
+**Confirmed by D-29 (10 October 2026):** personal and business are joined in one login;
+a vendor switches between them from the menu without signing out.
+
 **Alternative.** Separate consumer and vendor sign-ups. Simpler to explain on day one;
 creates duplicate identities later.
 
@@ -580,6 +583,16 @@ would add about 900,000 a month; daily totals add a few thousand. Detailed recor
 actions are far fewer: at 1,000 visitors a day making about 4 tracked actions each, they
 grow by roughly 200 MB a year, which is why older detail moves to archive storage rather
 than being deleted.
+
+**Extended by D-30 (10 October 2026): "the more the better".** Also recorded, built in
+Stage 1 step 5: position in search and category lists; returning visitors; time on the
+profile, photos opened and services viewed; email, directions, social and share taps;
+where visitors came from (Google, shared link, Localites search, category); phone or
+computer; approximate town (city level, from Cloudflare, no third party); comparisons
+with the category average and rank in category; Suggest-a-business requests that named
+the business; and search demand per category, including searches that found nothing.
+**Words people type into search are kept only as anonymous daily totals** (word, category,
+count), never linked to a visitor or account, because a search can contain anything.
 
 **Rejected.** Google Analytics or similar (third-party profiling, consent banners, and no
 reliable link to individual vendors). Storing every impression (outgrows the free

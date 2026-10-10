@@ -80,8 +80,10 @@ database migrations with 51 checks, Welcome, Explore, search and business profil
 on fake test data, automatic checks on GitHub, and the live test site on Cloudflare
 through Hyperdrive. The fit test found Next.js too heavy for the free plan (median 22.88 ms
 per page against 10 ms), so the site moved to React Router (ADR-005, 7% of the size
-limit). Next: Cloudflare's new build commands (PO-03 G) and the new speed reading, then
-vendor accounts, admin tools and Suggest a business.
+limit); live CPU time 8 ms, under the 10 ms limit, so the fit test passes. Next:
+sign-in with two-step codes for the team and the admin page (D-28), then Suggest a
+business, vendor claiming with the sign-in screen (D-27, D-29), and the fuller activity
+reports (D-30).
 
 **Outcome.** A real, public directory of local event vendors, useful to a parent on its
 own, with the admin tools to build it. **Local businesses claim their listings** so
@@ -93,7 +95,8 @@ Google) · honest empty states · vendor website/phone (D-04) · activity counte
 vendor (seen in search, profile views, website and phone taps) and reports prepared by
 the team (D-22) · **Suggest a business**: a three-question form open to everyone, emailed
 to the team, with an admin list for vetting (D-25)
-· vendor accounts: sign up, claim, edit, submit for review, manage team · admin:
+· vendor accounts: sign up, claim, edit, submit for review (teammates later, D-29) · one
+login joining personal and business, with a switch (D-29) · admin:
 create, review, publish, claims, verification, categories, attributes, places,
 collections · image upload · audit trail · privacy policy and terms (from PO-07) ·
 production environment, monitoring, backups, restore drill.
@@ -113,8 +116,8 @@ before public launch.
 | Foundations: setup, CI, environments, sign-in, permissions module, audit, migrations, nightly backup | 1.5 |
 | Taxonomy, vendor model, admin listing tools | 1.5–2 |
 | Public discovery: landing, browse, search, profile, SEO | 1.5–2 |
-| Vendor accounts, claiming, self-editing, team | 1 |
-| Activity tracking and vendor reports (D-22) | 0.5 |
+| Vendor accounts, claiming, self-editing (teammates later, D-29) | 0.75 |
+| Activity tracking and vendor reports (D-22, extended by D-30) | 1–1.5 |
 | Suggest a business: form, spam protection, team email, admin list (D-25) | 0.25 |
 | Hardening: accessibility, security tests, restore drill, launch checklist | 0.5–1 |
 
