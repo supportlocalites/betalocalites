@@ -83,8 +83,9 @@ per page against 10 ms), so the site moved to React Router (ADR-005, 7% of the s
 limit); live CPU time 8 ms, under the 10 ms limit, so the fit test passes. Team sign-in
 with two-step codes and the admin page for listings are built and tested (D-28; switched
 on by PO-10, live). The 28 test businesses are loaded as drafts for the team to check and
-publish (PO-11). Next: Suggest a business, vendor claiming with the sign-in screen (D-27,
-D-29), and the fuller activity reports (D-30).
+publish (PO-11). Suggest a business is built (D-25; its team email waits for PO-12).
+Next: vendor claiming with the sign-in screen (D-27, D-29), then the fuller activity
+reports (D-30).
 
 **Outcome.** A real, public directory of local event vendors, useful to a parent on its
 own, with the admin tools to build it. **Local businesses claim their listings** so

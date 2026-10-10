@@ -169,7 +169,12 @@ async function setCategories(db: Db, vendorId: string, primaryId: string, ids: s
 }
 
 /** Creates a draft listing entered by the team. Returns its id. */
-export async function createListing(env: ServerEnv, admin: Admin, input: ListingInput): Promise<string> {
+export async function createListing(
+  env: ServerEnv,
+  admin: Admin,
+  input: ListingInput,
+  fromSuggestionId: string | null = null,
+): Promise<string> {
   return withDb(env, (db) =>
     db.transaction(async (tx) => {
       const id = uuidv7();
@@ -185,9 +190,25 @@ export async function createListing(env: ServerEnv, admin: Admin, input: Listing
         action: 'vendor.create',
         subjectType: 'vendor',
         subjectId: id,
+        reason: fromSuggestionId ? 'From a suggested business (D-25)' : null,
         changes: diff({}, { ...input, slug }),
         sessionRef: admin.sessionId,
       });
+      if (fromSuggestionId) {
+        // Suggest a business (X19): the suggestion becomes "added", linked to this draft.
+        const linked = await tx.execute(sql`
+          update vendor_suggestion set status = 'added', vendor_id = ${id}, reviewed_by = ${admin.userId}, reviewed_at = now()
+          where id = ${fromSuggestionId} and status = 'new' returning id`);
+        if (linked.length === 0) throw new ListingConflict('form', 'This suggestion was already dealt with.');
+        await audit(tx, {
+          actor: admin.userId,
+          action: 'vendor_suggestion.added',
+          subjectType: 'vendor_suggestion',
+          subjectId: fromSuggestionId,
+          changes: { vendorId: { from: null, to: id } },
+          sessionRef: admin.sessionId,
+        });
+      }
       return id;
     }),
   );

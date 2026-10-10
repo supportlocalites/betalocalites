@@ -31,6 +31,30 @@ Every release and every database migration, in order. Appended before each deplo
 
 ## Releases
 
+### 2026-10-10 — Suggest a business (Stage 1, not public)
+
+**Stage:** 1 (D-25, ADR-027)
+**What changed (plain English):** Under every search and category page: *"Don't see who
+you're looking for? Suggest a business."* Anyone can answer three questions (name;
+website or social page; phone or email), no account needed, and sees *"Thanks. Our team
+will look into this business and add it if it's a fit."* The team gets an email (once
+PO-12 is done) and a **Suggestions** list in the admin page, with the count of new ones in
+the menu: add it as a draft listing (linked to the suggestion), mark it as already listed,
+or decline it with a reason. Everything is recorded. Spam protection: a hidden field
+only bots fill in, 3 suggestions a minute per internet address (kept by Cloudflare,
+never stored), 5 an hour per visitor, 100 a day in total. A visitor cookie
+(`__Host-lc_vid`, Localites' own, random) is set when someone sends a suggestion.
+**Migrations applied:** none.
+**Destructive?** No.
+**Tests run:** unit tests 35/35 (new: the three questions, the team email, sending and
+its failures); admin access and suggestion tests 43/43 (16 new: limits, bot trap,
+cross-site form, team-only list and actions, add-as-draft link, no deciding twice, audit
+log); browser run-through at phone and desktop sizes.
+**Not yet live:** the team email waits for PO-12; suggestions are saved and listed
+meanwhile, honestly marked "waiting".
+**How to roll back:** Cloudflare → localites → Deployments → previous version → Deploy.
+**Approved by:** Product owner (D-25, D-23).
+
 ### 2026-10-10 — The 28 test businesses, as drafts (Stage 1, not public)
 
 **Stage:** 1 (PO-08)

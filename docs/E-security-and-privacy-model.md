@@ -204,7 +204,9 @@ to sell featured placements.
 | Anyone else | Nothing. Tracking data is never sold. |
 
 - **Told plainly** in the privacy policy, in everyday words. Visitors who aren't signed in
-  get a random visitor ID in Localites' own cookie, with no outside trackers. The legal
+  get a random visitor ID in Localites' own cookie (`__Host-lc_vid`: HttpOnly, Secure,
+  one year), with no outside trackers. As built, it's set when someone suggests a
+  business; activity counting will use the same cookie. The legal
   review (PO-07) confirms whether a notice is also needed on first visit.
 - **Everything is tracked (D-30):** each action (a profile view, a tap, how long a
   profile was open, which photos were opened) and **the words people search**, linked to

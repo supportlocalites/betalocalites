@@ -210,3 +210,9 @@
   margin: 0;
   min-width: 0;
 }
+
+.buttons .input {
+  width: auto;
+  flex: 1 1 var(--size-tile-min);
+  max-width: var(--size-form-narrow);
+}

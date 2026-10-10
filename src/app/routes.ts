@@ -7,6 +7,7 @@ export default [
   route('search', 'routes/search.tsx'),
   route('vendors/:slug', 'routes/vendor.tsx'),
   route('api/health', 'routes/health.ts'),
+  route('suggest', 'routes/suggest.tsx'),
   route('sign-in', 'routes/sign-in.tsx'),
   route('two-step', 'routes/two-step.tsx'),
   route('sign-out', 'routes/sign-out.ts'),
@@ -15,5 +16,6 @@ export default [
     index('routes/admin/listings.tsx'),
     route('listings/new', 'routes/admin/listing-new.tsx'),
     route('listings/:id', 'routes/admin/listing-edit.tsx'),
+    route('suggestions', 'routes/admin/suggestions.tsx'),
   ]),
 ] satisfies RouteConfig;

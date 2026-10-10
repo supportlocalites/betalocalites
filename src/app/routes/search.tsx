@@ -1,3 +1,4 @@
+import { Link } from 'react-router';
 import { cloudflareContext } from '@/app/context';
 import { ResultList } from '@/components/ResultRow';
 import { SearchBar } from '@/components/SearchBar';
@@ -15,10 +16,11 @@ export async function loader({ request, context }: Route.LoaderArgs) {
   const { env } = context.get(cloudflareContext);
   const [vendors, categories] = await Promise.all([searchVendors(env, q, categorySlug), listCategories(env)]);
   const categoryName = categories.find((c) => c.slug === categorySlug)?.name;
-  return { q, vendors, heading: categoryName ?? (q ? `Results for “${q}”` : 'All local businesses') };
+  return { q, category: categorySlug ?? '', vendors, heading: categoryName ?? (q ? `Results for “${q}”` : 'All local businesses') };
 }
 
-export default function Search({ loaderData: { q, vendors, heading } }: Route.ComponentProps) {
+export default function Search({ loaderData: { q, category, vendors, heading } }: Route.ComponentProps) {
+  const suggestLink = `/suggest?${new URLSearchParams({ ...(category ? { category } : {}), ...(q ? { q } : {}) })}`;
   return (
     <>
       <SiteHeader />
@@ -39,6 +41,12 @@ export default function Search({ loaderData: { q, vendors, heading } }: Route.Co
             browse a category.
           </p>
         )}
+        <p className="muted section-gap">
+          Don’t see who you’re looking for?{' '}
+          <Link to={suggestLink} className="text-link">
+            Suggest a business
+          </Link>
+        </p>
       </main>
     </>
   );

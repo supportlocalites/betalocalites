@@ -2,6 +2,7 @@ import { Form, Link, NavLink, Outlet } from 'react-router';
 import { adminContext, cloudflareContext } from '@/app/context';
 import { Wordmark } from '@/components/Wordmark';
 import { adminGate } from '@/server/auth/admin.server';
+import { countNewSuggestions } from '@/server/suggestions.server';
 import type { Route } from './+types/layout';
 import styles from './admin.module.css';
 
@@ -22,9 +23,10 @@ export const middleware: Route.MiddlewareFunction[] = [
   },
 ];
 
-export function loader({ context }: Route.LoaderArgs) {
+export async function loader({ context }: Route.LoaderArgs) {
   const admin = context.get(adminContext);
-  return { name: admin.name, email: admin.email };
+  const newSuggestions = await countNewSuggestions(context.get(cloudflareContext).env);
+  return { name: admin.name, email: admin.email, newSuggestions };
 }
 
 export default function AdminLayout({ loaderData }: Route.ComponentProps) {
@@ -38,6 +40,9 @@ export default function AdminLayout({ loaderData }: Route.ComponentProps) {
         <nav aria-label="Admin" className={styles.nav}>
           <NavLink to="/admin" end className="text-link">
             Listings
+          </NavLink>
+          <NavLink to="/admin/suggestions" className="text-link">
+            Suggestions{loaderData.newSuggestions > 0 ? ` (${loaderData.newSuggestions} new)` : ''}
           </NavLink>
           <Link to="/explore" className="text-link">
             Public site

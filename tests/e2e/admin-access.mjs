@@ -8,7 +8,7 @@
 //   E2E_DATABASE_ADMIN_URL  the local database the site uses, as a superuser
 //
 // Usage: npm run test:e2e
-import { createHmac } from 'node:crypto';
+import { createHmac, randomUUID } from 'node:crypto';
 import postgres from 'postgres';
 
 const BASE = process.env.E2E_BASE_URL ?? 'http://localhost:4173';
@@ -86,14 +86,21 @@ async function account(email) {
   return user.id;
 }
 const passwordSession = (email) => auth('/token?grant_type=password', { method: 'POST', body: { email, password: 'e2e-password-123' } });
+const authenticators = new Map(); // email → { id, secret } of the app set up in this run
 async function twoStepSession(email) {
   const s = await passwordSession(email);
-  const factor = await auth('/factors', { method: 'POST', token: s.access_token, body: { factor_type: 'totp', friendly_name: `e2e ${Date.now()}` } });
+  let factor = authenticators.get(email);
+  if (!factor) {
+    // First time: set up an authenticator app (Supabase allows a second one only after two-step).
+    const made = await auth('/factors', { method: 'POST', token: s.access_token, body: { factor_type: 'totp', friendly_name: `e2e ${Date.now()}` } });
+    factor = { id: made.id, secret: made.totp.secret };
+    authenticators.set(email, factor);
+  }
   const challenge = await auth(`/factors/${factor.id}/challenge`, { method: 'POST', token: s.access_token, body: {} });
   return auth(`/factors/${factor.id}/verify`, {
     method: 'POST',
     token: s.access_token,
-    body: { challenge_id: challenge.id, code: totp(factor.totp.secret) },
+    body: { challenge_id: challenge.id, code: totp(factor.secret) },
   });
 }
 const cookieFor = (s) => `__Host-lc_at=${s.access_token}; __Host-lc_rt=${s.refresh_token}`;
@@ -227,7 +234,61 @@ check('after sign-in, a link to another website goes to /admin instead', r.statu
 r = await site('/sign-in', { method: 'POST', form: { email: adminEmail, password: 'wrong' } });
 check('wrong password: refused, no cookies set', r.status === 400 && !(r.headers.get('set-cookie') ?? '').includes('lc_at='), String(r.status));
 
-// 11. Public pages are unaffected.
+// 11. Suggest a business (D-25): open to everyone, limited, and only the team acts on it.
+console.log('Suggest a business');
+const countSuggestions = async (name) => (await sql`select count(*)::int as n from vendor_suggestion where business_name = ${name}`)[0].n;
+// Per-visitor limit first (Cloudflare's per-address limit allows 3 a minute; this uses 1).
+const busyVisitor = randomUUID();
+for (let i = 0; i < 5; i++) {
+  await sql`insert into vendor_suggestion (business_name, visitor_id) values (${`E2E earlier ${run} ${i}`}, ${busyVisitor})`;
+}
+r = await site('/suggest', { method: 'POST', cookie: `__Host-lc_vid=${busyVisitor}`, form: { businessName: `E2E too many ${run}` } });
+check('a visitor who sent 5 suggestions this hour is asked to wait', r.status === 429 && (await countSuggestions(`E2E too many ${run}`)) === 0, String(r.status));
+r = await site('/suggest', { method: 'POST', form: { businessName: `E2E suggestion ${run}`, website: 'example.com', contact: '705 555 0100', category: 'sweets', q: 'cakes' } });
+const [suggested] = await sql`select id, visitor_id, team_email_status, category_id is not null as has_category, search_text from vendor_suggestion where business_name = ${`E2E suggestion ${run}`}`;
+check('anyone can suggest a business, no account needed', r.status === 200 && r.body.includes('Our team will look into this business') && Boolean(suggested), String(r.status));
+check('the suggestion keeps where they were looking and a visitor ID', suggested?.has_category === true && suggested?.search_text === 'cakes' && Boolean(suggested?.visitor_id));
+check('without email set up, the team email is honestly "pending"', suggested?.team_email_status === 'pending', suggested?.team_email_status);
+check('the visitor cookie is this-site-only and unreadable by page scripts', /__Host-lc_vid=[0-9a-f-]{36}; Path=\/; HttpOnly; Secure; SameSite=Lax/.test(r.headers.get('set-cookie') ?? ''));
+r = await site('/suggest', { method: 'POST', form: { businessName: `E2E bot ${run}`, company_url: 'http://spam.example' } });
+check('a bot filling the hidden field is thanked, and nothing is kept', r.status === 200 && (await countSuggestions(`E2E bot ${run}`)) === 0, String(r.status));
+r = await site('/suggest', { method: 'POST', form: { businessName: `E2E cross-site ${run}` }, origin: 'https://evil.example' });
+check('a suggestion sent from another website is refused', r.status === 403 && (await countSuggestions(`E2E cross-site ${run}`)) === 0, String(r.status));
+let limited = false;
+for (let i = 0; i < 4 && !limited; i++) {
+  r = await site('/suggest', { method: 'POST', form: { businessName: `E2E burst ${run} ${i}` } });
+  limited = r.status === 429;
+}
+check('many suggestions in a minute from one address are slowed down', limited);
+
+r = await site('/admin/suggestions');
+check('signed out: the suggestions list sends you to sign in', r.status === 302 && r.location.startsWith('/sign-in'), `${r.status} ${r.location}`);
+r = await site('/admin/suggestions', { cookie: cookieFor(staff2), method: 'POST', form: { intent: 'decline', id: suggested.id, reason: 'nope' } });
+const [stillNew] = await sql`select status from vendor_suggestion where id = ${suggested.id}`;
+check('not on the team: declining a suggestion is refused', r.status === 403 && stillNew.status === 'new', `${r.status} ${stillNew.status}`);
+
+const admin3 = await twoStepSession(adminEmail);
+const admin3Cookie = cookieFor(admin3);
+r = await site('/admin/suggestions', { cookie: admin3Cookie });
+check('the team sees the suggestion, with the phone or email for vetting', r.status === 200 && r.body.includes(`E2E suggestion ${run}`) && r.body.includes('705 555 0100'));
+r = await site('/admin/suggestions', { cookie: admin3Cookie, method: 'POST', form: { intent: 'decline', id: suggested.id, reason: '' } });
+check('declining needs a reason', r.status === 400);
+r = await site('/admin/listings/new', { cookie: admin3Cookie, method: 'POST', form: { ...listingForm(`E2E from suggestion ${run}`), suggestionId: suggested.id } });
+const fromSuggestionId = r.location.match(/\/admin\/listings\/([0-9a-f-]{36})/)?.[1];
+const [added] = await sql`select status, vendor_id, reviewed_by from vendor_suggestion where id = ${suggested.id}`;
+check('"Add as a draft listing" links the suggestion to the new draft', r.status === 302 && added.status === 'added' && added.vendor_id === fromSuggestionId && added.reviewed_by === adminId, `${r.status} ${added.status}`);
+r = await site('/admin/suggestions', { cookie: admin3Cookie, method: 'POST', form: { intent: 'decline', id: suggested.id, reason: 'changed my mind' } });
+const [afterTwice] = await sql`select status from vendor_suggestion where id = ${suggested.id}`;
+check('a suggestion can’t be decided twice', r.status === 409 && afterTwice.status === 'added', `${r.status} ${afterTwice.status}`);
+const [{ id: other }] = await sql`select id from vendor_suggestion where business_name = ${`E2E earlier ${run} 0`}`;
+r = await site('/admin/suggestions', { cookie: admin3Cookie, method: 'POST', form: { intent: 'duplicate', id: other, vendorId: '01900000-0000-7000-8000-000000000000' } });
+check('marking as already listed needs a real listing', r.status === 409, String(r.status));
+r = await site('/admin/suggestions', { cookie: admin3Cookie, method: 'POST', form: { intent: 'decline', id: other, reason: 'E2E: not in our area' } });
+const [declined] = await sql`select status, decline_reason from vendor_suggestion where id = ${other}`;
+const [declineLogged] = await sql`select count(*)::int as n from audit_log where action = 'vendor_suggestion.declined' and subject_id = ${other} and actor_user_id = ${adminId}`;
+check('declining is recorded with its reason, in the audit log', declined.status === 'declined' && declined.decline_reason === 'E2E: not in our area' && declineLogged.n === 1);
+
+// 12. Public pages are unaffected.
 r = await site('/explore');
 check('public pages need no account and set no cookies', r.status === 200 && !r.headers.get('set-cookie'));
 
