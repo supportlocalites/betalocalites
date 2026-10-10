@@ -1,10 +1,9 @@
 import { drizzle, type PostgresJsDatabase } from 'drizzle-orm/postgres-js';
 import postgres from 'postgres';
-import * as schema from '@/db/generated/schema';
 import { normalizeDatabaseUrl, requiresTls } from '@/lib/db-url.mjs';
 import type { ServerEnv } from './env';
 
-export type Db = PostgresJsDatabase<typeof schema>;
+export type Db = PostgresJsDatabase;
 
 type Connection = { url: string; ssl: 'require' | false; via: 'hyperdrive' | 'database_url' };
 
@@ -38,7 +37,9 @@ export async function withDb<T>(env: ServerEnv, fn: (db: Db) => Promise<T>): Pro
     ssl,
   });
   try {
-    return await fn(drizzle(client, { schema }));
+    // No schema map: building one costs processing on every request, and queries name
+    // their tables directly.
+    return await fn(drizzle(client));
   } finally {
     await client.end({ timeout: 1 });
   }

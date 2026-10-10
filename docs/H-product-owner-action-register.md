@@ -49,7 +49,7 @@ Recorded from your messages of 9 and 10 October 2026. These now shape every docu
 
 | # | What | Blocks | Your effort |
 |---|---|---|---|
-| **ADR-005** | A day after G, tell us Cloudflare's CPU time figures again (median and P99) and whether any "Exceeded CPU" errors appear (localites → Metrics) | Closing the hosting fit test | 5 min |
+| **ADR-005** | ✅ CPU time 8 ms with React Router (passes). A day after the speed improvements go live, glance at **Metrics** once more: CPU time, and whether any "Exceeded CPU" errors appear | Nothing; a final check | 2 min |
 | **D-12** | Mailing address for the privacy policy and terms | Public launch | 1 min, later |
 
 **How to respond:** reply in the conversation with decision numbers and your choice,

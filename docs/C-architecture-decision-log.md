@@ -227,9 +227,14 @@ security headers. Size: **223 KiB compressed, 7% of the limit** (Next.js: about 
 `npm run size` still fails the build above 80%. Run in Cloudflare's runtime locally
 against PostgreSQL through Hyperdrive's local stand-in: welcome, Explore, search
 (including typos), a business profile, unknown addresses (404) and `/api/health` all
-worked, and pages move without full reloads. **Next:** the live CPU reading on Cloudflare
-once its build commands are changed (H, PO-03 step D). The signed-in page is measured
-when sign-in is built.
+worked, and pages move without full reloads.
+**Live result (10 October 2026):** Cloudflare's CPU time fell to **8 ms** with React
+Router, under the free plan's 10 ms: **the fit test passes**. For headroom (sign-in and
+activity counting will add work), three speed improvements followed: the page code now
+loads when the Worker starts rather than during a visitor's request, the database
+library no longer rebuilds its table map on every request, and the server code is
+minified (144 KiB compressed, 5% of the limit). The signed-in page is measured when
+sign-in is built.
 
 ---
 

@@ -31,6 +31,23 @@ Every release and every database migration, in order. Appended before each deplo
 
 ## Releases
 
+### 2026-10-10 — Speed improvements (Stage 1, not public)
+
+**Stage:** 1
+**What changed (plain English):** No visible change. With React Router the site used
+8 ms of processing per request against the free plan's 10 ms, so three changes give it
+headroom: the page code loads when the Worker starts instead of during a visitor's
+request, the database library skips a step it repeated on every request, and the server
+code is compressed tighter (144 KiB, 5% of the size limit, down from 223 KiB).
+**Migrations applied:** none.
+**Destructive?** No.
+**Tests run:** lint, types, design tokens, wording; unit tests 12/12; every page checked
+in Cloudflare's runtime locally against PostgreSQL through Hyperdrive's local stand-in
+(welcome, Explore, category, search with a typo, profile, 404s, `/api/health`) and
+clicked through in a browser at 390, 768 and 1440 wide: no errors.
+**How to roll back:** Cloudflare → localites → Deployments → previous version → Deploy.
+**Approved by:** Product owner ("can you run the speed improvements?"), 10 October 2026.
+
 ### 2026-10-10 — Switch to React Router (Stage 1, not public)
 
 **Stage:** 1
