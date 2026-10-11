@@ -34,7 +34,7 @@ export async function action({ request, context }: Route.ActionArgs) {
   try {
     if (intent === 'approve') {
       const check = String(form.get('check') ?? '');
-      if (!(check in CHECKS)) return data({ id, error: 'Choose how you confirmed it.' }, { status: 400 });
+      if (!Object.hasOwn(CHECKS, check)) return data({ id, error: 'Choose how you confirmed it.' }, { status: 400 });
       const decided = await approveClaim(env, admin, id, check as Check);
       ctx.waitUntil(
         emailClaimDecision(env, site, id, decided, { approved: true }).catch((err) =>

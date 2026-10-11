@@ -219,25 +219,25 @@ export class ClaimConflict extends Error {}
 
 type Decided = { business: string; slug: string; claimant: Person; declined: (Person & { claimId: string })[] };
 
+/**
+ * Locks the business first, then the claim: every change to a business's claims takes the
+ * business's lock first (submitting, approving, declining), so two team members acting on
+ * the same business at once simply take turns instead of deadlocking.
+ */
 async function lockOpenClaim(tx: Db, claimId: string) {
-  const [c] = await tx.execute<{
-    vendorId: string;
-    business: string;
-    slug: string;
-    status: string;
-    claimStatus: string;
-    websiteUrl: string | null;
-    claimant: Person;
-  }>(sql`
-    select c.vendor_id as "vendorId", v.display_name as business, v.slug::text as slug, c.status,
-           v.claim_status as "claimStatus", v.website_url as "websiteUrl",
-           json_build_object('userId', u.id, 'name', u.display_name, 'email', u.email) as claimant
-    from vendor_claim c join vendor v on v.id = c.vendor_id join app_user u on u.id = c.claimant_user_id
+  const [target] = await tx.execute<{ vendorId: string }>(sql`select vendor_id as "vendorId" from vendor_claim where id = ${claimId}`);
+  if (!target) throw new ClaimConflict('That claim doesn’t exist.');
+  const [v] = await tx.execute<{ business: string; slug: string; claimStatus: string; websiteUrl: string | null }>(sql`
+    select display_name as business, slug::text as slug, claim_status as "claimStatus", website_url as "websiteUrl"
+    from vendor where id = ${target.vendorId} for update`);
+  const [c] = await tx.execute<{ status: string; claimant: Person }>(sql`
+    select c.status, json_build_object('userId', u.id, 'name', u.display_name, 'email', u.email) as claimant
+    from vendor_claim c join app_user u on u.id = c.claimant_user_id
     where c.id = ${claimId}
-    for update of c, v`);
-  if (!c) throw new ClaimConflict('That claim doesn’t exist.');
+    for update of c`);
+  if (!v || !c) throw new ClaimConflict('That claim doesn’t exist.');
   if (c.status !== 'submitted') throw new ClaimConflict('This claim was already dealt with.');
-  return c;
+  return { vendorId: target.vendorId, ...v, status: c.status, claimant: c.claimant };
 }
 
 /**
@@ -248,6 +248,7 @@ async function lockOpenClaim(tx: Db, claimId: string) {
 export async function approveClaim(env: ServerEnv, admin: Admin, claimId: string, check: Check): Promise<Decided> {
   return withDb(env, (db) =>
     db.transaction(async (tx) => {
+      if (!Object.hasOwn(CHECKS, check)) throw new ClaimConflict('Choose how you confirmed it.');
       const c = await lockOpenClaim(tx, claimId);
       if (c.claimant.userId === admin.userId) {
         throw new ClaimConflict('You can’t approve your own claim. Ask another team member to check it.');

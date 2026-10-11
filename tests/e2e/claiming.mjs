@@ -88,6 +88,20 @@ r = await site('/join', { method: 'POST', form: { intent: 'send', email: alice, 
 const fresh = await latestCode(alice, before - 1);
 check('a new code can be sent after the wait', r.status === 200 && Boolean(fresh) && fresh !== code, `${r.status} ${fresh}`);
 
+// Many guesses sent at the same moment still count one by one.
+const racer = `racer-${run}@example.test`;
+before = Date.now();
+await site('/join', { method: 'POST', form: { intent: 'send', email: racer, next: '/account' }, ip: ip() });
+const racerCode = await latestCode(racer, before - 1);
+const racerWrong = String((Number(racerCode) + 7) % 1e6).padStart(6, '0');
+const burst = await Promise.all(
+  Array.from({ length: 12 }, () => site('/join', { method: 'POST', form: { intent: 'verify', email: racer, code: racerWrong, next: '/account' }, ip: ip() })),
+);
+const [counted] = await sql`select count(*)::int as n from sign_in_code_event where email_hash = ${hashOf(racer)} and kind = 'wrong_code'`;
+r = await site('/join', { method: 'POST', form: { intent: 'verify', email: racer, code: racerCode, next: '/account' }, ip: ip() });
+check('12 guesses sent at once: only 5 are tried, and the right code is then refused',
+  counted.n === 5 && burst.every((b) => b.status === 400) && r.status === 400 && !cookiesFrom(r).includes('lc_at'), `${counted.n} tried, then ${r.status}`);
+
 // 4. The right code, then the name.
 r = await site('/join', { method: 'POST', form: { intent: 'verify', email: alice, code: fresh, next: `/vendors/${bakery.slug}/claim` }, ip: from });
 let aliceCookie = cookiesFrom(r);
@@ -106,13 +120,19 @@ r = await site('/join', { cookie: aliceCookie });
 check('signed in already: the sign-in screen sends them on', r.status === 302 && r.location === '/account', `${r.status} ${r.location}`);
 r = await site('/explore', { cookie: aliceCookie });
 check('the header offers "Your account" once signed in', r.body.includes('href="/account"'));
+let offsite = 0;
+for (const trick of ['/%09/evil.example', '/%0a/evil.example', '/%5c/evil.example', '//evil.example', 'https://evil.example']) {
+  r = await site(`/join?next=${trick}`, { cookie: aliceCookie });
+  if (!(r.status === 302 && r.location === '/account')) offsite++;
+}
+check('a "next" address hiding another website (tab, line break, backslash) goes to the account page instead', offsite === 0, `${offsite} not caught`);
 
 // 5. Limits.
 const busy = `busy-${run}@example.test`;
 for (let i = 0; i < 3; i++) await sql`insert into sign_in_code_event (email_hash, kind) values (${hashOf(busy)}, 'sent')`;
 before = Date.now();
 r = await site('/join', { method: 'POST', form: { intent: 'send', email: busy, next: '/account' }, ip: ip() });
-check('3 codes to one address in an hour: asked to use the newest, no fourth email', r.status === 429 && r.body.includes('already sent a few codes') && (await mailFor(busy)).length === 0, String(r.status));
+check('3 codes to one address in an hour: asked to use the newest, no fourth email', r.status === 429 && r.body.includes('already sent 3 codes') && (await mailFor(busy)).length === 0, String(r.status));
 await sql`insert into sign_in_code_event (email_hash, kind) select repeat('0', 64), 'sent' from generate_series(1, 60)`;
 r = await site('/join', { method: 'POST', form: { intent: 'send', email: `daily-${run}@example.test`, next: '/account' }, ip: ip() });
 check('60 codes in a day across the site: an honest "try again tomorrow"', r.status === 429 && r.body.includes('try again tomorrow'), String(r.status));
@@ -201,7 +221,9 @@ check('a fourth open claim from one person is refused', r.status === 409 && (awa
 r = await site('/admin/claims', { cookie: aliceCookie, method: 'POST', form: { intent: 'approve', id: aliceClaim.id, check: 'email_domain' } });
 let [stillOpen] = await sql`select status from vendor_claim where id = ${aliceClaim.id}`;
 check('a claimant can’t approve her own claim through the team page', r.status === 302 && r.location.startsWith('/sign-in') && stillOpen.status === 'submitted', `${r.status} ${stillOpen.status}`);
-aliceCookie = await codeSignIn(alice, 'unused'); // that attempt signed her out
+// That attempt signed her out. She has used her 3 codes this hour; start a new hour.
+await sql`delete from sign_in_code_event where email_hash = ${hashOf(alice)}`;
+aliceCookie = await codeSignIn(alice, 'unused');
 const staffEmail = `e2e-claims-staff-${run}@example.test`;
 await account(staffEmail);
 r = await site('/admin/claims', { cookie: cookieFor(await twoStepSession(staffEmail)), method: 'POST', form: { intent: 'approve', id: aliceClaim.id, check: 'phoned_business' } });

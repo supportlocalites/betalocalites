@@ -15,3 +15,21 @@ export function visitor(request: Request): { id: string; setCookie: string | nul
   const id = uuidv7();
   return { id, setCookie: `${NAME}=${id}; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=${ONE_YEAR}` };
 }
+
+/**
+ * The visitor's internet address as a rate-limit key (Cloudflare's limiter keeps it briefly;
+ * Localites never stores it). An IPv6 address counts by its /64 block, since one home or
+ * phone connection controls a whole block and could otherwise pose as countless visitors.
+ */
+export function addressKey(request: Request): string {
+  const ip = (request.headers.get('CF-Connecting-IP') ?? 'local').trim().toLowerCase();
+  if (!ip.includes(':')) return ip;
+  const [head = '', tail] = ip.split('::');
+  const left = head ? head.split(':') : [];
+  const right = tail ? tail.split(':') : [];
+  const groups = tail === undefined ? left : [...left, ...Array(Math.max(0, 8 - left.length - right.length)).fill('0'), ...right];
+  return `${groups
+    .slice(0, 4)
+    .map((g) => g.replace(/^0+(?=.)/, ''))
+    .join(':')}::/64`;
+}

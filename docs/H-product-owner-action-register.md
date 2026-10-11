@@ -871,10 +871,11 @@ Everything happens in the **localites-test** Supabase project; nothing is sent t
    code: 123456"** from notices@localites.ca. Enter the code, then your name. You land
    on **Your account**.
 9. Open one of the six fake **Test Vendor** businesses, click **Claim this business**, and
-   send a claim. Then, signed in to the admin page as the team, open **Claims**: approve
-   it ("I emailed the business at its published address" is fine for a test) or decline
-   it with a reason. Your personal address gets the email, and **Your account** shows the
-   result.
+   send a claim. Then, signed in to the admin page as the team, open **Claims** and
+   **decline** it with the reason `Test`. (Don't approve a test claim: making someone an
+   owner can't be undone from the admin page yet.) Your personal address gets the
+   "couldn't approve" email, and **Your account** shows the claim as not approved, with
+   the reason.
 
 **Your team sign-in doesn't change:** password, then the authenticator app, at
 `/sign-in`. A code sign-in never opens the team pages.

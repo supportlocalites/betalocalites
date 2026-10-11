@@ -89,7 +89,8 @@ D-29, D-32, D-33, D-35, ADR-028): the "Sign in or create an account" screen, **Y
 account**, "Claim this business" on every unclaimed profile, and the team's **Claims**
 page (codes reach everyone once PO-12 and PO-13 are done). Next: owners editing their own
 listing, with the team's daily note and undo (D-34), then the fuller activity reports
-(D-30).
+(D-30). Before the public launch: Cloudflare's free "are you human" check (Turnstile) on
+"Email me a code", so nobody can use up the day's sign-in codes (ADR-028).
 
 **Outcome.** A real, public directory of local event vendors, useful to a parent on its
 own, with the admin tools to build it. **Local businesses claim their listings** so

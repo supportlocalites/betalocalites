@@ -67,7 +67,7 @@ export default function Claim({ loaderData, actionData }: Route.ComponentProps) 
   if (state !== 'can_claim') {
     const message = {
       waiting: 'Thanks. Your claim is waiting for our team. We’ll check it with the business and email you when it’s decided.',
-      manager: 'You already manage this business. It’s listed on your account page.',
+      manager: 'You’re already this business’s owner on Localites. It’s listed on your account page.',
       claimed: 'This business is already managed on Localites. If you think that’s wrong, email supportlocalites@gmail.com.',
       too_many: `You can have ${OPEN_CLAIMS_PER_PERSON} claims waiting at a time. Please wait for our team to answer one.`,
     }[state];
@@ -96,8 +96,9 @@ export default function Claim({ loaderData, actionData }: Route.ComponentProps) 
         <h1 className="title-1">Claim {vendor.name}</h1>
         <div className="title-rule" aria-hidden="true" />
         <p>
-          Once our team approves your claim, you manage this business’s listing on Localites. It’s free, and the
-          listing stays up while we check.
+          Once our team approves your claim, you become this business’s owner on Localites. Claiming is free, and the
+          listing stays up while we check. Editing the listing yourself is coming soon; until then, our team makes
+          changes for you.
         </p>
         <p className="muted">
           {evidence === 'match'

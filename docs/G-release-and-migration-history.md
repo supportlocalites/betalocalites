@@ -31,6 +31,42 @@ Every release and every database migration, in order. Appended before each deplo
 
 ## Releases
 
+### 2026-10-11 — Sign-in and claiming: fixes from an independent review (Stage 1, not public)
+
+**Stage:** 1 (ADR-028, update of 11 October)
+**What changed (plain English):** An independent review of yesterday's sign-in and claiming
+work found real problems, now fixed:
+- A sign-in link could hide another website's address (with an invisible tab character)
+  and send people there after they signed in. Now any such address goes to the account
+  page.
+- Many guesses at a code sent at the same moment could get past the limit of 5. Guesses
+  are now counted one by one before they're checked.
+- While new accounts are closed (until PO-13), a fourth request in an hour, or Supabase's
+  replies, could show whether an address has an account. Now every reply is the same.
+- Two team members acting on the same business at the same moment could get an error
+  page. Now they simply take turns.
+- The approval reason could be set to junk by editing the form. Now only the three listed
+  reasons are accepted.
+- Names can't contain bare web addresses (e.g. "evil-site.com"), which email apps would
+  turn into links.
+- Wording: the approval email and claim page no longer suggest owners can edit their
+  listing yet (they reply to the email with changes until D-34 is built); the account page
+  names the right button; sign-in errors are tied to their boxes for screen readers.
+- PO-13 step 9 now says to *decline* the test claim, since an approval can't be undone from
+  the admin page yet.
+**Migrations applied:** none.
+**Destructive?** No.
+**Tests run:** unit tests 63/63 (new: hidden-character addresses, IPv6 limit keys, bare web
+addresses in names); database checks 51/51, 12/12, 19/19, 56/56; end-to-end 43/43 and
+65/65 (new: hidden-character "next" addresses; 12 guesses sent at once, of which only 5 are
+tried). Checked by hand against the local sign-in server with new accounts closed: an
+address with an account and one without get identical replies on all 4 requests.
+**Known limits (written into ADR-028):** anyone can use up the site's 60 codes a day, or one
+person's 3 codes an hour; the remedy is Cloudflare's free "are you human" check
+(Turnstile), recommended before the public launch.
+**How to roll back:** Cloudflare → localites → Deployments → previous version → Deploy.
+**Approved by:** Product owner (D-32, D-33, D-35).
+
 ### 2026-10-10 — Sign in with an emailed code; claiming a business (Stage 1, not public)
 
 **Stage:** 1 (D-27, D-29, D-32, D-33, D-35; ADR-028)

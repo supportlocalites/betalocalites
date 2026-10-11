@@ -84,7 +84,7 @@ export default function Account({ loaderData, actionData }: Route.ComponentProps
           </h2>
           {businesses.length === 0 ? (
             <p className="muted">
-              None yet. If your business is on Localites, open its page and choose “Is this your business?”.
+              None yet. If your business is on Localites, open its page and choose “Claim this business”.
             </p>
           ) : (
             <>

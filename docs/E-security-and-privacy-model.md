@@ -42,8 +42,11 @@ concierge role and inquiry/quote/booking records.
   says whether an address has an account: the same reply for every "send me a code", and
   the same words for every unusable code. Our own limits: 5 wrong guesses per code, 3
   codes per address an hour, 60 a day across the site, 10 tries a minute per internet
-  address (Cloudflare, never stored). Addresses are kept only as a SHA-256 fingerprint,
-  for two days (`sign_in_code_event`). A person is added to Localites only after proving
+  address (Cloudflare, never stored; IPv6 by /64 block). Requests and guesses are counted
+  before Supabase is asked, under a lock per address. Addresses are kept as a SHA-256
+  fingerprint rather than the address itself (`sign_in_code_event`); anyone holding the
+  database could still test a guessed address against it. Rows older than two days are
+  removed whenever a new code is asked for. A person is added to Localites only after proving
   the address and typing their name. The email holds only the code: no link, no name.
   **A code sign-in never opens the admin pages**, even for an admin. Pages that need an
   account pass one gate (`src/server/auth/member.server.ts`) and show only the person's

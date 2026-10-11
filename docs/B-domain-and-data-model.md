@@ -461,7 +461,7 @@ hiding there.
 | `municipality`, `category`, `attribute_*` | Reference | S1 | Places, taxonomy, typed filters |
 | `vendor` + `vendor_*` | Vendor | S1 | The business, its team, services, areas, attributes, media, links, slugs |
 | `vendor_claim`, `verification_record` | Vendor | S1 | Ownership claims (how the claimant is connected, their note, the team's decision and reason); evidence-backed checks |
-| `sign_in_code_event` | People | S1 | Our limits on emailed sign-in codes (ADR-028): a SHA-256 fingerprint of the address, "sent" or "wrong code", and when. Kept two days. |
+| `sign_in_code_event` | People | S1 | Our limits on emailed sign-in codes (ADR-028): a SHA-256 fingerprint of the address (not the address), "sent" (a code was asked for) or "wrong code" (a guess, removed again if it was right), and when. Rows older than two days are removed as new codes are asked for. |
 | `media_asset` | Media | S1 | Every stored file, with owner and visibility |
 | `collection`, `collection_item` | Discovery | S1 | Curated lists |
 | `status_change`, `audit_log` | Audit | S1 | Append-only history |

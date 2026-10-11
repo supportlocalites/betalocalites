@@ -14,6 +14,14 @@ describe('coming back after sign-in', () => {
     expect(safeNext(null)).toBe('/admin');
   });
 
+  it('refuses addresses a browser would read as another website', () => {
+    for (const trick of ['/\t/evil.example', '/\n/evil.example', '/\r/evil.example', '/ /evil.example', '/\\/evil.example', '/%09/evil.example'.replace('%09', '\t')]) {
+      expect(safeNext(trick)).toBe('/admin');
+    }
+    expect(safeNext('/vendors/sweet-treats/claim?x=1#top', '/account')).toBe('/vendors/sweet-treats/claim?x=1#top');
+    expect(safeNext('/account', '/account')).toBe('/account');
+  });
+
   it('returns to the page, not its data address', () => {
     expect(pagePath(req('https://l.test/admin.data?_routes=routes%2Fadmin'))).toBe('/admin');
     expect(pagePath(req('https://l.test/admin/listings/abc.data?q=x&_routes=a'))).toBe('/admin/listings/abc?q=x');

@@ -1,8 +1,11 @@
-Subject: You now manage {{business}} on Localites
+Subject: Your claim for {{business}} is approved
 
 Hi {{name}},
 
-Good news: your claim for {{business}} is approved. You now manage its listing on Localites.
+Good news: your claim for {{business}} is approved. You're now its owner on Localites.
+
+Editing the listing yourself is the next thing we're building. Until then, reply to this
+email with any changes and our team will make them.
 {{note}}
 See it on your account page: {{accountUrl}}
 

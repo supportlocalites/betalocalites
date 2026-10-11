@@ -78,10 +78,22 @@ export function pagePath(request: Request): string {
   return path + (search ? `?${search}` : '');
 }
 
-/** Only addresses on this site, so a sign-in link can't send people elsewhere. */
+/**
+ * Only addresses on this site, so a sign-in link can't send people elsewhere. The value is
+ * read the way a browser would (which ignores tabs and line breaks, and treats "\" as "/"),
+ * and anything containing those is refused outright.
+ */
 export function safeNext(value: FormDataEntryValue | string | null | undefined, fallback = '/admin'): string {
   const next = typeof value === 'string' ? value : '';
-  return next.startsWith('/') && !next.startsWith('//') && !next.startsWith('/\\') ? next : fallback;
+  // eslint-disable-next-line no-control-regex -- refusing control characters is the point
+  if (!next.startsWith('/') || next.length > 2000 || /[\u0000-\u0020\u007f\\]/.test(next)) return fallback;
+  try {
+    const base = 'https://localites.invalid';
+    const url = new URL(next, base);
+    return url.origin === base ? url.pathname + url.search + url.hash : fallback;
+  } catch {
+    return fallback;
+  }
 }
 
 export function withCookies(init: ResponseInit | undefined, cookies: string[]): ResponseInit {

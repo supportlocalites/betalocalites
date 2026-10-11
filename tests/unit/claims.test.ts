@@ -4,6 +4,7 @@ import { CODE_FAILED, explainCodeError } from '@/server/auth/messages.server';
 import { claimInput, codeInput, emailInput, nameInput } from '@/server/member-input';
 import { isUniqueViolation } from '@/server/db.server';
 import { renderEmail } from '@/server/email-templates.server';
+import { addressKey } from '@/server/visitor.server';
 
 const response = (status: number, headers: Record<string, string> = {}) => ({ status, headers: new Headers(headers) });
 
@@ -25,7 +26,8 @@ describe('Supabase error codes (never read from message text)', () => {
 describe('what people type to join and claim', () => {
   it('accepts a plain name and refuses addresses and markup', () => {
     expect(nameInput.parse('  Jane   Smith ')).toBe('Jane Smith');
-    for (const bad of ['', '   ', 'x'.repeat(81), 'Visit https://evil.example', 'www.evil.example', 'jane@evil.example', '<b>Jane</b>']) {
+    for (const ok of ['J.R. Smith', 'Mary-Jane O’Neil', 'St. Clair Catering', 'Dr. Ann Lee']) expect(nameInput.parse(ok)).toBe(ok);
+    for (const bad of ['', '   ', 'x'.repeat(81), 'Visit https://evil.example', 'www.evil.example', 'jane@evil.example', '<b>Jane</b>', 'Jane evil-site.com/login', 'bit.ly/x']) {
       expect(nameInput.safeParse(bad).success).toBe(false);
     }
   });
@@ -68,5 +70,19 @@ describe('duplicate detection', () => {
     expect(isUniqueViolation(new Error('wrapped', { cause: { code: '23505' } }))).toBe(true);
     expect(isUniqueViolation({ code: '23503' })).toBe(false);
     expect(isUniqueViolation(null)).toBe(false);
+  });
+});
+
+describe('rate-limit keys', () => {
+  const key = (ip?: string) => addressKey(new Request('https://l.test/', { headers: ip ? { 'CF-Connecting-IP': ip } : {} }));
+  it('keep IPv4 addresses whole', () => {
+    expect(key('203.0.113.7')).toBe('203.0.113.7');
+    expect(key()).toBe('local');
+  });
+  it('count an IPv6 address by its /64 block, however it is written', () => {
+    expect(key('2001:db8:85a3:12:8a2e:370:7334:1')).toBe('2001:db8:85a3:12::/64');
+    expect(key('2001:0DB8:85a3:0012::1')).toBe('2001:db8:85a3:12::/64');
+    expect(key('2001:db8::1')).toBe('2001:db8:0:0::/64');
+    expect(key('2001:db8::ffff:1')).toBe(key('2001:db8::2'));
   });
 });

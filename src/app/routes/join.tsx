@@ -1,8 +1,9 @@
+import { useEffect, useRef } from 'react';
 import { data, Form, Link, redirect, useNavigation } from 'react-router';
 import { cloudflareContext } from '@/app/context';
 import { SiteHeader } from '@/components/SiteHeader';
 import { pageMeta } from '@/lib/meta';
-import { addressHash, canTryCode, checkCodeSend, recordCodeEvent, sentWithinMinute } from '@/server/auth/code-limits.server';
+import { addressHash, claimCodeGuess, claimCodeSend, guessWasRight } from '@/server/auth/code-limits.server';
 import { AuthError, authConfigured, authSettings, sendSignInCode, verifySignInCode } from '@/server/auth/gotrue.server';
 import { createPerson, findPerson } from '@/server/auth/member.server';
 import { CODE_FAILED, explainCodeError, NEUTRAL_SEND_CODES } from '@/server/auth/messages.server';
@@ -10,6 +11,7 @@ import { loadSession, safeNext, sessionCookies, withCookies } from '@/server/aut
 import { CODE_MINUTES, codeInput, emailInput, nameInput } from '@/server/member-input';
 import { isUniqueViolation } from '@/server/db.server';
 import type { ServerEnv } from '@/server/env';
+import { addressKey } from '@/server/visitor.server';
 import type { Route } from './+types/join';
 
 /**
@@ -46,8 +48,8 @@ export async function loader({ request, context }: Route.LoaderArgs) {
 export const headers: Route.HeadersFunction = ({ loaderHeaders }) => loaderHeaders;
 
 type Reply = { step: Step; email: string; error: string | null; notice: string | null };
-const reply = (r: Partial<Reply> & { step: Step }, status = 200) =>
-  data<Reply>({ email: '', error: null, notice: null, ...r }, { status });
+const reply = (r: Partial<Reply> & { step: Step }, status = 200, cookies: string[] = []) =>
+  data<Reply>({ email: '', error: null, notice: null, ...r }, withCookies({ status }, cookies));
 
 export async function action({ request, context }: Route.ActionArgs) {
   const { env } = context.get(cloudflareContext);
@@ -58,13 +60,15 @@ export async function action({ request, context }: Route.ActionArgs) {
   if (intent === 'name') {
     const { session, setCookies } = await loadSession(request, env);
     if (!session) throw redirect(`/join?next=${encodeURIComponent(next)}`, withCookies(undefined, setCookies));
+    const email = session.user.email;
     const name = nameInput.safeParse(form.get('name') ?? '');
-    if (!name.success) return reply({ step: 'name', email: session.user.email, error: name.error.issues[0]?.message ?? 'Enter your name.' }, 400);
+    if (!name.success) return reply({ step: 'name', email, error: name.error.issues[0]?.message ?? 'Enter your name.' }, 400, setCookies);
     try {
       await createPerson(env, session.user, name.data);
     } catch (err) {
       if (!isUniqueViolation(err)) throw err;
-      return reply({ step: 'name', email: session.user.email, error: 'This email address is linked to an older account. Please contact supportlocalites@gmail.com.' }, 409);
+      const error = 'This email address is linked to an older account. Please contact supportlocalites@gmail.com.';
+      return reply({ step: 'name', email, error }, 409, setCookies);
     }
     return redirect(next, withCookies(undefined, setCookies));
   }
@@ -74,38 +78,46 @@ export async function action({ request, context }: Route.ActionArgs) {
   if (!email.success) return reply({ step: 'email', error: 'Please check the email address.' }, 400);
 
   // A few tries a minute from one internet address (kept by Cloudflare, never stored).
-  const address = request.headers.get('CF-Connecting-IP') ?? 'local';
-  if (env.SIGN_IN_LIMIT && !(await env.SIGN_IN_LIMIT.limit({ key: address })).success) {
+  if (env.SIGN_IN_LIMIT && !(await env.SIGN_IN_LIMIT.limit({ key: addressKey(request) })).success) {
     return reply({ step: intent === 'send' ? 'email' : 'code', email: email.data, error: 'Too many tries. Please wait a minute, then try again.' }, 429);
   }
   const hash = await addressHash(email.data);
   return intent === 'send' ? sendCode(env, email.data, hash) : checkCode(env, email.data, hash, form.get('code'), next);
 }
 
+/**
+ * Every outcome here that depends on the address itself gets the same reply as success,
+ * so nobody can learn whether an address has an account (ADR-028).
+ */
 async function sendCode(env: ServerEnv, email: string, hash: string) {
-  const limit = await checkCodeSend(env, hash);
-  if (limit === 'daily_limit') {
+  const { check, recentlyAsked } = await claimCodeSend(env, hash);
+  if (check === 'daily_limit') {
     return reply({ step: 'email', email, error: 'We’ve sent a lot of sign-in codes today. Please try again tomorrow.' }, 429);
   }
-  if (limit === 'address_limit') {
-    return reply({ step: 'code', email, notice: 'We’ve already sent a few codes to this address in the last hour. Use the newest one, or try again later.' }, 429);
+  if (check === 'address_limit') {
+    const notice = 'We’ve already sent 3 codes to this address in the last hour. Use the newest one. If none of them work, please try again in an hour.';
+    return reply({ step: 'code', email, notice }, 429);
   }
   try {
     await sendSignInCode(env, email);
-    await recordCodeEvent(env, hash, 'sent');
   } catch (err) {
-    const neutral = err instanceof AuthError && NEUTRAL_SEND_CODES.has(err.code);
-    // Supabase gives one answer for "a code went to this address under a minute ago" and
-    // "the whole site has sent too many emails"; only the second needs saying.
-    if (neutral && err.code === 'over_email_send_rate_limit' && !(await sentWithinMinute(env, hash))) {
+    if (!(err instanceof AuthError) || err.status >= 500 || err.code === 'unknown') {
+      console.error('sign-in code not sent', err instanceof AuthError ? err.code : err);
+      return reply({ step: 'email', email, error: explainCodeError(err) }, 503);
+    }
+    // While new accounts are closed, Supabase answers differently for addresses with and
+    // without an account, so every refusal gets the neutral reply.
+    const signUpOpen = await authSettings(env).then(
+      (s) => s.signUpOpen,
+      () => false,
+    );
+    const neutral = NEUTRAL_SEND_CODES.has(err.code) || !signUpOpen;
+    // With accounts open, every address takes the same path, so this can be said plainly:
+    // Supabase's "too many emails" means the whole site, unless this address asked a moment ago.
+    if (neutral && signUpOpen && err.code === 'over_email_send_rate_limit' && !recentlyAsked) {
       return reply({ step: 'email', email, error: 'We’re sending a lot of codes right now. Please try again in a few minutes.' }, 429);
     }
-    if (!neutral) {
-      const expected = err instanceof AuthError && err.status < 500 && err.code !== 'unknown';
-      if (!expected) console.error('sign-in code not sent', err instanceof AuthError ? err.code : err);
-      return reply({ step: 'email', email, error: explainCodeError(err) }, expected ? 400 : 503);
-    }
-    // Otherwise the same reply as success: it says nothing about the address.
+    if (!neutral) return reply({ step: 'email', email, error: explainCodeError(err) }, 400);
   }
   return reply({ step: 'code', email });
 }
@@ -113,20 +125,20 @@ async function sendCode(env: ServerEnv, email: string, hash: string) {
 async function checkCode(env: ServerEnv, email: string, hash: string, raw: FormDataEntryValue | null, next: string) {
   const code = codeInput.safeParse(raw ?? '');
   if (!code.success) return reply({ step: 'code', email, error: 'Enter the 6-digit code from the email.' }, 400);
-  // Our limit on wrong guesses (Supabase has none per code). Same words as a wrong code.
-  if (!(await canTryCode(env, hash))) return reply({ step: 'code', email, error: CODE_FAILED }, 400);
+  // Our limit on guesses (Supabase has none per code), counted before Supabase is asked.
+  // Same words as a wrong code.
+  const guess = await claimCodeGuess(env, hash);
+  if (guess === null) return reply({ step: 'code', email, error: CODE_FAILED }, 400);
   try {
     const session = await verifySignInCode(env, email, code.data);
+    await guessWasRight(env, guess);
     const cookies = sessionCookies(session);
     const person = await findPerson(env, session.user.id);
     // New here: one more step for their name. Already joined: straight back to where they were.
     if (!person) return redirect(`/join?next=${encodeURIComponent(next)}`, withCookies(undefined, cookies));
     return redirect(next, withCookies(undefined, cookies));
   } catch (err) {
-    if (err instanceof AuthError && err.code === 'otp_expired') {
-      await recordCodeEvent(env, hash, 'wrong_code');
-      return reply({ step: 'code', email, error: CODE_FAILED }, 400);
-    }
+    if (err instanceof AuthError && err.code === 'otp_expired') return reply({ step: 'code', email, error: CODE_FAILED }, 400);
     const expected = err instanceof AuthError && err.status < 500 && err.code !== 'unknown';
     if (!expected) console.error('sign-in code not checked', err instanceof AuthError ? err.code : err);
     return reply({ step: 'code', email, error: explainCodeError(err) }, expected ? 400 : 503);
@@ -140,6 +152,12 @@ export default function Join({ loaderData, actionData }: Route.ComponentProps) {
   const { next, configured, signUpOpen } = loaderData;
   const error = actionData?.error;
   const restart = `/join?next=${encodeURIComponent(next)}`;
+  // A refused entry: point screen readers at the message and put the cursor back in the box.
+  const field = useRef<HTMLInputElement>(null);
+  useEffect(() => {
+    if (error) field.current?.focus();
+  }, [error, actionData]);
+  const invalid = error ? { 'aria-invalid': true, 'aria-errormessage': 'join-error' } : {};
 
   return (
     <>
@@ -148,7 +166,7 @@ export default function Join({ loaderData, actionData }: Route.ComponentProps) {
         <h1 className="title-1">{step === 'name' ? 'Welcome to Localites' : 'Sign in or create an account'}</h1>
         <div className="title-rule" aria-hidden="true" />
         {error && (
-          <p className="notice" role="alert">
+          <p className="notice" role="alert" id="join-error">
             {error}
           </p>
         )}
@@ -181,7 +199,17 @@ export default function Join({ loaderData, actionData }: Route.ComponentProps) {
               <p className="field-hint" id="name-hint">
                 Shown to our team, and to a business when you contact it.
               </p>
-              <input id="name" name="name" className="input" autoComplete="name" maxLength={80} required aria-describedby="name-hint" />
+              <input
+                ref={field}
+                id="name"
+                name="name"
+                className="input"
+                autoComplete="name"
+                maxLength={80}
+                required
+                aria-describedby={error ? 'name-hint join-error' : 'name-hint'}
+                {...invalid}
+              />
             </div>
             <button type="submit" className="button button-primary" disabled={busy}>
               {busy ? 'Saving…' : 'Continue'}
@@ -195,7 +223,8 @@ export default function Join({ loaderData, actionData }: Route.ComponentProps) {
               ) : (
                 <>If {email} has an account, we’ve emailed it a 6-digit code.</>
               )}{' '}
-              It can take a minute to arrive, and works for {CODE_MINUTES} minutes.
+              It can take a minute to arrive, and works for {CODE_MINUTES} minutes. If you asked more than once, use the
+              newest one.
             </p>
             <Form method="post" noValidate>
               <input type="hidden" name="intent" value="verify" />
@@ -206,6 +235,7 @@ export default function Join({ loaderData, actionData }: Route.ComponentProps) {
                   Code from the email
                 </label>
                 <input
+                  ref={field}
                   id="code"
                   name="code"
                   className="input"
@@ -214,6 +244,8 @@ export default function Join({ loaderData, actionData }: Route.ComponentProps) {
                   pattern="[0-9 ]*"
                   maxLength={8}
                   required
+                  aria-describedby={error ? 'join-error' : undefined}
+                  {...invalid}
                 />
               </div>
               <button type="submit" className="button button-primary" disabled={busy}>
@@ -249,6 +281,7 @@ export default function Join({ loaderData, actionData }: Route.ComponentProps) {
                   Email address
                 </label>
                 <input
+                  ref={field}
                   id="email"
                   name="email"
                   type="email"
@@ -257,6 +290,8 @@ export default function Join({ loaderData, actionData }: Route.ComponentProps) {
                   className="input"
                   maxLength={254}
                   defaultValue={email}
+                  aria-describedby={error ? 'join-error' : undefined}
+                  {...invalid}
                 />
               </div>
               <button type="submit" className="button button-primary" disabled={busy}>

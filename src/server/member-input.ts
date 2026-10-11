@@ -14,6 +14,9 @@ export const OPEN_CLAIMS_PER_PERSON = 3;
 
 const oneLine = (s: string) => s.replace(/\s+/g, ' ').trim();
 
+// Bare web addresses ("evil-site.com/login") too: email apps turn them into links.
+const WEB_ADDRESS = /[a-z0-9-]{2,}\.(com|ca|net|org|io|co|info|biz|xyz|app|dev|me|us|uk|link|site|online|shop|store|top|ly|gl|to|cc|ru|cn)\b/i;
+
 export const nameInput = z
   .string()
   .default('')
@@ -23,7 +26,7 @@ export const nameInput = z
       .string()
       .min(1, 'Enter your name.')
       .max(80, 'Keep your name under 80 characters.')
-      .refine((s) => !/:\/\/|www\.|[<>@]/i.test(s), 'Enter just your name (no web or email addresses).'),
+      .refine((s) => !/:\/\/|www\.|[<>@]/i.test(s) && !WEB_ADDRESS.test(s), 'Enter just your name (no web or email addresses).'),
   );
 
 export const emailInput = z

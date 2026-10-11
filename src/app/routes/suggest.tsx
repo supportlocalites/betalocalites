@@ -4,7 +4,7 @@ import { SiteHeader } from '@/components/SiteHeader';
 import { pageMeta } from '@/lib/meta';
 import { suggestionInput } from '@/server/suggestion-input';
 import { notifyTeam, saveSuggestion } from '@/server/suggestions.server';
-import { visitor } from '@/server/visitor.server';
+import { addressKey, visitor } from '@/server/visitor.server';
 import type { Route } from './+types/suggest';
 
 /** Screen P11: Suggest a business (D-25, ADR-027). Open to everyone, no account. */
@@ -36,8 +36,7 @@ export async function action({ request, context }: Route.ActionArgs) {
 
   // At most a few complete suggestions a minute from one internet address (kept by
   // Cloudflare, never stored). Fixing a mistake on the form doesn't count.
-  const address = request.headers.get('CF-Connecting-IP') ?? 'local';
-  if (env.SUGGEST_LIMIT && !(await env.SUGGEST_LIMIT.limit({ key: address })).success) {
+  if (env.SUGGEST_LIMIT && !(await env.SUGGEST_LIMIT.limit({ key: addressKey(request) })).success) {
     return data({ error: LIMITED, errors: {} as Record<string, string> }, { status: 429 });
   }
 

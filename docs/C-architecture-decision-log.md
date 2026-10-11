@@ -791,3 +791,26 @@ once PO-13 is done).
 
 **Revisit when.** Sign-in emails approach Resend's daily limit, or the team can't keep up
 with checking claims.
+
+**Update (11 October 2026, after an independent review; the decision is unchanged).**
+- Requests for a code and guesses at a code are now counted *before* Supabase is asked,
+  under a lock per address. Many guesses sent at the same moment can't get past the limit
+  of 5, and the limits behave the same whether or not the address has an account. While
+  new accounts are closed in Supabase, every refusal gets the same neutral reply.
+- Because a request counts even when Supabase sends nothing new, asking again within a
+  minute restarts the count of guesses for the code already sent. With 3 requests an hour,
+  that still allows at most 15 guesses an hour at a 1-in-a-million code.
+- The "come back to this page" address after signing in is now read the way a browser reads
+  it, so hidden characters (a tab, a backslash) can't turn it into a link to another site.
+- IPv6 visitors are counted by their /64 block for the per-minute limit, since one
+  connection controls a whole block.
+- The stored fingerprint of an address is a plain SHA-256, not the address itself. It stops
+  addresses being read straight out of the table, but anyone holding the database could
+  check a guessed address against it. Rows older than two days are removed each time a new
+  code is asked for.
+- **Known limits added:** (1) anyone can use up the site's 60 codes a day with throwaway
+  addresses, from many internet addresses or about six minutes from one, which stops
+  sign-in for everyone until the day rolls over; (2) anyone who knows a person's email can
+  use up that address's 3 codes an hour, or its 5 guesses, locking that person out for up
+  to an hour. The remedy for both is Cloudflare's free "are you human" check (Turnstile)
+  on "Email me a code", recommended before the public launch (roadmap, Stage 1).
