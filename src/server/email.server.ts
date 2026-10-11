@@ -29,8 +29,14 @@ export async function sendEmail(
       }),
     });
     if (response.ok) return { sent: true };
-    const body = (await response.json().catch(() => null)) as { name?: string } | null;
-    return { sent: false, reason: `The email service answered ${response.status}${body?.name ? ` (${body.name})` : ''}.` };
+    const body = (await response.json().catch(() => null)) as { name?: string; message?: string } | null;
+    // Resend's own explanation (e.g. "The localites.ca domain is not verified"), on one
+    // line, shortened, and with anything that looks like a key removed.
+    const why = typeof body?.message === 'string' ? body.message.replace(/\s+/g, ' ').replace(/re_[A-Za-z0-9_]+/g, '[key]').slice(0, 200).trim() : '';
+    return {
+      sent: false,
+      reason: `The email service answered ${response.status}${body?.name ? ` (${body.name})` : ''}${why ? `: ${why.replace(/\.$/, '')}` : ''}.`,
+    };
   } catch {
     return { sent: false, reason: 'The email service couldn’t be reached.' };
   }

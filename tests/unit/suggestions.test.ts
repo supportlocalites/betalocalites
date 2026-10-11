@@ -61,6 +61,16 @@ describe('sending email', () => {
     expect(reason).not.toMatch(/re_secret|private/);
   });
 
+  it('passes on the email service’s own explanation, without anything that looks like a key', async () => {
+    const answer = { name: 'validation_error', message: 'The localites.ca domain is not verified.\nKey re_abc123 was used.' };
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response(JSON.stringify(answer), { status: 403 })));
+    const r = await sendEmail({ RESEND_API_KEY: 're_abc123' }, { to: TEAM_ADDRESS, subject: 's', text: 't' });
+    expect(r).toEqual({
+      sent: false,
+      reason: 'The email service answered 403 (validation_error): The localites.ca domain is not verified. Key [key] was used.',
+    });
+  });
+
   it('never throws when the service can’t be reached', async () => {
     vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('network down re_secret')));
     const r = await sendEmail({ RESEND_API_KEY: 're_secret' }, { to: TEAM_ADDRESS, subject: 's', text: 't' });
