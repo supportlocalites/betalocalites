@@ -4,9 +4,10 @@ Hi {{name}},
 
 Good news: your claim for {{business}} is approved. You're now its owner on Localites.
 
-Editing the listing yourself is the next thing we're building. Until then, reply to this
-email with any changes and our team will make them.
+You can now change your listing yourself: your description, services, prices, website
+and phone. Changes show as soon as you save:
+{{editUrl}}
 {{note}}
-See it on your account page: {{accountUrl}}
+See all your businesses on your account page: {{accountUrl}}
 
 Localites

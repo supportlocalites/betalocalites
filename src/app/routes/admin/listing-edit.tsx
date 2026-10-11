@@ -15,6 +15,8 @@ import {
   setServiceActive,
   updateListing,
 } from '@/server/admin/listings.server';
+import { listOwnerChanges, OwnerChangeConflict, removeOwner, undoOwnerChange } from '@/server/admin/owner-changes.server';
+import { emailPerson, renderEmail } from '@/server/email-templates.server';
 import type { Route } from './+types/listing-edit';
 import styles from './admin.module.css';
 
@@ -26,9 +28,9 @@ export const meta: Route.MetaFunction = ({ loaderData }) => [
 export async function loader({ params, request, context }: Route.LoaderArgs) {
   if (!isUuid(params.id)) throw data(null, { status: 404 });
   const { env } = context.get(cloudflareContext);
-  const [listing, options] = await Promise.all([getListing(env, params.id), formOptions(env)]);
+  const [listing, options, owned] = await Promise.all([getListing(env, params.id), formOptions(env), listOwnerChanges(env, params.id)]);
   if (!listing) throw data(null, { status: 404 });
-  return { listing, options, saved: new URL(request.url).searchParams.get('saved') };
+  return { listing, options, owner: owned.owner, ownerChanges: owned.cards, saved: new URL(request.url).searchParams.get('saved') };
 }
 
 const ACTION_WORDS: Record<ListingStatus, string> = {
@@ -41,12 +43,40 @@ const ACTION_WORDS: Record<ListingStatus, string> = {
 
 export async function action({ params, request, context }: Route.ActionArgs) {
   if (!isUuid(params.id)) throw data(null, { status: 404 });
-  const { env } = context.get(cloudflareContext);
+  const { env, ctx } = context.get(cloudflareContext);
   const admin = context.get(adminContext);
   const form = await request.formData();
   const intent = String(form.get('intent') ?? '');
   const back = (saved: string) => redirect(`/admin/listings/${params.id}?saved=${saved}`);
+  const later = (work: Promise<void>) =>
+    ctx.waitUntil(work.catch((err) => console.error('owner email not recorded', err instanceof Error ? err.message : err)));
   try {
+    if (intent === 'owner-undo') {
+      const auditId = String(form.get('auditId') ?? '');
+      if (!isUuid(auditId)) throw data(null, { status: 400 });
+      const reason = String(form.get('reason') ?? '').replace(/\s+/g, ' ').trim().slice(0, 500);
+      if (!reason) return data({ intent, auditId, errors: { form: 'Say why. The owner is emailed the reason.' } }, { status: 400 });
+      const keys = form.getAll('key').map(String).slice(0, 200);
+      const result = await undoOwnerChange(env, admin, params.id, auditId, keys, reason);
+      if (result.owner) {
+        const owner = result.owner;
+        later(
+          emailPerson(env, owner, 'listing_change_undone', { type: 'owner_change', id: auditId },
+            renderEmail('undone', { name: owner.name, business: result.business, lines: result.lines, reason })),
+        );
+      }
+      return back('undone');
+    }
+    if (intent === 'owner-remove') {
+      const reason = String(form.get('reason') ?? '').replace(/\s+/g, ' ').trim().slice(0, 500);
+      if (!reason) return data({ intent, errors: { form: 'Say why. The owner is emailed the reason.' } }, { status: 400 });
+      const result = await removeOwner(env, admin, params.id, reason);
+      later(
+        emailPerson(env, result.owner, 'owner_removed', { type: 'vendor', id: params.id },
+          renderEmail('ownerRemoved', { name: result.owner.name, business: result.business, reason })),
+      );
+      return back('owner-removed');
+    }
     if (intent === 'details') {
       const raw = formValues(form, ['categoryIds']);
       const parsed = listingInput.safeParse(raw);
@@ -80,6 +110,7 @@ export async function action({ params, request, context }: Route.ActionArgs) {
     }
     return data({ intent, errors: { form: 'Unknown request.' } }, { status: 400 });
   } catch (err) {
+    if (err instanceof OwnerChangeConflict) return data({ intent, errors: { form: err.message } }, { status: 409 });
     if (err instanceof ListingConflict) {
       return data({ intent, errors: { [err.field]: err.message }, values: formValues(form, ['categoryIds']) }, { status: 409 });
     }
@@ -95,6 +126,8 @@ const SAVED: Record<string, string> = {
   unpublished: 'Hidden: it no longer shows on Localites.',
   archived: 'Archived.',
   draft: 'Moved back to draft.',
+  undone: 'Undone. The owner has been emailed what changed back, and why.',
+  'owner-removed': 'Owner removed. They’ve been emailed, and the listing is unclaimed again.',
 };
 
 const PRICING_LABEL: Record<(typeof PRICING_MODELS)[number], string> = {
@@ -172,6 +205,9 @@ const HISTORY_WORDS: Record<string, string> = {
   'vendor.service.update': 'Service changed',
   'vendor.service.hide': 'Service hidden',
   'vendor.service.show': 'Service shown again',
+  'vendor.owner_edit': 'Changed by the owner',
+  'vendor.owner_edit.undo': 'Owner’s change undone',
+  'vendor_member.end': 'Owner removed',
 };
 
 const FIELD_WORDS: Record<string, string> = {
@@ -191,7 +227,7 @@ type ActionResult = { intent: string; serviceId?: string; errors: Record<string,
 
 export default function EditListing({ loaderData, actionData: rawResult }: Route.ComponentProps) {
   const actionData = rawResult as ActionResult | undefined;
-  const { listing, options, saved } = loaderData;
+  const { listing, options, owner, ownerChanges, saved } = loaderData;
   const busy = useNavigation().state === 'submitting';
   const archived = listing.status === 'archived';
   const errorsFor = (intent: string, serviceId = '') =>
@@ -231,7 +267,7 @@ export default function EditListing({ loaderData, actionData: rawResult }: Route
           {SAVED[saved]}
         </p>
       )}
-      {actionData?.errors?.form && (
+      {actionData?.errors?.form && actionData.intent !== 'owner-undo' && (
         <p className="notice" role="alert">
           {actionData.errors.form}
         </p>
@@ -262,6 +298,94 @@ export default function EditListing({ loaderData, actionData: rawResult }: Route
           ))}
         </Form>
       )}
+
+      <section className={styles.section} aria-labelledby="owner-heading">
+        <h2 id="owner-heading">Owner</h2>
+        {owner ? (
+          <>
+            <p>
+              {owner.name} <span className="muted">({owner.email})</span> manages this listing and can change its
+              descriptions, services, prices, website and phone. Their changes are live at once and listed below.
+            </p>
+            <Form method="post" className={styles.buttons}>
+              <input type="hidden" name="intent" value="owner-remove" />
+              <label htmlFor="remove-reason" className="visually-hidden">
+                Why (emailed to them)
+              </label>
+              <input id="remove-reason" name="reason" className="input" placeholder="Why (emailed to them)" maxLength={500} />
+              <button type="submit" className="button button-secondary" disabled={busy}>
+                Remove owner
+              </button>
+            </Form>
+          </>
+        ) : (
+          <p className="muted">No owner on Localites. The business can claim this listing.</p>
+        )}
+      </section>
+
+      <section className={styles.section} aria-labelledby="owner-changes-heading" id="owner-changes">
+        <h2 id="owner-changes-heading">Changes by the owner</h2>
+        {ownerChanges.length === 0 ? (
+          <p className="muted">None in the last 60 days.</p>
+        ) : (
+          <ul className={styles.rows}>
+            {ownerChanges.map((c) => (
+              <li key={c.auditId} className={styles.row}>
+                <span>
+                  <strong>{c.owner ?? 'The owner'}</strong> <span className="muted">· {when.format(new Date(c.at))}</span>
+                  {c.flags.length > 0 && <span className={styles.status}> · Check: new {c.flags.join(' and ')}</span>}
+                </span>
+                {c.undone ? (
+                  <>
+                    <ul className={styles.history}>
+                      {c.lines.map((l) => (
+                        <li key={l.key}>{l.text}</li>
+                      ))}
+                    </ul>
+                    <span className="muted">
+                      Undone by {c.undone.by ?? 'the team'} · {when.format(new Date(c.undone.at))}
+                      {c.undone.reason ? ` · “${c.undone.reason}”` : ''}
+                    </span>
+                  </>
+                ) : (
+                  <Form method="post">
+                    <input type="hidden" name="intent" value="owner-undo" />
+                    <input type="hidden" name="auditId" value={c.auditId} />
+                    <fieldset className={styles.plainFieldset}>
+                      <legend className="visually-hidden">Changes in this save</legend>
+                      {c.lines.map((l) => (
+                        <label key={l.key} className={styles.check}>
+                          <input type="checkbox" name="key" value={l.key} defaultChecked={l.possible} disabled={!l.possible} />
+                          <span>
+                            {l.text}
+                            {!l.possible && <span className="muted"> · Changed again since (now: {l.now}). Undo the later change first.</span>}
+                          </span>
+                        </label>
+                      ))}
+                    </fieldset>
+                    {actionData?.intent === 'owner-undo' && (actionData as { auditId?: string }).auditId === c.auditId && actionData.errors.form && (
+                      <p className="notice" role="alert">
+                        {actionData.errors.form}
+                      </p>
+                    )}
+                    {c.lines.some((l) => l.possible) && (
+                      <div className={styles.buttons}>
+                        <label htmlFor={`why-${c.auditId}`} className="visually-hidden">
+                          Why (the owner sees this)
+                        </label>
+                        <input id={`why-${c.auditId}`} name="reason" className="input" placeholder="Why (the owner sees this)" maxLength={500} />
+                        <button type="submit" className="button button-secondary" disabled={busy}>
+                          Undo the ticked changes
+                        </button>
+                      </div>
+                    )}
+                  </Form>
+                )}
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
 
       <section className={styles.section} aria-labelledby="details-heading">
         <h2 id="details-heading">Details</h2>

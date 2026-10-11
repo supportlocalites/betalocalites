@@ -17,7 +17,7 @@ const optionalText = (max: number) => text(max).transform((s) => (s === '' ? nul
 
 const uuid = (message: string) => z.uuid({ message });
 
-const website = z
+export const website = z
   .string()
   .transform((s) => s.trim())
   .transform((s) => (s === '' ? null : /^https?:\/\//i.test(s) ? s : `https://${s}`))
@@ -33,7 +33,7 @@ const email = z
     message: 'Enter an email address, like name@example.ca.',
   });
 
-const phone = z
+export const phone = z
   .string()
   .transform((s) => s.trim())
   .transform((s) => (s === '' ? null : s))

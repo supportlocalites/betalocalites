@@ -14,8 +14,15 @@
   "ratelimits": [
     { "name": "SUGGEST_LIMIT", "namespace_id": "1001", "simple": { "limit": 3, "period": 60 } },
     // Sign in with an emailed code (ADR-028): 10 code requests or code checks a minute per address.
-    { "name": "SIGN_IN_LIMIT", "namespace_id": "1002", "simple": { "limit": 10, "period": 60 } }
+    { "name": "SIGN_IN_LIMIT", "namespace_id": "1002", "simple": { "limit": 10, "period": 60 } },
+    // Owners saving their listing (D-34, ADR-029): 10 saves a minute per person.
+    { "name": "OWNER_EDIT_LIMIT", "namespace_id": "1003", "simple": { "limit": 10, "period": 60 } }
   ],
+  // The team's daily note of owners' changes (ADR-029), free on Cloudflare: 12:00 UTC is
+  // 8 am in Toronto in summer and 7 am in winter; the 14:00 run only retries a failed note.
+  "triggers": { "crons": ["0 12 * * *", "0 14 * * *"] },
+  // Public settings (not secrets). SITE_URL: where links in scheduled emails point.
+  "vars": { "SITE_URL": "https://localites.supportlocalites.workers.dev" },
   // Cloudflare Hyperdrive (free): the app's route to Supabase. It keeps the encrypted
   // connection to the database (SSL "require") and pools connections. The ID is not a
   // secret; the database login lives only in Cloudflare. localConnectionString is a

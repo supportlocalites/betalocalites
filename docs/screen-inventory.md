@@ -65,7 +65,7 @@ added; quotes, bookings and the concierge queue removed.
 | # | Screen | Purpose | Stage |
 |---|---|---|---|
 | V1 | My business | Listing status; from Stage 2, unread conversations and bookings marked | 1 |
-| V2 | Edit listing | Profile, services, pricing information, areas, attributes, photos | 1 |
+| V2 | Edit listing | Profile, services, pricing information, areas, attributes, photos. **Built** (`/vendors/<name>/edit`, D-34, ADR-029): laid out like the public page, with "View as a visitor"; descriptions, services and prices, website and phone; photos later | 1 |
 | V3 | Submit for review / status | | 1 |
 | V4 | Team | Invite, change role, remove | 1 |
 | V5 | Claim status | **Built** as part of A4: waiting, approved, or not approved with the reason | 1 |
@@ -89,7 +89,7 @@ added; quotes, bookings and the concierge queue removed.
 | # | Screen | Purpose | Stage |
 |---|---|---|---|
 | X1 | Admin home | Queues needing attention | 1 |
-| X2 | Listing editor | Create/edit any listing; history | 1 |
+| X2 | Listing editor | Create/edit any listing; history. **Plus** the owner, Remove owner, and **Changes by the owner** with Undo (ADR-029) | 1 |
 | X3 | Listing review | Approve or return with reason | 1 |
 | X4 | Claims | Approve (saying how it was confirmed, D-33) or decline with a reason emailed to the claimant; first approved wins (D-35). **Built** (`/admin/claims`) | 1 |
 | X5 | Verification | Record a check with evidence | 1 |

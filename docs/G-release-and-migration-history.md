@@ -31,6 +31,38 @@ Every release and every database migration, in order. Appended before each deplo
 
 ## Releases
 
+### 2026-10-11 — Owners edit their own listing (Stage 1, not public)
+
+**Stage:** 1 (D-34, ADR-029; D-37 recorded)
+**What changed (plain English):** An approved owner sees **Edit your listing** on Your account
+(and on their business page). The edit page looks like their business page, with dashed
+boxes for what they can change: short description, About, services and prices (add, change,
+hide), website and phone. **View as a visitor** shows exactly what visitors will see, before
+saving. **Save changes** makes it live at once. The business name, town and categories stay
+with the team ("Email us to change them"). The team gets: a daily note of every owner change
+(and nothing when nothing changed), a "check now" email when a website moves to another site
+or a phone number changes, **Undo** for any save (the owner is told why), and **Remove
+owner**. The Claims page warns when a past owner set the website. The "claim approved" email
+now links straight to the edit page. The business page now shows a service's details and
+keeps paragraph breaks.
+**Migrations applied:** `0007_owner_editing.sql`: `owner_change` (the team's review state for
+each save) and `team_digest` (one daily note a day); two more kinds of email to a person.
+**Destructive?** No.
+**Tests run:** unit tests 82/82 (new: what owners can type, what a save changed, clashes,
+"check now" flags, undo plans, the plain words); database checks 51, 12, 19, 13, 5 and 22
+(new) of the same, and 56/56; end-to-end 43/43, 73/73 and 45/45 (new: only the owner, never
+another business's owner, someone without a business or a team admin; archived refused,
+hidden allowed; another business's service in the form stops the save; refused websites and
+addresses in text; nothing-to-save; live at once; name, web address and email can't be
+changed; recorded and flagged; a team change while the owner's page is open is kept, and a
+clash is explained; the team page; undo needs a reason, hides an added service, shows a
+hidden one, can't run twice, and the owner is told; owners can't use undo; the daily note
+records its outcome and runs once a day; Remove owner ends access and is recorded); phone-
+size screenshots of the edit page and the visitor preview.
+**How to roll back:** Cloudflare → localites → Deployments → previous version → Deploy. The
+new tables can stay.
+**Approved by:** Product owner (D-34).
+
 ### 2026-10-11 — First and last name, in two boxes (Stage 1, not public)
 
 **Stage:** 1 (D-36, as amended)

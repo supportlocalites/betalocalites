@@ -16,6 +16,7 @@ export default [
   layout('routes/member/layout.tsx', [
     route('account', 'routes/member/account.tsx'),
     route('vendors/:slug/claim', 'routes/member/claim.tsx'),
+    route('vendors/:slug/edit', 'routes/member/listing-edit.tsx'),
   ]),
   // Team only: every request under /admin passes the gate in routes/admin/layout.tsx.
   route('admin', 'routes/admin/layout.tsx', [

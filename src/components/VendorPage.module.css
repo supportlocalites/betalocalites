@@ -55,3 +55,19 @@
   padding-top: var(--space-4);
   border-top: var(--hairline) solid var(--color-line-soft);
 }
+
+/* Line breaks the business typed are kept (owners write in paragraphs). */
+.about {
+  white-space: pre-line;
+}
+
+.serviceName {
+  display: grid;
+  gap: var(--space-1);
+  min-width: 0;
+}
+
+.serviceDetails {
+  font-size: var(--text-small);
+  white-space: pre-line;
+}

@@ -110,13 +110,16 @@ export default function Account({ loaderData, actionData }: Route.ComponentProps
                   <li key={b.id}>
                     {b.listed ? <Link to={`/vendors/${b.slug}`}>{b.name}</Link> : <span>{b.name}</span>}
                     <span className="muted">{ROLE[b.role] ?? b.role}</span>
+                    {b.role === 'owner' && (
+                      <span>
+                        <Link to={`/vendors/${b.slug}/edit`} className="button button-primary">
+                          Edit your listing
+                        </Link>
+                      </span>
+                    )}
                   </li>
                 ))}
               </ul>
-              <p className="muted">
-                Editing your listing here is the next thing we’re building. Until then, email changes to
-                supportlocalites@gmail.com from this address.
-              </p>
             </>
           )}
         </section>

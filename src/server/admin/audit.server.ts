@@ -12,13 +12,15 @@ export type AuditEntry = {
   sessionRef?: string | null;
 };
 
-/** Appends to the permanent audit log (the database refuses edits and deletions). */
-export async function audit(db: Db, e: AuditEntry): Promise<void> {
+/** Appends to the permanent audit log (the database refuses edits and deletions). Returns the entry's id. */
+export async function audit(db: Db, e: AuditEntry): Promise<string> {
+  const id = uuidv7();
   await db.execute(sql`
     insert into audit_log (id, actor_user_id, action, subject_type, subject_id, reason, changes, session_ref)
-    values (${uuidv7()}, ${e.actor}, ${e.action}, ${e.subjectType}, ${e.subjectId}, ${e.reason ?? null},
+    values (${id}, ${e.actor}, ${e.action}, ${e.subjectType}, ${e.subjectId}, ${e.reason ?? null},
             ${e.changes ? JSON.stringify(e.changes) : null}::jsonb, ${e.sessionRef ?? null})
   `);
+  return id;
 }
 
 /** Field-by-field differences, for the audit log. */

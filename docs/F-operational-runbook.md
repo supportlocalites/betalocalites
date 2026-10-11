@@ -185,10 +185,26 @@ guide this live (PO-03 part 3). Changing the password later is the same two step
 - **Claim emails:** each one to a claimant is recorded in `notification` as `sent` or
   `failed` (with the reason); the Claims page shows the "received" email's status. A failed
   email can be followed up by hand from supportlocalites@gmail.com.
-- **Wrong owner approved:** removing an owner isn't on the admin page yet (it comes with
-  owner editing, D-34). Ask the developer: it's a recorded change (end the
-  `vendor_member` row, set the listing back to `unclaimed`, with `status_change` and
-  `audit_log` rows), never a deletion.
+- **Wrong owner approved, or an owner breaks the rules:** on the listing's team page, under
+  **Owner**, type why and click **Remove owner**. Their access ends at once, they're emailed
+  the reason, and the listing can be claimed again. Recorded in the audit log.
+
+### Owners' changes (D-34, ADR-029)
+
+- **Daily note:** every morning (12:00 UTC: 8 am Toronto in summer, 7 am in winter) the team
+  gets one email listing every owner save since the last note, flagged ones first. Nothing
+  changed: no email. The **Listings** page says how the last note went; "failed" or "hasn't
+  run for over a day" means check Resend (**Emails**) and Cloudflare (**Workers & Pages →
+  localites → Settings → Triggers**: two cron triggers). A failed note is retried at 14:00
+  UTC and the next morning; its saves stay waiting, so nothing is lost.
+- **"Check now" emails:** a new website on another site, or a new phone number, emails the
+  team straight away (at most one per business an hour, 20 a day; more wait for the note).
+- **Undo:** on the listing's team page, **Changes by the owner** lists each save in plain
+  words. Tick what to put back, say why (the owner sees it), click **Undo the ticked
+  changes**. A line the owner changed again since can't be ticked: undo the later save
+  first. A service the owner added is hidden, not deleted. Each save can be undone once.
+- **Hidden or archived listings:** a hidden listing can still be edited by its owner (they
+  see it's hidden); an archived one can't.
 
 ## 5. Backups
 

@@ -30,6 +30,9 @@ ADR-026 (every review approved by an admin, with an email notice; D-06) added.
 go through Localites, including vendors paying Localites. ADR-025 accepted. ADR-027
 (Suggest a business, D-25) added.
 
+**Revision 8 changes (11 October 2026):** ADR-029 (owners edit their own listing, live at
+once; the team's daily note, undo and Remove owner; D-34) added and accepted.
+
 **Revision 7 changes (10 October 2026):** ADR-028 (signing in with an emailed code, and
 claiming a business; D-32, D-33 and D-35) added and accepted.
 
@@ -72,6 +75,7 @@ ADR-014 caveat updated. Nothing in the data model or security model changes.
 | ADR-026 | Every review is approved by an admin in the admin area; the team is emailed each new review | **Needs approval** (D-06) | Accepted (D-06) |
 | ADR-027 | Suggest a business: a three-question form, open to everyone, emailed to the team to vet | **Needs approval** (user experience; D-25) | Accepted (D-25) |
 | ADR-028 | The public signs in with an emailed 6-digit code; businesses claim listings, checked by the team, first approved wins | **Needs approval** (user experience; D-32, D-33, D-35) | Accepted (D-32, D-33, D-35) |
+| ADR-029 | Owners edit their own listing on a page laid out like it; live at once; the team gets a daily note, can undo any save, and can remove an owner | **Needs approval** (user experience; D-34) | Accepted (D-34) |
 
 ---
 
@@ -814,3 +818,62 @@ with checking claims.
   use up that address's 3 codes an hour, or its 5 guesses, locking that person out for up
   to an hour. The remedy for both is Cloudflare's free "are you human" check (Turnstile)
   on "Email me a code", recommended before the public launch (roadmap, Stage 1).
+
+---
+
+## ADR-029 — Owners edit their own listing
+
+**Needs your approval** (user experience). **Accepted: D-34, 11 October 2026.** Stage 1
+(screen V2; the team's side on X1 and X2).
+
+**Decision.** An approved owner (D-35) edits their business at **/vendors/<name>/edit**, a
+page laid out exactly like the public business page, with dashed boxes where they can type.
+**View as a visitor** shows the real public page (the same component) with what they've
+typed, before saving. One **Save changes** button; changes are live at once.
+
+- **Owners can change:** short description, About, website, phone, and services (name,
+  details, how the price is shown and the amount, show or hide, add new ones).
+- **Team only, shown as plain text:** business name (the usual way to pose as another
+  business, and what the claim was checked against), web address, town and categories
+  (they decide where it appears in search), email, and status. "Email us to change them."
+- **Only the owner, checked on every request in the database:** an active `owner`
+  membership of a listing that isn't archived. Anyone else (including team admins, who use
+  the team page) gets "You can't edit this listing". Every service write is scoped to the
+  business; a service id from another business stops the whole save.
+- **Only what they changed is written.** The page carries what it loaded; a save writes only
+  the fields the owner changed, so it never quietly reverses a team change. If the team
+  changed the same field meanwhile, nothing is written and the owner is told ("Our team
+  changed this while you were editing…").
+- **Safety:** web and email addresses are refused in descriptions ("put your website in the
+  Website box"); shortened links and bare internet addresses are refused as websites;
+  invisible characters are removed; 20 saves a business a day; 10 a minute a person.
+- **Recorded:** each save is one `audit_log` entry (before and after) plus an
+  `owner_change` row for the team's review state (in a daily note yet, alerted, undone).
+  `audit_log` stays the one record of what changed.
+- **The team:**
+  - a **"check now" email** when a website moves to another site or a phone number changes
+    (at most one per business an hour, 20 a day);
+  - a **daily note** (Cloudflare's free scheduler, 12:00 UTC, retried at 14:00) listing every
+    save since the last note; one a day at most; nothing sent when nothing changed; a failed
+    send is retried and its saves stay waiting; its status shows on the Listings page;
+  - **Undo** on the listing's team page: tick the lines to put back; a line changed again
+    since can't be undone first; a service the owner added is hidden, never deleted; one
+    undo per save; the owner is emailed what changed back and why, and sees it on their edit
+    page;
+  - **Remove owner** (with a reason, emailed to them): ends their access and makes the listing
+    claimable again.
+- **Business numbers** are not part of this: they come later on an Analytics page the team
+  switches on per business (D-37).
+
+**Why.** Owners keep their own listing fresh without waiting for the team, which is what
+makes claiming worth it; the team keeps control by reviewing every change and undoing in one
+click, instead of approving every edit before it shows.
+
+**Alternatives.** *Edits wait for team approval* — safer, but slow and more work for the team
+(rejected in D-34). *A plain form* — simpler to build, but owners can't see how it will look.
+
+**Known limits.** Photos aren't editable yet (no file storage). An undo is one per save. The
+daily note and alerts are emails through Resend's free 100 a day, shared with other emails.
+
+**Cost.** $0: Cloudflare's scheduler and rate limiter are free; emails within Resend's free
+plan.

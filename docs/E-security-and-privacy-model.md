@@ -56,6 +56,12 @@ concierge role and inquiry/quote/booking records.
   matches the business's website" is accepted only when it does; otherwise the team
   contacts the business at its own published phone or email. One active owner per
   business, enforced by the database.
+- **Owners editing (ADR-029):** only a business's current owner (an active owner
+  membership, checked in the database on every request, never from the page) can open or
+  save its edit page; the name, web address, town, categories and email aren't editable by
+  owners; every service write is scoped to the business; only changed fields are written,
+  so a save can't reverse a team change; every save is in `audit_log` and the team can undo
+  it or remove the owner. Proven by `tests/e2e/owner-editing.mjs` (45 checks).
 - **Email processors:** Supabase sends sign-in codes through Resend (PO-13), and our own
   emails go through Resend (ADR-013). Resend sees each recipient's address and the email.
 - **Browsing needs no account.** Guests (Stage 4) never need one.

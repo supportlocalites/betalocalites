@@ -113,6 +113,12 @@ export default function Claims({ loaderData, actionData }: Route.ComponentProps)
                 </span>
                 {c.note && <span className="muted">Their note: “{c.note}”</span>}
                 <span>{describeEvidence(c.evidence)}</span>
+                {c.websiteByOwner && (
+                  <span className={styles.status}>
+                    The website was set by a past owner on Localites, so an email match proves less: contact the business to
+                    confirm.
+                  </span>
+                )}
                 {c.status === 'submitted' ? (
                   <>
                     <span>

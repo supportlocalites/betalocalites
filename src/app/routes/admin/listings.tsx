@@ -3,6 +3,7 @@ import { cloudflareContext } from '@/app/context';
 import { pageMeta } from '@/lib/meta';
 import { STATUS_LABEL } from '@/lib/listing-status';
 import { listListings } from '@/server/admin/listings.server';
+import { latestNote, type NoteStatus } from '@/server/daily-note.server';
 import type { Route } from './+types/listings';
 import styles from './admin.module.css';
 
@@ -13,12 +14,25 @@ export async function loader({ request, context }: Route.LoaderArgs) {
   const q = (params.get('q') ?? '').slice(0, 100);
   const status = params.get('status') ?? '';
   const { env } = context.get(cloudflareContext);
-  return { q, status, listings: await listListings(env, { q, status }) };
+  const [listings, note] = await Promise.all([listListings(env, { q, status }), latestNote(env)]);
+  return { q, status, listings, note };
 }
 
 const dateFormat = new Intl.DateTimeFormat('en-CA', { dateStyle: 'medium', timeZone: 'America/Toronto' });
 
-export default function Listings({ loaderData: { q, status, listings } }: Route.ComponentProps) {
+const noteWhen = new Intl.DateTimeFormat('en-CA', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit', timeZone: 'America/Toronto' });
+
+/** The daily note of owners' changes (ADR-029): when it last ran, or a warning if it hasn't. */
+function noteLine(note: NoteStatus): string {
+  if (!note) return 'Daily note of owners’ changes: none yet (the first runs tomorrow morning).';
+  const stale = note.stale ? ' Warning: it hasn’t run for over a day.' : '';
+  if (note.status === 'sent') return `Daily note of owners’ changes: sent ${noteWhen.format(new Date(note.sentAt!))} (${note.changeCount} ${note.changeCount === 1 ? 'save' : 'saves'}).${stale}`;
+  if (note.status === 'empty') return `Daily note of owners’ changes: ${note.day}, nothing to report.${stale}`;
+  if (note.status === 'failed') return `Daily note of owners’ changes: failed on ${note.day} (${note.failureReason}). It tries again later.${stale}`;
+  return `Daily note of owners’ changes: sending (${note.day}).${stale}`;
+}
+
+export default function Listings({ loaderData: { q, status, listings, note } }: Route.ComponentProps) {
   return (
     <>
       <div className={styles.titleRow}>
@@ -30,6 +44,7 @@ export default function Listings({ loaderData: { q, status, listings } }: Route.
           Add a business
         </Link>
       </div>
+      <p className={note?.stale || note?.status === 'failed' ? 'notice' : 'muted'}>{noteLine(note)}</p>
 
       <Form method="get" className={styles.filters} role="search">
         <div className="field">

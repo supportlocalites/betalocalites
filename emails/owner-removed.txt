@@ -1,0 +1,11 @@
+Subject: About your Localites listing for {{business}}
+
+Hi {{name}},
+
+You're no longer the owner of {{business}}'s listing on Localites, so you can't edit it.
+
+Our reason: {{reason}}
+
+If you think this is a mistake, reply to this email and we'll look again.
+
+Localites

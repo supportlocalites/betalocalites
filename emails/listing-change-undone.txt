@@ -1,0 +1,13 @@
+Subject: We changed back part of your Localites listing
+
+Hi {{name}},
+
+Our team changed back part of your listing for {{business}}:
+
+{{lines}}
+
+Why: {{reason}}
+
+Everything else you changed is still there. Questions? Reply to this email.
+
+Localites

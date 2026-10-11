@@ -1,0 +1,139 @@
+/* The owner's edit page (V2): the public page's layout, with dashed boxes where they can type. */
+
+.topNote {
+  margin-bottom: var(--space-6);
+}
+
+.photo {
+  display: grid;
+  place-items: center;
+  text-align: center;
+  padding: var(--space-6);
+}
+
+.teamOnly {
+  font-size: var(--text-small);
+}
+
+.spot {
+  display: grid;
+  gap: var(--space-1);
+  margin-bottom: var(--space-4);
+  min-width: 0;
+}
+
+.spotLabel {
+  font-size: var(--text-small);
+  font-weight: 500;
+  color: var(--color-ink-soft);
+}
+
+/* A box that looks like the text it replaces, outlined so it's clearly editable. */
+.box {
+  width: 100%;
+  min-height: var(--size-icon-button);
+  padding: var(--space-2) var(--space-3);
+  border: var(--hairline) dashed var(--color-line);
+  border-radius: var(--radius-file);
+  background: var(--color-surface);
+  font: inherit;
+  font-size: var(--text-body);
+  line-height: var(--leading-body);
+  color: var(--color-ink);
+}
+
+.box::placeholder {
+  color: var(--color-muted);
+}
+
+.box:focus-visible {
+  outline: var(--focus-ring) solid var(--color-gold);
+  outline-offset: var(--hairline);
+  border-style: solid;
+}
+
+.box[aria-invalid='true'] {
+  border-style: solid;
+  border-color: var(--color-ink);
+  border-width: var(--focus-ring);
+}
+
+.about {
+  min-height: var(--size-textarea);
+  resize: vertical;
+  field-sizing: content;
+}
+
+.serviceRow {
+  display: grid;
+  gap: var(--space-2);
+  padding-block: var(--space-4);
+  border-bottom: var(--hairline) solid var(--color-line-soft);
+}
+
+.hiddenRow {
+  opacity: 0.7;
+}
+
+.serviceTop {
+  display: grid;
+  gap: 0 var(--space-4);
+}
+
+@media (min-width: 768px) {
+  .serviceTop {
+    grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
+  }
+}
+
+/* The amount box only when the price is shown as an amount. */
+.price:has(option[value='on_request']:checked) .amount,
+.price:has(option[value='not_listed']:checked) .amount {
+  display: none;
+}
+
+.check {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: var(--size-icon-button);
+}
+
+.clash {
+  font-size: var(--text-small);
+  font-weight: 600;
+}
+
+.linkButton {
+  background: none;
+  border: 0;
+  padding: 0;
+  color: inherit;
+  cursor: pointer;
+  text-decoration: underline;
+  min-height: var(--size-icon-button);
+}
+
+/* Always within reach at the end of the form, without covering the phone's keyboard. */
+.saveBar {
+  position: sticky;
+  bottom: 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--space-3) var(--space-6);
+  margin-top: var(--space-6);
+  padding-block: var(--space-4);
+  background: var(--color-ground);
+  border-top: var(--hairline) solid var(--color-line-soft);
+}
+
+.previewBar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  margin-bottom: var(--space-6);
+}

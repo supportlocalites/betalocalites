@@ -3,6 +3,8 @@ import approved from '../../emails/claim-approved.txt?raw';
 import declined from '../../emails/claim-declined.txt?raw';
 import received from '../../emails/claim-received.txt?raw';
 import team from '../../emails/claim-team.txt?raw';
+import undone from '../../emails/listing-change-undone.txt?raw';
+import ownerRemoved from '../../emails/owner-removed.txt?raw';
 import { uuidv7 } from '@/lib/ids.mjs';
 import { withDb } from './db.server';
 import { sendEmail, TEAM_ADDRESS } from './email.server';
@@ -12,12 +14,17 @@ import type { ServerEnv } from './env';
  * Emails written as plain text files in emails/ (checked by `npm run check:words`).
  * The first line is "Subject: …"; {{name}} placeholders are filled in here.
  */
-const TEMPLATES = { approved, declined, received, team } as const;
+const TEMPLATES = { approved, declined, received, team, undone, ownerRemoved } as const;
 export type TemplateName = keyof typeof TEMPLATES;
 
-export function renderEmail(name: TemplateName, values: Record<string, string>): { subject: string; text: string } {
+export function renderEmail(name: TemplateName, values: Record<string, string | string[]>): { subject: string; text: string } {
   // Values are one line each, so nothing typed can add lines to the subject or the email.
-  const filled = TEMPLATES[name].replace(/\{\{(\w+)\}\}/g, (_, key: string) => (values[key] ?? '').replace(/[\r\n]+/g, ' '));
+  // A list becomes one "- " line per item (never in a subject).
+  const oneLine = (v: string) => v.replace(/[\r\n]+/g, ' ');
+  const filled = TEMPLATES[name].replace(/\{\{(\w+)\}\}/g, (_, key: string) => {
+    const v = values[key] ?? '';
+    return Array.isArray(v) ? v.map((item) => `- ${oneLine(item)}`).join('\n') : oneLine(v);
+  });
   const [first, ...rest] = filled.split('\n');
   return { subject: (first ?? '').replace(/^Subject:\s*/, '').trim(), text: rest.join('\n').replace(/^\n+/, '').replace(/\n{3,}/g, '\n\n') };
 }
@@ -29,7 +36,7 @@ export function renderEmail(name: TemplateName, values: Record<string, string>):
 export async function emailPerson(
   env: ServerEnv,
   to: { userId: string; email: string },
-  kind: 'claim_received' | 'claim_decision',
+  kind: 'claim_received' | 'claim_decision' | 'listing_change_undone' | 'owner_removed',
   subject: { type: string; id: string },
   content: { subject: string; text: string },
 ): Promise<void> {

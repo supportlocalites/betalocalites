@@ -19,6 +19,10 @@ export type ServerEnv = {
   SUGGEST_LIMIT?: RateLimit;
   /** Sign in with an emailed code: a per-address limit kept by Cloudflare, never stored. */
   SIGN_IN_LIMIT?: RateLimit;
+  /** Owners saving their listing: a per-person limit kept by Cloudflare. */
+  OWNER_EDIT_LIMIT?: RateLimit;
+  /** The site's address, for links in emails sent on a schedule (wrangler.jsonc vars). */
+  SITE_URL?: string;
 };
 
 export type Cloudflare = { env: ServerEnv; ctx: ExecutionContext };

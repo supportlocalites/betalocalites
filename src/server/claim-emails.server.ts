@@ -41,7 +41,7 @@ export async function emailClaimDecision(
   env: ServerEnv,
   siteUrl: string,
   claimId: string,
-  decided: { business: string; claimant: Person; declined: (Person & { claimId: string })[] },
+  decided: { business: string; slug: string; claimant: Person; declined: (Person & { claimId: string })[] },
   outcome: { approved: true } | { approved: false; reason: string },
 ): Promise<void> {
   const { business, claimant } = decided;
@@ -51,7 +51,7 @@ export async function emailClaimDecision(
     'claim_decision',
     { type: 'vendor_claim', id: claimId },
     outcome.approved
-      ? renderEmail('approved', { name: claimant.name, business, note: '', accountUrl: `${siteUrl}/account` })
+      ? renderEmail('approved', { name: claimant.name, business, note: '', editUrl: `${siteUrl}/vendors/${decided.slug}/edit`, accountUrl: `${siteUrl}/account` })
       : renderEmail('declined', { name: claimant.name, business, reason: outcome.reason }),
   );
   // Everyone else who claimed the same business hears that another claim was approved.

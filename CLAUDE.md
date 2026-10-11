@@ -39,6 +39,10 @@ decisions are in [docs/H-product-owner-action-register.md](docs/H-product-owner-
 - The public signs in at `/join` with emailed codes (ADR-028); the team at `/sign-in` with a
   password and an authenticator app. Pages needing an account live under
   `src/app/routes/member/` and pass `memberGate` (`src/server/auth/member.server.ts`).
+- Owners edit at `/vendors/<slug>/edit` (ADR-029): ownership is checked in the database on
+  every request; only changed fields are written; every save goes to `audit_log` plus
+  `owner_change`. The business page is one component (`src/components/VendorPage.tsx`) used
+  by the public page, the edit page and the preview.
 - Admin pages live under `src/app/routes/admin/`; every request passes `adminGate`
   (`src/server/auth/admin.server.ts`). Every admin change writes `audit_log`.
 - React Router 8 on Cloudflare Workers (free plan: 10 ms CPU per request). Database code lives in

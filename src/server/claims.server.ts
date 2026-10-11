@@ -180,6 +180,8 @@ export type ClaimRow = {
   };
   otherOpen: number;
   emailStatus: string | null;
+  /** The website was set by an owner's own edit (ADR-029): a matching email proves less. */
+  websiteByOwner: boolean;
   evidence: DomainEvidence;
 };
 
@@ -203,7 +205,9 @@ export async function listClaims(env: ServerEnv, show: 'open' | 'all'): Promise<
               where o.vendor_id = c.vendor_id and o.status = 'submitted' and o.id <> c.id)::int as "otherOpen",
              (select n.status from notification n
               where n.subject_type = 'vendor_claim' and n.subject_id = c.id and n.kind = 'claim_received'
-              order by n.created_at desc limit 1) as "emailStatus"
+              order by n.created_at desc limit 1) as "emailStatus",
+             exists (select 1 from owner_change oc join audit_log a on a.id = oc.audit_id
+                     where oc.vendor_id = c.vendor_id and oc.undone_at is null and a.changes ? 'websiteUrl') as "websiteByOwner"
       from vendor_claim c
       join vendor v on v.id = c.vendor_id
       join app_user u on u.id = c.claimant_user_id
