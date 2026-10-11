@@ -1,6 +1,6 @@
 # H — Product Owner Action Register
 
-**Last updated:** 2026-10-11 (revision 12: PO-12 done)
+**Last updated:** 2026-10-11 (revision 13: PO-12 done; D-36 sign-up details)
 
 This is the one place where everything that needs **you** is listed. If it isn't here,
 you don't need to do it.
@@ -50,6 +50,7 @@ Recorded from your messages of 9 and 10 October 2026. These now shape every docu
 | ✅ D-32 | **Sign in with an emailed 6-digit code, for everyone but the team.** No passwords to remember: type your email, then the code we email you. New people also give their name. The team keeps its password and authenticator app. | ADR-028. Built: "Sign in or create an account" at `/join`. Needs PO-13 so codes reach everyone. |
 | ✅ D-33 | **Checking a claim: email match, else contact the business.** If the person's email address is at the business's own website (jane@sweettreats.ca for sweettreats.ca), the team can approve. Otherwise the team contacts the business at the phone number or email the business publishes itself, then decides. | ADR-028. The Claims page shows the evidence and the business's own details, and asks how each approval was confirmed. |
 | ✅ D-34 | **Owners' edits go live at once; the team can undo.** Changes a business makes to its own listing show straight away; the team gets a daily note of what changed and can undo any of it. | The next part we build (screen V2). Until then, owners email changes to supportlocalites@gmail.com. |
+| ✅ D-36 | **Sign-up asks about the person.** Name is required. Gender, full date of birth and full street address are asked on the same screen but not required, and not labelled either way, so people fill in what they're happy to; anyone can add or change them later on **Your account**. **Anyone can create an account** (no minimum age). Businesses never see these details (they see totals only, D-30). | Built: migration 0005 (`person_profile`). Changes the privacy promise in E §7 (it said name and email only, and no children's accounts): the lawyer reviews it (PO-07), in particular a parent's consent for children under 13. |
 | ✅ D-35 | **Two claims for one business: the first approved wins.** Any other waiting claims are declined automatically with a polite email; a claimed business shows "This business manages its own listing" with a way to contact us. | ADR-028; the database allows only one owner per business. |
 
 ---
@@ -678,7 +679,11 @@ test alert there and you confirm it arrived.
 arrangements or payments between consumers and vendors**); review policy and how vendor
 flags are handled; the unclaimed-listing approach (D-03); emails we send (CASL);
 retention (D-10), including **keeping detailed activity records with no deletion date**
-(D-22), which the lawyer should specifically check; and the business name (D-12): if
+(D-22), which the lawyer should specifically check; **the personal details asked at
+sign-up (D-36): full date of birth and full street address, from anyone, with no minimum
+age**, including whether a parent's consent is needed for children (the privacy
+regulator's guidance points to under 13), how the purposes are worded, and how long they're
+kept; and the business name (D-12): if
 "Localites" isn't yet a registered business name, ask whether it needs registering in
 Ontario before launch. We'll prepare drafts and a one-page summary so the lawyer reviews
 rather than discovers. Ask for a fixed-fee quote. Not in the infrastructure budget.

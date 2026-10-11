@@ -31,6 +31,32 @@ Every release and every database migration, in order. Appended before each deplo
 
 ## Releases
 
+### 2026-10-11 — Sign-up asks about the person; a clear "check your spam" reminder (Stage 1, not public)
+
+**Stage:** 1 (D-36)
+**What changed (plain English):** After the emailed code, new people now see "Tell us a
+little about yourself": their name (required), then gender (including "I'll describe it
+myself" and "Prefer not to say"), date of birth, and street address (unit, town, province,
+postal code). Only the name is needed to continue; nothing is labelled required or
+optional, and postal codes are tidied ("l3v1a1" becomes "L3V 1A1"). The same details can
+be filled in or changed later on **Your account**. Businesses never see them. The code
+screen now has a boxed reminder to check the spam or junk folder (and Outlook's "Other"
+or Gmail's "Promotions" tab).
+**Migrations applied:** `0005_person_profile.sql`: one new table for these details.
+**Destructive?** No.
+**Privacy change:** E §7 no longer says "name and email only" or "no children's accounts":
+anyone may join, with a date of birth, so the lawyer (PO-07) now reviews this, including a
+parent's consent for children under 13.
+**Tests run:** unit tests 69/69 (new: blank details keep nothing, tidying, impossible dates,
+postal codes, choices not on the list); database checks 51/51, 12/12, 19/19, 13/13 (new),
+56/56; end-to-end 43/43 and 72/72 (new: the details screen doesn't demand anything, a bad
+postal code saves nothing, details saved and tidied, none kept for a name-only sign-up,
+added later and cleared on Your account, another person's details never shown and a form
+naming someone else changes only your own); phone-size screenshots.
+**How to roll back:** Cloudflare → localites → Deployments → previous version → Deploy. The
+new table can stay; the previous version ignores it.
+**Approved by:** Product owner (D-36).
+
 ### 2026-10-11 — Sign-in and claiming: fixes from an independent review (Stage 1, not public)
 
 **Stage:** 1 (ADR-028, update of 11 October)

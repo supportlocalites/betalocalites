@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { authErrorFrom } from '@/server/auth/gotrue.server';
 import { CODE_FAILED, explainCodeError } from '@/server/auth/messages.server';
-import { claimInput, codeInput, emailInput, nameInput } from '@/server/member-input';
+import { claimInput, codeInput, emailInput, isEmptyProfile, nameInput, profileInput } from '@/server/member-input';
 import { isUniqueViolation } from '@/server/db.server';
 import { renderEmail } from '@/server/email-templates.server';
 import { addressKey } from '@/server/visitor.server';
@@ -84,5 +84,41 @@ describe('rate-limit keys', () => {
     expect(key('2001:0DB8:85a3:0012::1')).toBe('2001:db8:85a3:12::/64');
     expect(key('2001:db8::1')).toBe('2001:db8:0:0::/64');
     expect(key('2001:db8::ffff:1')).toBe(key('2001:db8::2'));
+  });
+});
+
+describe('personal details (D-36): none required, tidied, nothing kept when blank', () => {
+  const blank = { gender: '', genderOther: '', dateOfBirth: '', streetAddress: '', unit: '', town: '', province: 'ON', postalCode: '' };
+  it('keeps nothing when every box is left as it starts', () => {
+    const p = profileInput.parse(blank);
+    expect(isEmptyProfile(p)).toBe(true);
+    expect(p.province).toBeNull();
+  });
+  it('tidies what was typed', () => {
+    const p = profileInput.parse({ ...blank, gender: 'woman', dateOfBirth: '1988-04-12', streetAddress: ' 1  Example  St ', town: 'Orillia', postalCode: 'l3v1a1' });
+    expect(p).toEqual({
+      gender: 'woman',
+      genderSelfDescribed: null,
+      dateOfBirth: '1988-04-12',
+      streetAddress: '1 Example St',
+      unit: null,
+      town: 'Orillia',
+      province: 'ON',
+      postalCode: 'L3V 1A1',
+    });
+  });
+  it('keeps their own words only when they chose to describe it themselves', () => {
+    expect(profileInput.parse({ ...blank, gender: 'self_described', genderOther: 'Two-spirit' })).toMatchObject({ gender: 'self_described', genderSelfDescribed: 'Two-spirit' });
+    expect(profileInput.parse({ ...blank, gender: 'self_described', genderOther: '' }).gender).toBeNull();
+    expect(profileInput.parse({ ...blank, gender: 'man', genderOther: 'ignored' }).genderSelfDescribed).toBeNull();
+  });
+  it('ignores choices that aren’t on the list', () => {
+    expect(profileInput.parse({ ...blank, gender: 'toString', province: 'constructor', town: 'Orillia' })).toMatchObject({ gender: null, province: 'ON' });
+  });
+  it('refuses impossible dates and malformed postal codes', () => {
+    for (const dateOfBirth of ['1988-02-30', '1899-12-31', '2999-01-01', '12/04/1988']) {
+      expect(profileInput.safeParse({ ...blank, dateOfBirth }).success).toBe(false);
+    }
+    for (const postalCode of ['L3V', '12345', 'LLL 111']) expect(profileInput.safeParse({ ...blank, postalCode }).success).toBe(false);
   });
 });

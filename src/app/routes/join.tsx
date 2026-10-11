@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react';
 import { data, Form, Link, redirect, useNavigation } from 'react-router';
 import { cloudflareContext } from '@/app/context';
+import { ProfileFields } from '@/components/ProfileFields';
 import { SiteHeader } from '@/components/SiteHeader';
 import { pageMeta } from '@/lib/meta';
 import { addressHash, claimCodeGuess, claimCodeSend, guessWasRight } from '@/server/auth/code-limits.server';
@@ -9,7 +10,7 @@ import { createPerson, findPerson } from '@/server/auth/member.server';
 import { CODE_FAILED, explainCodeError, NEUTRAL_SEND_CODES } from '@/server/auth/messages.server';
 import { loadSession, safeNext, sessionCookies, withCookies } from '@/server/auth/session.server';
 import { CODE_MINUTES } from '@/lib/claim-terms';
-import { codeInput, emailInput, nameInput } from '@/server/member-input';
+import { codeInput, emailInput, nameInput, profileInput } from '@/server/member-input';
 import { isUniqueViolation } from '@/server/db.server';
 import type { ServerEnv } from '@/server/env';
 import { addressKey } from '@/server/visitor.server';
@@ -48,9 +49,9 @@ export async function loader({ request, context }: Route.LoaderArgs) {
 
 export const headers: Route.HeadersFunction = ({ loaderHeaders }) => loaderHeaders;
 
-type Reply = { step: Step; email: string; error: string | null; notice: string | null };
+type Reply = { step: Step; email: string; error: string | null; notice: string | null; errors: Record<string, string> };
 const reply = (r: Partial<Reply> & { step: Step }, status = 200, cookies: string[] = []) =>
-  data<Reply>({ email: '', error: null, notice: null, ...r }, withCookies({ status }, cookies));
+  data<Reply>({ email: '', error: null, notice: null, errors: {}, ...r }, withCookies({ status }, cookies));
 
 export async function action({ request, context }: Route.ActionArgs) {
   const { env } = context.get(cloudflareContext);
@@ -63,9 +64,15 @@ export async function action({ request, context }: Route.ActionArgs) {
     if (!session) throw redirect(`/join?next=${encodeURIComponent(next)}`, withCookies(undefined, setCookies));
     const email = session.user.email;
     const name = nameInput.safeParse(form.get('name') ?? '');
-    if (!name.success) return reply({ step: 'name', email, error: name.error.issues[0]?.message ?? 'Enter your name.' }, 400, setCookies);
+    const profile = profileInput.safeParse(Object.fromEntries(form));
+    if (!name.success || !profile.success) {
+      const errors: Record<string, string> = {};
+      for (const issue of profile.error?.issues ?? []) errors[String(issue.path[0])] ??= issue.message;
+      if (!name.success) errors.name = name.error.issues[0]?.message ?? 'Enter your name.';
+      return reply({ step: 'name', email, error: 'Please check what’s marked below.', errors }, 400, setCookies);
+    }
     try {
-      await createPerson(env, session.user, name.data);
+      await createPerson(env, session.user, name.data, profile.data);
     } catch (err) {
       if (!isUniqueViolation(err)) throw err;
       const error = 'This email address is linked to an older account. Please contact supportlocalites@gmail.com.';
@@ -152,11 +159,14 @@ export default function Join({ loaderData, actionData }: Route.ComponentProps) {
   const email = actionData?.email || loaderData.email;
   const { next, configured, signUpOpen } = loaderData;
   const error = actionData?.error;
+  const fieldErrors = actionData?.errors ?? {};
   const restart = `/join?next=${encodeURIComponent(next)}`;
   // A refused entry: point screen readers at the message and put the cursor back in the box.
   const field = useRef<HTMLInputElement>(null);
   useEffect(() => {
-    if (error) field.current?.focus();
+    if (!error) return;
+    const firstWrong = document.querySelector<HTMLElement>('main [aria-invalid="true"]');
+    (firstWrong ?? field.current)?.focus();
   }, [error, actionData]);
   const invalid = error ? { 'aria-invalid': true, 'aria-errormessage': 'join-error' } : {};
 
@@ -192,7 +202,7 @@ export default function Join({ loaderData, actionData }: Route.ComponentProps) {
           <Form method="post" noValidate>
             <input type="hidden" name="intent" value="name" />
             <input type="hidden" name="next" value={next} />
-            <p className="muted">You’re signed in as {email}. One last thing:</p>
+            <p className="muted">You’re signed in as {email}. Tell us a little about yourself:</p>
             <div className="field">
               <label htmlFor="name" className="field-label">
                 Your name
@@ -208,10 +218,16 @@ export default function Join({ loaderData, actionData }: Route.ComponentProps) {
                 autoComplete="name"
                 maxLength={80}
                 required
-                aria-describedby={error ? 'name-hint join-error' : 'name-hint'}
-                {...invalid}
+                aria-invalid={fieldErrors.name ? true : undefined}
+                aria-describedby={fieldErrors.name ? 'name-hint name-error' : 'name-hint'}
               />
+              {fieldErrors.name && (
+                <p className="field-error" id="name-error">
+                  {fieldErrors.name}
+                </p>
+              )}
             </div>
+            <ProfileFields values={null} errors={fieldErrors} />
             <button type="submit" className="button button-primary" disabled={busy}>
               {busy ? 'Saving…' : 'Continue'}
             </button>
@@ -226,6 +242,10 @@ export default function Join({ loaderData, actionData }: Route.ComponentProps) {
               )}{' '}
               It can take a minute to arrive, and works for {CODE_MINUTES} minutes. If you asked more than once, use the
               newest one.
+            </p>
+            <p className="notice">
+              <strong>Not in your inbox?</strong> Check your <strong>spam or junk</strong> folder (and the “Other” or
+              “Promotions” tab). Emails from new senders often land there. Marking it “Not spam” helps next time.
             </p>
             <Form method="post" noValidate>
               <input type="hidden" name="intent" value="verify" />
@@ -253,7 +273,7 @@ export default function Join({ loaderData, actionData }: Route.ComponentProps) {
                 {busy ? 'Checking…' : 'Continue'}
               </button>
             </Form>
-            <p className="muted section-gap">Didn’t get it? Check your junk folder, then:</p>
+            <p className="muted section-gap">Still nothing after a few minutes, even in spam?</p>
             <Form method="post">
               <input type="hidden" name="intent" value="send" />
               <input type="hidden" name="next" value={next} />

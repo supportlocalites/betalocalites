@@ -2,6 +2,8 @@ import { sql } from 'drizzle-orm';
 import { redirect } from 'react-router';
 import { withDb } from '../db.server';
 import type { ServerEnv } from '../env';
+import type { Profile } from '../member-input';
+import { writeProfile } from '../profile.server';
 import { loadSession, pagePath, withCookies } from './session.server';
 
 export type Member = { userId: string; name: string; email: string; accessToken: string };
@@ -20,18 +22,29 @@ export async function findPerson(env: ServerEnv, userId: string): Promise<Person
 
 /**
  * Creates our record of a person once they've proved their email address (a code) and
- * told us their name (ADR-028). The name is kept only here, never in Supabase.
+ * told us their name (ADR-028), with any personal details they chose to give (D-36), in
+ * one transaction. The name is kept only here, never in Supabase.
  */
-export async function createPerson(env: ServerEnv, user: { id: string; email: string }, name: string): Promise<void> {
+export async function createPerson(env: ServerEnv, user: { id: string; email: string }, name: string, profile: Profile): Promise<void> {
   await withDb(env, (db) =>
-    db.execute(sql`
-      insert into app_user (id, display_name, email) values (${user.id}, ${name}, ${user.email})
-      on conflict (id) do nothing`),
+    db.transaction(async (tx) => {
+      const created = await tx.execute(sql`
+        insert into app_user (id, display_name, email) values (${user.id}, ${name}, ${user.email})
+        on conflict (id) do nothing returning id`);
+      if (created.length > 0) await writeProfile(tx, user.id, profile);
+    }),
   );
 }
 
-export async function renamePerson(env: ServerEnv, userId: string, name: string): Promise<void> {
-  await withDb(env, (db) => db.execute(sql`update app_user set display_name = ${name} where id = ${userId} and deleted_at is null`));
+/** Updates the person's own name and details (Your account). */
+export async function updatePerson(env: ServerEnv, userId: string, name: string, profile: Profile): Promise<void> {
+  await withDb(env, (db) =>
+    db.transaction(async (tx) => {
+      const updated = await tx.execute(sql`
+        update app_user set display_name = ${name} where id = ${userId} and deleted_at is null returning id`);
+      if (updated.length > 0) await writeProfile(tx, userId, profile);
+    }),
+  );
 }
 
 /**

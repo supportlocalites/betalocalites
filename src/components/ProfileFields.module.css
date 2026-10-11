@@ -1,0 +1,26 @@
+.address {
+  border: 0;
+  padding: 0;
+  margin: 0;
+  min-width: 0;
+}
+
+.address > legend {
+  padding: 0;
+  margin-bottom: var(--space-2);
+}
+
+.note {
+  margin-bottom: var(--space-5);
+}
+
+.pair {
+  display: grid;
+  gap: 0 var(--space-4);
+}
+
+@media (min-width: 480px) {
+  .pair {
+    grid-template-columns: 1fr 1fr;
+  }
+}

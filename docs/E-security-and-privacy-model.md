@@ -1,7 +1,7 @@
 # E — Security & Privacy Model
 
 **Status:** Approved (D-00, 10 October 2026).
-**Last updated:** 2026-10-10 (§2: emailed sign-in codes and claims, as built)
+**Last updated:** 2026-10-11 (§7: sign-up details and anyone may join, D-36; §2: emailed sign-in codes and claims)
 
 **Revision 2:** rebuilt around the two users, consumer and vendor. Added
 conversations, shared files, consumer-marked bookings, and reviews. Removed the
@@ -190,11 +190,18 @@ Stage 4. Unchanged from revision 1:
 
 Changing any of these requires product owner approval.
 
-**About children:** No child profiles or accounts. No dates of birth. An event may have
-an optional age range ("ages 4–7"). The event title is free text; no child's name is
-required.
+**About children:** Changed by D-36 (11 October 2026): **anyone can create an account**,
+with no minimum age, and sign-up asks for a date of birth, so Localites may hold children's
+details. Before launch the lawyer (PO-07) confirms what's needed, in particular a parent's
+consent for children under 13. An event may have an optional age range ("ages 4–7"). The
+event title is free text; no child's name is required.
 
-**About consumers:** Name and email. Phone optional. A vendor sees the consumer's
+**About consumers:** Name and email required. Asked at sign-up but not required (D-36):
+gender, full date of birth and full street address, kept in their own table
+(`person_profile`), seen only by the person themselves (Your account) and, in the database,
+the Localites team; never by businesses, who see only totals (D-30); used to improve
+Localites and for those totals; removed when the person clears them or their account is
+erased; no row at all for someone who gives none. Phone optional (Stage 2). A vendor sees the consumer's
 display name, plus whatever the consumer chooses to write or share. Never their email,
 unless the consumer types it.
 
