@@ -87,7 +87,7 @@ publish (PO-11). Suggest a business is built (D-25), and its team email works (P
 Signing in with an emailed code and claiming a business are built and tested (D-27,
 D-29, D-32, D-33, D-35, ADR-028): the "Sign in or create an account" screen, **Your
 account**, "Claim this business" on every unclaimed profile, and the team's **Claims**
-page (codes reach everyone once PO-13 is done). Next: owners editing their own
+page (live since PO-13, 11 October 2026). Next: owners editing their own
 listing, with the team's daily note and undo (D-34), then the fuller activity reports
 (D-30). Before the public launch: Cloudflare's free "are you human" check (Turnstile) on
 "Email me a code", so nobody can use up the day's sign-in codes (ADR-028).

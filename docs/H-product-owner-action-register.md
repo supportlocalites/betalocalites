@@ -1,6 +1,6 @@
 # H — Product Owner Action Register
 
-**Last updated:** 2026-10-11 (revision 13: PO-12 done; D-36 sign-up details)
+**Last updated:** 2026-10-11 (revision 14: PO-12 and PO-13 done; D-36 sign-up details)
 
 This is the one place where everything that needs **you** is listed. If it isn't here,
 you don't need to do it.
@@ -61,7 +61,6 @@ Recorded from your messages of 9 and 10 October 2026. These now shape every docu
 |---|---|---|---|
 | **ADR-005** | ✅ CPU time 8 ms with React Router (passes). A day after the speed improvements go live, glance at **Metrics** once more: CPU time, and whether any "Exceeded CPU" errors appear | Nothing; a final check | 2 min |
 | **PO-11** | Check the 28 test businesses (drafts) and publish the ones that are right (steps below) | Real listings on the test site | At your pace, ~5 min each |
-| **PO-13** | Send Supabase's sign-in emails through Resend, paste our code email, and open sign-ups (steps below) | Businesses signing in and claiming their listings | 15 min |
 | **D-12** | Mailing address for the privacy policy and terms | Public launch | 1 min, later |
 
 **How to respond:** reply in the conversation with decision numbers and your choice,
@@ -897,6 +896,11 @@ one and paste it into step 2 again.
 done"*. Until then, the sign-in screen works only for addresses Supabase's own email
 service will send to.
 
+**✅ Done (11 October 2026).** Supabase sends codes through Resend from
+notices@localites.ca; a personal Outlook address got its code (in the spam folder at first,
+as new senders often do), signed up, claimed a Test Vendor listing, and received the
+"received" and "couldn't approve" emails after the team declined it.
+
 ---
 
 ## Completed
@@ -916,3 +920,4 @@ service will send to.
 | 2026-10-10 | PO-03: Supabase, GitHub and Cloudflare connected; test site live |
 | 2026-10-10 | PO-08: test set of our 28 suggested businesses (up to 5 per category); vendor list to be refreshed later |
 | 2026-10-11 | PO-12: email from localites.ca (Cloudflare DNS, Resend verified, website key added); team emails arrive |
+| 2026-10-11 | PO-13: sign-in codes for everyone (Supabase emails through Resend; sign-ups open); a full test claim worked end to end |
