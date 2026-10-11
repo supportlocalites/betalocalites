@@ -8,7 +8,8 @@ import { AuthError, authConfigured, authSettings, sendSignInCode, verifySignInCo
 import { createPerson, findPerson } from '@/server/auth/member.server';
 import { CODE_FAILED, explainCodeError, NEUTRAL_SEND_CODES } from '@/server/auth/messages.server';
 import { loadSession, safeNext, sessionCookies, withCookies } from '@/server/auth/session.server';
-import { CODE_MINUTES, codeInput, emailInput, nameInput } from '@/server/member-input';
+import { CODE_MINUTES } from '@/lib/claim-terms';
+import { codeInput, emailInput, nameInput } from '@/server/member-input';
 import { isUniqueViolation } from '@/server/db.server';
 import type { ServerEnv } from '@/server/env';
 import { addressKey } from '@/server/visitor.server';

@@ -10,7 +10,12 @@ import { account, check, cookiesFrom, finish, latestCode, mailFor, run, site, sq
 
 const CODE_FAILED = 'That code didn’t work or has expired';
 const hashOf = (email) => createHash('sha256').update(email.trim().toLowerCase()).digest('hex');
-const ip = () => `203.0.113.${randomInt(1, 255)}`; // a different visitor address each time
+// A different visitor address for every call in a run, so no two scenarios share a limit.
+let visitors = randomInt(0, 200) * 250;
+const ip = () => {
+  visitors++;
+  return `198.18.${Math.floor(visitors / 250) % 256}.${(visitors % 250) + 1}`;
+};
 const wait = (ms) => new Promise((r) => setTimeout(r, ms));
 
 // Earlier runs' code events would count towards today's limit (local database only).
@@ -139,7 +144,8 @@ check('60 codes in a day across the site: an honest "try again tomorrow"', r.sta
 await sql`delete from sign_in_code_event where email_hash = ${'0'.repeat(64)}`;
 from = ip();
 let limited = false;
-for (let i = 0; i < 12 && !limited; i++) {
+// 25 tries: even if a minute ends part-way through, one minute sees more than 10.
+for (let i = 0; i < 25 && !limited; i++) {
   r = await site('/join', { method: 'POST', form: { intent: 'verify', email: `nobody-${run}@example.test`, code: '000000', next: '/account' }, ip: from });
   limited = r.status === 429;
 }

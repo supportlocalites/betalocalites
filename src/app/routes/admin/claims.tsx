@@ -3,7 +3,7 @@ import { adminContext, cloudflareContext } from '@/app/context';
 import { describeEvidence } from '@/lib/domain-match';
 import { isUuid } from '@/lib/ids.mjs';
 import { pageMeta } from '@/lib/meta';
-import { type Check, CHECKS, RELATIONSHIPS } from '@/server/member-input';
+import { type Check, CHECKS, RELATIONSHIPS } from '@/lib/claim-terms';
 import { emailClaimDecision } from '@/server/claim-emails.server';
 import { approveClaim, ClaimConflict, declineClaim, listClaims } from '@/server/claims.server';
 import type { Route } from './+types/claims';
