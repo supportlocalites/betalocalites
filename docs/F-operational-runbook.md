@@ -156,6 +156,18 @@ guide this live (PO-03 part 3). Changing the password later is the same two step
   Our own limits apply per visitor (ADR-028). Revisit if people report "Too many tries
   from here" when only a few are signing in.
 
+### Email from localites.ca (ADR-013, PO-12)
+
+- `localites.ca`'s DNS lives in Cloudflare (moved from GoDaddy on 11 October 2026). Resend
+  needs three records there: TXT `resend._domainkey`, and CNAMEs `send` and `rsend`
+  (pointing at `…forge.rmta.net`), both **DNS only** (grey cloud). A proxied (orange)
+  CNAME hides it from Resend.
+- If emails fail, the admin page shows Resend's own explanation (e.g. "domain is not
+  verified"). Check Resend → **Domains** → `localites.ca`, then those three records.
+- The two `A` records for `localites.ca` and the `_domainconnect` CNAME are GoDaddy
+  leftovers (its "parked" page). They're replaced when `localites.ca` is pointed at the
+  website before launch.
+
 ### Sign-in codes and claims (D-32 to D-35, ADR-028)
 
 - **Settings:** Supabase sends the codes through Resend (PO-13): custom SMTP, both email

@@ -1,6 +1,6 @@
 # H — Product Owner Action Register
 
-**Last updated:** 2026-10-10 (revision 11)
+**Last updated:** 2026-10-11 (revision 12: PO-12 done)
 
 This is the one place where everything that needs **you** is listed. If it isn't here,
 you don't need to do it.
@@ -60,8 +60,7 @@ Recorded from your messages of 9 and 10 October 2026. These now shape every docu
 |---|---|---|---|
 | **ADR-005** | ✅ CPU time 8 ms with React Router (passes). A day after the speed improvements go live, glance at **Metrics** once more: CPU time, and whether any "Exceeded CPU" errors appear | Nothing; a final check | 2 min |
 | **PO-11** | Check the 28 test businesses (drafts) and publish the ones that are right (steps below) | Real listings on the test site | At your pace, ~5 min each |
-| **PO-12** | Let Localites send email from localites.ca: move the domain's settings to Cloudflare, then connect the free email service (steps below) | Suggest a business emails; business sign-up | 20 min, plus a wait |
-| **PO-13** | After PO-12: send Supabase's sign-in emails through Resend, paste our code email, and open sign-ups (steps below) | Businesses signing in and claiming their listings | 15 min |
+| **PO-13** | Send Supabase's sign-in emails through Resend, paste our code email, and open sign-ups (steps below) | Businesses signing in and claiming their listings | 15 min |
 | **D-12** | Mailing address for the privacy policy and terms | Public launch | 1 min, later |
 
 **How to respond:** reply in the conversation with decision numbers and your choice,
@@ -822,6 +821,12 @@ domain you own and have proved is yours.
 `RESEND_API_KEY`. Reply *"PO-12 done"*. Until then, suggestions are still saved and shown
 in the admin page; only the email to the team waits.
 
+**✅ Done (11 October 2026).** `localites.ca` is on Cloudflare (moved from GoDaddy's
+nameservers) and verified in Resend; a test suggestion emailed supportlocalites@gmail.com.
+Resend's automatic set-up didn't reach Cloudflare, so its three records were added by hand
+in Cloudflare's DNS page: TXT `resend._domainkey`, and CNAMEs `send` and `rsend` (both
+"DNS only"). If Resend ever shows the domain as unverified, check those three first.
+
 ### PO-13 — Switch on sign-in for businesses (emailed codes, D-32)
 **When:** After PO-12 shows `localites.ca` as **Verified** in Resend. **Cost:** $0
 (Supabase and Resend free plans). **Time:** about 15 minutes.
@@ -905,3 +910,4 @@ service will send to.
 | 2026-10-10 | D-23: Stage 1 approved; building started |
 | 2026-10-10 | PO-03: Supabase, GitHub and Cloudflare connected; test site live |
 | 2026-10-10 | PO-08: test set of our 28 suggested businesses (up to 5 per category); vendor list to be refreshed later |
+| 2026-10-11 | PO-12: email from localites.ca (Cloudflare DNS, Resend verified, website key added); team emails arrive |

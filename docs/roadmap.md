@@ -83,11 +83,11 @@ per page against 10 ms), so the site moved to React Router (ADR-005, 7% of the s
 limit); live CPU time 8 ms, under the 10 ms limit, so the fit test passes. Team sign-in
 with two-step codes and the admin page for listings are built and tested (D-28; switched
 on by PO-10, live). The 28 test businesses are loaded as drafts for the team to check and
-publish (PO-11). Suggest a business is built (D-25; its team email waits for PO-12).
+publish (PO-11). Suggest a business is built (D-25), and its team email works (PO-12 done).
 Signing in with an emailed code and claiming a business are built and tested (D-27,
 D-29, D-32, D-33, D-35, ADR-028): the "Sign in or create an account" screen, **Your
 account**, "Claim this business" on every unclaimed profile, and the team's **Claims**
-page (codes reach everyone once PO-12 and PO-13 are done). Next: owners editing their own
+page (codes reach everyone once PO-13 is done). Next: owners editing their own
 listing, with the team's daily note and undo (D-34), then the fuller activity reports
 (D-30). Before the public launch: Cloudflare's free "are you human" check (Turnstile) on
 "Email me a code", so nobody can use up the day's sign-in codes (ADR-028).
