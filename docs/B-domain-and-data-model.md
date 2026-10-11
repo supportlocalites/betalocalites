@@ -456,7 +456,7 @@ hiding there.
 
 | Table | Domain | Stage | Purpose |
 |---|---|---|---|
-| `app_user` | People | S1 | Anyone with an account. A consumer by default. |
+| `app_user` | People | S1 | Anyone with an account. A consumer by default. Name shown everywhere (`display_name`), and since D-36 the first and last name as typed (`given_name`, `family_name`: both or neither; older team accounts have neither until saved). |
 | `person_profile` | People | S1 | Details a person chose to give at sign-up or on Your account (D-36): gender (or their own words), date of birth, street address, unit, town, province, postal code. None required; no row when none given. Never shown to businesses. |
 | `platform_role` | People | S1 | Grants `admin` to the platform team. |
 | `municipality`, `category`, `attribute_*` | Reference | S1 | Places, taxonomy, typed filters |

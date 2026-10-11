@@ -196,7 +196,7 @@ details. Before launch the lawyer (PO-07) confirms what's needed, in particular 
 consent for children under 13. An event may have an optional age range ("ages 4–7"). The
 event title is free text; no child's name is required.
 
-**About consumers:** Name and email required. Asked at sign-up but not required (D-36):
+**About consumers:** First name, last name and email required. Asked at sign-up but not required (D-36):
 gender, full date of birth and full street address, kept in their own table
 (`person_profile`), seen only by the person themselves (Your account) and, in the database,
 the Localites team; never by businesses, who see only totals (D-30); used to improve

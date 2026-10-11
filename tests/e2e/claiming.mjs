@@ -30,7 +30,8 @@ async function codeSignIn(email, name) {
   let r = await site('/join', { method: 'POST', form: { intent: 'verify', email, code, next: '/account' }, ip: from });
   const cookie = cookiesFrom(r);
   if (r.location.startsWith('/join')) {
-    r = await site('/join', { method: 'POST', cookie, form: { intent: 'name', name, next: '/account' }, ip: from });
+    const [firstName, ...rest] = name.split(' ');
+    r = await site('/join', { method: 'POST', cookie, form: { intent: 'name', firstName, lastName: rest.join(' ') || 'Test', next: '/account' }, ip: from });
   }
   return cookie;
 }
@@ -115,17 +116,23 @@ const [noRecordYet] = await sql`select count(*)::int as n from app_user where em
 check('nobody is added to Localites until they give their name', noRecordYet.n === 0);
 r = await site(r.location, { cookie: aliceCookie });
 check('the name step greets them, and asks about them without demanding it', r.status === 200 && r.body.includes('Welcome to Localites') && r.body.includes(alice)
-  && r.body.includes('Date of birth') && r.body.includes('Street address') && !/optional|required/i.test(r.body.replace(/required=""/g, '')));
-r = await site('/join', { method: 'POST', cookie: aliceCookie, form: { intent: 'name', name: 'Visit https://evil.example', next: '/account' } });
+  && r.body.includes('First name') && r.body.includes('Last name') && r.body.includes('Date of birth') && r.body.includes('Street address')
+  && !/optional|required/i.test(r.body.replace(/required=""/g, '')));
+r = await site('/join', { method: 'POST', cookie: aliceCookie, form: { intent: 'name', firstName: 'Visit https://evil.example', lastName: 'Baker', next: '/account' } });
 check('a web address as a name is refused', r.status === 400);
+r = await site('/join', { method: 'POST', cookie: aliceCookie, form: { intent: 'name', firstName: 'Alice', lastName: '  ', next: '/account' } });
+const [stillNone] = await sql`select count(*)::int as n from app_user where email = ${alice}`;
+check('without a last name: "Please enter your first and last name to continue", and nothing saved',
+  r.status === 400 && r.body.includes('Please enter your first and last name to continue') && stillNone.n === 0, String(r.status));
 const aliceDetails = { gender: 'woman', genderOther: '', dateOfBirth: '1988-04-12', streetAddress: `${run} Example Street`, unit: '', town: 'Orillia', province: 'ON', postalCode: 'l3v1a1' };
-r = await site('/join', { method: 'POST', cookie: aliceCookie, form: { intent: 'name', name: 'Alice Baker', ...aliceDetails, postalCode: 'L3V', next: '/account' } });
+r = await site('/join', { method: 'POST', cookie: aliceCookie, form: { intent: 'name', firstName: 'Alice', lastName: 'Baker', ...aliceDetails, postalCode: 'L3V', next: '/account' } });
 const [notYet] = await sql`select count(*)::int as n from app_user where email = ${alice}`;
 check('a postal code in the wrong shape is pointed out, and nothing is saved', r.status === 400 && r.body.includes('Check the postal code') && notYet.n === 0, String(r.status));
-r = await site('/join', { method: 'POST', cookie: aliceCookie, form: { intent: 'name', name: '  Alice   Baker ', ...aliceDetails, next: 'https://evil.example/' } });
+r = await site('/join', { method: 'POST', cookie: aliceCookie, form: { intent: 'name', firstName: '  Alice ', lastName: ' Baker ', ...aliceDetails, next: 'https://evil.example/' } });
 check('after the name, a link to another website goes to the account page instead', r.status === 302 && r.location === '/account', `${r.status} ${r.location}`);
-const [aliceRow] = await sql`select id, display_name from app_user where email = ${alice}`;
-check('their name is saved (tidied) with the address they proved', aliceRow?.display_name === 'Alice Baker');
+const [aliceRow] = await sql`select id, display_name, given_name, family_name from app_user where email = ${alice}`;
+check('their first and last name are saved (tidied) with the address they proved',
+  aliceRow?.display_name === 'Alice Baker' && aliceRow?.given_name === 'Alice' && aliceRow?.family_name === 'Baker');
 const [aliceProfile] = await sql`select gender, date_of_birth::text as dob, street_address, town, province, postal_code from person_profile where user_id = ${aliceRow.id}`;
 check('the details they chose to give are saved, tidied', aliceProfile?.gender === 'woman' && aliceProfile?.dob === '1988-04-12'
   && aliceProfile?.town === 'Orillia' && aliceProfile?.province === 'ON' && aliceProfile?.postal_code === 'L3V 1A1', JSON.stringify(aliceProfile));
@@ -226,10 +233,10 @@ const [bobProfile] = await sql`select count(*)::int as n from person_profile whe
 check('someone who gave only a name has no personal details kept', bobProfile.n === 0);
 r = await site('/account', { cookie: aliceCookie });
 check('Alice sees her own details on her account page', r.body.includes(`${run} Example Street`) && r.body.includes('1988-04-12'));
-r = await site('/account', { cookie: bobCookie, method: 'POST', form: { intent: 'details', name: 'Bob Other', gender: '', genderOther: '', dateOfBirth: '', streetAddress: '', unit: '', town: 'Severn', province: 'ON', postalCode: '' } });
+r = await site('/account', { cookie: bobCookie, method: 'POST', form: { intent: 'details', firstName: 'Bob', lastName: 'Other', gender: '', genderOther: '', dateOfBirth: '', streetAddress: '', unit: '', town: 'Severn', province: 'ON', postalCode: '' } });
 const [bobLater] = await sql`select town, province from person_profile where user_id = ${bobRow.id}`;
 check('details can be added later on Your account', r.status === 302 && bobLater?.town === 'Severn', `${r.status} ${JSON.stringify(bobLater)}`);
-r = await site('/account', { cookie: bobCookie, method: 'POST', form: { intent: 'details', name: 'Bob Other', userId: aliceRow.id, gender: '', genderOther: '', dateOfBirth: '', streetAddress: '', unit: '', town: '', province: 'ON', postalCode: '' } });
+r = await site('/account', { cookie: bobCookie, method: 'POST', form: { intent: 'details', firstName: 'Bob', lastName: 'Other', userId: aliceRow.id, gender: '', genderOther: '', dateOfBirth: '', streetAddress: '', unit: '', town: '', province: 'ON', postalCode: '' } });
 const [bobCleared] = await sql`select count(*)::int as n from person_profile where user_id = ${bobRow.id}`;
 const [aliceKept] = await sql`select street_address from person_profile where user_id = ${aliceRow.id}`;
 check('clearing every detail removes them; a form naming someone else changes only your own', r.status === 302 && bobCleared.n === 0 && aliceKept?.street_address === `${run} Example Street`);

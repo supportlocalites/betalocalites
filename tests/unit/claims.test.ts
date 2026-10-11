@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { authErrorFrom } from '@/server/auth/gotrue.server';
 import { CODE_FAILED, explainCodeError } from '@/server/auth/messages.server';
-import { claimInput, codeInput, emailInput, isEmptyProfile, nameInput, profileInput } from '@/server/member-input';
+import { claimInput, codeInput, emailInput, isEmptyProfile, NAMES_NEEDED, namesInput, profileInput } from '@/server/member-input';
 import { isUniqueViolation } from '@/server/db.server';
 import { renderEmail } from '@/server/email-templates.server';
 import { addressKey } from '@/server/visitor.server';
@@ -24,12 +24,15 @@ describe('Supabase error codes (never read from message text)', () => {
 });
 
 describe('what people type to join and claim', () => {
-  it('accepts a plain name and refuses addresses and markup', () => {
-    expect(nameInput.parse('  Jane   Smith ')).toBe('Jane Smith');
-    for (const ok of ['J.R. Smith', 'Mary-Jane O’Neil', 'St. Clair Catering', 'Dr. Ann Lee']) expect(nameInput.parse(ok)).toBe(ok);
-    for (const bad of ['', '   ', 'x'.repeat(81), 'Visit https://evil.example', 'www.evil.example', 'jane@evil.example', '<b>Jane</b>', 'Jane evil-site.com/login', 'bit.ly/x']) {
-      expect(nameInput.safeParse(bad).success).toBe(false);
+  it('needs a first and a last name, tidied, and refuses addresses and markup', () => {
+    expect(namesInput.parse({ firstName: '  Jane ', lastName: ' van  der Berg ' })).toEqual({ firstName: 'Jane', lastName: 'van der Berg', display: 'Jane van der Berg' });
+    for (const ok of ['J.R.', 'Mary-Jane', 'O’Neil', 'St. Clair']) expect(namesInput.parse({ firstName: ok, lastName: ok }).firstName).toBe(ok);
+    for (const bad of ['', '   ', 'x'.repeat(60), 'Visit https://evil.example', 'www.evil.example', 'jane@evil.example', '<b>Jane</b>', 'evil-site.com/login', 'bit.ly/x']) {
+      expect(namesInput.safeParse({ firstName: bad, lastName: 'Smith' }).success).toBe(false);
+      expect(namesInput.safeParse({ firstName: 'Jane', lastName: bad }).success).toBe(false);
     }
+    expect(namesInput.safeParse({ firstName: 'Jane' }).success).toBe(false);
+    expect(NAMES_NEEDED).toBe('Please enter your first and last name to continue.');
   });
 
   it('normalises email addresses and codes', () => {

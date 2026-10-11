@@ -1,7 +1,7 @@
 import { useEffect, useRef } from 'react';
 import { data, Form, Link, redirect, useNavigation } from 'react-router';
 import { cloudflareContext } from '@/app/context';
-import { ProfileFields } from '@/components/ProfileFields';
+import { NameFields, ProfileFields } from '@/components/ProfileFields';
 import { SiteHeader } from '@/components/SiteHeader';
 import { pageMeta } from '@/lib/meta';
 import { addressHash, claimCodeGuess, claimCodeSend, guessWasRight } from '@/server/auth/code-limits.server';
@@ -10,7 +10,7 @@ import { createPerson, findPerson } from '@/server/auth/member.server';
 import { CODE_FAILED, explainCodeError, NEUTRAL_SEND_CODES } from '@/server/auth/messages.server';
 import { loadSession, safeNext, sessionCookies, withCookies } from '@/server/auth/session.server';
 import { CODE_MINUTES } from '@/lib/claim-terms';
-import { codeInput, emailInput, nameInput, profileInput } from '@/server/member-input';
+import { codeInput, emailInput, NAMES_NEEDED, namesInput, profileInput } from '@/server/member-input';
 import { isUniqueViolation } from '@/server/db.server';
 import type { ServerEnv } from '@/server/env';
 import { addressKey } from '@/server/visitor.server';
@@ -63,16 +63,18 @@ export async function action({ request, context }: Route.ActionArgs) {
     const { session, setCookies } = await loadSession(request, env);
     if (!session) throw redirect(`/join?next=${encodeURIComponent(next)}`, withCookies(undefined, setCookies));
     const email = session.user.email;
-    const name = nameInput.safeParse(form.get('name') ?? '');
-    const profile = profileInput.safeParse(Object.fromEntries(form));
-    if (!name.success || !profile.success) {
+    const fields = Object.fromEntries(form);
+    const names = namesInput.safeParse(fields);
+    const profile = profileInput.safeParse(fields);
+    if (!names.success || !profile.success) {
       const errors: Record<string, string> = {};
-      for (const issue of profile.error?.issues ?? []) errors[String(issue.path[0])] ??= issue.message;
-      if (!name.success) errors.name = name.error.issues[0]?.message ?? 'Enter your name.';
-      return reply({ step: 'name', email, error: 'Please check what’s marked below.', errors }, 400, setCookies);
+      for (const issue of [...(names.error?.issues ?? []), ...(profile.error?.issues ?? [])]) errors[String(issue.path[0])] ??= issue.message;
+      const nameMissing = !String(fields.firstName ?? '').trim() || !String(fields.lastName ?? '').trim();
+      const error = nameMissing ? NAMES_NEEDED : 'Please check what’s marked below.';
+      return reply({ step: 'name', email, error, errors }, 400, setCookies);
     }
     try {
-      await createPerson(env, session.user, name.data, profile.data);
+      await createPerson(env, session.user, names.data, profile.data);
     } catch (err) {
       if (!isUniqueViolation(err)) throw err;
       const error = 'This email address is linked to an older account. Please contact supportlocalites@gmail.com.';
@@ -203,30 +205,7 @@ export default function Join({ loaderData, actionData }: Route.ComponentProps) {
             <input type="hidden" name="intent" value="name" />
             <input type="hidden" name="next" value={next} />
             <p className="muted">You’re signed in as {email}. Tell us a little about yourself:</p>
-            <div className="field">
-              <label htmlFor="name" className="field-label">
-                Your name
-              </label>
-              <p className="field-hint" id="name-hint">
-                Shown to our team, and to a business when you contact it.
-              </p>
-              <input
-                ref={field}
-                id="name"
-                name="name"
-                className="input"
-                autoComplete="name"
-                maxLength={80}
-                required
-                aria-invalid={fieldErrors.name ? true : undefined}
-                aria-describedby={fieldErrors.name ? 'name-hint name-error' : 'name-hint'}
-              />
-              {fieldErrors.name && (
-                <p className="field-error" id="name-error">
-                  {fieldErrors.name}
-                </p>
-              )}
-            </div>
+            <NameFields first={null} last={null} errors={fieldErrors} firstRef={field} />
             <ProfileFields values={null} errors={fieldErrors} />
             <button type="submit" className="button button-primary" disabled={busy}>
               {busy ? 'Saving…' : 'Continue'}

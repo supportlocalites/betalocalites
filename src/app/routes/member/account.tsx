@@ -1,10 +1,10 @@
 import { data, Form, Link, redirect, useNavigation, useSearchParams } from 'react-router';
 import { cloudflareContext, memberContext } from '@/app/context';
-import { ProfileFields } from '@/components/ProfileFields';
+import { NameFields, ProfileFields } from '@/components/ProfileFields';
 import { SiteHeader } from '@/components/SiteHeader';
 import { pageMeta } from '@/lib/meta';
 import { updatePerson } from '@/server/auth/member.server';
-import { nameInput, profileInput } from '@/server/member-input';
+import { NAMES_NEEDED, namesInput, profileInput } from '@/server/member-input';
 import { getProfile } from '@/server/profile.server';
 import { myAccount } from '@/server/claims.server';
 import type { Route } from './+types/account';
@@ -21,23 +21,27 @@ export async function loader({ context }: Route.LoaderArgs) {
   const member = context.get(memberContext);
   const { env } = context.get(cloudflareContext);
   const [{ businesses, claims }, profile] = await Promise.all([myAccount(env, member.userId), getProfile(env, member.userId)]);
-  return { name: member.name, email: member.email, profile, businesses, claims };
+  // Accounts made before first and last names were asked (the team's) start with the
+  // whole name in the first box.
+  const first = member.firstName ?? member.name;
+  return { first, last: member.lastName, email: member.email, profile, businesses, claims };
 }
 
 export async function action({ request, context }: Route.ActionArgs) {
   const member = context.get(memberContext);
   const form = await request.formData();
   if (form.get('intent') !== 'details') throw data(null, { status: 400 });
-  const name = nameInput.safeParse(form.get('name') ?? '');
-  const profile = profileInput.safeParse(Object.fromEntries(form));
-  if (!name.success || !profile.success) {
+  const fields = Object.fromEntries(form);
+  const names = namesInput.safeParse(fields);
+  const profile = profileInput.safeParse(fields);
+  if (!names.success || !profile.success) {
     const errors: Record<string, string> = {};
-    for (const issue of profile.error?.issues ?? []) errors[String(issue.path[0])] ??= issue.message;
-    if (!name.success) errors.name = name.error.issues[0]?.message ?? 'Enter your name.';
-    return data({ error: 'Please check what’s marked below.', errors }, { status: 400 });
+    for (const issue of [...(names.error?.issues ?? []), ...(profile.error?.issues ?? [])]) errors[String(issue.path[0])] ??= issue.message;
+    const nameMissing = !String(fields.firstName ?? '').trim() || !String(fields.lastName ?? '').trim();
+    return data({ error: nameMissing ? NAMES_NEEDED : 'Please check what’s marked below.', errors }, { status: 400 });
   }
   // Only ever this person's own record: the id comes from the session, never the form.
-  await updatePerson(context.get(cloudflareContext).env, member.userId, name.data, profile.data);
+  await updatePerson(context.get(cloudflareContext).env, member.userId, names.data, profile.data);
   return redirect('/account?saved=1');
 }
 
@@ -51,7 +55,7 @@ const CLAIM_STATUS = {
 const ROLE = { owner: 'Owner', manager: 'Manager', staff: 'Staff' } as Record<string, string>;
 
 export default function Account({ loaderData, actionData }: Route.ComponentProps) {
-  const { name, email, profile, businesses, claims } = loaderData;
+  const { first, last, email, profile, businesses, claims } = loaderData;
   const busy = useNavigation().state !== 'idle';
   const saved = useSearchParams()[0].has('saved') && !actionData;
   const errors = actionData?.errors ?? {};
@@ -83,26 +87,7 @@ export default function Account({ loaderData, actionData }: Route.ComponentProps
                 Saved.
               </p>
             )}
-            <div className="field">
-              <label htmlFor="name" className="field-label">
-                Your name
-              </label>
-              <input
-                id="name"
-                name="name"
-                className="input"
-                defaultValue={name}
-                autoComplete="name"
-                maxLength={80}
-                aria-invalid={errors.name ? true : undefined}
-                aria-describedby={errors.name ? 'name-error' : undefined}
-              />
-              {errors.name && (
-                <p className="field-error" id="name-error">
-                  {errors.name}
-                </p>
-              )}
-            </div>
+            <NameFields first={first} last={last} errors={errors} />
             <ProfileFields values={profile} errors={errors} />
             <button type="submit" className="button button-secondary" disabled={busy}>
               Save details

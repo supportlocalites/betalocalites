@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { type Ref, useState } from 'react';
 import { GENDERS, PROVINCES } from '@/lib/claim-terms';
 import styles from './ProfileFields.module.css';
 
@@ -12,6 +12,58 @@ export type ProfileValues = {
   province: string | null;
   postalCode: string | null;
 };
+
+/**
+ * First and last name, side by side on wider screens (D-36). Both are needed to continue,
+ * but, like the details below, neither is labelled as required.
+ */
+export function NameFields({
+  first,
+  last,
+  errors,
+  firstRef,
+}: {
+  first: string | null;
+  last: string | null;
+  errors: Record<string, string>;
+  firstRef?: Ref<HTMLInputElement>;
+}) {
+  const box = (name: 'firstName' | 'lastName', label: string, value: string | null, autoComplete: string, ref?: Ref<HTMLInputElement>) => (
+    <div className="field">
+      <label htmlFor={name} className="field-label">
+        {label}
+      </label>
+      <input
+        ref={ref}
+        id={name}
+        name={name}
+        className="input"
+        defaultValue={value ?? ''}
+        autoComplete={autoComplete}
+        maxLength={59}
+        required
+        aria-invalid={errors[name] ? true : undefined}
+        aria-describedby={[errors[name] ? `${name}-error` : '', 'name-hint'].filter(Boolean).join(' ')}
+      />
+      {errors[name] && (
+        <p className="field-error" id={`${name}-error`}>
+          {errors[name]}
+        </p>
+      )}
+    </div>
+  );
+  return (
+    <>
+      <div className={styles.pair}>
+        {box('firstName', 'First name', first, 'given-name', firstRef)}
+        {box('lastName', 'Last name', last, 'family-name')}
+      </div>
+      <p className={`field-hint ${styles.nameHint}`} id="name-hint">
+        Shown to our team, and to a business when you contact it.
+      </p>
+    </>
+  );
+}
 
 /**
  * Personal details (D-36), on "Welcome to Localites" and "Your account". None is required,

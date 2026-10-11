@@ -16,17 +16,33 @@ const oneLine = (s: string) => s.replace(/\s+/g, ' ').trim();
 // Bare web addresses ("evil-site.com/login") too: email apps turn them into links.
 const WEB_ADDRESS = /[a-z0-9-]{2,}\.(com|ca|net|org|io|co|info|biz|xyz|app|dev|me|us|uk|link|site|online|shop|store|top|ly|gl|to|cc|ru|cn)\b/i;
 
-export const nameInput = z
-  .string()
-  .default('')
-  .transform(oneLine)
-  .pipe(
-    z
-      .string()
-      .min(1, 'Enter your name.')
-      .max(80, 'Keep your name under 80 characters.')
-      .refine((s) => !/:\/\/|www\.|[<>@]/i.test(s) && !WEB_ADDRESS.test(s), 'Enter just your name (no web or email addresses).'),
-  );
+const namePart = (empty: string, part: string) =>
+  z
+    .string()
+    .default('')
+    .transform(oneLine)
+    .pipe(
+      z
+        .string()
+        .min(1, empty)
+        .max(59, `Keep your ${part} under 60 characters.`)
+        .refine((s) => !/:\/\/|www\.|[<>@]/i.test(s) && !WEB_ADDRESS.test(s), 'Enter just your name (no web or email addresses).'),
+    );
+
+/**
+ * First and last name, in two boxes (D-36). Both are needed to continue, though neither
+ * is labelled as required. `display` is the name shown everywhere.
+ */
+export const namesInput = z
+  .object({
+    firstName: namePart('Enter your first name.', 'first name'),
+    lastName: namePart('Enter your last name.', 'last name'),
+  })
+  .transform((n) => ({ ...n, display: `${n.firstName} ${n.lastName}` }));
+export type Names = z.output<typeof namesInput>;
+
+/** Shown above the form when a name box is empty. */
+export const NAMES_NEEDED = 'Please enter your first and last name to continue.';
 
 export const emailInput = z
   .string()

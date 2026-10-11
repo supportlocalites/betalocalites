@@ -31,6 +31,25 @@ Every release and every database migration, in order. Appended before each deplo
 
 ## Releases
 
+### 2026-10-11 — First and last name, in two boxes (Stage 1, not public)
+
+**Stage:** 1 (D-36, as amended)
+**What changed (plain English):** "Your name" is now two boxes, **First name** and **Last
+name**, on sign-up and on Your account. Neither is labelled as required, but if either is
+empty, *Continue* shows "Please enter your first and last name to continue.", marks the
+empty box and puts the cursor in it. The name shown elsewhere is still "First Last". Team
+accounts made before this start with their whole name in the first box.
+**Migrations applied:** `0006_person_names.sql`: two new columns on `app_user` (both or
+neither).
+**Destructive?** No.
+**Tests run:** unit tests 69/69; database checks 51/51, 12/12, 19/19, 13/13, 5/5 (new),
+56/56; end-to-end 43/43 and 73/73 (new: a missing last name stops sign-up with that
+message and saves nothing; first and last names saved separately); phone-size
+screenshot.
+**How to roll back:** Cloudflare → localites → Deployments → previous version → Deploy. The
+new columns can stay.
+**Approved by:** Product owner (D-36).
+
 ### 2026-10-11 — Sign-up asks about the person; a clear "check your spam" reminder (Stage 1, not public)
 
 **Stage:** 1 (D-36)
