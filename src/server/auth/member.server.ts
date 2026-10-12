@@ -2,9 +2,8 @@ import { sql } from 'drizzle-orm';
 import { redirect } from 'react-router';
 import { withDb } from '../db.server';
 import type { ServerEnv } from '../env';
-import { linkVisitor, trackingOn } from '../activity.server';
+import { countedBrowser, linkVisitor, trackingOn } from '../activity.server';
 import type { Names, Profile } from '../member-input';
-import { visitor } from '../visitor.server';
 import { writeProfile } from '../profile.server';
 import { loadSession, pagePath, withCookies } from './session.server';
 
@@ -71,7 +70,7 @@ export async function memberGate(request: Request, env: ServerEnv): Promise<{ me
   const back = `/join?next=${encodeURIComponent(pagePath(request))}`;
   const { session, setCookies } = await loadSession(request, env);
   if (!session) throw redirect(back, withCookies(undefined, setCookies));
-  const browser = trackingOn(env) ? visitor(request) : null;
+  const browser = trackingOn(env) ? await countedBrowser(env, request) : null;
   const person = await findPerson(env, session.user.id, browser?.id ?? null);
   if (!person || person.closed) throw redirect(back, withCookies(undefined, setCookies));
   if (browser?.setCookie) setCookies.push(browser.setCookie);

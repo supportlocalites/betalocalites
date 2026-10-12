@@ -243,8 +243,9 @@ If the backups outgrow free storage, we tell you before anything changes.
 - **Looking at the detail** (each action by browser, or the words people searched) is
   recorded in the audit log every time; the listing's **Activity** page shows who looked.
   Use it to run the service and check unusual days, not out of curiosity.
-- **Daily limits:** at most 10,000 actions and 5,000 searches are kept each day (Toronto
-  time); **Activity** shows today's use. Reaching them means a script, almost certainly:
+- **Daily limits:** at most 300 actions and 100 searches per browser, and 10,000 actions
+  and 5,000 searches for the whole site, are kept each day (Toronto time); **Activity**
+  shows today's use, and owners' pages name any day the site-wide limit was reached. Reaching them means a script, almost certainly:
   look at the day's detail for one browser or business repeating itself.
 - **Unusual days** (over 5 times the business's usual day, once it has a week of history)
   are marked on its Activity page:

@@ -40,7 +40,9 @@ export async function action({ request, context }: Route.ActionArgs) {
   const { env } = context.get(cloudflareContext);
   const form = await request.formData();
   const day = String(form.get('day') ?? '');
-  if (form.get('intent') !== 'recount' || !/^\d{4}-\d{2}-\d{2}$/.test(day) || day >= torontoDate(new Date())) {
+  // A real date (2026-02-30 isn't), and a finished day.
+  const real = /^\d{4}-\d{2}-\d{2}$/.test(day) && !Number.isNaN(Date.parse(day)) && addDays(day, 0) === day;
+  if (form.get('intent') !== 'recount' || !real || day >= torontoDate(new Date())) {
     return data({ error: 'Choose a finished day to count again.' }, { status: 400 });
   }
   await recountDay(env, context.get(adminContext), day);

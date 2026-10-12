@@ -220,6 +220,8 @@ export async function recountDay(env: ServerEnv, admin: Admin, day: string): Pro
         changes: { day: { from: null, to: day } },
         sessionRef: admin.sessionId,
       });
+      // Takes turns with the morning run counting the same day (the lock is held to the end).
+      await tx.execute(sql`select pg_advisory_xact_lock(hashtextextended(${`activity_rollup:${day}`}, 0))`);
       const [counted] = await tx.execute<{ n: number }>(sql`select activity_rollup_day(${day}::date) as n`);
       await tx.execute(sql`
         insert into activity_rollup (day, status, events, finished_at) values (${day}::date, 'done', ${counted?.n ?? 0}, now())

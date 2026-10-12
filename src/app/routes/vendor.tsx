@@ -40,7 +40,8 @@ const listPlace = (state: unknown) => {
 
 export default function VendorProfile({ loaderData: { vendor, slug, signedIn, track } }: Route.ComponentProps) {
   const pageRef = useRef<HTMLElement>(null);
-  const onTap = useVendorActivity(track, pageRef, listPlace(useLocation().state));
+  const location = useLocation();
+  const onTap = useVendorActivity(track, pageRef, listPlace(location.state), location.key);
   return (
     <>
       <SiteHeader />

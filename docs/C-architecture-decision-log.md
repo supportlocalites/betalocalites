@@ -925,15 +925,19 @@ Engineering, within D-22, D-30 and D-37 (12 October 2026). Extends ADR-023. Scre
   showed, in what order, or where the visitor came from: the note is signed with a secret
   (`ACTIVITY_KEY`) only the server has. Counting is on exactly when that secret is set (at
   least 32 characters).
-- **Each note belongs to one browser.** The page sends a new browser its visitor cookie
-  with the page, and the note names that browser; a report is accepted only with that
-  same cookie, so a note can't be passed around. New browsers are limited to 20 a minute
-  per internet address, so a script that drops its cookie can't pose as endless visitors.
+- **Each note belongs to one browser.** The visitor cookie is signed (`<id>.<signature>`),
+  so an id can't be made up; the page sends a new browser its signed cookie with the page,
+  and the note names that browser. A report is accepted only with that same cookie, so a
+  note can't be passed around. New browsers (and any unsigned or made-up cookie) are limited
+  to 20 a minute per internet address, so a script can't pose as endless visitors. Going
+  Back to a page reuses the note it had, so the same visit isn't recorded twice.
   A page opening keeps its "place in a list" only if that list page was recorded in the
   last 12 hours.
-- **Daily limits on what's kept:** 10,000 actions and 5,000 searches a (Toronto) day;
-  past those, more aren't kept until the next day, so nothing can fill the free database
-  (D-20). The team's Activity page shows the day's use.
+- **Daily limits on what's kept:** one browser keeps at most 300 actions and 100 searches a
+  day, and the whole site 10,000 actions and 5,000 searches a (Toronto) day; past those,
+  more aren't kept until the next day, so nothing can fill the free database (D-20). The
+  team's Activity page shows the day's use, and reports name any day the site-wide limit
+  was reached, so its numbers are never silently low.
 - **Definitions** (what the owner's page says, word for word):
   - **Seen in lists:** a business's card at least half on screen for at least a second, in
     search results or a category list; once per list page shown. Stored only as daily
@@ -984,7 +988,10 @@ A determined script can still add counts (and can claim any site sent it, since 
 from what the request says); the browser-tied notes, the new-browser limit, the 3-a-day cap,
 the daily limits and the team's "unusual" flag keep that small and visible, and the owner's
 numbers are labelled as approximate. Many people sharing one internet address (a library)
-can meet the new-browser limit; their visits then simply aren't counted. The town comes from the internet connection and is
+can meet the new-browser limit; their visits then simply aren't counted. A brand-new browser
+that opens several Localites pages at the same moment is counted in one of them. Grouping
+small figures stops a single visit being shown on its own, but someone comparing "This year
+so far" every morning could still notice one new visit; the page never shows who. The town comes from the internet connection and is
 often a nearby larger town. A business's own visits are recognised only on browsers that
 have opened a signed-in page. Public pages must never be put behind a shared cache: each
 answer carries its own note. Email, social, share, directions and photo taps come with

@@ -59,21 +59,26 @@ Every release and every database migration, in order. Appended before each deplo
   and counting functions.
 - `0010_activity_limits.sql`: daily limits; list places only from real lists; every town
   kept per day.
+- `0011_activity_fair_limits.sql`: per-browser daily caps (300 actions, 100 searches), and a
+  record of days the site-wide limit was reached.
 
 **Destructive?** No (new tables, columns, indexes and functions; three check lists widened;
 one grant narrowed; the activity tables were empty).
 **Tests run:**
-- Unit tests: 104/104 (new: where visitors came from, phone or computer, browser reports,
-  signed notes, bots, periods, the owner's wording).
-- Database checks: 51, 12, 19, 13, 5, 22, 4, 51 (new) and 9 (new), and 56/56.
-- End-to-end: 43/43, 73/73, 55/55 and 49/49 (new: signed notes tied to one browser; other
+- Unit tests: 105/105 (new: where visitors came from, phone or computer, browser reports,
+  signed notes and visitor cookies, bots, periods, the owner's wording).
+- Database checks: 51, 12, 19, 13, 5, 22, 4, 51 (new), 9 (new) and 5 (new), and 56/56.
+- End-to-end: 43/43, 73/73, 55/55 and 51/51 (new: signed notes tied to one browser; signed
+  visitor cookies; other
   sites, forms, changed or passed-around notes and bots refused; the new-browser limit; the
   owner's and team's visits marked; the nightly count; the owner's page only for its owner
   with the switch on; owners can't switch it on; team pages refused to everyone else; each
   look at the detail recorded once).
-- Real-browser check at phone size: seen in a list, opened from it, a tap, time on the page.
+- Real-browser check at phone size: seen in a list, opened from it, Back to the results
+  (not counted again), a tap, time on the page.
 
-An independent review found 4 confirmed and 15 smaller problems; all were fixed (see ADR-030).
+Two independent reviews found 8 confirmed and 26 smaller problems; all were fixed, or are
+stated plainly under ADR-030's known limits.
 
 **How to roll back:** Cloudflare → localites → Deployments → previous version → Deploy.
 Remove the activity key to stop counting at once; the new tables can stay.

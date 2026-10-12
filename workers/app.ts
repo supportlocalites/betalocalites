@@ -4,7 +4,6 @@ import * as build from 'virtual:react-router/server-build';
 import { cloudflareContext } from '@/app/context';
 import type { ServerEnv } from '@/server/env';
 import { runActivityRollup } from '@/server/activity-rollup.server';
-import { trackingOn } from '@/server/activity.server';
 import { runDailyNote } from '@/server/daily-note.server';
 import { refuseCrossSiteForm, withSecurityHeaders } from '@/server/security-headers';
 
@@ -16,7 +15,10 @@ const handleRequest = createRequestHandler(build, import.meta.env.MODE);
 export default {
   async fetch(request: Request, env: ServerEnv, ctx: ExecutionContext): Promise<Response> {
     const refused = refuseCrossSiteForm(request);
-    if (refused) return withSecurityHeaders(refused);
+    if (refused) {
+      await request.body?.cancel().catch(() => undefined); // not read: let it go
+      return withSecurityHeaders(refused);
+    }
     const context = new RouterContextProvider();
     const cf = (request as Request & { cf?: { city?: unknown; regionCode?: unknown } }).cf;
     const place = {
@@ -33,7 +35,8 @@ export default {
    * second run of the day only retries what failed.
    */
   async scheduled(_controller: ScheduledController, env: ServerEnv, ctx: ExecutionContext): Promise<void> {
-    if (trackingOn(env)) ctx.waitUntil(
+    // Always: it only adds up what's already recorded (even after the key is removed).
+    ctx.waitUntil(
       runActivityRollup(env).then(
         (outcome) => console.log('activity count:', outcome),
         (err) => console.error('activity count failed', err instanceof Error ? err.message : err),

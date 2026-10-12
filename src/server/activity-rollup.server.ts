@@ -1,6 +1,6 @@
 import { sql } from 'drizzle-orm';
 import { addDays, torontoDate } from '@/lib/activity';
-import { withDb } from './db.server';
+import { type Db, withDb } from './db.server';
 import type { ServerEnv } from './env';
 
 /**
@@ -11,6 +11,18 @@ import type { ServerEnv } from './env';
  */
 
 const CATCH_UP_DAYS = 7;
+
+/**
+ * Counts one day, taking turns with anyone else counting the same day (the team's "Count
+ * this day again" during the morning run), so the two never clash.
+ */
+export async function countDay(db: Db, day: string): Promise<number> {
+  return db.transaction(async (tx) => {
+    await tx.execute(sql`select pg_advisory_xact_lock(hashtextextended(${`activity_rollup:${day}`}, 0))`);
+    const [counted] = await tx.execute<{ n: number }>(sql`select activity_rollup_day(${day}::date) as n`);
+    return counted?.n ?? 0;
+  });
+}
 
 export async function runActivityRollup(env: ServerEnv): Promise<string> {
   const today = torontoDate(new Date());
@@ -33,9 +45,9 @@ export async function runActivityRollup(env: ServerEnv): Promise<string> {
         returning day::text as day`);
       if (!claimed) continue;
       try {
-        const [counted] = await db.execute<{ n: number }>(sql`select activity_rollup_day(${day}::date) as n`);
+        const counted = await countDay(db, day);
         await db.execute(sql`
-          update activity_rollup set status = 'done', events = ${counted?.n ?? 0}, finished_at = now() where day = ${day}::date`);
+          update activity_rollup set status = 'done', events = ${counted}, finished_at = now() where day = ${day}::date`);
         outcome.push(`${day} done`);
       } catch (err) {
         const reason = (err instanceof Error ? err.message : 'unknown error').slice(0, 300);

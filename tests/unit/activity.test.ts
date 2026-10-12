@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { isbot } from 'isbot';
 import { change, classifySource, deviceFrom, duration, maskOf, ordinal, parseBeacon, periodRanges, small, torontoDate } from '@/lib/activity';
-import { readNote, signNote } from '@/lib/activity-token';
+import { readBrowser, readNote, signBrowser, signNote } from '@/lib/activity-token';
 
 const SITE = 'https://localites.ca';
 
@@ -133,5 +133,18 @@ describe('words on the owner’s page', () => {
     expect(duration(45)).toBe('45 s');
     expect(duration(80)).toBe('1 min 20 s');
     expect(duration(120)).toBe('2 min');
+  });
+});
+
+describe('the signed visitor cookie', () => {
+  const key = 'test-key-'.repeat(5);
+  const id = '01900000-0000-7000-8000-0000000000b1';
+  it('reads back only the id we signed', async () => {
+    const value = await signBrowser(key, id);
+    expect(await readBrowser(key, value)).toBe(id);
+    expect(await readBrowser(key, id)).toBeNull(); // unsigned
+    expect(await readBrowser(key, `01900000-0000-7000-8000-0000000000b2.${value.split('.')[1]}`)).toBeNull(); // another id
+    expect(await readBrowser('another-key-'.repeat(4), value)).toBeNull();
+    expect(await readBrowser(key, null)).toBeNull();
   });
 });

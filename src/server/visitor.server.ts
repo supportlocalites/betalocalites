@@ -4,16 +4,25 @@ import { isUuid, uuidv7 } from '@/lib/ids.mjs';
  * Localites' own visitor cookie (D-22, ADR-023): a random ID, no outside trackers. Used
  * to limit suggestions per visitor now, and to count activity when that's built.
  */
-const NAME = '__Host-lc_vid';
+export const VISITOR_COOKIE = '__Host-lc_vid';
 const ONE_YEAR = 60 * 60 * 24 * 365;
 
-export function visitor(request: Request): { id: string; setCookie: string | null } {
+/** The cookie as sent: "<id>" or, once counting has signed it, "<id>.<signature>" (ADR-030). */
+export function visitorCookieValue(request: Request): string | null {
   for (const part of (request.headers.get('Cookie') ?? '').split(';')) {
     const [k, v] = part.trim().split('=');
-    if (k === NAME && v && isUuid(v)) return { id: v, setCookie: null };
+    if (k === VISITOR_COOKIE && v) return v;
   }
-  const id = uuidv7();
-  return { id, setCookie: `${NAME}=${id}; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=${ONE_YEAR}` };
+  return null;
+}
+
+export const visitorCookie = (value: string) => `${VISITOR_COOKIE}=${value}; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=${ONE_YEAR}`;
+
+export function visitor(request: Request): { id: string; setCookie: string | null } {
+  const id = visitorCookieValue(request)?.split('.')[0];
+  if (id && isUuid(id)) return { id, setCookie: null };
+  const fresh = uuidv7();
+  return { id: fresh, setCookie: visitorCookie(fresh) };
 }
 
 /**

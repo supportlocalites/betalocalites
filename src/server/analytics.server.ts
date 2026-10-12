@@ -1,5 +1,5 @@
 import { sql } from 'drizzle-orm';
-import { type Period, periodRanges, type Range } from '@/lib/activity';
+import { addDays, type Period, periodRanges, type Range } from '@/lib/activity';
 import type { Db } from './db.server';
 
 /**
@@ -32,6 +32,8 @@ export type Report = {
   lastYear: Totals | null; // null: not counted that long ago yet
   /** The first day anything was counted, and the last day the nightly count has finished. */
   countingSince: string | null;
+  /** Days in the period when the daily safety limit was reached (not every visit was kept). */
+  limitedDays: string[];
   sources: Row[];
   devices: Row[];
   towns: Row[];
@@ -88,11 +90,17 @@ export async function readReport(db: Db, vendorId: string, period: Period, today
       select c.id, c.name, c.parent_id as "parentId" from vendor_category vc join category c on c.id = vc.category_id
       where vc.vendor_id = ${vendorId} and vc.is_primary`),
   ]);
-  // A comparison only with a period counted from its first day.
-  const counted = (from: string) => Boolean(known?.since && known.since <= from);
-  const [before, lastYear] = await Promise.all([
+  // A comparison only when this period is fully counted (the nightly count has reached its
+  // last day) and the other was counted from its first day.
+  const complete = Boolean(known?.to && known.to >= addDays(r.to, -1));
+  const counted = (from: string) => complete && Boolean(known?.since && known.since <= from);
+  const [before, lastYear, limited] = await Promise.all([
     ranges.before && counted(ranges.before.from) ? totals(db, vendorId, ranges.before) : Promise.resolve(null),
     counted(ranges.lastYear.from) ? totals(db, vendorId, ranges.lastYear) : Promise.resolve(null),
+    // Days when the site-wide daily safety limit was reached: not fully counted.
+    db.execute<{ day: string }>(sql`
+      select day::text as day from activity_budget
+      where limited_at is not null and day >= ${r.from}::date and day < ${r.to}::date order by day`),
   ]);
 
   let category: Report['category'] = null;
@@ -152,5 +160,6 @@ export async function readReport(db: Db, vendorId: string, period: Period, today
     category,
     countedTo: known?.to ?? null,
     countingSince: known?.since ?? null,
+    limitedDays: limited.map((d) => d.day),
   };
 }

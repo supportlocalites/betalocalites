@@ -1,9 +1,8 @@
 import { sql } from 'drizzle-orm';
 import { data, redirect } from 'react-router';
 import { withDb } from '../db.server';
-import { linkVisitor, trackingOn } from '../activity.server';
+import { countedBrowser, linkVisitor, trackingOn } from '../activity.server';
 import type { ServerEnv } from '../env';
-import { visitor } from '../visitor.server';
 import { type AuthUser, signOut } from './gotrue.server';
 import { clearedCookies, loadSession, pagePath, withCookies } from './session.server';
 
@@ -35,7 +34,7 @@ export async function adminGate(request: Request, env: ServerEnv): Promise<{ adm
   }
 
   // The team's own browsers are left out of activity totals (ADR-030).
-  const browser = trackingOn(env) ? visitor(request) : null;
+  const browser = trackingOn(env) ? await countedBrowser(env, request) : null;
   const [member] = await withDb(env, (db) =>
     db.execute<{ name: string; isAdmin: boolean }>(sql`
       ${linkVisitor(browser?.id ?? null, session.user.id)}select u.display_name as name,

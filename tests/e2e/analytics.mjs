@@ -137,20 +137,28 @@ const scriptAddress = `2001:db8:${crypto.getRandomValues(new Uint16Array(1))[0].
 for (let i = 0; i < 25; i++) fresh.push(await page(`/vendors/${b.slug}`, { ip: scriptAddress }));
 const withNotes = fresh.filter((f) => f.note).length;
 check('new browsers from one address are limited (no note past the limit)', withNotes <= 20 && withNotes >= 1, String(withNotes));
+const madeUp = [];
+const madeUpAddress = `2001:db8:${crypto.getRandomValues(new Uint16Array(1))[0].toString(16)}::2`;
+for (let i = 0; i < 25; i++) madeUp.push(await page(`/vendors/${b.slug}`, { ip: madeUpAddress, cookie: `__Host-lc_vid=${crypto.randomUUID()}` }));
+const madeUpNotes = madeUp.filter((f) => f.note).length;
+check('…and a made-up visitor cookie counts as a new browser, so it can’t get round that', madeUpNotes <= 20 && madeUpNotes >= 1, String(madeUpNotes));
 
 // 3. The owner's and the team's own visits are marked (and left out of totals).
 const [ownerVid, teamVid] = [crypto.randomUUID(), crypto.randomUUID()];
 const ownerBrowser = `__Host-lc_vid=${ownerVid}`;
 const teamBrowser = `__Host-lc_vid=${teamVid}`;
-await page('/account', { cookie: `${ownerCookie}; ${ownerBrowser}` });
-await page('/admin', { cookie: `${admin}; ${teamBrowser}` });
+// Signed-in pages sign the browser's cookie (keeping its id); later pages use the signed one.
+const signedFrom = (r, fallback) => r.cookie.find((c) => c.startsWith('__Host-lc_vid='))?.split(';')[0] ?? fallback;
+const ownerSigned = signedFrom(await page('/account', { cookie: `${ownerCookie}; ${ownerBrowser}` }), ownerBrowser);
+const teamSigned = signedFrom(await page('/admin', { cookie: `${admin}; ${teamBrowser}` }), teamBrowser);
 const linked = await sql`select visitor_id::text as v, user_id from visitor_account where visitor_id in (${ownerVid}, ${teamVid})`;
 const whose = Object.fromEntries(linked.map((l) => [l.v, l.user_id]));
 check('signed-in pages remember which browser is whose', linked.length === 2 && whose[ownerVid] === ownerAId && whose[teamVid] === adminId, JSON.stringify(linked));
-p = await page(`/vendors/${a.slug}`, { cookie: ownerBrowser });
-await report({ t: 'view', token: p.note }, { cookie: ownerBrowser });
-p = await page(`/vendors/${a.slug}`, { cookie: teamBrowser });
-await report({ t: 'view', token: p.note }, { cookie: teamBrowser });
+check('…and their browser’s cookie comes back signed, with the same id', ownerSigned.startsWith(`${ownerBrowser}.`) && teamSigned.startsWith(`${teamBrowser}.`), ownerSigned);
+p = await page(`/vendors/${a.slug}`, { cookie: ownerSigned });
+await report({ t: 'view', token: p.note }, { cookie: ownerSigned });
+p = await page(`/vendors/${a.slug}`, { cookie: teamSigned });
+await report({ t: 'view', token: p.note }, { cookie: teamSigned });
 const viewers = (await sql`select viewer from activity_event where vendor_id = ${a.id} and kind = 'profile_view' order by id`).map((e) => e.viewer).join(',');
 check('the owner’s visit is marked "owner" and the team’s "team"', viewers === 'public,owner,team', viewers);
 p = await page(`/vendors/${a.slug}/edit`, { cookie: ownerCookie });

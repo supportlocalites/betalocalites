@@ -1,11 +1,11 @@
 import { sql } from 'drizzle-orm';
 import { isbot } from 'isbot';
 import { type Beacon, classifySource, deviceFrom, maskOf, type Source } from '@/lib/activity';
-import { expiry, type ListNote, type Note, readNote, signNote } from '@/lib/activity-token';
+import { expiry, type ListNote, type Note, readBrowser, readNote, signBrowser, signNote } from '@/lib/activity-token';
 import { uuidv7 } from '@/lib/ids.mjs';
 import { withDb } from './db.server';
 import type { Place, ServerEnv } from './env';
-import { addressKey, visitor } from './visitor.server';
+import { addressKey, visitorCookie, visitorCookieValue } from './visitor.server';
 
 /**
  * Counting how people find and use each business (D-22, D-30, ADR-023, ADR-030). Pages
@@ -26,16 +26,47 @@ export const trackingOn = (env: ServerEnv): env is ServerEnv & { ACTIVITY_KEY: s
 const isPerson = (request: Request) => !isbot(request.headers.get('User-Agent') ?? '');
 
 /**
- * The browser a page's note is made for (ADR-030): its visitor cookie, or a new one sent
- * with the page. New browsers are limited per internet address, so a script that drops
- * its cookie each time can't pose as endless visitors; past the limit, no note.
+ * This browser for counting (ADR-030): the id in its signed visitor cookie, or, for a new
+ * browser (or a cookie we didn't sign), a new signed cookie to send with the answer. An
+ * unsigned id from before counting began keeps its id and gets signed.
  */
-async function pageBrowser(env: ServerEnv, request: Request): Promise<{ id: string; setCookie: string | null } | null> {
-  const browser = visitor(request);
-  if (browser.setCookie && env.NEW_VISITOR_LIMIT && !(await env.NEW_VISITOR_LIMIT.limit({ key: addressKey(request) })).success) {
+export async function countedBrowser(
+  env: ServerEnv & { ACTIVITY_KEY: string },
+  request: Request,
+): Promise<{ id: string; setCookie: string | null; isNew: boolean }> {
+  const value = visitorCookieValue(request);
+  const signed = await readBrowser(env.ACTIVITY_KEY, value);
+  if (signed) return { id: signed, setCookie: null, isNew: false };
+  const old = value && /^[0-9a-f-]{36}$/i.test(value) ? value : null;
+  const id = old ?? uuidv7();
+  return {
+    id,
+    setCookie: visitorCookie(await signBrowser(env.ACTIVITY_KEY, id)),
+    isNew: true,
+  };
+}
+
+/**
+ * The browser a page's note is made for. New (or unsigned) browsers are limited per
+ * internet address, so a script that drops or makes up its cookie can't pose as endless
+ * visitors; past the limit, no note.
+ */
+async function pageBrowser(env: ServerEnv & { ACTIVITY_KEY: string }, request: Request) {
+  const browser = await countedBrowser(env, request);
+  if (browser.isNew && env.NEW_VISITOR_LIMIT && !(await env.NEW_VISITOR_LIMIT.limit({ key: addressKey(request) })).success) {
     return null;
   }
   return browser;
+}
+
+/** Counting never gets in a visitor's way: if it fails, the page simply has no note. */
+async function quietly<T>(work: () => Promise<Tracked<T>>): Promise<Tracked<T>> {
+  try {
+    return await work();
+  } catch (err) {
+    console.error('activity note not made', err instanceof Error ? err.message : err);
+    return { track: null, setCookie: null };
+  }
 }
 
 export type ListTrack = { token: string; list: string };
@@ -48,21 +79,26 @@ export async function listTrack(
   list: { words: string; category: string | null; ids: string[] },
 ): Promise<Tracked<ListTrack>> {
   if (!trackingOn(env) || !isPerson(request)) return { track: null, setCookie: null };
-  const browser = await pageBrowser(env, request);
-  if (!browser) return { track: null, setCookie: null };
-  const pv = uuidv7();
-  const note: ListNote = {
-    k: 'list',
-    pv,
-    pl: list.words ? 'search' : 'category',
-    w: list.words || null,
-    cat: list.category,
-    ids: list.ids.slice(0, 30),
-    n: Math.min(list.ids.length, 30),
-    b: browser.id,
-    x: expiry(Date.now() / 1000),
-  };
-  return { track: { token: await signNote(env.ACTIVITY_KEY, note), list: pv }, setCookie: browser.setCookie };
+  return quietly(async () => {
+    const browser = await pageBrowser(env, request);
+    if (!browser) return { track: null, setCookie: null };
+    const pv = uuidv7();
+    const note: ListNote = {
+      k: 'list',
+      pv,
+      pl: list.words ? 'search' : 'category',
+      w: list.words || null,
+      cat: list.category,
+      ids: list.ids.slice(0, 30),
+      n: Math.min(list.ids.length, 30),
+      b: browser.id,
+      x: expiry(Date.now() / 1000),
+    };
+    return {
+      track: { token: await signNote(env.ACTIVITY_KEY, note), list: pv },
+      setCookie: browser.setCookie,
+    };
+  });
 }
 
 /**
@@ -71,11 +107,20 @@ export async function listTrack(
  */
 export async function viewTrack(env: ServerEnv, request: Request, vendorId: string): Promise<Tracked<string>> {
   if (!trackingOn(env) || !isPerson(request)) return { track: null, setCookie: null };
-  const browser = await pageBrowser(env, request);
-  if (!browser) return { track: null, setCookie: null };
-  const src: Source = classifySource(request.headers.get('Referer'), new URL(request.url).origin);
-  const token = await signNote(env.ACTIVITY_KEY, { k: 'view', pv: uuidv7(), v: vendorId, src, b: browser.id, x: expiry(Date.now() / 1000) });
-  return { track: token, setCookie: browser.setCookie };
+  return quietly(async () => {
+    const browser = await pageBrowser(env, request);
+    if (!browser) return { track: null, setCookie: null };
+    const src: Source = classifySource(request.headers.get('Referer'), new URL(request.url).origin);
+    const token = await signNote(env.ACTIVITY_KEY, {
+      k: 'view',
+      pv: uuidv7(),
+      v: vendorId,
+      src,
+      b: browser.id,
+      x: expiry(Date.now() / 1000),
+    });
+    return { track: token, setCookie: browser.setCookie };
+  });
 }
 
 /** The page's answer headers: the visitor cookie for a new browser. */
@@ -106,7 +151,8 @@ export async function recordBeacon(
       return;
     }
     if (note.k !== 'view') return;
-    const kind = beacon.t === 'view' ? 'profile_view' : beacon.t === 'tap' ? beacon.kind : beacon.t === 'time' ? 'profile_time' : 'services_seen';
+    const kind =
+      beacon.t === 'view' ? 'profile_view' : beacon.t === 'tap' ? beacon.kind : beacon.t === 'time' ? 'profile_time' : 'services_seen';
     const pos = beacon.t === 'view' ? beacon.pos : null;
     const list = beacon.t === 'view' ? beacon.list : null;
     const seconds = beacon.t === 'time' ? beacon.seconds : null;

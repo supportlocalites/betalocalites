@@ -1,5 +1,5 @@
 import { useRef } from 'react';
-import { data, Link } from 'react-router';
+import { data, Link, useLocation } from 'react-router';
 import { cloudflareContext } from '@/app/context';
 import { useListActivity } from '@/components/ActivityTracker';
 import { ResultList } from '@/components/ResultRow';
@@ -34,7 +34,7 @@ export const headers: Route.HeadersFunction = ({ loaderHeaders }) => loaderHeade
 
 export default function Search({ loaderData: { q, category, vendors, heading, track } }: Route.ComponentProps) {
   const listRef = useRef<HTMLDivElement>(null);
-  useListActivity(track?.token ?? null, listRef);
+  useListActivity(track?.token ?? null, listRef, useLocation().key);
   const suggestLink = `/suggest?${new URLSearchParams({ ...(category ? { category } : {}), ...(q ? { q } : {}) })}`;
   return (
     <>

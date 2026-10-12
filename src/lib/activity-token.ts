@@ -52,6 +52,22 @@ export async function signNote(secret: string, note: Note): Promise<string> {
   return `${body}.${toB64(mac)}`;
 }
 
+/**
+ * The visitor cookie's value for counting: "<id>.<signature>", so a browser id can't be
+ * made up (a made-up one counts as a new browser, which is limited per address).
+ */
+export async function signBrowser(secret: string, id: string): Promise<string> {
+  const mac = new Uint8Array(await crypto.subtle.sign('HMAC', await keyFor(secret), new TextEncoder().encode(`browser:${id}`)));
+  return `${id}.${toB64(mac.slice(0, 16))}`;
+}
+
+/** The browser id in a signed cookie value, or null if it isn't signed by us. */
+export async function readBrowser(secret: string, value: string | null): Promise<string | null> {
+  const [id, mac, extra] = (value ?? '').split('.');
+  if (!id || !mac || extra !== undefined || !/^[0-9a-f-]{36}$/i.test(id)) return null;
+  return (await signBrowser(secret, id)) === `${id}.${mac}` ? id : null;
+}
+
 /** The note, if it's ours, untouched and not expired; otherwise null. */
 export async function readNote(secret: string, token: string, now: number): Promise<Note | null> {
   const [body, mac, extra] = token.split('.');

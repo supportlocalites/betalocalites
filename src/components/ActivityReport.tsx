@@ -43,15 +43,18 @@ export function ActivityReport({
 }) {
   const words = PERIOD_WORDS[report.period];
   const num = (n: number) => (hideSmall ? small(n) : n.toLocaleString('en-CA'));
-  const compare = (pick: (t: Totals) => number | null) => {
+  // `hidden`: a figure the owner sees as "fewer than 5" when small; its comparison mustn't
+  // give the exact number away.
+  const compare = (pick: (t: Totals) => number | null, hidden = false) => {
     const now = pick(report.now);
     if (now === null) return null;
+    const tooSmall = (n: number) => hidden && hideSmall && n < SMALL;
     const parts: string[] = [];
     const before = report.before ? pick(report.before) : null;
-    if (report.before && before !== null) parts.push(change(now, before, words.before));
+    if (before !== null && !tooSmall(now) && !tooSmall(before)) parts.push(change(now, before, words.before));
     if (report.lastYear) {
       const ly = pick(report.lastYear);
-      if (ly !== null) parts.push(`${words.lastYear[0]!.toUpperCase()}${words.lastYear.slice(1)}: ${ly.toLocaleString('en-CA')}`);
+      if (ly !== null) parts.push(`${words.lastYear[0]!.toUpperCase()}${words.lastYear.slice(1)}: ${hidden ? num(ly) : ly.toLocaleString('en-CA')}`);
     }
     return parts.length ? parts.join(' · ') : null;
   };
@@ -85,7 +88,7 @@ export function ActivityReport({
             label: 'Different visitors',
             value: num(t.people),
             note: 'Counted by browser: one person on a phone and a computer counts twice.',
-            compare: report.period === 'year' ? null : compare((x) => x.people),
+            compare: report.period === 'year' ? null : compare((x) => x.people, true),
           },
           {
             label: 'Came back',
@@ -176,15 +179,22 @@ export function ActivityReport({
   const since = report.countingSince;
   return (
     <>
-      {since === null || since > lastDay ? (
-        <p className="notice">Counting hadn’t started yet in this period{since ? `: it started on ${dateWords(since)}` : ''}. Choose a later period.</p>
+      {since === null ? (
+        <p className="notice">Counting hasn’t started yet. Numbers appear the morning after the first visits are counted.</p>
+      ) : since > lastDay ? (
+        <p className="notice">
+          {`Counting started on ${dateWords(since)}. ${report.period === 'year' ? 'Its numbers appear from the next morning.' : 'Choose “This year so far” to see them.'}`}
+        </p>
       ) : since > report.range.from ? (
         <p className="notice">{`Counting started on ${dateWords(since)}, so this period is counted from then.`}</p>
       ) : null}
       {report.countedTo !== null && report.countedTo < lastDay && (
         <p className="muted">{`Page opens, taps and visitors are counted up to ${dateWords(report.countedTo)}; the days after are added each morning.`}</p>
       )}
-      {!report.lastYear && <p className="muted">Comparisons start once the period they compare with has been counted.</p>}
+      {report.limitedDays.length > 0 && (
+        <p className="muted">{`On ${report.limitedDays.map(dateWords).join(', ')}, Localites reached its daily safety limit, so not every visit that day was counted.`}</p>
+      )}
+      {!report.lastYear && <p className="muted">Comparisons start once both periods have been fully counted.</p>}
       <ul className={styles.blocks}>
         {blocks.map((b) => (
           <li key={b.label} className={styles.block}>
