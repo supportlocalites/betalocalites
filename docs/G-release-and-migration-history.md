@@ -39,8 +39,9 @@ now need Cloudflare's free "are you human" check (Turnstile). Usually it passes 
 a second; now and then it asks for a tick. Our server confirms each pass with Cloudflare
 before sending a code or trying a guess, and each pass works once, so a script can no
 longer use up the day's sign-in codes, or someone's codes and guesses. If Cloudflare can't
-be asked, sign-in says "try again in a minute" rather than skipping the check. **It stays
-off until you add its two keys (PO-15)**; the team's Claims page says so until then.
+be asked, sign-in says "try again in a minute" rather than skipping the check. **Parked
+the same day (D-38):** the product owner prefers the emailed code alone, so the check is
+switched off (no keys in Cloudflare) and the team's Claims page doesn't mention it.
 **Migrations applied:** none.
 **Destructive?** No.
 **Tests run:** unit 111/111 (6 new); end-to-end 43/43, 73/73, 20/20 (new: no code sent and
@@ -49,10 +50,10 @@ a checker that can't be reached refuses), 55/55, 51/51; in a real browser 10/10 
 stand-in for Cloudflare's script (the button waits for the check, both forms carry the
 answer, a fresh check after every reply, a plain message if the check can't load). Not
 tested here: Cloudflare's own widget, which this workspace can't reach; check it on the
-test site after PO-15.
+test site if it is ever switched on.
 **Security tests:** passes made for another form or another site are refused; the secret
 key never appears in pages.
-**Existing functionality affected:** sign-in by emailed code, once PO-15 is done. Team
+**Existing functionality affected:** none while parked. Team
 sign-in (/sign-in) is unchanged.
 **How to roll back:** Cloudflare → localites → Deployments → previous version → Deploy; or
 delete `TURNSTILE_SITE_KEY` to switch the check off.

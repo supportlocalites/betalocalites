@@ -93,7 +93,8 @@ ADR-029). Activity is counted (only what a real browser confirms, ADR-030), adde
 night, shown to the team on **Activity** and to owners on an **Analytics** page the team
 switches on per business (D-30, D-37); counting starts once the activity key is added
 (PO-14). Cloudflare's free "are you human" check (Turnstile) on signing in with a code is
-built, so nobody can use up the day's sign-in codes (ADR-028); it switches on with PO-15.
+built but **parked** (D-38): signing in stays a 6-digit emailed code, with our own limits
+on codes (ADR-028).
 
 **Outcome.** A real, public directory of local event vendors, useful to a parent on its
 own, with the admin tools to build it. **Local businesses claim their listings** so

@@ -33,7 +33,7 @@ export type ServerEnv = {
   /** New browsers (visitor cookies) given out per address, so a script can't pose as endless visitors. */
   NEW_VISITOR_LIMIT?: RateLimit;
   /**
-   * Cloudflare's "are you human" check (Turnstile, ADR-028, PO-15) on signing in with an
+   * Cloudflare's "are you human" check (Turnstile, ADR-028; parked by D-38) on signing in with an
    * emailed code. On exactly when both are set (Cloudflare → Variables and Secrets).
    * The site key is shown in pages; the secret key never leaves the server.
    */

@@ -1,6 +1,6 @@
 # H — Product Owner Action Register
 
-**Last updated:** 2026-10-12 (revision 16: the "are you human" check on signing in is built; PO-15 added)
+**Last updated:** 2026-10-12 (revision 16: D-38, signing in stays a 6-digit emailed code; the "are you human" check is parked)
 
 This is the one place where everything that needs **you** is listed. If it isn't here,
 you don't need to do it.
@@ -52,6 +52,7 @@ Recorded from your messages of 9 and 10 October 2026. These now shape every docu
 | ✅ D-34 | **Owners' edits go live at once; the team can undo.** Changes a business makes to its own listing show straight away; the team gets a daily note of what changed and can undo any of it. Owners edit on a page that looks like their business page, with "View as a visitor". | ADR-029. Built: owners change their descriptions, services and prices, website and phone; the name, town and categories stay with the team. The team gets a daily note, a "check now" email for a new website or phone, Undo and Remove owner. |
 | ✅ D-36 | **Sign-up asks about the person.** **First name and last name, in two boxes**, are needed to continue: nothing says "required", but if either is empty, *Continue* shows "Please enter your first and last name to continue." Gender, full date of birth and full street address are asked on the same screen but not required, and not labelled either way, so people fill in what they're happy to; anyone can add or change them later on **Your account**. **Anyone can create an account** (no minimum age). Businesses never see these details (they see totals only, D-30). | Built: migrations 0005 (`person_profile`) and 0006 (first and last name). Changes the privacy promise in E §7 (it said name and email only, and no children's accounts): the lawyer reviews it (PO-07), in particular a parent's consent for children under 13. |
 | ✅ D-37 | **Business analytics live on an Analytics page, switched on per business.** Owners see their numbers on an Analytics page in their business's area of Localites, not by email. The team turns it on or off for each business, so it can become part of a paid plan (paid for outside Localites, D-24). Owners get no daily emails; the daily note of owners' changes (D-34) goes only to the team. | **Built (12 October 2026, ADR-030):** the owner's **Analytics** page (`/vendors/<name>/analytics`, linked from Your account) and the team's switch on each listing's **Activity** page. Counting starts once you add the activity key (PO-14). |
+| ✅ D-38 | **Signing in stays a 6-digit code sent by email, with no "are you human" check** (12 October 2026). | The check (Cloudflare Turnstile) was built and is **parked**: its code stays in the project, switched off, so it can be turned on later without rebuilding (ADR-028). Our own limits on codes stay in place. Known limit: someone determined could still use up the day's sign-in codes. |
 | ✅ D-35 | **Two claims for one business: the first approved wins.** Any other waiting claims are declined automatically with a polite email; a claimed business shows "This business manages its own listing" with a way to contact us. | ADR-028; the database allows only one owner per business. |
 
 ---
@@ -62,7 +63,6 @@ Recorded from your messages of 9 and 10 October 2026. These now shape every docu
 |---|---|---|---|
 | **ADR-005** | ✅ CPU time 8 ms with React Router (passes). A day after the speed improvements go live, glance at **Metrics** once more: CPU time, and whether any "Exceeded CPU" errors appear | Nothing; a final check | 2 min |
 | **PO-14** | Switch on activity counting: add one secret in Cloudflare (steps below) | Any numbers on the team's Activity pages and the owners' Analytics pages | 3 min |
-| **PO-15** | Switch on the "are you human" check on signing in: create it in Cloudflare and add its two keys (steps below) | The public launch (until then, a script could use up the day's sign-in codes) | 5 min |
 | **PO-11** | Check the 28 test businesses (drafts) and publish the ones that are right (steps below) | Real listings on the test site | At your pace, ~5 min each |
 | **D-12** | Mailing address for the privacy policy and terms | Public launch | 1 min, later |
 
@@ -930,48 +930,6 @@ way; nothing is lost (pages simply get new notes).
 *"PO-14 done"*. Numbers appear the morning after the first visits (the count runs each
 night). To show an owner their numbers, open their listing's **Activity** page and click
 **Switch on**.
-
-### PO-15 — Switch on the "are you human" check on signing in (ADR-028)
-**When:** Any time before the public launch (now is fine). **Cost:** $0 (Cloudflare
-Turnstile's free plan). **Time:** about 5 minutes.
-**Why:** People sign in with a code we email them. Without this check, a computer program
-could ask for codes over and over and use up the day's allowance, so real people couldn't
-sign in. The check (Cloudflare's Turnstile) usually passes by itself in a second; now and
-then it asks the person to tick a box. It's already built; it switches on when the site
-has its two keys.
-
-**Part 1: create the check**
-1. Sign in to Cloudflare. In the left menu, click **Turnstile** (if you don't see it, type
-   "Turnstile" in the search box at the top).
-2. Click **Add widget** (it may say **Create widget**).
-3. **Widget name:** `Localites sign-in`.
-4. **Hostnames:** add `localites.supportlocalites.workers.dev` and `localites.ca`. (These
-   are the addresses where the check may appear. When the site moves to localites.ca it
-   will already work there.)
-5. **Widget mode:** **Managed** (Cloudflare's recommendation). If it asks about
-   "pre-clearance", choose **No**.
-6. Click **Create**. Cloudflare shows two keys: a **Site Key** and a **Secret Key**. Leave
-   this page open for Part 2.
-
-**Part 2: give the keys to the website**
-1. In a new tab, open **Workers & Pages** → **localites** → **Settings** → **Variables
-   and Secrets** → **Add**.
-2. **Type:** Secret. **Name:** `TURNSTILE_SITE_KEY`. **Value:** copy the **Site Key** from
-   Part 1.
-3. Click **Add** again. **Type:** Secret. **Name:** `TURNSTILE_SECRET_KEY`. **Value:** copy
-   the **Secret Key** from Part 1.
-4. Click **Deploy** (or **Save and deploy**).
-
-**Never send us** the Secret Key. (The Site Key isn't secret: it's shown inside the sign-in
-page. Saving both as "Secret" just keeps them safe when the site is updated.) If you think
-the Secret Key has been seen by someone else, open the widget in Turnstile, choose
-**Rotate secret key**, and replace `TURNSTILE_SECRET_KEY` the same way.
-
-**Done when:** on the test site, **Sign in** → the page shows a small "Verify you are
-human" box (or a tick that appears by itself) above **Email me a code**; you can still get
-a code and sign in; and the team's **Claims** page no longer says the check is off. Reply
-*"PO-15 done"*. If the box doesn't appear or says the address isn't allowed, check the two
-hostnames in step 4 of Part 1.
 
 ## Completed
 

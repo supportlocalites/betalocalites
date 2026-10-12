@@ -6,7 +6,6 @@ import { pageMeta } from '@/lib/meta';
 import { type Check, CHECKS, RELATIONSHIPS } from '@/lib/claim-terms';
 import { emailClaimDecision } from '@/server/claim-emails.server';
 import { approveClaim, ClaimConflict, declineClaim, listClaims } from '@/server/claims.server';
-import { humanCheckState } from '@/server/turnstile.server';
 import type { Route } from './+types/claims';
 import styles from './admin.module.css';
 
@@ -21,13 +20,7 @@ export async function loader({ request, context }: Route.LoaderArgs) {
   const show = new URL(request.url).searchParams.get('show') === 'all' ? 'all' : 'open';
   const { env } = context.get(cloudflareContext);
   const admin = context.get(adminContext);
-  return {
-    show,
-    claims: await listClaims(env, show),
-    me: admin.userId,
-    emailReady: Boolean(env.RESEND_API_KEY),
-    humanCheck: humanCheckState(env),
-  };
+  return { show, claims: await listClaims(env, show), me: admin.userId, emailReady: Boolean(env.RESEND_API_KEY) };
 }
 
 export async function action({ request, context }: Route.ActionArgs) {
@@ -49,10 +42,7 @@ export async function action({ request, context }: Route.ActionArgs) {
         ),
       );
     } else if (intent === 'decline') {
-      const reason = String(form.get('reason') ?? '')
-        .replace(/\s+/g, ' ')
-        .trim()
-        .slice(0, 500);
+      const reason = String(form.get('reason') ?? '').replace(/\s+/g, ' ').trim().slice(0, 500);
       if (!reason) return data({ id, error: 'Give a reason. It’s emailed to the person who claimed.' }, { status: 400 });
       const decided = await declineClaim(env, admin, id, reason);
       ctx.waitUntil(
@@ -74,25 +64,19 @@ const when = new Intl.DateTimeFormat('en-CA', { dateStyle: 'medium', timeStyle: 
 const OUTCOME = { submitted: 'Waiting', approved: 'Approved', rejected: 'Declined', withdrawn: 'Withdrawn' } as const;
 
 export default function Claims({ loaderData, actionData }: Route.ComponentProps) {
-  const { show, claims, me, emailReady, humanCheck } = loaderData;
+  const { show, claims, me, emailReady } = loaderData;
   const busy = useNavigation().state === 'submitting';
   return (
     <>
       <h1 className="title-1">Claims</h1>
       <div className="title-rule" aria-hidden="true" />
       <p className="muted">
-        People asking to manage a listing (D-33). Approve only when their email address is at the business’s own website, or after you’ve
-        confirmed it with the business using the phone number or email the business publishes itself, never the details in the claim. The
-        first approved claim wins; any others are declined automatically. Approving a claim doesn’t make a business verified.
+        People asking to manage a listing (D-33). Approve only when their email address is at the business’s own
+        website, or after you’ve confirmed it with the business using the phone number or email the business publishes
+        itself, never the details in the claim. The first approved claim wins; any others are declined automatically.
+        Approving a claim doesn’t make a business verified.
       </p>
       {!emailReady && <p className="notice">Email isn’t set up yet (PO-12), so claimants won’t be emailed about decisions.</p>}
-      {humanCheck !== 'on' && (
-        <p className="notice">
-          {humanCheck === 'off'
-            ? 'The “are you human” check on signing in is off: its two keys aren’t in Cloudflare yet (PO-15). Needed before the public launch.'
-            : 'The “are you human” check on signing in is off: only one of its two keys is in Cloudflare. Add the other one (PO-15).'}
-        </p>
-      )}
       <p>
         {show === 'open' ? (
           <Link to="?show=all" className="text-link">
@@ -124,14 +108,15 @@ export default function Claims({ loaderData, actionData }: Route.ComponentProps)
                   )}
                 </span>
                 <span>
-                  Claimed by {c.claimant.name} ({c.claimant.email}){c.relationship ? `: “${RELATIONSHIPS[c.relationship]}”` : ''}
+                  Claimed by {c.claimant.name} ({c.claimant.email})
+                  {c.relationship ? `: “${RELATIONSHIPS[c.relationship]}”` : ''}
                 </span>
                 {c.note && <span className="muted">Their note: “{c.note}”</span>}
                 <span>{describeEvidence(c.evidence)}</span>
                 {c.websiteByOwner && (
                   <span className={styles.status}>
-                    The website was typed in by a past owner on Localites, so an email at it proves nothing: contact the business to
-                    confirm.
+                    The website was typed in by a past owner on Localites, so an email at it proves nothing: contact the
+                    business to confirm.
                   </span>
                 )}
                 {c.status === 'submitted' ? (
@@ -187,7 +172,13 @@ export default function Claims({ loaderData, actionData }: Route.ComponentProps)
                       <label htmlFor={`why-${c.id}`} className="visually-hidden">
                         Reason for declining (emailed to them)
                       </label>
-                      <input id={`why-${c.id}`} name="reason" className="input" placeholder="Reason (emailed to them)" maxLength={500} />
+                      <input
+                        id={`why-${c.id}`}
+                        name="reason"
+                        className="input"
+                        placeholder="Reason (emailed to them)"
+                        maxLength={500}
+                      />
                       <button type="submit" className="button button-secondary" disabled={busy}>
                         Decline
                       </button>

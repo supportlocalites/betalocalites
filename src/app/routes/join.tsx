@@ -105,7 +105,7 @@ export async function action({ request, context }: Route.ActionArgs) {
       429,
     );
   }
-  // Cloudflare's "are you human" check (PO-15), before any code is sent or guessed: stops
+  // Cloudflare's "are you human" check (parked by D-38, off unless its keys are set), before any code is sent or guessed: stops
   // scripts using up the day's codes or someone's guesses (ADR-028).
   const human = await checkHuman(env, request, form.get(HUMAN_CHECK_FIELD), 'join');
   if (human !== 'passed') {

@@ -64,7 +64,8 @@ concierge role and inquiry/quote/booking records.
   it or remove the owner. Proven by `tests/e2e/owner-editing.mjs` (45 checks).
 - **Email processors:** Supabase sends sign-in codes through Resend (PO-13), and our own
   emails go through Resend (ADR-013). Resend sees each recipient's address and the email.
-- **"Are you human" check (ADR-028, PO-15):** signing in with an emailed code needs a pass
+- **"Are you human" check (ADR-028): parked by D-38, switched off.** If switched on,
+  signing in with an emailed code needs a pass
   from Cloudflare's Turnstile, checked on our server; each pass works once and must be made
   for this form on this site. Cloudflare (already our host) sees the visitor's browser and
   internet address while it checks; Localites stores nothing from it. The privacy policy

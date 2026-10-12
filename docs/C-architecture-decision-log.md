@@ -31,7 +31,8 @@ go through Localites, including vendors paying Localites. ADR-025 accepted. ADR-
 (Suggest a business, D-25) added.
 
 **Revision 10 changes (12 October 2026):** ADR-028 updated: Cloudflare's free "are you
-human" check (Turnstile) on signing in with an emailed code, switched on by PO-15.
+human" check (Turnstile) on signing in with an emailed code built, then **parked** by D-38
+(switched off; signing in stays the emailed code alone).
 
 **Revision 9 changes (12 October 2026):** ADR-030 (counting only what a real browser
 confirms, with signed notes; the nightly count; the team's activity pages and the owner's
@@ -793,14 +794,17 @@ matches* — rejected for now; the team still decides (D-33).
 
 **Known limits.** Supabase sees every request as coming from Cloudflare, so its own
 per-internet-address limits apply to the whole site at once (ours apply per visitor).
-**Update (12 October 2026): the "are you human" check is built** (Cloudflare's free
-Turnstile). "Email me a code", "Send a new code" and checking a code each need a fresh
+**Update (12 October 2026): the "are you human" check is built and parked.** The product
+owner prefers signing in with the 6-digit emailed code alone (D-38), so the check stays
+switched off; its code is kept so it can be switched on later by adding two keys in
+Cloudflare (`TURNSTILE_SITE_KEY`, `TURNSTILE_SECRET_KEY`). While parked, the two known
+limits below still apply. When switched on (Cloudflare's free Turnstile): "Email me a code", "Send a new code" and checking a code each need a fresh
 pass, made for this form on this site, which Cloudflare confirms to our server before any
 code is sent or any guess is counted; each pass works once. If Cloudflare can't be asked,
 the form is refused with "try again in a minute", never let through. It is on exactly
-when both its keys are in Cloudflare (PO-15); until then the team's **Claims** page says
-it's off. This answers the two known limits below: using up the day's codes or one
-person's codes and guesses now needs a person for every try. The page needs JavaScript
+when both its keys are in Cloudflare. Switched on, it answers the two known limits below:
+using up the day's codes or one person's codes and guesses would need a person for every
+try. The page needs JavaScript
 for the check. Suggest a business keeps its own protections (ADR-027).
 An address that asks for a code but never finishes leaves an unconfirmed Supabase
 account; a clean-up comes later. Supabase gives the same answer for "a code went to this

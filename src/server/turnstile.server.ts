@@ -2,8 +2,8 @@ import type { ServerEnv } from './env';
 
 /**
  * Cloudflare's free "are you human" check (Turnstile) on "Email me a code" and on checking
- * a code (ADR-028). It is on exactly when both keys are set in Cloudflare (PO-15); until
- * then sign-in works without it and the team's pages say so.
+ * a code (ADR-028). Parked by D-38: on only if both keys are ever set in Cloudflare; until
+ * then sign-in is the emailed code alone.
  */
 
 export type HumanCheckState = 'off' | 'half' | 'on';

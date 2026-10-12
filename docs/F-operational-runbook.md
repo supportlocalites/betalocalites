@@ -177,9 +177,9 @@ guide this live (PO-03 part 3). Changing the password later is the same two step
 - **"We've sent a lot of sign-in codes today":** our daily cap of 60 codes was reached. It
   clears itself within a day. If it happens often, the cap (`CODES_PER_DAY` in
   `src/server/auth/code-limits.server.ts`) can rise towards Resend's free 100 a day.
-- **"Are you human" check (Turnstile, PO-15):** on when both `TURNSTILE_SITE_KEY` and
-  `TURNSTILE_SECRET_KEY` are set in Cloudflare (Variables and Secrets); the **Claims** page
-  says when it's off. If people report "We couldn't run the are you human check", look in
+- **"Are you human" check (Turnstile): parked (D-38), off.** It would be on when both `TURNSTILE_SITE_KEY` and
+  `TURNSTILE_SECRET_KEY` are set in Cloudflare (Variables and Secrets). If it's ever
+  switched on and people report "We couldn't run the are you human check", look in
   the Worker's logs (Cloudflare → localites → Observability) for "are-you-human check":
   "refused our key" means the secret key was mistyped or replaced (copy it again from
   Cloudflare → Turnstile); otherwise Cloudflare's checker was briefly unreachable. If the
