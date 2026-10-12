@@ -1,70 +1,73 @@
 import { and, asc, eq, sql } from 'drizzle-orm';
 import { category, municipality, vendor, vendorCategory, vendorService } from '@/db/generated/schema';
 import { describePrice, type PricingModel } from '@/lib/price';
-import { withDb } from './db.server';
+import { type Db, withDb } from './db.server';
 import type { ServerEnv } from './env';
 
 export type CategorySummary = { slug: string; name: string; vendorCount: number };
 
 /** Top-level categories, in the order the team set, with how many published listings each has. */
 export async function listCategories(env: ServerEnv): Promise<CategorySummary[]> {
-  return withDb(env, async (db) => {
-    const rows = await db.execute<CategorySummary>(sql`
-      select top.slug, top.name, (
-        select count(distinct vc.vendor_id)::int
-        from vendor_category vc
-        join category c on c.id = vc.category_id
-        join vendor v on v.id = vc.vendor_id
-        where (c.id = top.id or c.parent_id = top.id)
-          and v.listing_status = 'published'
-      ) as "vendorCount"
-      from category top
-      where top.parent_id is null and top.is_active
-      order by top.sort_order, top.name
-    `);
-    return [...rows];
-  });
+  return withDb(env, readCategories);
 }
 
-export type VendorResult = { slug: string; name: string; tagline: string | null; town: string };
+/** The same, on a connection the caller already has. */
+export async function readCategories(db: Db): Promise<CategorySummary[]> {
+  const rows = await db.execute<CategorySummary>(sql`
+    select top.slug, top.name, (
+      select count(distinct vc.vendor_id)::int
+      from vendor_category vc
+      join category c on c.id = vc.category_id
+      join vendor v on v.id = vc.vendor_id
+      where (c.id = top.id or c.parent_id = top.id)
+        and v.listing_status = 'published'
+    ) as "vendorCount"
+    from category top
+    where top.parent_id is null and top.is_active
+    order by top.sort_order, top.name
+  `);
+  return [...rows];
+}
+
+export type VendorResult = { id: string; slug: string; name: string; tagline: string | null; town: string };
 
 /**
  * Published listings matching the words typed, ordered only by how well they match
  * (search results are never paid for). Tolerates small typos via trigram similarity.
  */
-export async function searchVendors(env: ServerEnv, query: string, categorySlug?: string): Promise<VendorResult[]> {
+export async function searchVendors(db: Db, query: string, categorySlug?: string): Promise<VendorResult[]> {
   const q = query.trim().slice(0, 100);
-  return withDb(env, async (db) => {
-    const rows = await db.execute<VendorResult>(sql`
-      select v.slug, v.display_name as name, v.tagline, m.name as town
-      from vendor v
-      join municipality m on m.id = v.primary_municipality_id
-      where v.listing_status = 'published'
-        and (${q} = ''
-             or v.search_document @@ websearch_to_tsquery('english', ${q})
-             or extensions.word_similarity(${q}, v.display_name) > 0.45
-             or exists (
-               select 1 from vendor_category vc
-               join category c on c.id = vc.category_id
-               where vc.vendor_id = v.id
-                 and (to_tsvector('english', c.name) @@ websearch_to_tsquery('english', ${q})
-                      or extensions.word_similarity(${q}, c.name) > 0.45)))
-        and (${categorySlug ?? null}::text is null or exists (
-              select 1 from vendor_category vc
-              join category c on c.id = vc.category_id
-              left join category p on p.id = c.parent_id
-              where vc.vendor_id = v.id and (c.slug = ${categorySlug ?? null} or p.slug = ${categorySlug ?? null})))
-      order by
-        ts_rank(v.search_document, websearch_to_tsquery('english', ${q})) desc,
-        extensions.word_similarity(${q}, v.display_name) desc,
-        v.display_name asc
-      limit 30
-    `);
-    return [...rows];
-  });
+  const rows = await db.execute<VendorResult>(sql`
+    select v.id, v.slug, v.display_name as name, v.tagline, m.name as town
+    from vendor v
+    join municipality m on m.id = v.primary_municipality_id
+    where v.listing_status = 'published'
+      and (${q} = ''
+           or v.search_document @@ websearch_to_tsquery('english', ${q})
+           or extensions.word_similarity(${q}, v.display_name) > 0.45
+           or exists (
+             select 1 from vendor_category vc
+             join category c on c.id = vc.category_id
+             where vc.vendor_id = v.id
+               and (to_tsvector('english', c.name) @@ websearch_to_tsquery('english', ${q})
+                    or extensions.word_similarity(${q}, c.name) > 0.45)))
+      and (${categorySlug ?? null}::text is null or exists (
+            select 1 from vendor_category vc
+            join category c on c.id = vc.category_id
+            left join category p on p.id = c.parent_id
+            where vc.vendor_id = v.id and (c.slug = ${categorySlug ?? null} or p.slug = ${categorySlug ?? null})))
+    order by
+      ts_rank(v.search_document, websearch_to_tsquery('english', ${q})) desc,
+      extensions.word_similarity(${q}, v.display_name) desc,
+      v.display_name asc
+    limit 30
+  `);
+  return [...rows];
 }
 
 export type VendorProfile = {
+  /** For signing the page's activity note only; not shown. */
+  id: string;
   name: string;
   tagline: string | null;
   description: string | null;
@@ -117,6 +120,7 @@ export async function getVendor(env: ServerEnv, slug: string): Promise<VendorPro
     ]);
 
     return {
+      id: v.id,
       name: v.name,
       tagline: v.tagline,
       description: v.description,

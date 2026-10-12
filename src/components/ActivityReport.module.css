@@ -1,0 +1,71 @@
+/* A business's numbers (V10, X18): count blocks, then plain tables with share bars. */
+
+.blocks {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(var(--size-tile-min), 1fr));
+  gap: var(--space-4);
+  margin: var(--space-6) 0;
+  padding: 0;
+  list-style: none;
+}
+
+.block {
+  display: grid;
+  align-content: start;
+  gap: var(--space-1);
+  padding: var(--space-4);
+  border: var(--hairline) solid var(--color-line);
+  border-radius: var(--radius-file);
+  background: var(--color-surface);
+}
+
+.count {
+  font-family: var(--font-display);
+  font-size: var(--text-title-1);
+  line-height: var(--leading-body);
+}
+
+.compare {
+  font-size: var(--text-small);
+  color: var(--color-ink-soft);
+}
+
+.note {
+  font-size: var(--text-small);
+}
+
+.section {
+  margin-top: var(--space-8);
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--text-small);
+}
+
+.table th,
+.table td {
+  padding: var(--space-2) 0;
+  border-bottom: var(--hairline) solid var(--color-line-soft);
+  text-align: left;
+  font-weight: inherit;
+}
+
+.table thead th {
+  color: var(--color-muted);
+}
+
+.table td {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.bar {
+  display: inline-block;
+  width: calc(var(--share, 0) * var(--size-tile-min));
+  height: var(--space-2);
+  border-radius: var(--radius-pill);
+  background: var(--color-ink-soft);
+}

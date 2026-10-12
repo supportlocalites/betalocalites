@@ -145,7 +145,7 @@ export async function readListing(db: Db, id: string): Promise<ListingDetail | n
     db.execute<HistoryRow>(sql`
       select a.action, u.display_name as actor, a.reason, a.changes, a.created_at::text as at
       from audit_log a left join app_user u on u.id = a.actor_user_id
-      where a.subject_type = 'vendor' and a.subject_id = ${id}
+      where a.subject_type = 'vendor' and a.subject_id = ${id} and a.action not like 'activity.%'
       order by a.created_at desc limit 30`),
   ]);
   return { id, ...vendor, services: [...services], history: [...history] };

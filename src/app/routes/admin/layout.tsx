@@ -49,6 +49,9 @@ export default function AdminLayout({ loaderData }: Route.ComponentProps) {
           <NavLink to="/admin/suggestions" className="text-link">
             Suggestions{loaderData.newSuggestions > 0 ? ` (${loaderData.newSuggestions} new)` : ''}
           </NavLink>
+          <NavLink to="/admin/activity" className="text-link">
+            Activity
+          </NavLink>
           <Link to="/explore" className="text-link">
             Public site
           </Link>

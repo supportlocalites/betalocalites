@@ -346,3 +346,35 @@ export async function alertTeam(env: ServerEnv, auditId: string, siteUrl: string
 /** Plain words for a service's price, the same as the public page. */
 export const priceWords = (p: { pricingModel: string; priceCents: number | null }) =>
   describePrice(p.pricingModel as Parameters<typeof describePrice>[0], p.priceCents) ?? 'No price shown';
+
+export type AnalyticsListing = {
+  id: string;
+  slug: string;
+  name: string;
+  has: { website: boolean; phone: boolean; services: boolean };
+};
+
+/**
+ * The owner's Analytics page (D-37): only this business's current owner, only when the
+ * team has switched it on, never for an archived listing. Checked in the database on every
+ * request. An old web address gives { renamedTo }. Anything else: null, whatever the reason,
+ * so the page never says whether another business has one.
+ */
+export async function ownedAnalytics(db: Db, userId: string, slug: string): Promise<AnalyticsListing | { renamedTo: string } | null> {
+  const find = (where: ReturnType<typeof sql>) =>
+    db.execute<AnalyticsListing & { website: boolean; phone: boolean; services: boolean }>(sql`
+      select v.id, v.slug::text as slug, v.display_name as name, v.website_url is not null as website,
+             v.public_phone is not null as phone,
+             exists (select 1 from vendor_service s where s.vendor_id = v.id and s.is_active) as services
+      from vendor v
+      join vendor_member m on m.vendor_id = v.id and m.user_id = ${userId} and m.role = 'owner' and m.ended_at is null
+      join vendor_analytics a on a.vendor_id = v.id and a.enabled
+      where ${where} and v.listing_status <> 'archived'`);
+  let [v] = await find(sql`v.slug = ${slug}`);
+  if (!v) {
+    [v] = await find(sql`v.id = (select h.vendor_id from vendor_slug_history h where h.slug = ${slug})`);
+    if (v && v.slug !== slug) return { renamedTo: v.slug };
+    return null;
+  }
+  return { id: v.id, slug: v.slug, name: v.name, has: { website: v.website, phone: v.phone, services: v.services } };
+}

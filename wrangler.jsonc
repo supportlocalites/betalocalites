@@ -16,10 +16,13 @@
     // Sign in with an emailed code (ADR-028): 10 code requests or code checks a minute per address.
     { "name": "SIGN_IN_LIMIT", "namespace_id": "1002", "simple": { "limit": 10, "period": 60 } },
     // Owners saving their listing (D-34, ADR-029): 10 saves a minute per person.
-    { "name": "OWNER_EDIT_LIMIT", "namespace_id": "1003", "simple": { "limit": 10, "period": 60 } }
+    { "name": "OWNER_EDIT_LIMIT", "namespace_id": "1003", "simple": { "limit": 10, "period": 60 } },
+    // Browsers reporting what was on screen (ADR-030): 60 reports a minute per address.
+    { "name": "TRACK_LIMIT", "namespace_id": "1004", "simple": { "limit": 60, "period": 60 } }
   ],
-  // The team's daily note of owners' changes (ADR-029), free on Cloudflare: 12:00 UTC is
-  // 8 am in Toronto in summer and 7 am in winter; the 14:00 run only retries a failed note.
+  // The team's daily note of owners' changes (ADR-029) and the nightly count of activity
+  // (ADR-030), free on Cloudflare: 12:00 UTC is 8 am in Toronto in summer and 7 am in
+  // winter; the 14:00 run only retries what failed.
   "triggers": { "crons": ["0 12 * * *", "0 14 * * *"] },
   // Public settings (not secrets). SITE_URL: where links in scheduled emails point.
   "vars": { "SITE_URL": "https://localites.supportlocalites.workers.dev" },

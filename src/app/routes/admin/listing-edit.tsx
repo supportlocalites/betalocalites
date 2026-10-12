@@ -15,6 +15,7 @@ import {
   setServiceActive,
   updateListing,
 } from '@/server/admin/listings.server';
+import { readSwitch } from '@/server/admin/activity.server';
 import { listOwnerChanges, OwnerChangeConflict, removeOwner, undoOwnerChange } from '@/server/admin/owner-changes.server';
 import { withDb } from '@/server/db.server';
 import { emailPerson, renderEmail } from '@/server/email-templates.server';
@@ -30,11 +31,18 @@ export async function loader({ params, request, context }: Route.LoaderArgs) {
   if (!isUuid(params.id)) throw data(null, { status: 404 });
   const { env } = context.get(cloudflareContext);
   // One connection for the page (each one costs time from the request's small CPU budget).
-  const [listing, options, owned] = await withDb(env, (db) =>
-    Promise.all([readListing(db, params.id), readFormOptions(db), listOwnerChanges(db, params.id)]),
+  const [listing, options, owned, analytics] = await withDb(env, (db) =>
+    Promise.all([readListing(db, params.id), readFormOptions(db), listOwnerChanges(db, params.id), readSwitch(db, params.id)]),
   );
   if (!listing) throw data(null, { status: 404 });
-  return { listing, options, owner: owned.owner, ownerChanges: owned.cards, saved: new URL(request.url).searchParams.get('saved') };
+  return {
+    listing,
+    options,
+    owner: owned.owner,
+    ownerChanges: owned.cards,
+    analyticsOn: analytics?.enabled ?? false,
+    saved: new URL(request.url).searchParams.get('saved'),
+  };
 }
 
 // After an undo the cards are read again even when it was refused (someone else may
@@ -246,7 +254,7 @@ type ActionResult = { intent: string; serviceId?: string; auditId?: string; erro
 
 export default function EditListing({ loaderData, actionData: rawResult }: Route.ComponentProps) {
   const actionData = rawResult as ActionResult | undefined;
-  const { listing, options, owner, ownerChanges, saved } = loaderData;
+  const { listing, options, owner, ownerChanges, analyticsOn, saved } = loaderData;
   const busy = useNavigation().state === 'submitting';
   const archived = listing.status === 'archived';
   const errorsFor = (intent: string, serviceId = '') =>
@@ -283,6 +291,12 @@ export default function EditListing({ loaderData, actionData: rawResult }: Route
             </a>
           </>
         )}
+      </p>
+      <p className="muted">
+        Analytics page for the owner: {analyticsOn ? 'On' : 'Off'} ·{' '}
+        <Link to={`/admin/listings/${listing.id}/activity`} className="text-link">
+          See activity
+        </Link>
       </p>
       {saved && SAVED[saved] && (
         <p className="notice" role="status">

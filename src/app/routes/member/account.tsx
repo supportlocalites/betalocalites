@@ -115,6 +115,14 @@ export default function Account({ loaderData, actionData }: Route.ComponentProps
                         <Link to={`/vendors/${b.slug}/edit`} className="button button-primary">
                           Edit your listing
                         </Link>
+                        {b.analytics && (
+                          <>
+                            {' '}
+                            <Link to={`/vendors/${b.slug}/analytics`} className="button button-secondary">
+                              Analytics
+                            </Link>
+                          </>
+                        )}
                       </span>
                     )}
                     {b.archived && <span className="muted">No longer on Localites. Email supportlocalites@gmail.com with questions.</span>}

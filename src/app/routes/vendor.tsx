@@ -1,7 +1,10 @@
-import { data, Link, redirect } from 'react-router';
+import { useRef } from 'react';
+import { data, Link, redirect, useLocation } from 'react-router';
 import { cloudflareContext } from '@/app/context';
+import { useVendorActivity } from '@/components/ActivityTracker';
 import { SiteHeader } from '@/components/SiteHeader';
 import { VendorPage } from '@/components/VendorPage';
+import { viewTrack } from '@/server/activity.server';
 import { hasSessionCookie } from '@/server/auth/session.server';
 import { pageMeta } from '@/lib/meta';
 import { findRenamed, getVendor } from '@/server/catalog.server';
@@ -13,21 +16,32 @@ export const meta: Route.MetaFunction = ({ loaderData }) =>
 
 export async function loader({ request, params, context }: Route.LoaderArgs) {
   const { env } = context.get(cloudflareContext);
-  const vendor = await getVendor(env, params.slug);
-  if (!vendor) {
+  const found = await getVendor(env, params.slug);
+  if (!found) {
     // A renamed listing: its old web address keeps working (shared links, Google).
     const current = await findRenamed(env, params.slug);
     if (current) throw redirect(`/vendors/${current}`, 301);
     throw data(null, { status: 404 });
   }
-  return { vendor, slug: params.slug, signedIn: hasSessionCookie(request) };
+  const { id, ...vendor } = found;
+  // A signed note of this page, for counting real visits and taps (ADR-030).
+  const track = await viewTrack(env, request, id);
+  return { vendor, slug: params.slug, signedIn: hasSessionCookie(request), track };
 }
 
-export default function VendorProfile({ loaderData: { vendor, slug, signedIn } }: Route.ComponentProps) {
+/** Where the visitor came from, if they opened this page from a Localites list. */
+const listPlace = (state: unknown) => {
+  const s = state as { pos?: unknown; list?: unknown } | null;
+  return s && typeof s.pos === 'number' && typeof s.list === 'string' ? { pos: s.pos, list: s.list } : null;
+};
+
+export default function VendorProfile({ loaderData: { vendor, slug, signedIn, track } }: Route.ComponentProps) {
+  const pageRef = useRef<HTMLElement>(null);
+  const onTap = useVendorActivity(track, pageRef, listPlace(useLocation().state));
   return (
     <>
       <SiteHeader />
-      <main className="page">
+      <main className="page" ref={pageRef} onClickCapture={onTap}>
         <VendorPage vendor={vendor}>
           <section aria-labelledby="owner" className={styles.owner}>
             <h2 id="owner" className="label">

@@ -23,6 +23,16 @@ export type ServerEnv = {
   OWNER_EDIT_LIMIT?: RateLimit;
   /** The site's address, for links in emails sent on a schedule (wrangler.jsonc vars). */
   SITE_URL?: string;
+  /**
+   * Activity counting (D-22, ADR-030): the secret that signs what each page showed. Counting
+   * is on exactly when this is set (Cloudflare → Variables and Secrets, a Secret).
+   */
+  ACTIVITY_KEY?: string;
+  /** Browsers' activity reports: a per-address limit kept by Cloudflare, never stored. */
+  TRACK_LIMIT?: RateLimit;
 };
 
-export type Cloudflare = { env: ServerEnv; ctx: ExecutionContext };
+/** Where Cloudflare places the visitor (city level), from the request. Never stored with an address. */
+export type Place = { town: string | null; region: string | null };
+
+export type Cloudflare = { env: ServerEnv; ctx: ExecutionContext; place: Place };

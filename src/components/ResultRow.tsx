@@ -2,12 +2,13 @@ import { Link } from 'react-router';
 import type { VendorResult } from '@/server/catalog.server';
 import styles from './ResultRow.module.css';
 
-export function ResultList({ vendors }: { vendors: VendorResult[] }) {
+/** Results in order. Each place is numbered (data-pos) for counting what's seen (ADR-030). */
+export function ResultList({ vendors, listId = null }: { vendors: Omit<VendorResult, 'id'>[]; listId?: string | null }) {
   return (
     <ul className={styles.list}>
-      {vendors.map((v) => (
-        <li key={v.slug} className={styles.row}>
-          <Link to={`/vendors/${v.slug}`} className={styles.link}>
+      {vendors.map((v, i) => (
+        <li key={v.slug} className={styles.row} data-pos={i + 1}>
+          <Link to={`/vendors/${v.slug}`} state={listId ? { pos: i + 1, list: listId } : undefined} className={styles.link}>
             <span className={styles.thumb} aria-hidden="true" />
             <span>
               <span className={styles.name}>{v.name}</span>

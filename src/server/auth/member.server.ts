@@ -2,7 +2,9 @@ import { sql } from 'drizzle-orm';
 import { redirect } from 'react-router';
 import { withDb } from '../db.server';
 import type { ServerEnv } from '../env';
+import { linkVisitor, trackingOn } from '../activity.server';
 import type { Names, Profile } from '../member-input';
+import { visitor } from '../visitor.server';
 import { writeProfile } from '../profile.server';
 import { loadSession, pagePath, withCookies } from './session.server';
 
@@ -17,11 +19,14 @@ export type Member = {
 
 type Person = { name: string; firstName: string | null; lastName: string | null; email: string; closed: boolean };
 
-/** Our own record of a person (app_user), if they've finished joining. */
-export async function findPerson(env: ServerEnv, userId: string): Promise<Person | null> {
+/**
+ * Our own record of a person (app_user), if they've finished joining. With a browser id,
+ * also remembers that browser is theirs (activity counting leaves their own visits out).
+ */
+export async function findPerson(env: ServerEnv, userId: string, visitorId: string | null = null): Promise<Person | null> {
   const [person] = await withDb(env, (db) =>
     db.execute<Person>(sql`
-      select display_name as name, given_name as "firstName", family_name as "lastName", email::text as email,
+      ${linkVisitor(visitorId, userId)}select display_name as name, given_name as "firstName", family_name as "lastName", email::text as email,
              deleted_at is not null as closed
       from app_user where id = ${userId}`),
   );
@@ -66,8 +71,10 @@ export async function memberGate(request: Request, env: ServerEnv): Promise<{ me
   const back = `/join?next=${encodeURIComponent(pagePath(request))}`;
   const { session, setCookies } = await loadSession(request, env);
   if (!session) throw redirect(back, withCookies(undefined, setCookies));
-  const person = await findPerson(env, session.user.id);
+  const browser = trackingOn(env) ? visitor(request) : null;
+  const person = await findPerson(env, session.user.id, browser?.id ?? null);
   if (!person || person.closed) throw redirect(back, withCookies(undefined, setCookies));
+  if (browser?.setCookie) setCookies.push(browser.setCookie);
   const member = {
     userId: session.user.id,
     name: person.name,

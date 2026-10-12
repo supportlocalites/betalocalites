@@ -1,7 +1,9 @@
 import { sql } from 'drizzle-orm';
 import { data, redirect } from 'react-router';
 import { withDb } from '../db.server';
+import { linkVisitor, trackingOn } from '../activity.server';
 import type { ServerEnv } from '../env';
+import { visitor } from '../visitor.server';
 import { type AuthUser, signOut } from './gotrue.server';
 import { clearedCookies, loadSession, pagePath, withCookies } from './session.server';
 
@@ -32,9 +34,11 @@ export async function adminGate(request: Request, env: ServerEnv): Promise<{ adm
     throw redirect(`/sign-in?next=${here}&${why}`, withCookies(undefined, clearedCookies()));
   }
 
+  // The team's own browsers are left out of activity totals (ADR-030).
+  const browser = trackingOn(env) ? visitor(request) : null;
   const [member] = await withDb(env, (db) =>
     db.execute<{ name: string; isAdmin: boolean }>(sql`
-      select u.display_name as name,
+      ${linkVisitor(browser?.id ?? null, session.user.id)}select u.display_name as name,
              exists (select 1 from platform_role r
                      where r.user_id = u.id and r.role = 'admin' and r.revoked_at is null) as "isAdmin"
       from app_user u
@@ -44,6 +48,7 @@ export async function adminGate(request: Request, env: ServerEnv): Promise<{ adm
   if (!member?.isAdmin) throw data({ reason: 'not_team' }, withCookies({ status: 403 }, setCookies));
 
   if (session.claims.aal !== 'aal2') throw redirect(`/two-step?next=${here}`, withCookies(undefined, setCookies));
+  if (browser?.setCookie) setCookies.push(browser.setCookie);
 
   return {
     admin: { userId: session.user.id, email: session.user.email, name: member.name, sessionId: session.claims.sessionId },

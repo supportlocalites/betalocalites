@@ -60,12 +60,12 @@ export function VendorPage({ vendor, children }: { vendor: VendorView; children?
           )}
           <div className={styles.contact}>
             {vendor.websiteUrl && (
-              <a href={vendor.websiteUrl} className="button button-secondary" rel="noopener nofollow" target="_blank">
+              <a href={vendor.websiteUrl} className="button button-secondary" rel="noopener nofollow" target="_blank" data-activity="website_tap">
                 Visit website
               </a>
             )}
             {vendor.publicPhone && (
-              <a href={`tel:${vendor.publicPhone.replace(/[^0-9+]/g, '')}`} className="button button-secondary">
+              <a href={`tel:${vendor.publicPhone.replace(/[^0-9+]/g, '')}`} className="button button-secondary" data-activity="phone_tap">
                 Call {vendor.publicPhone}
               </a>
             )}

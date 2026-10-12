@@ -216,3 +216,27 @@
   flex: 1 1 var(--size-tile-min);
   max-width: var(--size-form-narrow);
 }
+
+/* Activity tables (X18): scroll sideways on a phone rather than squeeze. */
+.tableWrap {
+  overflow-x: auto;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--text-small);
+}
+
+.table th,
+.table td {
+  padding: var(--space-2) var(--space-3) var(--space-2) 0;
+  border-bottom: var(--hairline) solid var(--color-line-soft);
+  text-align: left;
+  font-weight: inherit;
+  white-space: nowrap;
+}
+
+.table thead th {
+  color: var(--color-muted);
+}

@@ -133,7 +133,7 @@ export type MyClaim = {
   reason: string | null;
   createdAt: string;
 };
-export type MyBusiness = { id: string; name: string; slug: string; role: string; listed: boolean; archived: boolean };
+export type MyBusiness = { id: string; name: string; slug: string; role: string; listed: boolean; archived: boolean; analytics: boolean };
 
 /** The account page: only ever this person's own businesses and claims. */
 export async function myAccount(env: ServerEnv, userId: string): Promise<{ businesses: MyBusiness[]; claims: MyClaim[] }> {
@@ -141,7 +141,8 @@ export async function myAccount(env: ServerEnv, userId: string): Promise<{ busin
     const [businesses, claims] = await Promise.all([
       db.execute<MyBusiness>(sql`
         select v.id, v.display_name as name, v.slug::text as slug, m.role, v.listing_status = 'published' as listed,
-               v.listing_status = 'archived' as archived
+               v.listing_status = 'archived' as archived,
+               exists (select 1 from vendor_analytics a where a.vendor_id = v.id and a.enabled) as analytics
         from vendor_member m join vendor v on v.id = m.vendor_id
         where m.user_id = ${userId} and m.ended_at is null
         order by v.display_name`),
