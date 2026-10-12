@@ -46,10 +46,8 @@ export function ActivityReport({
     if (report.lastYear) {
       const ly = pick(report.lastYear);
       if (ly !== null) parts.push(`${words.lastYear[0]!.toUpperCase()}${words.lastYear.slice(1)}: ${ly.toLocaleString('en-CA')}`);
-    } else {
-      parts.push('Last year: not enough history yet');
     }
-    return parts.join(' · ');
+    return parts.length ? parts.join(' · ') : null;
   };
   const t = report.now;
   const blocks: { label: string; value: string; note: string; compare: string | null }[] = [
@@ -131,7 +129,7 @@ export function ActivityReport({
           <p className="muted">Nothing yet for this period.</p>
         ) : (
           <table className={styles.table}>
-            <thead>
+            <thead className="visually-hidden">
               <tr>
                 <th scope="col">{title}</th>
                 <th scope="col">Page opens</th>
@@ -156,6 +154,7 @@ export function ActivityReport({
 
   return (
     <>
+      {!report.lastYear && <p className="muted">Comparisons with last year start once Localites has a year of numbers.</p>}
       <ul className={styles.blocks}>
         {blocks.map((b) => (
           <li key={b.label} className={styles.block}>

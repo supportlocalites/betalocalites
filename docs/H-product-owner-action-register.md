@@ -1,6 +1,6 @@
 # H — Product Owner Action Register
 
-**Last updated:** 2026-10-11 (revision 14: PO-12 and PO-13 done; D-36 sign-up details)
+**Last updated:** 2026-10-12 (revision 15: activity counting and the Analytics page built, D-30 and D-37; PO-14 added)
 
 This is the one place where everything that needs **you** is listed. If it isn't here,
 you don't need to do it.
@@ -51,7 +51,7 @@ Recorded from your messages of 9 and 10 October 2026. These now shape every docu
 | ✅ D-33 | **Checking a claim: email match, else contact the business.** If the person's email address is at the business's own website (jane@sweettreats.ca for sweettreats.ca), the team can approve. Otherwise the team contacts the business at the phone number or email the business publishes itself, then decides. | ADR-028. The Claims page shows the evidence and the business's own details, and asks how each approval was confirmed. |
 | ✅ D-34 | **Owners' edits go live at once; the team can undo.** Changes a business makes to its own listing show straight away; the team gets a daily note of what changed and can undo any of it. Owners edit on a page that looks like their business page, with "View as a visitor". | ADR-029. Built: owners change their descriptions, services and prices, website and phone; the name, town and categories stay with the team. The team gets a daily note, a "check now" email for a new website or phone, Undo and Remove owner. |
 | ✅ D-36 | **Sign-up asks about the person.** **First name and last name, in two boxes**, are needed to continue: nothing says "required", but if either is empty, *Continue* shows "Please enter your first and last name to continue." Gender, full date of birth and full street address are asked on the same screen but not required, and not labelled either way, so people fill in what they're happy to; anyone can add or change them later on **Your account**. **Anyone can create an account** (no minimum age). Businesses never see these details (they see totals only, D-30). | Built: migrations 0005 (`person_profile`) and 0006 (first and last name). Changes the privacy promise in E §7 (it said name and email only, and no children's accounts): the lawyer reviews it (PO-07), in particular a parent's consent for children under 13. |
-| ✅ D-37 | **Business analytics live on an Analytics page, switched on per business.** Owners see their numbers on an Analytics page in their business's area of Localites, not by email. The team turns it on or off for each business, so it can become part of a paid plan (paid for outside Localites, D-24). Owners get no daily emails; the daily note of owners' changes (D-34) goes only to the team. | Built with the activity reports (D-30, ADR-023; screen V10). Until then owners see no numbers. |
+| ✅ D-37 | **Business analytics live on an Analytics page, switched on per business.** Owners see their numbers on an Analytics page in their business's area of Localites, not by email. The team turns it on or off for each business, so it can become part of a paid plan (paid for outside Localites, D-24). Owners get no daily emails; the daily note of owners' changes (D-34) goes only to the team. | **Built (12 October 2026, ADR-030):** the owner's **Analytics** page (`/vendors/<name>/analytics`, linked from Your account) and the team's switch on each listing's **Activity** page. Counting starts once you add the activity key (PO-14). |
 | ✅ D-35 | **Two claims for one business: the first approved wins.** Any other waiting claims are declined automatically with a polite email; a claimed business shows "This business manages its own listing" with a way to contact us. | ADR-028; the database allows only one owner per business. |
 
 ---
@@ -61,6 +61,7 @@ Recorded from your messages of 9 and 10 October 2026. These now shape every docu
 | # | What | Blocks | Your effort |
 |---|---|---|---|
 | **ADR-005** | ✅ CPU time 8 ms with React Router (passes). A day after the speed improvements go live, glance at **Metrics** once more: CPU time, and whether any "Exceeded CPU" errors appear | Nothing; a final check | 2 min |
+| **PO-14** | Switch on activity counting: add one secret in Cloudflare (steps below) | Any numbers on the team's Activity pages and the owners' Analytics pages | 3 min |
 | **PO-11** | Check the 28 test businesses (drafts) and publish the ones that are right (steps below) | Real listings on the test site | At your pace, ~5 min each |
 | **D-12** | Mailing address for the privacy policy and terms | Public launch | 1 min, later |
 
@@ -904,6 +905,29 @@ as new senders often do), signed up, claimed a Test Vendor listing, and received
 "received" and "couldn't approve" emails after the team declined it.
 
 ---
+
+### PO-14 — Switch on activity counting (D-22, D-30, ADR-030)
+**When:** Now (the site isn't public yet, so early numbers just help us check it). **Cost:**
+$0. **Time:** about 3 minutes.
+**Why:** Localites only counts visits and taps when the website has a secret "activity key"
+that lets it sign each page. Until you add it, nothing is counted and the team's Activity
+page says "Counting is off".
+
+1. In Cloudflare, open **Workers & Pages** → **localites** → **Settings** → **Variables
+   and Secrets** → **Add**.
+2. **Type:** Secret. **Name:** `ACTIVITY_KEY`.
+3. **Value:** make up a long sentence of at least 40 characters, for example four or five
+   unrelated words with a few numbers mixed in. Don't reuse a password. You'll never need
+   to type it again or remember it.
+4. Click **Deploy** (or **Save and deploy**).
+
+**Never send us** the key. If you think it's been seen by someone else, replace it the same
+way; nothing is lost (pages simply get new notes).
+
+**Done when:** on the team pages, **Activity** no longer says "Counting is off". Reply
+*"PO-14 done"*. Numbers appear the morning after the first visits (the count runs each
+night). To show an owner their numbers, open their listing's **Activity** page and click
+**Switch on**.
 
 ## Completed
 

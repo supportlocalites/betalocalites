@@ -30,6 +30,11 @@ ADR-026 (every review approved by an admin, with an email notice; D-06) added.
 go through Localites, including vendors paying Localites. ADR-025 accepted. ADR-027
 (Suggest a business, D-25) added.
 
+**Revision 9 changes (12 October 2026):** ADR-030 (counting only what a real browser
+confirms, with signed notes; the nightly count; the team's activity pages and the owner's
+Analytics page, switched on per business; D-22, D-30, D-37) added and accepted. Extends
+ADR-023.
+
 **Revision 8 changes (11 October 2026):** ADR-029 (owners edit their own listing, live at
 once; the team's daily note, undo and Remove owner; D-34) added and accepted.
 
@@ -76,6 +81,7 @@ ADR-014 caveat updated. Nothing in the data model or security model changes.
 | ADR-027 | Suggest a business: a three-question form, open to everyone, emailed to the team to vet | **Needs approval** (user experience; D-25) | Accepted (D-25) |
 | ADR-028 | The public signs in with an emailed 6-digit code; businesses claim listings, checked by the team, first approved wins | **Needs approval** (user experience; D-32, D-33, D-35) | Accepted (D-32, D-33, D-35) |
 | ADR-029 | Owners edit their own listing on a page laid out like it; live at once; the team gets a daily note, can undo any save, and can remove an owner | **Needs approval** (user experience; D-34) | Accepted (D-34) |
+| ADR-030 | Activity is counted only when a real browser confirms it, against a note the page's server signed; totals each night; owners see theirs on an Analytics page the team switches on | Engineering, within D-22, D-30 and D-37 | Accepted |
 
 ---
 
@@ -902,3 +908,70 @@ showed, unsaved typing lost on the phone's Back gesture, and others (G, release 
 
 **Cost.** $0: Cloudflare's scheduler and rate limiter are free; emails within Resend's free
 plan.
+
+---
+
+## ADR-030 — Counting what a real browser confirms, and the Analytics page
+
+Engineering, within D-22, D-30 and D-37 (12 October 2026). Extends ADR-023. Screens V10
+(owners) and X18 (the team).
+
+**Decision.**
+- **Nothing is counted when a page loads.** The page's server signs a short note of what it
+  showed (the businesses in a list, in order; or the business on its page, with where the
+  visitor came from, read from the request). The page's script reports back with that note
+  when something really happened. Search engines and link previews get no note (they run
+  no script anyway), so they're never counted. Nobody can make up a business, a place in a
+  list or a source: the note is signed with a secret (`ACTIVITY_KEY`) only the server has.
+  Counting is on exactly when that secret is set.
+- **Definitions** (what the owner's page says, word for word):
+  - **Seen in lists:** a business's card at least half on screen for at least a second, in
+    search results or a category list; once per list page shown. Stored only as daily
+    totals (with the place in the list), never one by one (ADR-023).
+  - **Page opened:** the business's page became visible in a browser. At most 3 a day per
+    browser per business count; the rest stay in the detail, marked.
+  - **Website and phone taps:** taps on Visit website and Call; at least the real number.
+  - **Time on the page:** while it was on screen, up to 30 minutes.
+  - **Different visitors and came back:** by browser (the `__Host-lc_vid` cookie), for
+    whole calendar weeks, months and the year so far; "came back" means they had opened
+    the page on an earlier day.
+  - **Days are Toronto days.** Totals run to the end of yesterday.
+- **Whose visits.** A browser that has opened a signed-in page is linked to that account
+  (`visitor_account`). Visits by the business's own people, and by the Localites team, are
+  marked in the detail and left out of every total.
+- **The nightly count** runs with the daily note (12:00 and 14:00 UTC). It adds each
+  finished day's detail into the totals, replacing (never adding to) what it wrote before,
+  so a day can be counted again safely. Up to a week of missed days catch up by themselves;
+  older ones from the team's **Count this day again**.
+- **The owner's Analytics page** (`/vendors/<name>/analytics`): only the business's current
+  owner, only when the team has switched it on for that business, never for an archived
+  listing, checked in the database on every request. It shows totals, never who; town,
+  device, time of day and where people came from show "fewer than 5" below 5; the category
+  average and rank only when the category has at least 5 published businesses. No emails.
+- **The team** (`/admin/activity`, and each listing's **Activity** page): category figures,
+  search demand, the nightly count, database space; each business's numbers; the switch
+  (recorded in the audit log, with a note). The detail (each action, by browser) and the
+  words people searched are shown only after the look is written to the audit log, in the
+  same transaction.
+- **Limits:** a report must come from Localites' own pages (its Origin, as JSON), at most
+  4 KB, 60 a minute per internet address (Cloudflare's free limiter).
+
+**Why.** Counting on page load would count every bot and link preview; counting what the
+browser claims without a signed note would let anyone inflate any business. Signed notes
+keep the database untouched until something real happens, at no cost.
+
+**Alternatives.** *Count on page load* (simplest, but counts bots, and can't tell what was
+on screen). *Store a ticket per page in the database* (also stops forgery, but writes a row
+for every page load, bots included). *A third-party analytics service* (rejected in
+ADR-023).
+
+**Known limits.** People with scripts blocked aren't counted (the numbers say "at least").
+A scripted real browser can still add counts; the limits above, the 3-a-day cap and the
+team's "unusual" flag make it costly. The town comes from the internet connection and is
+often a nearby larger town. A business's own visits are recognised only on browsers that
+have opened a signed-in page. Public pages must never be put behind a shared cache: each
+answer carries its own note. Email, social, share, directions and photo taps come with
+those features.
+
+**Cost.** $0: our own database (about 200 MB a year at 1,000 visitors a day, ADR-023),
+Cloudflare's free scheduler and limiter.

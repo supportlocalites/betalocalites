@@ -228,6 +228,29 @@ last night's state. Anything written since (messages, edits) could be lost. Cont
 in Stage 1 week 1. While the database is small, our existing free accounts are enough.
 If the backups outgrow free storage, we tell you before anything changes.
 
+### Activity counting and the Analytics page (D-22, D-30, D-37, ADR-030)
+
+- **On or off:** counting is on exactly when the `ACTIVITY_KEY` secret is set in Cloudflare
+  (PO-14). Without it the team's **Activity** pages say "Counting is off" and nothing is
+  written. Replacing the key is safe: open pages simply stop being counted until reloaded.
+- **The nightly count** runs with the daily note (12:00 and 14:00 UTC) and adds each
+  finished Toronto day into the totals. **Activity** lists the last 7 days: "failed" days
+  are retried by the next run; for anything older use **Count this day again** (recorded).
+- **An owner's Analytics page:** on the listing's **Activity** page, **Switch on** or
+  **Switch off** (with an optional note; recorded). It takes effect at once. The owner
+  sees totals only, never who.
+- **Looking at the detail** (each action by browser, or the words people searched) is
+  recorded in the audit log every time; the listing's **Activity** page shows who looked.
+  Use it to run the service and check unusual days, not out of curiosity.
+- **Unusual days** (far above the business's own average) are marked on its Activity page:
+  check the day's detail for one browser repeating itself, then tell the owner if their
+  numbers were inflated.
+- **Database space:** shown on **Activity**. At 400 MB of the free 500 MB, move older
+  detail to archive storage (ADR-023) before anything else.
+- **Never put public pages behind a shared cache** (Cloudflare cache rules, "cache
+  everything"): each page carries its own signed note, and shared copies would stop
+  counting.
+
 ## 6. Restore procedure *(to be verified before launch)*
 
 **Restore drill:** monthly, engineering restores the latest independent backup into a

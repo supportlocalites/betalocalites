@@ -104,7 +104,7 @@ grants more, and every admin action is recorded in `audit_log`.
 | Claim request | — | C, R (own) | — | — | R U |
 | Verification evidence | — (outcome only) | — (outcome only) | R (own) | — | R C U |
 | Categories, attributes, places, event types | R | R | R | R | R C U X |
-| Activity totals (seen in search, visits, taps, saves, inquiries, messages; §7a) | — | — | R (own) | R (own) | R (detail, logged) |
+| Activity totals (seen in search, visits, taps, saves, inquiries, messages; §7a) | — | — | R (own; the owner only, when the team has switched the Analytics page on; staff wait for D-29) | R (own, same) | R (detail, logged) |
 | Suggest a business (D-25) | C (rate-limited) | C; R (own, from Stage 2) | — | — | R U |
 
 ### 4.2 Consumer planning (Stage 2)
@@ -232,16 +232,21 @@ to sell featured placements.
 
 | Who | Sees |
 |---|---|
-| A vendor's team (dashboard on a paid plan, Stage 5; until then, reports from the team) | Totals for their own business only: seen in search, profile views, website and phone taps, saves, inquiries, conversations, messages, reply times (later, bookings marked). **Never who** viewed or saved them. They see the people who message them, as part of the conversation. |
+| A business's owner, on its Analytics page, when the team has switched it on (D-37) | Totals for their own business only: seen in search, profile views, website and phone taps, saves, inquiries, conversations, messages, reply times (later, bookings marked). **Never who** viewed or saved them. They see the people who message them, as part of the conversation. |
 | Other vendors and prospective vendors | Category-level figures, or one vendor's own numbers only with that vendor's permission |
 | The Localites team (platform admins) | The detailed records, to run the service, prepare reports and compare year over year. Every look is recorded in the audit log. |
 | Anyone else | Nothing. Tracking data is never sold. |
 
 - **Told plainly** in the privacy policy, in everyday words. Visitors who aren't signed in
   get a random visitor ID in Localites' own cookie (`__Host-lc_vid`: HttpOnly, Secure,
-  one year), with no outside trackers. As built, it's set when someone suggests a
-  business; activity counting will use the same cookie. The legal
-  review (PO-07) confirms whether a notice is also needed on first visit.
+  one year), with no outside trackers. It's set when someone suggests a business, when a
+  browser's first activity report is accepted, and on signed-in pages (where it's linked
+  to the account, so a business's own visits and the team's are left out of totals). The
+  legal review (PO-07) confirms whether a notice is also needed on first visit.
+- **Only what a real browser confirms is counted** (ADR-030): pages carry a note signed by
+  the server, and bots get none. Each action also records phone, tablet or computer, the
+  approximate town and province from Cloudflare (never the internet address), where the
+  visitor came from (the other site's name only), and their place in a list.
 - **Everything is tracked (D-30):** each action (a profile view, a tap, how long a
   profile was open, which photos were opened) and **the words people search**, linked to
   the visitor ID or account. The privacy policy says plainly that this is used to improve
