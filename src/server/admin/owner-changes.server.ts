@@ -3,7 +3,7 @@ import { uuidv7 } from '@/lib/ids.mjs';
 import type { Admin } from '../auth/admin.server';
 import { type Db, withDb } from '../db.server';
 import type { ServerEnv } from '../env';
-import { type ChangeSet, describeChange, planUndo, serviceIdOf } from '../owner-changes';
+import { addedServices, type ChangeSet, describeChange, planUndo, serviceIdOf } from '../owner-changes';
 import { priceWords, readCurrent } from '../owner-listing.server';
 import { audit } from './audit.server';
 
@@ -16,7 +16,8 @@ export class OwnerChangeConflict extends Error {}
 
 type Person = { userId: string; name: string; email: string };
 
-export type OwnerChangeLine = { key: string; text: string; possible: boolean; now: string };
+/** One part of a save. `putBack`: the team's undo put it back (only on an undone save). */
+export type OwnerChangeLine = { key: string; text: string; possible: boolean; now: string; putBack: boolean };
 export type OwnerChangeCard = {
   auditId: string;
   at: string;
@@ -36,63 +37,69 @@ const nowText = (v: unknown) => {
 };
 
 /** One line per thing that can be undone, in plain words (a service added shows its price). */
-function linesFor(changes: ChangeSet, current: Record<string, unknown>, names: Map<string, string>): OwnerChangeLine[] {
+function linesFor(
+  changes: ChangeSet,
+  current: Record<string, unknown>,
+  names: Map<string, string>,
+  putBack: ChangeSet | null,
+): OwnerChangeLine[] {
   const nameOf = (id: string) => names.get(id) ?? (changes[`service:${id}:name`]?.to as string | undefined) ?? 'a service';
+  const added = addedServices(changes);
   return planUndo(changes, current).map((l) => {
-    let text = describeChange(l.key, changes[l.key]!, nameOf);
     const id = serviceIdOf(l.key);
-    if (id && changes[l.key]!.from === null) {
+    let text = describeChange(l.key, changes[l.key]!, nameOf, added.has(id ?? ''));
+    if (id && added.has(id)) {
       const price = changes[`service:${id}:price`]?.to as { pricingModel: string; priceCents: number | null } | undefined;
       if (price) text += ` (${priceWords(price)})`;
     }
-    return { key: l.key, text, possible: l.possible, now: nowText(l.now) };
+    return { key: l.key, text, possible: l.possible, now: nowText(l.now), putBack: Boolean(putBack && l.key in putBack) };
   });
 }
 
-export async function listOwnerChanges(env: ServerEnv, vendorId: string): Promise<{ cards: OwnerChangeCard[]; owner: Person | null }> {
-  return withDb(env, async (db) => {
-    const [rows, current, [owner]] = await Promise.all([
-      db.execute<{
-        auditId: string;
-        at: string;
-        owner: string | null;
-        flags: string[];
-        alertStatus: string;
-        changes: ChangeSet;
-        undoneAt: string | null;
-        undoneBy: string | null;
-        undoReason: string | null;
-      }>(sql`
-        select oc.audit_id as "auditId", a.created_at::text as at, u.display_name as owner, to_json(oc.flags) as flags,
-               oc.alert_status as "alertStatus", a.changes, oc.undone_at::text as "undoneAt",
-               ub.display_name as "undoneBy", ua.reason as "undoReason"
-        from owner_change oc
-        join audit_log a on a.id = oc.audit_id
-        left join app_user u on u.id = a.actor_user_id
-        left join audit_log ua on ua.id = oc.undo_audit_id
-        left join app_user ub on ub.id = oc.undone_by
-        where oc.vendor_id = ${vendorId} and oc.created_at > now() - interval '60 days'
-        order by oc.audit_id desc
-        limit 50`),
-      readCurrent(db, vendorId),
-      db.execute<Person>(sql`
-        select u.id as "userId", u.display_name as name, u.email::text as email
-        from vendor_member m join app_user u on u.id = m.user_id
-        where m.vendor_id = ${vendorId} and m.role = 'owner' and m.ended_at is null`),
-    ]);
-    return {
-      owner: owner ?? null,
-      cards: rows.map((r) => ({
-        auditId: r.auditId,
-        at: r.at,
-        owner: r.owner,
-        flags: r.flags ?? [],
-        alertStatus: r.alertStatus,
-        lines: linesFor(r.changes ?? {}, current.flat, current.names),
-        undone: r.undoneAt ? { at: r.undoneAt, by: r.undoneBy, reason: r.undoReason } : null,
-      })),
-    };
-  });
+/** The listing's recent owner saves for the team's page, on the page's own connection. */
+export async function listOwnerChanges(db: Db, vendorId: string): Promise<{ cards: OwnerChangeCard[]; owner: Person | null }> {
+  const [rows, current, [owner]] = await Promise.all([
+    db.execute<{
+      auditId: string;
+      at: string;
+      owner: string | null;
+      flags: string[];
+      alertStatus: string;
+      changes: ChangeSet;
+      undoneAt: string | null;
+      undoneBy: string | null;
+      undoReason: string | null;
+      undoChanges: ChangeSet | null;
+    }>(sql`
+      select oc.audit_id as "auditId", a.created_at::text as at, u.display_name as owner, to_json(oc.flags) as flags,
+             oc.alert_status as "alertStatus", a.changes, oc.undone_at::text as "undoneAt",
+             ub.display_name as "undoneBy", ua.reason as "undoReason", ua.changes as "undoChanges"
+      from owner_change oc
+      join audit_log a on a.id = oc.audit_id
+      left join app_user u on u.id = a.actor_user_id
+      left join audit_log ua on ua.id = oc.undo_audit_id
+      left join app_user ub on ub.id = oc.undone_by
+      where oc.vendor_id = ${vendorId} and oc.created_at > now() - interval '60 days'
+      order by oc.audit_id desc
+      limit 50`),
+    readCurrent(db, vendorId),
+    db.execute<Person>(sql`
+      select u.id as "userId", u.display_name as name, u.email::text as email
+      from vendor_member m join app_user u on u.id = m.user_id
+      where m.vendor_id = ${vendorId} and m.role = 'owner' and m.ended_at is null`),
+  ]);
+  return {
+    owner: owner ?? null,
+    cards: rows.map((r) => ({
+      auditId: r.auditId,
+      at: r.at,
+      owner: r.owner,
+      flags: r.flags ?? [],
+      alertStatus: r.alertStatus,
+      lines: linesFor(r.changes ?? {}, current.flat, current.names, r.undoneAt ? (r.undoChanges ?? {}) : null),
+      undone: r.undoneAt ? { at: r.undoneAt, by: r.undoneBy, reason: r.undoReason } : null,
+    })),
+  };
 }
 
 const VENDOR_COLUMNS: Record<string, string> = {
@@ -149,7 +156,7 @@ export async function undoOwnerChange(env: ServerEnv, admin: Admin, vendorId: st
         where oc.audit_id = ${auditId} and oc.vendor_id = ${vendorId}
         for update of oc`);
       if (!oc) throw new OwnerChangeConflict('That change isn’t part of this listing.');
-      if (oc.undoneAt) throw new OwnerChangeConflict('Already undone.');
+      if (oc.undoneAt) throw new OwnerChangeConflict('Someone on the team already undid this save. The page now shows what was put back.');
 
       const current = await readCurrent(tx, vendorId);
       const plan = planUndo(oc.changes, current.flat).filter((l) => keys.includes(l.key) && l.possible);
@@ -172,11 +179,8 @@ export async function undoOwnerChange(env: ServerEnv, admin: Admin, vendorId: st
       await tx.execute(sql`
         update owner_change set undone_at = now(), undone_by = ${admin.userId}, undo_audit_id = ${undoAudit}
         where audit_id = ${auditId}`);
-      // In the owner's words: what it went back to.
-      const lines = plan.map((l) => {
-        const text = describeChange(l.key, { from: l.now, to: l.restore }, nameOf);
-        return l.key.endsWith(':shown') && oc.changes[l.key]!.from === null ? `Service hidden: “${nameOf(serviceIdOf(l.key)!)}”` : text;
-      });
+      // In the owner's words: what it went back to (a service they added: "Service hidden").
+      const lines = plan.map((l) => describeChange(l.key, { from: l.now, to: l.restore }, nameOf));
       return { owner: oc.owner, business: v.business, lines, reason };
     }),
   );

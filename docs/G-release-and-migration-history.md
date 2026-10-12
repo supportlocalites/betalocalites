@@ -31,6 +31,65 @@ Every release and every database migration, in order. Appended before each deplo
 
 ## Releases
 
+### 2026-10-12 — Owner editing: fixes from the independent review (Stage 1, not public)
+
+**Stage:** 1 (D-34, ADR-029 review)
+**What changed (plain English):** An independent review of owner editing found 14 confirmed
+problems and 26 smaller ones. All are fixed:
+- A box the owner left alone keeps exactly what was stored. Text the team wrote (even with
+  a web address in it, or extra spaces) no longer blocks a save or shows up as an owner's
+  change, and "Nothing to save" now appears when nothing changed.
+- Details added to an existing service can be undone, and are no longer called a "new
+  service".
+- A new owner no longer sees what the team told the previous owner.
+- A partly undone save says which lines were put back and which kept. A website a past
+  owner typed in is still flagged on Claims, and the server refuses it as email evidence.
+- The team's Details and Services forms only write the boxes the team member changed, and
+  say so if the owner changed the same box meanwhile.
+- Undo problems ("someone already undid this") now show.
+- On the owner's page:
+  - the phone's Back gesture from **View as a visitor** returns to editing;
+  - leaving with unsaved changes asks first;
+  - focus follows the preview;
+  - "Nothing to save" shows by the button;
+  - a hidden listing is described honestly;
+  - a team change to a service shows what it now says.
+- The "web address" check no longer trips on a missed space after a full stop ("area.To"),
+  and names the words it objects to. A website with an "@" in it is refused.
+- A save made while the owner is being removed waits and is then refused.
+- A web address renamed by the team while the owner's page was open still saves.
+- Quick saves can't each send a "check now" email.
+- The daily note uses one connection, records a run that stopped part way, and says when a
+  save was only partly undone.
+- Your account no longer offers to edit an archived listing.
+- Older documents now match D-37 (an Analytics page, switched on per business; no reports
+  emailed to owners).
+
+**Migrations applied:** `0008_owner_alert_sending.sql`: one more state ('sending') for a
+"check now" email.
+**Destructive?** No (one constraint widened).
+**Tests run:**
+- Unit tests: 92/92.
+- Database checks: 51, 12, 19, 13, 5, 22 and 4 (new), and 56/56. The "unknown flag" check
+  now tests the constraint itself.
+- End-to-end: 43/43, 73/73 and 55/55. The 10 new checks cover:
+  - team text with addresses doesn't block a save;
+  - a team save keeps the owner's newer phone;
+  - a team clash is explained;
+  - a renamed web address still saves;
+  - a partial undo is described;
+  - the undo error shows;
+  - the past-owner website is refused as evidence;
+  - a new owner doesn't see old notices;
+  - archived listings are left out of Your account;
+  - another business's service is stopped by the database rule itself.
+- Browser checks (phone size): 13/13 (Back from the preview, leave warnings, focus, no extra
+  rows after a refused save, "Nothing to save" by the button, saving doesn't warn).
+
+**How to roll back:** Cloudflare → localites → Deployments → previous version → Deploy. The
+widened constraint can stay.
+**Approved by:** Product owner (D-34).
+
 ### 2026-10-11 — Owners edit their own listing (Stage 1, not public)
 
 **Stage:** 1 (D-34, ADR-029; D-37 recorded)

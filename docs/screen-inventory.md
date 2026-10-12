@@ -73,7 +73,7 @@ added; quotes, bookings and the concierge queue removed.
 | V7 ★ | Conversation (vendor view) | Messages and files; event summary panel (type, date, town, guest estimate) when shared | 2 |
 | V8 | Bookings marked | Consumers who marked the business booked; **"This isn't right"** to flag | 2 |
 | V9 | Reviews | Published reviews; reply once | 3 |
-| V10 | Dashboard (paid plan) | The vendor's own anonymous counts: seen in search, profile views, taps, saves, inquiries, messages, bookings marked, reviews; compared with last year (D-22, D-24) | 5 |
+| V10 | Analytics | The business's own anonymous counts: seen in search, profile views, taps; later saves, inquiries, messages, bookings marked, reviews; compared with last year. Shown only when the team has switched it on for that business (D-22, D-37; may be part of a paid plan, D-24) | 1 (with the activity reports) |
 
 ## Guest — invitation link only, no account
 
@@ -105,7 +105,7 @@ added; quotes, bookings and the concierge queue removed.
 | X15 | Review moderation | Approve or decline each review against the written policy; opened from the new-review email (D-06, ADR-026) | 3 |
 | X16 | Booking flags | Resolve vendor flags | 3 |
 | X17 | Operations report | Listings, claims, conversations, reply rates, reviews | 3 |
-| X18 | Vendor activity reports | One vendor's totals by period (seen in search, views, taps; later saves, inquiries, messages), to share with that vendor; category-level figures for others (D-22) | 1 |
+| X18 | Vendor activity reports | One vendor's totals by period (seen in search, views, taps; later saves, inquiries, messages), and the switch that turns on that business's Analytics page (V10, D-37); category-level figures for others (D-22) | 1 |
 | X19 | Suggested businesses | Every suggestion, with likely duplicates; mark added, declined or duplicate; link to the new listing (D-25) | 1 |
 
 ## Counts

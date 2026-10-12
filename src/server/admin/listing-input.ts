@@ -10,7 +10,8 @@ import { PRICING_MODELS } from '@/lib/listing-status';
 const text = (max: number) =>
   z
     .string()
-    .transform((s) => s.trim())
+    // Browsers send a box's line breaks as CRLF; stored as plain line breaks.
+    .transform((s) => s.replace(/\r\n?/g, '\n').trim())
     .pipe(z.string().max(max, `Keep this under ${max} characters.`));
 
 const optionalText = (max: number) => text(max).transform((s) => (s === '' ? null : s));
@@ -23,6 +24,10 @@ export const website = z
   .transform((s) => (s === '' ? null : /^https?:\/\//i.test(s) ? s : `https://${s}`))
   .refine((s) => s === null || (s.length <= 500 && URL.canParse(s) && /^https?:$/.test(new URL(s).protocol)), {
     message: 'Enter a website address, like example.ca.',
+  })
+  // "https://realbusiness.ca@elsewhere.example" goes to elsewhere.example: refused.
+  .refine((s) => s === null || !URL.canParse(s) || (!new URL(s).username && !new URL(s).password), {
+    message: 'Enter just the website’s address, like example.ca, with no @ in it.',
   });
 
 const email = z
@@ -91,6 +96,37 @@ export const serviceInput = z
   }));
 
 export type ServiceInput = z.output<typeof serviceInput>;
+
+/**
+ * What the team's page showed in the boxes an owner can also change (ADR-029), sent back
+ * with the form. A box the team member left alone keeps whatever is there now, so a team
+ * save never quietly reverses an owner's newer edit.
+ */
+const loadedListing = z.object({
+  tagline: z.string().nullable(),
+  description: z.string().nullable(),
+  websiteUrl: z.string().nullable(),
+  publicPhone: z.string().nullable(),
+});
+const loadedService = z.object({
+  name: z.string(),
+  description: z.string().nullable(),
+  pricingModel: z.enum(PRICING_MODELS),
+  priceCents: z.number().int().nullable(),
+});
+export type LoadedListing = z.output<typeof loadedListing>;
+export type LoadedService = z.output<typeof loadedService>;
+
+const readJson = <T>(schema: z.ZodType<T>, json: string): T | null => {
+  try {
+    const r = schema.safeParse(JSON.parse(json));
+    return r.success ? r.data : null;
+  } catch {
+    return null;
+  }
+};
+export const readLoadedListing = (json: string) => readJson(loadedListing, json);
+export const readLoadedService = (json: string) => readJson(loadedService, json);
 
 /** Turns a submitted form into plain values for a schema (repeated fields become lists). */
 export function formValues(form: FormData, lists: string[] = []): Record<string, unknown> {

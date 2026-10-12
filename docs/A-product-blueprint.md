@@ -90,9 +90,9 @@ is **designed for** now: the data model and permissions already have a place for
 - **Inbox: reply to consumers, share files** — Stage 2
 - **See consumers who marked them booked; flag any that aren't real** — Stage 2
 - **Reply once to each review** — Stage 3
-- Activity is counted from Stage 1 (D-22) and reported to vendors by the Localites
-  team; a dashboard for vendors on a **paid plan**, showing only their own anonymous
-  totals — Stage 5 (D-22, D-24)
+- Activity is counted from Stage 1 (D-22); owners see only their own anonymous totals on
+  an **Analytics page** in their business's area, switched on or off per business by the
+  team so it can be part of a paid plan (D-37, D-24). No reports are emailed to owners.
 - Availability calendars — **not built.** No reliable integration; we won't imply
   availability we can't know.
 

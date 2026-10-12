@@ -29,6 +29,7 @@ function noteLine(note: NoteStatus): string {
   if (note.status === 'sent') return `Daily note of owners’ changes: sent ${noteWhen.format(new Date(note.sentAt!))} (${note.changeCount} ${note.changeCount === 1 ? 'save' : 'saves'}).${stale}`;
   if (note.status === 'empty') return `Daily note of owners’ changes: ${note.day}, nothing to report.${stale}`;
   if (note.status === 'failed') return `Daily note of owners’ changes: failed on ${note.day} (${note.failureReason}). It tries again later.${stale}`;
+  if (note.stuck) return `Daily note of owners’ changes: stopped part way on ${note.day}. It tries again later; if this stays, see the runbook.${stale}`;
   return `Daily note of owners’ changes: sending (${note.day}).${stale}`;
 }
 
@@ -44,7 +45,7 @@ export default function Listings({ loaderData: { q, status, listings, note } }: 
           Add a business
         </Link>
       </div>
-      <p className={note?.stale || note?.status === 'failed' ? 'notice' : 'muted'}>{noteLine(note)}</p>
+      <p className={note?.stale || note?.stuck || note?.status === 'failed' ? 'notice' : 'muted'}>{noteLine(note)}</p>
 
       <Form method="get" className={styles.filters} role="search">
         <div className="field">

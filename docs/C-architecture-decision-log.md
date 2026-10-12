@@ -843,25 +843,40 @@ typed, before saving. One **Save changes** button; changes are live at once.
 - **Only what they changed is written.** The page carries what it loaded; a save writes only
   the fields the owner changed, so it never quietly reverses a team change. If the team
   changed the same field meanwhile, nothing is written and the owner is told ("Our team
-  changed this while you were editing…").
-- **Safety:** web and email addresses are refused in descriptions ("put your website in the
-  Website box"); shortened links and bare internet addresses are refused as websites;
-  invisible characters are removed; 20 saves a business a day; 10 a minute a person.
+  changed this while you were editing…", with what it says now). A box left as it was
+  (ignoring spaces and line breaks the save would tidy anyway) keeps exactly what's stored:
+  it isn't checked again and isn't a change, so text the team wrote never blocks an owner's
+  save. The team's own Details and Services forms work the same way in reverse: they write
+  only the boxes the team member changed, and refuse ("The owner changed this while you were
+  editing…") when the owner changed the same box since the page loaded.
+- **Safety:** web and email addresses are refused in descriptions, naming the words that look
+  like one ("put your website in the Website box"; a missed space after a full stop, like
+  "area.To", isn't taken for one); shortened links, bare internet addresses and addresses
+  with an "@" in them (which go to another site) are refused as websites; invisible
+  characters are removed; 20 saves a business a day; 10 a minute a person. A save that
+  started while the team was removing the owner waits, then sees the removal and is refused.
+  A web address the team changed while the page was open still saves, then moves to the new
+  address.
 - **Recorded:** each save is one `audit_log` entry (before and after) plus an
   `owner_change` row for the team's review state (in a daily note yet, alerted, undone).
   `audit_log` stays the one record of what changed.
 - **The team:**
   - a **"check now" email** when a website moves to another site or a phone number changes
-    (at most one per business an hour, 20 a day);
+    (at most one per business an hour, 20 a day; each email's place is taken under one lock
+    before it goes, so quick saves can't each get one);
   - a **daily note** (Cloudflare's free scheduler, 12:00 UTC, retried at 14:00) listing every
     save since the last note; one a day at most; nothing sent when nothing changed; a failed
     send is retried and its saves stay waiting; its status shows on the Listings page;
   - **Undo** on the listing's team page: tick the lines to put back; a line changed again
     since can't be undone first; a service the owner added is hidden, never deleted; one
-    undo per save; the owner is emailed what changed back and why, and sees it on their edit
-    page;
+    undo per save (lines left unticked stay as the owner set them, and the card then says
+    which were put back and which kept); the owner is emailed what changed back and why,
+    and sees it on their edit page (only their own saves: a new owner never sees what the
+    team told the last one);
   - **Remove owner** (with a reason, emailed to them): ends their access and makes the listing
-    claimable again.
+    claimable again. A website still holding what an owner typed in is flagged on the Claims
+    page and can't be used as "their email is at the business's website" evidence (checked on
+    the server), whether or not other parts of that save were undone.
 - **Business numbers** are not part of this: they come later on an Analytics page the team
   switches on per business (D-37).
 
@@ -874,6 +889,16 @@ click, instead of approving every edit before it shows.
 
 **Known limits.** Photos aren't editable yet (no file storage). An undo is one per save. The
 daily note and alerts are emails through Resend's free 100 a day, shared with other emails.
+The public page's "Your business? Edit your listing" link shows to anyone signed in (checking
+ownership there would cost a sign-in check on every page view); anyone else who follows it
+is told plainly that only the owner can edit.
+
+**Review (11 October 2026).** An independent review of the first version found 14 confirmed
+problems and 26 smaller ones; all were fixed the same day: phantom changes and blocked saves
+from the team's text, details added to an existing service that couldn't be undone, a new
+owner seeing the last owner's undo notices, a partly undone save hiding the past-owner
+website warning, the team's forms overwriting newer owner edits, undo errors that never
+showed, unsaved typing lost on the phone's Back gesture, and others (G, release notes).
 
 **Cost.** $0: Cloudflare's scheduler and rate limiter are free; emails within Resend's free
 plan.

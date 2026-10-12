@@ -37,7 +37,9 @@ insert into audit_log (id, actor_user_id, action, subject_type, subject_id, chan
   ('00000000-0000-7000-8000-0000000007d2', '00000000-0000-7000-8000-0000000007a2', 'vendor.owner_edit.undo', 'vendor',
    '00000000-0000-7000-8000-0000000007c1', '{"tagline": {"from": "Cakes", "to": null}}'),
   ('00000000-0000-7000-8000-0000000007d3', '00000000-0000-7000-8000-0000000007a1', 'vendor.owner_edit', 'vendor',
-   '00000000-0000-7000-8000-0000000007c1', '{"websiteUrl": {"from": null, "to": "https://example.com"}}');
+   '00000000-0000-7000-8000-0000000007c1', '{"websiteUrl": {"from": null, "to": "https://example.com"}}'),
+  ('00000000-0000-7000-8000-0000000007d4', '00000000-0000-7000-8000-0000000007a1', 'vendor.owner_edit', 'vendor',
+   '00000000-0000-7000-8000-0000000007c1', '{"tagline": {"from": "Cakes", "to": "Pies"}}');
 
 set local role app_server;
 
@@ -50,8 +52,8 @@ select pg_temp.expect_reject('a save recorded twice',
   $q$insert into owner_change (audit_id, vendor_id) values ('00000000-0000-7000-8000-0000000007d1', '00000000-0000-7000-8000-0000000007c1')$q$);
 select pg_temp.expect_reject('a save with no audit record behind it',
   $q$insert into owner_change (audit_id, vendor_id) values ('00000000-0000-7000-8000-0000000007ff', '00000000-0000-7000-8000-0000000007c1')$q$);
-select pg_temp.expect_reject('an unknown flag',
-  $q$update owner_change set flags = '{name}' where audit_id = '00000000-0000-7000-8000-0000000007d1'$q$);
+select pg_temp.expect_reject('an unknown flag (the flags check, on a new record)',
+  $q$insert into owner_change (audit_id, vendor_id, flags) values ('00000000-0000-7000-8000-0000000007d4', '00000000-0000-7000-8000-0000000007c1', '{name}')$q$);
 select pg_temp.expect_reject('an alert marked failed with no reason',
   $q$update owner_change set alert_status = 'failed' where audit_id = '00000000-0000-7000-8000-0000000007d3'$q$);
 select pg_temp.expect_reject('an alert for a save with nothing to check',

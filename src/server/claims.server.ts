@@ -1,4 +1,4 @@
-import { sql } from 'drizzle-orm';
+import { type SQL, sql } from 'drizzle-orm';
 import { type DomainEvidence, emailMatchesWebsite } from '@/lib/domain-match';
 import { uuidv7 } from '@/lib/ids.mjs';
 import { audit } from './admin/audit.server';
@@ -133,14 +133,15 @@ export type MyClaim = {
   reason: string | null;
   createdAt: string;
 };
-export type MyBusiness = { id: string; name: string; slug: string; role: string; listed: boolean };
+export type MyBusiness = { id: string; name: string; slug: string; role: string; listed: boolean; archived: boolean };
 
 /** The account page: only ever this person's own businesses and claims. */
 export async function myAccount(env: ServerEnv, userId: string): Promise<{ businesses: MyBusiness[]; claims: MyClaim[] }> {
   return withDb(env, async (db) => {
     const [businesses, claims] = await Promise.all([
       db.execute<MyBusiness>(sql`
-        select v.id, v.display_name as name, v.slug::text as slug, m.role, v.listing_status = 'published' as listed
+        select v.id, v.display_name as name, v.slug::text as slug, m.role, v.listing_status = 'published' as listed,
+               v.listing_status = 'archived' as archived
         from vendor_member m join vendor v on v.id = m.vendor_id
         where m.user_id = ${userId} and m.ended_at is null
         order by v.display_name`),
@@ -180,7 +181,7 @@ export type ClaimRow = {
   };
   otherOpen: number;
   emailStatus: string | null;
-  /** The website was set by an owner's own edit (ADR-029): a matching email proves less. */
+  /** The website is one an owner typed in (ADR-029), so a matching email proves nothing. */
   websiteByOwner: boolean;
   evidence: DomainEvidence;
 };
@@ -206,8 +207,7 @@ export async function listClaims(env: ServerEnv, show: 'open' | 'all'): Promise<
              (select n.status from notification n
               where n.subject_type = 'vendor_claim' and n.subject_id = c.id and n.kind = 'claim_received'
               order by n.created_at desc limit 1) as "emailStatus",
-             exists (select 1 from owner_change oc join audit_log a on a.id = oc.audit_id
-                     where oc.vendor_id = c.vendor_id and oc.undone_at is null and a.changes ? 'websiteUrl') as "websiteByOwner"
+             ${websiteSetByOwner(sql`v.id`, sql`v.website_url`)} as "websiteByOwner"
       from vendor_claim c
       join vendor v on v.id = c.vendor_id
       join app_user u on u.id = c.claimant_user_id
@@ -220,6 +220,14 @@ export async function listClaims(env: ServerEnv, show: 'open' | 'all'): Promise<
 }
 
 export class ClaimConflict extends Error {}
+
+/**
+ * True when the listing's website is still one an owner typed in (ADR-029), whether or not
+ * other parts of that save were undone: the website is what's live, not the save's state.
+ */
+const websiteSetByOwner = (vendorId: SQL, websiteUrl: SQL) => sql`exists (
+  select 1 from owner_change oc join audit_log a on a.id = oc.audit_id
+  where oc.vendor_id = ${vendorId} and a.changes->'websiteUrl'->>'to' = ${websiteUrl})`;
 
 type Decided = { business: string; slug: string; claimant: Person; declined: (Person & { claimId: string })[] };
 
@@ -258,8 +266,14 @@ export async function approveClaim(env: ServerEnv, admin: Admin, claimId: string
         throw new ClaimConflict('You can’t approve your own claim. Ask another team member to check it.');
       }
       if (c.claimStatus === 'claimed') throw new ClaimConflict('This business already has an owner on Localites.');
-      if (check === 'email_domain' && emailMatchesWebsite(c.claimant.email, c.websiteUrl).result !== 'match') {
-        throw new ClaimConflict('Their email address isn’t at the business’s own website. Contact the business to confirm.');
+      if (check === 'email_domain') {
+        if (emailMatchesWebsite(c.claimant.email, c.websiteUrl).result !== 'match') {
+          throw new ClaimConflict('Their email address isn’t at the business’s own website. Contact the business to confirm.');
+        }
+        const [byOwner] = await tx.execute<{ yes: boolean }>(sql`select ${websiteSetByOwner(sql`${c.vendorId}::uuid`, sql`${c.websiteUrl}`)} as yes`);
+        if (byOwner?.yes) {
+          throw new ClaimConflict('The website was typed in by a past owner on Localites, so an email at it proves nothing. Contact the business to confirm.');
+        }
       }
       const how = CHECKS[check];
 

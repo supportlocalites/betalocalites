@@ -110,13 +110,14 @@ export default function Account({ loaderData, actionData }: Route.ComponentProps
                   <li key={b.id}>
                     {b.listed ? <Link to={`/vendors/${b.slug}`}>{b.name}</Link> : <span>{b.name}</span>}
                     <span className="muted">{ROLE[b.role] ?? b.role}</span>
-                    {b.role === 'owner' && (
+                    {b.role === 'owner' && !b.archived && (
                       <span>
                         <Link to={`/vendors/${b.slug}/edit`} className="button button-primary">
                           Edit your listing
                         </Link>
                       </span>
                     )}
+                    {b.archived && <span className="muted">No longer on Localites. Email supportlocalites@gmail.com with questions.</span>}
                   </li>
                 ))}
               </ul>

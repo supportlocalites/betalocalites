@@ -217,8 +217,9 @@ with renewals.
 **How we keep it trustworthy and private** (amended by you, 10 October 2026):
 1. **Vendors see anonymous counts, never people.** "212 people saw you in search; 31
    opened your profile", never who. (They do see the people who message them, as part of
-   the conversation.) Vendors on a **paid plan** see their counts in a dashboard
-   (Stage 5; paid for outside Localites, D-24); others get reports from the Localites team.
+   the conversation.) Vendors see their counts on an **Analytics page** in their business's
+   area, which the team switches on or off for each business so it can be part of a paid
+   plan (D-37; paid for outside Localites, D-24). No reports are emailed to owners.
 2. **When selling to other vendors**, use category-level figures ("face painters on
    Localites averaged 180 profile views a month"), or one vendor's own numbers only with
    that vendor's permission.

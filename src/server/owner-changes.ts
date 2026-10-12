@@ -8,7 +8,7 @@ import type { OwnerValues, Price } from './owner-input';
  * Keys: tagline, description, websiteUrl, publicPhone, and per service
  * service:<id>:name | :description | :price ({pricingModel, priceCents}, one unit, so the
  * database's honest-price rule can't break on undo) | :shown. A service added in the
- * save has from = null on every key.
+ * save has from = null on every key; :shown is never null otherwise, so that marks it.
  */
 
 export type Change = { from: unknown; to: unknown };
@@ -40,6 +40,16 @@ export function flatten(v: OwnerValues): Record<string, unknown> {
 }
 
 export const serviceIdOf = (key: string) => /^service:([0-9a-f-]{36}):/i.exec(key)?.[1] ?? null;
+
+/** The services a save added (not ones it changed: an existing service's empty details are null too). */
+export function addedServices(changes: ChangeSet): Set<string> {
+  const ids = new Set<string>();
+  for (const [key, c] of Object.entries(changes)) {
+    const id = serviceIdOf(key);
+    if (id && key.endsWith(':shown') && c.from === null) ids.add(id);
+  }
+  return ids;
+}
 
 /**
  * What the owner changed compared with the page they loaded (`base`). Only these are ever
@@ -77,8 +87,9 @@ export function ownerDiff(base: OwnerValues, submitted: OwnerValues, newId: () =
  * loaded: their current value no longer matches what the owner started from.
  */
 export function findClashes(changes: ChangeSet, current: Record<string, unknown>): string[] {
+  const added = addedServices(changes);
   return Object.entries(changes)
-    .filter(([key, c]) => !(key.startsWith('service:') && c.from === null && !(key in current)))
+    .filter(([key]) => !added.has(serviceIdOf(key) ?? ''))
     .filter(([key, c]) => !same(current[key], c.from))
     .map(([key]) => key);
 }
@@ -101,6 +112,12 @@ export function riskFlags(changes: ChangeSet): ('website' | 'phone')[] {
 
 export type UndoLine = { key: string; restore: unknown; possible: boolean; now: unknown };
 
+/** The parts of a save that can be undone one by one: each change, and each added service as a whole. */
+export function undoableKeys(changes: ChangeSet): string[] {
+  const added = addedServices(changes);
+  return Object.keys(changes).filter((key) => !added.has(serviceIdOf(key) ?? '') || key.endsWith(':shown'));
+}
+
 /**
  * How to undo a save. Each changed field goes back to its earlier value, but only if it
  * still holds what the save set (otherwise it was changed again since, and undoing the
@@ -108,11 +125,11 @@ export type UndoLine = { key: string; restore: unknown; possible: boolean; now: 
  * of its fields stay as they are.
  */
 export function planUndo(changes: ChangeSet, current: Record<string, unknown>): UndoLine[] {
+  const addedIds = addedServices(changes);
   const lines: UndoLine[] = [];
-  for (const [key, c] of Object.entries(changes)) {
-    const added = key.startsWith('service:') && c.from === null;
-    if (added && !key.endsWith(':shown')) continue;
-    if (added) {
+  for (const key of undoableKeys(changes)) {
+    const c = changes[key]!;
+    if (addedIds.has(serviceIdOf(key) ?? '')) {
       lines.push({ key, restore: false, possible: current[key] === true, now: current[key] });
       continue;
     }
@@ -140,16 +157,21 @@ const shown = (v: unknown) => {
   return `“${cut(String(v).replace(/\s+/g, ' '), 80)}”`;
 };
 
-/** One line of plain words for a change, e.g. "Website: “a.ca” → “b.ca”". */
-export function describeChange(key: string, c: Change, serviceName: (id: string) => string): string {
+/**
+ * One line of plain words for a change, e.g. "Website: “a.ca” → “b.ca”". `added` says the
+ * save added this service (see addedServices).
+ */
+export function describeChange(key: string, c: Change, serviceName: (id: string) => string, added = false): string {
   if (key in LABEL) return cut(`${LABEL[key]}: ${shown(c.from)} → ${shown(c.to)}`);
   const id = serviceIdOf(key) ?? '';
   const field = key.split(':')[2];
   const name = `“${cut(serviceName(id), 60)}”`;
-  if (c.from === null && field === 'shown') return cut(`Service added: ${name}${c.to === false ? ' (hidden)' : ''}`);
-  if (c.from === null && field === 'price') return cut(`New service ${name} price: ${shown(c.to)}`);
-  if (c.from === null && field === 'description') return cut(`New service ${name} details: ${shown(c.to)}`);
-  if (c.from === null) return '';
+  if (added) {
+    if (field === 'shown') return cut(`Service added: ${name}${c.to === false ? ' (hidden)' : ''}`);
+    if (field === 'price') return cut(`New service ${name} price: ${shown(c.to)}`);
+    if (field === 'description') return cut(`New service ${name} details: ${shown(c.to)}`);
+    return '';
+  }
   if (field === 'shown') return `${c.to ? 'Service shown again' : 'Service hidden'}: ${name}`;
   if (field === 'name') return cut(`Service renamed: ${shown(c.from)} → ${shown(c.to)}`);
   if (field === 'price') return cut(`Service ${name} price: ${shown(c.from)} → ${shown(c.to)}`);
@@ -158,8 +180,8 @@ export function describeChange(key: string, c: Change, serviceName: (id: string)
 
 /** All lines for a save, skipping the parts that belong to an "added" line. */
 export function describeChanges(changes: ChangeSet, serviceName: (id: string) => string): string[] {
+  const added = addedServices(changes);
   return Object.entries(changes)
-    .filter(([key, c]) => !(key.startsWith('service:') && c.from === null && key.endsWith(':name')))
-    .map(([key, c]) => describeChange(key, c, serviceName))
+    .map(([key, c]) => describeChange(key, c, serviceName, added.has(serviceIdOf(key) ?? '')))
     .filter(Boolean);
 }

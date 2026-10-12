@@ -5,7 +5,7 @@ import { type Db, withDb } from '../db.server';
 import type { ServerEnv } from '../env';
 import { audit, diff } from './audit.server';
 import { ADMIN_TRANSITIONS, type ListingStatus, STATUS_LABEL } from '@/lib/listing-status';
-import type { ListingInput, ServiceInput } from './listing-input';
+import type { ListingInput, LoadedListing, LoadedService, ServiceInput } from './listing-input';
 
 export { ADMIN_TRANSITIONS, type ListingStatus, STATUS_LABEL };
 
@@ -56,18 +56,21 @@ export type FormOptions = {
 };
 
 export async function formOptions(env: ServerEnv): Promise<FormOptions> {
-  return withDb(env, async (db) => {
-    const [towns, categories] = await Promise.all([
-      db.execute<{ id: string; name: string }>(sql`
-        select id, name from municipality where is_active order by sort_order, name`),
-      db.execute<{ id: string; name: string; group: string }>(sql`
-        select c.id, c.name, coalesce(p.name, c.name) as "group"
-        from category c left join category p on p.id = c.parent_id
-        where c.is_active and (p.id is null or p.is_active)
-        order by coalesce(p.sort_order, c.sort_order), coalesce(p.name, c.name), p.id is not null, c.sort_order, c.name`),
-    ]);
-    return { towns: [...towns], categories: [...categories] };
-  });
+  return withDb(env, readFormOptions);
+}
+
+/** The same, on a connection the caller already has. */
+export async function readFormOptions(db: Db): Promise<FormOptions> {
+  const [towns, categories] = await Promise.all([
+    db.execute<{ id: string; name: string }>(sql`
+      select id, name from municipality where is_active order by sort_order, name`),
+    db.execute<{ id: string; name: string; group: string }>(sql`
+      select c.id, c.name, coalesce(p.name, c.name) as "group"
+      from category c left join category p on p.id = c.parent_id
+      where c.is_active and (p.id is null or p.is_active)
+      order by coalesce(p.sort_order, c.sort_order), coalesce(p.name, c.name), p.id is not null, c.sort_order, c.name`),
+  ]);
+  return { towns: [...towns], categories: [...categories] };
 }
 
 type VendorRecord = {
@@ -103,7 +106,7 @@ export type ListingDetail = VendorRecord & {
   history: HistoryRow[];
 };
 
-async function readVendor(db: Db, id: string): Promise<(VendorRecord & { status: ListingStatus; claimStatus: string }) | null> {
+async function readVendor(db: Db, id: string, lock = false): Promise<(VendorRecord & { status: ListingStatus; claimStatus: string }) | null> {
   const [v] = await db.execute<VendorRecord & { status: ListingStatus; claimStatus: string }>(sql`
     select v.display_name as name, v.slug::text as slug, v.tagline, v.description,
            v.primary_municipality_id as "municipalityId", v.website_url as "websiteUrl",
@@ -112,28 +115,40 @@ async function readVendor(db: Db, id: string): Promise<(VendorRecord & { status:
            (select category_id from vendor_category where vendor_id = v.id and is_primary) as "primaryCategoryId",
            coalesce((select array_agg(category_id::text order by category_id) from vendor_category where vendor_id = v.id), '{}') as "categoryIds"
     from vendor v where v.id = ${id}
+    ${lock ? sql`for update of v` : sql``}
   `);
   return v ?? null;
 }
 
-export async function getListing(env: ServerEnv, id: string): Promise<ListingDetail | null> {
-  return withDb(env, async (db) => {
-    const vendor = await readVendor(db, id);
-    if (!vendor) return null;
-    const [services, history] = await Promise.all([
-      db.execute<ServiceRow>(sql`
-        select id, name, description, pricing_model as "pricingModel", price_cents as "priceCents",
-               price_note as "priceNote", is_active as "isActive"
-        from vendor_service where vendor_id = ${id}
-        order by is_active desc, sort_order, created_at`),
-      db.execute<HistoryRow>(sql`
-        select a.action, u.display_name as actor, a.reason, a.changes, a.created_at::text as at
-        from audit_log a left join app_user u on u.id = a.actor_user_id
-        where a.subject_type = 'vendor' and a.subject_id = ${id}
-        order by a.created_at desc limit 30`),
-    ]);
-    return { id, ...vendor, services: [...services], history: [...history] };
-  });
+// The boxes owners can change too (ADR-029). Compared ignoring line-break style and the
+// spaces at either end, which the forms tidy anyway.
+const OWNER_FIELDS = ['tagline', 'description', 'websiteUrl', 'publicPhone'] as const;
+const plain = (v: unknown) => (typeof v === 'string' ? v.replace(/\r\n?/g, '\n').trim() : (v ?? ''));
+const sameText = (a: unknown, b: unknown) => plain(a) === plain(b);
+const quoted = (v: unknown) => {
+  const s = String(plain(v)).replace(/\s+/g, ' ');
+  return s ? `“${s.length > 80 ? `${s.slice(0, 79)}…` : s}”` : 'nothing';
+};
+const changedByOwner = (now: unknown) =>
+  `The owner changed this while you were editing. It now says ${quoted(now)}. Reload the page, then make your change again.`;
+
+/** One listing for the team's page, on a connection the caller already has. */
+export async function readListing(db: Db, id: string): Promise<ListingDetail | null> {
+  const vendor = await readVendor(db, id);
+  if (!vendor) return null;
+  const [services, history] = await Promise.all([
+    db.execute<ServiceRow>(sql`
+      select id, name, description, pricing_model as "pricingModel", price_cents as "priceCents",
+             price_note as "priceNote", is_active as "isActive"
+      from vendor_service where vendor_id = ${id}
+      order by is_active desc, sort_order, created_at`),
+    db.execute<HistoryRow>(sql`
+      select a.action, u.display_name as actor, a.reason, a.changes, a.created_at::text as at
+      from audit_log a left join app_user u on u.id = a.actor_user_id
+      where a.subject_type = 'vendor' and a.subject_id = ${id}
+      order by a.created_at desc limit 30`),
+  ]);
+  return { id, ...vendor, services: [...services], history: [...history] };
 }
 
 async function assertSlugFree(db: Db, slug: string, vendorId: string | null) {
@@ -214,13 +229,22 @@ export async function createListing(
   );
 }
 
-/** Saves the listing's details. Old web addresses keep working (vendor_slug_history). */
-export async function updateListing(env: ServerEnv, admin: Admin, id: string, input: ListingInput): Promise<void> {
+/**
+ * Saves the listing's details. Old web addresses keep working (vendor_slug_history). A box
+ * an owner can also change is written only if the team member changed it, and refused if
+ * the owner changed it too since the page loaded (`loaded`).
+ */
+export async function updateListing(env: ServerEnv, admin: Admin, id: string, edited: ListingInput, loaded: LoadedListing): Promise<void> {
   await withDb(env, (db) =>
     db.transaction(async (tx) => {
-      const before = await readVendor(tx, id);
+      const before = await readVendor(tx, id, true);
       if (!before) throw new ListingConflict('form', 'This listing no longer exists.');
       if (before.status === 'archived') throw new ListingConflict('form', 'Archived listings can’t be edited.');
+      const input = { ...edited };
+      for (const k of OWNER_FIELDS) {
+        if (sameText(edited[k], loaded[k])) input[k] = before[k];
+        else if (!sameText(before[k], loaded[k])) throw new ListingConflict(k, changedByOwner(before[k]));
+      }
       if (input.slug !== before.slug) {
         await assertSlugFree(tx, input.slug, id);
         await tx.execute(sql`
@@ -287,43 +311,56 @@ async function assertEditable(db: Db, vendorId: string) {
   if (v.status === 'archived') throw new ListingConflict('form', 'Archived listings can’t be edited.');
 }
 
-/** Adds a service, or saves an existing one of this listing. */
+/**
+ * Adds a service, or saves an existing one of this listing. As with the details, the name,
+ * description and price (which owners can change too) are written only if the team member
+ * changed them, and refused if the owner changed them since the page loaded.
+ */
 export async function saveService(
   env: ServerEnv,
   admin: Admin,
   vendorId: string,
   serviceId: string | null,
-  input: ServiceInput,
+  edited: ServiceInput,
+  loaded: LoadedService | null,
 ): Promise<void> {
   await withDb(env, (db) =>
     db.transaction(async (tx) => {
       await assertEditable(tx, vendorId);
-      const fields = {
-        name: input.name,
-        description: input.description,
-        pricingModel: input.pricingModel,
-        priceCents: input.priceCents,
-        priceNote: input.priceNote,
-      };
+      const input = { ...edited };
       if (serviceId === null) {
         const id = uuidv7();
         await tx.execute(sql`
           insert into vendor_service (id, vendor_id, name, description, pricing_model, price_cents, price_note, sort_order)
           values (${id}, ${vendorId}, ${input.name}, ${input.description}, ${input.pricingModel}, ${input.priceCents}, ${input.priceNote},
                   (select coalesce(max(sort_order), 0) + 1 from vendor_service where vendor_id = ${vendorId}))`);
-        await audit(tx, { actor: admin.userId, action: 'vendor.service.add', subjectType: 'vendor', subjectId: vendorId, changes: diff({}, { serviceId: id, ...fields }), sessionRef: admin.sessionId });
+        await audit(tx, { actor: admin.userId, action: 'vendor.service.add', subjectType: 'vendor', subjectId: vendorId, changes: diff({}, { serviceId: id, ...input }), sessionRef: admin.sessionId });
         return;
       }
       // The service must belong to this listing: the id in the form is never trusted alone.
-      const [before] = await tx.execute<typeof fields>(sql`
+      const [before] = await tx.execute<ServiceInput>(sql`
         select name, description, pricing_model as "pricingModel", price_cents as "priceCents", price_note as "priceNote"
-        from vendor_service where id = ${serviceId} and vendor_id = ${vendorId}`);
+        from vendor_service where id = ${serviceId} and vendor_id = ${vendorId}
+        for update`);
       if (!before) throw new ListingConflict('form', 'That service isn’t part of this listing.');
+      if (!loaded) throw new ListingConflict('form', 'This page was out of date. Reload it and try again.');
+      for (const k of ['name', 'description'] as const) {
+        if (sameText(edited[k], loaded[k])) (input as Record<string, unknown>)[k] = before[k];
+        else if (!sameText(before[k], loaded[k])) throw new ListingConflict(k, changedByOwner(before[k]));
+      }
+      const samePrice = (a: Pick<ServiceInput, 'pricingModel' | 'priceCents'>, b: Pick<ServiceInput, 'pricingModel' | 'priceCents'>) =>
+        a.pricingModel === b.pricingModel && a.priceCents === b.priceCents;
+      if (samePrice(edited, loaded)) {
+        input.pricingModel = before.pricingModel;
+        input.priceCents = before.priceCents;
+      } else if (!samePrice(before, loaded)) {
+        throw new ListingConflict('price', 'The owner changed the price while you were editing. Reload the page, then make your change again.');
+      }
       await tx.execute(sql`
         update vendor_service set name = ${input.name}, description = ${input.description}, pricing_model = ${input.pricingModel},
                price_cents = ${input.priceCents}, price_note = ${input.priceNote}
         where id = ${serviceId} and vendor_id = ${vendorId}`);
-      const changes = diff(before, fields);
+      const changes = diff(before, input);
       if (Object.keys(changes).length > 0) {
         await audit(tx, { actor: admin.userId, action: 'vendor.service.update', subjectType: 'vendor', subjectId: vendorId, changes: { serviceId: { from: serviceId, to: serviceId }, ...changes }, sessionRef: admin.sessionId });
       }

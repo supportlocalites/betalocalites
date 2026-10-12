@@ -1,4 +1,6 @@
 import { describe, expect, it } from 'vitest';
+import { addressProblem } from '@/lib/owner-text';
+import { noteText } from '@/server/daily-note.server';
 import { describeChanges, findClashes, flatten, ownerDiff, planUndo, riskFlags } from '@/server/owner-changes';
 import { type OwnerValues, parseOwnerForm } from '@/server/owner-input';
 
@@ -77,6 +79,96 @@ describe('what an owner can type (D-34)', () => {
   });
 });
 
+describe('a box left as it was (review of D-34)', () => {
+  // What the team typed: two spaces, Windows line breaks, a web address, a shortened link.
+  const teamBase: OwnerValues = {
+    ...base,
+    tagline: 'Cakes  for every party ',
+    description: 'We bake.  Order at sweettreats.ca\r\n\r\n\r\nOpen daily.',
+    websiteUrl: 'https://bit.ly/cakes',
+    services: [{ ...base.services[0]!, description: 'See jane@sweettreats.ca  for quotes' }, base.services[1]!],
+  };
+  const teamForm = (extra: Record<string, string> = {}) =>
+    form({
+      tagline: 'Cakes for every party',
+      description: 'We bake. Order at sweettreats.ca\n\nOpen daily.',
+      websiteUrl: 'https://bit.ly/cakes',
+      'service.0.description': 'See jane@sweettreats.ca for quotes',
+      ...extra,
+    });
+
+  it('keeps the team’s text exactly, never blocks the save, and isn’t a change', () => {
+    const r = parseOwnerForm(teamForm({ publicPhone: '705 555 0199' }), teamBase);
+    expect(r.ok).toBe(true);
+    if (!r.ok) return;
+    expect(r.values.tagline).toBe(teamBase.tagline);
+    expect(r.values.description).toBe(teamBase.description);
+    expect(r.values.websiteUrl).toBe('https://bit.ly/cakes');
+    expect(r.values.services[0]!.description).toBe(teamBase.services[0]!.description);
+    const diff = ownerDiff(teamBase, { ...r.values, services: [...r.values.services, teamBase.services[1]!] }, () => NEW)!;
+    expect(Object.keys(diff.changes)).toEqual(['publicPhone']);
+  });
+
+  it('checks a box the owner did change, naming the words that look like an address', () => {
+    const r = parseOwnerForm(teamForm({ description: 'We bake. Order at sweettreats.ca today.' }), teamBase);
+    expect(!r.ok && r.errors.description).toContain('“sweettreats.ca”');
+  });
+
+  it('nothing changed is nothing to save', () => {
+    const r = parseOwnerForm(teamForm(), teamBase);
+    const diff = r.ok && ownerDiff(teamBase, { ...r.values, services: [...r.values.services, teamBase.services[1]!] }, () => NEW);
+    expect(diff && diff.changes).toEqual({});
+  });
+
+  it('a listing the team gave more than 30 shown services can still be saved, but not grow', () => {
+    const many = Array.from({ length: 31 }, (_, i) => ({
+      id: `01900000-0000-7000-8000-${String(i).padStart(12, '0')}`,
+      name: `Cake ${i}`,
+      description: null,
+      price: { pricingModel: 'on_request' as const, priceCents: null },
+      shown: true,
+    }));
+    const rows = (shownNew: boolean) =>
+      Object.fromEntries([
+        ...many.flatMap((m, i) => [
+          [`service.${i}.id`, m.id],
+          [`service.${i}.name`, m.name],
+          [`service.${i}.pricingModel`, 'on_request'],
+          [`service.${i}.shown`, 'yes'],
+        ]),
+        ...(shownNew ? [['service.31.name', 'Pies'], ['service.31.pricingModel', 'on_request'], ['service.31.shown', 'yes']] : []),
+      ]);
+    const big = { ...base, services: many };
+    expect(parseOwnerForm({ ...form(), ...rows(false) }, big).ok).toBe(true);
+    const grown = parseOwnerForm({ ...form(), ...rows(true) }, big);
+    expect(!grown.ok && grown.errors.services).toContain('up to 30');
+  });
+
+  it('a row number past the page’s limit is refused, not dropped quietly', () => {
+    const r = parseOwnerForm(form({ 'service.500.name': 'Pies', 'service.500.pricingModel': 'on_request' }), base);
+    expect(!r.ok && r.errors.form).toContain('out of date');
+  });
+});
+
+describe('what looks like an address (review of D-34)', () => {
+  it('a missed space after a full stop is not one', () => {
+    for (const text of ['We serve Orillia and area.To book, call us', 'Gift cards available.Shop local!', 'Family run since 1999.Co-owned by Jane', 'Serving Simcoe County.Us and our team']) {
+      expect(addressProblem(text), text).toBeNull();
+    }
+  });
+  it('a real one is, and the message names it', () => {
+    expect(addressProblem('Order at sweettreats.ca today')).toContain('“sweettreats.ca”');
+    expect(addressProblem('Order at Sweettreats.ca.')).toContain('Sweettreats.ca');
+    expect(addressProblem('Email jane@cakes.ca')).toContain('jane@cakes.ca');
+    expect(addressProblem('See www.cakes.example/menu')).toContain('www.cakes.example/menu');
+    expect(addressProblem('Visit https://evil.example')).toContain('https://evil.example');
+  });
+  it('a website hiding another site behind an @ is refused', () => {
+    const r = parseOwnerForm(form({ websiteUrl: 'https://sweettreats.ca@bookings.example' }), base);
+    expect(!r.ok && r.errors.websiteUrl).toContain('@');
+  });
+});
+
 describe('what a save changed', () => {
   const submitted = (patch: Partial<OwnerValues>): OwnerValues => ({ ...base, ...patch });
 
@@ -151,6 +243,20 @@ describe('undoing a save', () => {
   });
 });
 
+describe('details added to an existing service (review of D-34)', () => {
+  it('can be undone, and isn’t called a new service', () => {
+    const r = ownerDiff(base, { ...base, services: [{ ...base.services[0]!, description: 'Serves 100' }, base.services[1]!] }, () => NEW)!;
+    const key = `service:${S1}:description`;
+    expect(r.changes).toEqual({ [key]: { from: null, to: 'Serves 100' } });
+    expect(planUndo(r.changes, { ...flatten(base), [key]: 'Serves 100' })).toEqual([{ key, restore: null, possible: true, now: 'Serves 100' }]);
+    expect(describeChanges(r.changes, () => 'Wedding cake')).toEqual(['Service “Wedding cake” details: (empty) → “Serves 100”']);
+    // And the undo's own record, as the owner is told: details went back to empty.
+    expect(describeChanges({ [key]: { from: 'Serves 100', to: null } }, () => 'Wedding cake')).toEqual([
+      'Service “Wedding cake” details: “Serves 100” → (empty)',
+    ]);
+  });
+});
+
 describe('the plain words for the team', () => {
   it('reads like a sentence, cut short when long', () => {
     const names = (id: string) => (id === NEW ? 'Pies' : 'Cupcakes');
@@ -173,5 +279,26 @@ describe('the plain words for the team', () => {
       'Service “Cupcakes” price: $36 → From $30',
     ]);
     for (const l of lines) expect(l.length).toBeLessThanOrEqual(120);
+  });
+});
+
+describe('the team’s daily note (review of D-34)', () => {
+  const save = {
+    auditId: NEW,
+    vendorId: S1,
+    business: 'Sweet Treats',
+    owner: 'Jane',
+    at: '2026-10-11T14:00:00Z',
+    flags: ['website'],
+    changes: { tagline: { from: 'Cakes', to: 'Pies' }, websiteUrl: { from: 'https://a.ca/', to: 'https://b.ca/' } },
+    names: {},
+  };
+  it('says whether the team undid all of a save or only part of it', () => {
+    const all = noteText([{ ...save, undoneBy: 'Sam', undoChanges: { tagline: { from: 'Pies', to: 'Cakes' }, websiteUrl: { from: 'https://b.ca/', to: 'https://a.ca/' } } }], 0, 'https://x');
+    const part = noteText([{ ...save, undoneBy: 'Sam', undoChanges: { tagline: { from: 'Pies', to: 'Cakes' } } }], 2, 'https://x');
+    expect(all.text).toContain('(already undone by Sam)');
+    expect(part.text).toContain('(partly undone by Sam)');
+    expect(part.text).toContain('…and 2 more');
+    expect(part.subject).toBe('Owner changes on Localites: 1 business, 3 saves');
   });
 });

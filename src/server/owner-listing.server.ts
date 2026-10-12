@@ -77,18 +77,31 @@ type Owned = {
   publicPhone: string | null;
 };
 
-/** The listing, if this person is its current owner and it isn't archived. Locks it when asked. */
+/**
+ * The listing, if this person is its current owner and it isn't archived. When asked, it
+ * locks the listing and the membership too: a save that waited for "Remove owner" then
+ * sees the ended membership, so the team's decision always wins.
+ */
 async function findOwned(db: Db, userId: string, by: { slug: string } | { id: string }, lock = false): Promise<Owned | null> {
   const where = 'slug' in by ? sql`v.slug = ${by.slug}` : sql`v.id = ${by.id}`;
   const [v] = await db.execute<Owned>(sql`
     select v.id, v.slug::text as slug, v.display_name as name, v.listing_status as status, v.tagline, v.description,
            v.website_url as "websiteUrl", v.public_phone as "publicPhone"
     from vendor v
+    join vendor_member m on m.vendor_id = v.id and m.user_id = ${userId} and m.role = 'owner' and m.ended_at is null
     where ${where} and v.listing_status <> 'archived'
-      and exists (select 1 from vendor_member m
-                  where m.vendor_id = v.id and m.user_id = ${userId} and m.role = 'owner' and m.ended_at is null)
-    ${lock ? sql`for update of v` : sql``}`);
+    ${lock ? sql`for update of v for share of m` : sql``}`);
   return v ?? null;
+}
+
+/** By web address, or by an old one the team has since changed (vendor_slug_history). */
+async function findOwnedBySlug(db: Db, userId: string, slug: string, lock = false): Promise<Owned | null> {
+  const v = await findOwned(db, userId, { slug }, lock);
+  if (v) return v;
+  const [old] = await db.execute<{ vendorId: string }>(sql`
+    select h.vendor_id as "vendorId" from vendor_slug_history h join vendor v on v.id = h.vendor_id
+    where h.slug = ${slug} and v.slug <> ${slug}`);
+  return old ? findOwned(db, userId, { id: old.vendorId }, lock) : null;
 }
 
 export type UndoNotice = { at: string; lines: string[]; reason: string | null };
@@ -101,17 +114,25 @@ export type OwnedListing = {
   undone: UndoNotice[];
 };
 
-/** The edit page's data, or a redirect for an old web address, or null (not this person's). */
-export async function ownedListing(env: ServerEnv, userId: string, slug: string): Promise<OwnedListing | { renamedTo: string } | null> {
+/**
+ * The edit page's data, or a redirect for an old web address, or why not: "archived" (their
+ * listing is no longer on Localites) or null (not this person's).
+ */
+export async function ownedListing(
+  env: ServerEnv,
+  userId: string,
+  slug: string,
+): Promise<OwnedListing | { renamedTo: string } | { archived: true } | null> {
   return withDb(env, async (db) => {
-    const v = await findOwned(db, userId, { slug });
+    const v = await findOwnedBySlug(db, userId, slug);
     if (!v) {
-      const [old] = await db.execute<{ slug: string }>(sql`
-        select v.slug::text as slug from vendor_slug_history h join vendor v on v.id = h.vendor_id
-        where h.slug = ${slug} and v.slug <> ${slug}`);
-      if (old && (await findOwned(db, userId, { slug: old.slug }))) return { renamedTo: old.slug };
-      return null;
+      const [archived] = await db.execute<{ id: string }>(sql`
+        select v.id from vendor v join vendor_member m on m.vendor_id = v.id
+        where v.slug = ${slug} and v.listing_status = 'archived'
+          and m.user_id = ${userId} and m.role = 'owner' and m.ended_at is null`);
+      return archived ? { archived: true } : null;
     }
+    if (v.slug !== slug) return { renamedTo: v.slug };
     const [services, [where], undos] = await Promise.all([
       readServices(db, v.id),
       db.execute<{ town: string; categories: string[] }>(sql`
@@ -120,10 +141,11 @@ export async function ownedListing(env: ServerEnv, userId: string, slug: string)
                          from vendor_category vc join category c on c.id = vc.category_id
                          where vc.vendor_id = v.id), '[]'::json) as categories
         from vendor v join municipality m on m.id = v.primary_municipality_id where v.id = ${v.id}`),
+      // Only this person's own saves: a new owner never sees what the team told the last one.
       db.execute<{ at: string; changes: ChangeSet; reason: string | null }>(sql`
         select u.created_at::text as at, u.changes, u.reason
-        from owner_change oc join audit_log u on u.id = oc.undo_audit_id
-        where oc.vendor_id = ${v.id} and oc.undone_at > now() - interval '14 days'
+        from owner_change oc join audit_log a on a.id = oc.audit_id join audit_log u on u.id = oc.undo_audit_id
+        where oc.vendor_id = ${v.id} and a.actor_user_id = ${userId} and oc.undone_at > now() - interval '14 days'
         order by oc.undone_at desc limit 5`),
     ]);
     const names = new Map(services.map((s) => [s.id, s.name]));
@@ -188,8 +210,9 @@ export async function saveOwnerEdits(env: ServerEnv, member: Member, slug: strin
   return withDb(env, (db) =>
     db.transaction(async (tx) => {
       // Still the owner, checked again with the business locked, so a team decision made
-      // while the page was open (removed as owner, archived) always wins.
-      const v = await findOwned(tx, member.userId, { slug }, true);
+      // while the page was open (removed as owner, archived) always wins. A web address
+      // the team changed meanwhile still finds the listing.
+      const v = await findOwnedBySlug(tx, member.userId, slug, true);
       if (!v) throw new NotOwner();
       const vendorId = v.id;
       const [count] = await tx.execute<{ n: number }>(sql`
@@ -204,6 +227,7 @@ export async function saveOwnerEdits(env: ServerEnv, member: Member, slug: strin
       if (Object.keys(changes).length === 0) return { status: 'nothing' };
 
       const services = await readServices(tx, vendorId);
+      const shownBefore = services.filter((s) => s.isActive).length;
       const current = flatten(toValues(v, services));
       const clashes = findClashes(changes, current);
       if (clashes.length > 0) {
@@ -258,7 +282,8 @@ export async function saveOwnerEdits(env: ServerEnv, member: Member, slug: strin
       }
       const [shown] = await tx.execute<{ n: number }>(sql`
         select count(*)::int as n from vendor_service where vendor_id = ${vendorId} and is_active`);
-      if ((shown?.n ?? 0) > MAX_SHOWN_SERVICES) {
+      // Over the limit only by showing more than before (the team may have shown more).
+      if ((shown?.n ?? 0) > MAX_SHOWN_SERVICES && (shown?.n ?? 0) > shownBefore) {
         throw new OwnerRefused(`You can show up to ${MAX_SHOWN_SERVICES} services. Hide one to add another.`);
       }
 
@@ -274,43 +299,48 @@ export async function saveOwnerEdits(env: ServerEnv, member: Member, slug: strin
 /**
  * The "check now" email for a new website or phone (ADR-029), sent after the owner sees
  * "Saved". At most one per business an hour and ALERTS_PER_DAY across the site (Resend's
- * free 100 a day are shared); over that, it waits for the daily note. Recorded either way.
+ * free 100 a day are shared); over that, it waits for the daily note. Each email's place
+ * is taken under one lock before it goes, so quick saves can't all get one. Recorded
+ * either way.
  */
 export async function alertTeam(env: ServerEnv, auditId: string, siteUrl: string): Promise<void> {
-  const [row] = await withDb(env, (db) =>
-    db.execute<{ vendorId: string; business: string; owner: string; changes: ChangeSet; recent: number; today: number }>(sql`
-      select oc.vendor_id as "vendorId", v.display_name as business, coalesce(u.display_name, 'the owner') as owner, a.changes,
-             (select count(*) from owner_change x where x.vendor_id = oc.vendor_id and x.alert_status = 'sent'
-                and x.created_at > now() - interval '1 hour')::int as recent,
-             (select count(*) from owner_change x where x.alert_status = 'sent' and x.created_at > now() - interval '1 day')::int as today
-      from owner_change oc join audit_log a on a.id = oc.audit_id join vendor v on v.id = oc.vendor_id
-      left join app_user u on u.id = a.actor_user_id
-      where oc.audit_id = ${auditId} and oc.alert_status = 'none' and cardinality(oc.flags) > 0`),
-  );
-  if (!row) return;
-  const mark = (status: 'sent' | 'failed' | 'skipped', error: string | null = null) =>
-    withDb(env, (db) => db.execute(sql`update owner_change set alert_status = ${status}, alert_error = ${error} where audit_id = ${auditId}`));
-  if (row.recent > 0 || row.today >= ALERTS_PER_DAY) {
-    await mark('skipped');
-    return;
-  }
-  const lines = describeChanges(row.changes, () => 'a service').filter((l) => /^(Website|Phone):/.test(l));
-  const what = lines.map((l) => l.split(':')[0]!.toLowerCase()).join(' and ');
-  const result = await sendEmail(env, {
-    to: TEAM_ADDRESS,
-    subject: `Check now: ${row.business} changed its ${what}`.slice(0, 150),
-    text: [
-      `${row.owner}, the owner of ${row.business}, just changed:`,
-      '',
-      ...lines,
-      '',
-      'It’s already live. If it looks wrong (another website, a number that isn’t theirs), undo it on the listing’s admin page:',
-      `${siteUrl}/admin/listings/${row.vendorId}#owner-changes`,
-    ].join('\n'),
+  await withDb(env, async (db) => {
+    type Row = { vendorId: string; business: string; owner: string; changes: ChangeSet; recent: number; today: number };
+    const row = await db.transaction(async (tx) => {
+      await tx.execute(sql`select pg_advisory_xact_lock(hashtextextended('localites.owner-alert', 0))`);
+      const [r] = await tx.execute<Row>(sql`
+        select oc.vendor_id as "vendorId", v.display_name as business, coalesce(u.display_name, 'the owner') as owner, a.changes,
+               (select count(*) from owner_change x where x.vendor_id = oc.vendor_id and x.alert_status in ('sending', 'sent')
+                  and x.created_at > now() - interval '1 hour')::int as recent,
+               (select count(*) from owner_change x where x.alert_status in ('sending', 'sent')
+                  and x.created_at > now() - interval '1 day')::int as today
+        from owner_change oc join audit_log a on a.id = oc.audit_id join vendor v on v.id = oc.vendor_id
+        left join app_user u on u.id = a.actor_user_id
+        where oc.audit_id = ${auditId} and oc.alert_status = 'none' and cardinality(oc.flags) > 0
+        for update of oc`);
+      if (!r) return null;
+      const send = r.recent === 0 && r.today < ALERTS_PER_DAY;
+      await tx.execute(sql`update owner_change set alert_status = ${send ? 'sending' : 'skipped'} where audit_id = ${auditId}`);
+      return send ? r : null;
+    });
+    if (!row) return;
+    const lines = describeChanges(row.changes, () => 'a service').filter((l) => /^(Website|Phone):/.test(l));
+    const what = lines.map((l) => l.split(':')[0]!.toLowerCase()).join(' and ');
+    const result = await sendEmail(env, {
+      to: TEAM_ADDRESS,
+      subject: `Check now: ${row.business} changed its ${what}`.slice(0, 150),
+      text: [
+        `${row.owner}, the owner of ${row.business}, just changed:`,
+        '',
+        ...lines,
+        '',
+        'It’s already live. If it looks wrong (another website, a number that isn’t theirs), undo it on the listing’s admin page:',
+        `${siteUrl}/admin/listings/${row.vendorId}#owner-changes`,
+      ].join('\n'),
+    });
+    const [status, error] = result.sent ? ['sent', null] : env.RESEND_API_KEY ? ['failed', result.reason.slice(0, 300)] : ['skipped', null];
+    await db.execute(sql`update owner_change set alert_status = ${status}, alert_error = ${error} where audit_id = ${auditId}`);
   });
-  if (result.sent) await mark('sent');
-  else if (env.RESEND_API_KEY) await mark('failed', result.reason.slice(0, 300));
-  else await mark('skipped');
 }
 
 /** Plain words for a service's price, the same as the public page. */

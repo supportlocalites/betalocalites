@@ -6,11 +6,23 @@
 import { account, check, cookieFor, finish, passwordSession, run, site, sql, twoStepSession } from './helpers.mjs';
 
 const decode = (s) => s.replace(/&quot;/g, '"').replace(/&#x27;|&#39;/g, "'").replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&amp;/g, '&');
-/** The page's own copy of what it loaded (the hidden "base" field). */
-const baseOf = (html) => {
-  const m = /name="base" value="([^"]*)"/.exec(html) ?? /value="([^"]*)" name="base"/.exec(html);
+/** A hidden field's value: the page's own copy of what it loaded ("base", or the team's "loaded"). */
+const hiddenOf = (name) => (html) => {
+  const m = new RegExp(`name="${name}" value="([^"]*)"`).exec(html) ?? new RegExp(`value="([^"]*)" name="${name}"`).exec(html);
   return m ? decode(m[1]) : null;
 };
+const baseOf = hiddenOf('base');
+const loadedOf = hiddenOf('loaded');
+/** Work done after the page answered (emails, records): waits until it shows, up to 5 seconds. */
+async function waitFor(read, done, ms = 5000) {
+  const end = Date.now() + ms;
+  let value = await read();
+  while (!done(value) && Date.now() < end) {
+    await new Promise((res) => setTimeout(res, 150));
+    value = await read();
+  }
+  return value;
+}
 /** The form as a browser would send it: every field from the page's values, then changes. */
 function formFrom(baseJson, changes = {}, newServices = []) {
   const b = JSON.parse(baseJson);
@@ -49,22 +61,28 @@ const mine = await listing('mine');
 const theirs = await listing('theirs');
 const hidden = await listing('hidden', 'unpublished');
 const archived = await listing('archived', 'archived');
+const extra = await listing('extra');
+const [category] = await sql`select id from category where is_active order by sort_order limit 1`;
 
 const ownerEmail = `e2e-owner-${run}@example.test`;
 const otherEmail = `e2e-other-owner-${run}@example.test`;
 const nobodyEmail = `e2e-no-business-${run}@example.test`;
 const adminEmail = `e2e-own-admin-${run}@example.test`;
+const owner2Email = `e2e-owner-two-${run}@example.test`;
 const ownerId = await account(ownerEmail);
 const otherId = await account(otherEmail);
-await account(nobodyEmail);
+const nobodyId = await account(nobodyEmail);
+const owner2Id = await account(owner2Email);
 const adminId = await account(adminEmail);
 await sql`insert into platform_role (user_id, role) values (${adminId}, 'admin')`;
 for (const v of [mine, hidden, archived]) await sql`insert into vendor_member (vendor_id, user_id, role) values (${v.id}, ${ownerId}, 'owner')`;
 await sql`insert into vendor_member (vendor_id, user_id, role) values (${theirs.id}, ${otherId}, 'owner')`;
+await sql`insert into vendor_member (vendor_id, user_id, role) values (${extra.id}, ${owner2Id}, 'owner')`;
 
 const owner = cookieFor(await passwordSession(ownerEmail));
 const other = cookieFor(await passwordSession(otherEmail));
 const nobody = cookieFor(await passwordSession(nobodyEmail));
+const owner2 = cookieFor(await passwordSession(owner2Email));
 const admin = cookieFor(await twoStepSession(adminEmail));
 const edit = (v) => `/vendors/${v.slug}/edit`;
 const vendorRow = async (v) => (await sql`select display_name, slug, tagline, website_url, public_phone, public_email from vendor where id = ${v.id}`)[0];
@@ -82,7 +100,9 @@ check('another business’s owner can’t open it (404)', r.status === 404, Stri
 r = await site(edit(mine), { cookie: admin });
 check('a team admin isn’t its owner either (they edit on the team page)', r.status === 404, String(r.status));
 r = await site(edit(archived), { cookie: owner });
-check('an archived listing can’t be edited, even by its owner', r.status === 404, String(r.status));
+check('an archived listing can’t be edited, even by its owner, and the page says why', r.status === 404 && r.body.includes('no longer on Localites'), String(r.status));
+r = await site('/account', { cookie: owner });
+check('Your account offers to edit the owner’s listings, but not an archived one', r.body.includes(edit(mine)) && !r.body.includes(edit(archived)));
 
 r = await site(edit(mine), { cookie: owner });
 const base0 = baseOf(r.body);
@@ -104,15 +124,20 @@ check('and the owner can’t open another business’s edit page', r.status === 
 const [theirService] = await sql`select id, name from vendor_service where vendor_id = ${theirs.id} limit 1`;
 const sneaky = JSON.parse(base0);
 sneaky.services.push({ id: theirService.id, name: theirService.name, description: null, price: { pricingModel: 'starting_at', priceCents: 35000 }, shown: true });
-r = await site(edit(mine), { cookie: owner, method: 'POST', form: formFrom(JSON.stringify(sneaky), { [`service.${sneaky.services.length - 1}.name`]: 'Stolen' }) });
-const [theirsAfter] = await sql`select name from vendor_service where id = ${theirService.id}`;
-check('a service of another business, slipped into the form, stops the whole save', r.status === 409 && theirsAfter.name === theirService.name && (await audits(mine)) === 0, `${r.status} ${theirsAfter.name}`);
+// Details from nothing: past the clash check (the page's copy says empty, so does this
+// business's), so only the database's "this business's services only" rule can stop it.
+r = await site(edit(mine), { cookie: owner, method: 'POST', form: formFrom(JSON.stringify(sneaky), { [`service.${sneaky.services.length - 1}.description`]: 'Stolen' }) });
+const [theirsAfter] = await sql`select description from vendor_service where id = ${theirService.id}`;
+check('a service of another business, slipped into the form, stops the whole save',
+  r.status === 409 && r.body.includes('out of date') && !r.body.includes('Our team changed') && theirsAfter.description === null && (await audits(mine)) === 0,
+  `${r.status} ${theirsAfter.description}`);
 
 // 3. Checks on what's typed.
 r = await site(edit(mine), { cookie: owner, method: 'POST', form: formFrom(base0, { websiteUrl: 'bit.ly/cakes' }) });
 check('a shortened link as the website is refused', r.status === 400 && r.body.includes('not a shortened link'), String(r.status));
 r = await site(edit(mine), { cookie: owner, method: 'POST', form: formFrom(base0, { description: 'Order at www.cheap-cakes.example' }) });
-check('a web address in the description is refused, pointing to the Website box', r.status === 400 && r.body.includes('Website box'), String(r.status));
+check('a web address in the description is refused, naming it and pointing to the Website box',
+  r.status === 400 && r.body.includes('Website box') && r.body.includes('www.cheap-cakes.example'), String(r.status));
 r = await site(edit(mine), { cookie: owner, method: 'POST', form: formFrom(base0, { 'service.0.price': 'lots' }) });
 check('a price that isn’t dollars is pointed out, and nothing is saved', r.status === 400 && r.body.includes('in dollars') && (await audits(mine)) === 0, String(r.status));
 r = await site(edit(mine), { cookie: owner, method: 'POST', form: formFrom(base0) });
@@ -145,8 +170,7 @@ const [save1] = await sql`
   where oc.vendor_id = ${mine.id} order by oc.audit_id desc limit 1`;
 check('the save is in the audit log, credited to the owner, with before and after', save1?.actor_user_id === ownerId && save1.changes.tagline?.to === 'Custom cakes for every party' && Object.keys(save1.changes).some((k) => k.endsWith(':shown')));
 check('a new website on another site is flagged for the team to check now', save1?.flags?.includes('website'));
-await new Promise((res) => setTimeout(res, 500));
-const [alerted] = await sql`select alert_status from owner_change where audit_id = ${save1.audit_id}`;
+const [alerted] = await waitFor(() => sql`select alert_status from owner_change where audit_id = ${save1.audit_id}`, ([a]) => !['none', 'sending'].includes(a.alert_status));
 check('the "check now" email is recorded honestly (sent, failed or not set up)', ['sent', 'failed', 'skipped'].includes(alerted.alert_status), alerted.alert_status);
 
 // 5. Someone on the team changes something while the owner's page is open.
@@ -178,11 +202,17 @@ check('undo puts the ticked changes back: the new service hidden (not deleted), 
 check('…and leaves the rest of the save alone', undone.tagline === 'Cakes and pies');
 const [undoRow] = await sql`select oc.undone_by, u.reason, u.action from owner_change oc join audit_log u on u.id = oc.undo_audit_id where oc.audit_id = ${save1.audit_id}`;
 check('the undo is recorded, with who and why', undoRow?.undone_by === adminId && undoRow?.reason === 'E2E: test undo' && undoRow?.action === 'vendor.owner_edit.undo');
-await new Promise((res) => setTimeout(res, 500));
-const [told] = await sql`select status from notification where user_id = ${ownerId} and kind = 'listing_change_undone' order by created_at desc limit 1`;
+const [told] = await waitFor(
+  () => sql`select status from notification where user_id = ${ownerId} and kind = 'listing_change_undone' order by created_at desc limit 1`,
+  ([n]) => n && n.status !== 'queued',
+);
 check('the owner is emailed what changed back and why (recorded honestly)', told && ['sent', 'failed'].includes(told.status), JSON.stringify(told));
 r = await site(`/admin/listings/${mine.id}`, { cookie: admin, method: 'POST', form: { intent: 'owner-undo', auditId: save1.audit_id, key: 'tagline', reason: 'again' } });
-check('a save can’t be undone twice', r.status === 409 && r.body.includes('Already undone'), String(r.status));
+check('a save can’t be undone twice, and the team is shown why',
+  r.status === 409 && /role="alert"[^>]*>Someone on the team already undid this save/.test(r.body), String(r.status));
+r = await site(`/admin/listings/${mine.id}`, { cookie: admin });
+check('a partly undone save says which parts were put back and which kept',
+  r.body.includes('put back') && r.body.includes('kept as the owner set it'));
 r = await site(edit(mine), { cookie: owner });
 check('the owner’s edit page says what the team changed back, and why', r.body.includes('our') && r.body.includes('changed back') && r.body.includes('E2E: test undo'));
 
@@ -194,13 +224,57 @@ const [note] = await sql`select status, failure_reason from team_digest where da
 const [pending] = await sql`select count(*)::int as n from owner_change where vendor_id = ${mine.id} and digest_day is null`;
 check('the daily note runs and records its outcome honestly; unsent saves stay waiting',
   note && ((note.status === 'sent' && pending.n === 0) || (note.status === 'failed' && Boolean(note.failure_reason) && pending.n > 0)), JSON.stringify({ note, pending }));
-const notesBefore = (await sql`select count(*)::int as n from team_digest`)[0].n;
+const today = sql`(now() at time zone 'America/Toronto')::date`;
+const [first] = await sql`select status, started_at from team_digest where day = ${today}`;
 await site('/cdn-cgi/handler/scheduled?cron=0+14+*+*+*');
 await new Promise((res) => setTimeout(res, 1500));
-const notesAfter = (await sql`select count(*)::int as n from team_digest`)[0].n;
-check('a second run the same day makes no second note', notesAfter === notesBefore);
+const [second] = await sql`select status, started_at from team_digest where day = ${today}`;
+check(first.status === 'sent' ? 'a second run the same day leaves a sent note alone' : 'a second run the same day tries the failed note again',
+  first.status === 'sent' ? +second.started_at === +first.started_at && second.status === 'sent' : +second.started_at > +first.started_at,
+  JSON.stringify({ first, second }));
 r = await site('/admin', { cookie: admin });
-check('the team’s Listings page says how the daily note went', /Daily note of owners’ changes/.test(r.body));
+check('the team’s Listings page says how the daily note went',
+  second.status === 'sent' ? r.body.includes('Daily note of owners’ changes: sent') : r.body.includes('Daily note of owners’ changes: failed on'));
+
+// 7b. Text the team wrote, and the team's own forms (review of D-34).
+await sql`update vendor set tagline = ${'Cakes  for every party '}, description = ${'Order at sweettreats.ca or jane@sweettreats.ca.\r\n\r\n\r\nFamily  run.'} where id = ${extra.id}`;
+const teamWords = (await sql`select tagline, description from vendor where id = ${extra.id}`)[0];
+r = await site(edit(extra), { cookie: owner2 });
+const baseX = baseOf(r.body);
+const teamLoaded = loadedOf((await site(`/admin/listings/${extra.id}`, { cookie: admin })).body);
+// The browser sends the About box with plain line breaks; spaces the save would tidy don't count.
+r = await site(edit(extra), { cookie: owner2, method: 'POST', form: formFrom(baseX, { tagline: 'Cakes for every party', description: 'Order at sweettreats.ca or jane@sweettreats.ca.\n\n\nFamily run.', publicPhone: '705 555 0177' }) });
+const [phoneSave] = await sql`
+  select a.changes from owner_change oc join audit_log a on a.id = oc.audit_id where oc.vendor_id = ${extra.id} order by oc.audit_id desc limit 1`;
+const extraRow = await vendorRow(extra);
+check('text the team wrote (even with an address in it) never blocks an owner’s save, and isn’t counted as their change',
+  r.status === 302 && extraRow.public_phone === '705 555 0177' && extraRow.tagline === teamWords.tagline
+  && (await sql`select description from vendor where id = ${extra.id}`)[0].description === teamWords.description
+  && Object.keys(phoneSave?.changes ?? {}).join() === 'publicPhone', `${r.status} ${Object.keys(phoneSave?.changes ?? {})}`);
+const teamForm = (changes = {}) => {
+  const l = JSON.parse(teamLoaded);
+  return {
+    intent: 'details', loaded: teamLoaded, name: `E2E extra ${run}`, slug: extra.slug, tagline: l.tagline ?? '', description: l.description ?? '',
+    municipalityId: town.id, websiteUrl: l.websiteUrl ?? '', publicEmail: '', publicPhone: l.publicPhone ?? '', primaryCategoryId: category.id, ...changes,
+  };
+};
+r = await site(`/admin/listings/${extra.id}`, { cookie: admin, method: 'POST', form: teamForm() });
+check('a team save of other details keeps the owner’s newer phone', r.status === 302 && (await vendorRow(extra)).public_phone === '705 555 0177', String(r.status));
+r = await site(`/admin/listings/${extra.id}`, { cookie: admin, method: 'POST', form: teamForm({ publicPhone: '705 555 0000' }) });
+check('a team member changing the same box is told the owner changed it, and nothing is written',
+  r.status === 409 && r.body.includes('The owner changed this while you were editing') && (await vendorRow(extra)).public_phone === '705 555 0177', String(r.status));
+r = await site(`/admin/listings/${extra.id}`, { cookie: admin, method: 'POST', form: { ...teamForm(), loaded: '' } });
+check('a team form without the page’s copy of what it showed is refused as out of date', r.status === 400 && r.body.includes('out of date'), String(r.status));
+
+// 7c. The team changes the web address while the owner's page is open.
+r = await site(edit(extra), { cookie: owner2 });
+const baseR = baseOf(r.body);
+const renamed = `${extra.slug}-renamed`;
+await sql`insert into vendor_slug_history (slug, vendor_id) values (${extra.slug}, ${extra.id})`;
+await sql`update vendor set slug = ${renamed} where id = ${extra.id}`;
+r = await site(edit(extra), { cookie: owner2, method: 'POST', form: formFrom(baseR, { tagline: 'Renamed while open' }) });
+check('a save from the old web address still works, then goes to the new one',
+  r.status === 302 && r.location.startsWith(`/vendors/${renamed}/edit?saved=`) && (await vendorRow(extra)).tagline === 'Renamed while open', `${r.status} ${r.location}`);
 
 // 8. Remove owner.
 const staleForm = formFrom(baseOf((await site(edit(mine), { cookie: owner })).body), { tagline: 'After removal' });
@@ -216,10 +290,30 @@ r = await site(edit(mine), { cookie: owner });
 check('…nor open the edit page', r.status === 404, String(r.status));
 r = await site('/account', { cookie: owner });
 check('…and Your account no longer offers to edit it', !r.body.includes(edit(mine)));
-await new Promise((res) => setTimeout(res, 500));
-const [removedNote] = await sql`select status from notification where user_id = ${ownerId} and kind = 'owner_removed' order by created_at desc limit 1`;
+const [removedNote] = await waitFor(
+  () => sql`select status from notification where user_id = ${ownerId} and kind = 'owner_removed' order by created_at desc limit 1`,
+  ([n]) => n && n.status !== 'queued',
+);
 check('the removed owner is emailed why (recorded honestly)', removedNote && ['sent', 'failed'].includes(removedNote.status));
 const [logged] = await sql`select count(*)::int as n from audit_log where subject_id = ${mine.id} and action = 'vendor_member.end' and actor_user_id = ${adminId}`;
 check('removing an owner is in the audit log', logged.n === 1);
+
+// 9. After removal: a website the old owner typed proves nothing, and a new owner starts clean.
+await sql`update vendor set website_url = ${save1.changes.websiteUrl.to} where id = ${mine.id}`;
+const claimantEmail = `e2e-jane-${run}@${new URL(save1.changes.websiteUrl.to).hostname}`;
+await account(claimantEmail);
+r = await site(`/vendors/${mine.slug}/claim`, { cookie: cookieFor(await passwordSession(claimantEmail)), method: 'POST', form: { relationship: 'owner', authorised: 'yes' } });
+const [claim] = await sql`select id from vendor_claim where vendor_id = ${mine.id} and status = 'submitted'`;
+r = await site('/admin/claims', { cookie: admin });
+check('the Claims page warns that the website was typed in by a past owner (even though part of that save was undone)',
+  Boolean(claim) && r.body.includes('typed in by a past owner'));
+r = await site('/admin/claims', { cookie: admin, method: 'POST', form: { intent: 'approve', id: claim?.id ?? '', check: 'email_domain' } });
+const [claimAfter] = await sql`select status from vendor_claim where id = ${claim?.id ?? null}`;
+check('…and the server refuses "their email is at the business’s website" for it', r.status === 409 && claimAfter?.status === 'submitted', `${r.status} ${claimAfter?.status}`);
+await sql`update vendor_claim set status = 'withdrawn' where id = ${claim?.id ?? null}`;
+await sql`insert into vendor_member (vendor_id, user_id, role) values (${mine.id}, ${nobodyId}, 'owner')`;
+await sql`update vendor set claim_status = 'claimed' where id = ${mine.id}`;
+r = await site(edit(mine), { cookie: nobody });
+check('a new owner doesn’t see what the team told the last one', r.status === 200 && !r.body.includes('E2E: test undo') && !r.body.includes('changed back'), String(r.status));
 
 await finish('owner editing');

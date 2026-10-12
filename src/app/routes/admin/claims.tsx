@@ -115,8 +115,8 @@ export default function Claims({ loaderData, actionData }: Route.ComponentProps)
                 <span>{describeEvidence(c.evidence)}</span>
                 {c.websiteByOwner && (
                   <span className={styles.status}>
-                    The website was set by a past owner on Localites, so an email match proves less: contact the business to
-                    confirm.
+                    The website was typed in by a past owner on Localites, so an email at it proves nothing: contact the
+                    business to confirm.
                   </span>
                 )}
                 {c.status === 'submitted' ? (
@@ -154,7 +154,7 @@ export default function Claims({ loaderData, actionData }: Route.ComponentProps)
                         <select id={`check-${c.id}`} name="check" className="input" defaultValue="">
                           <option value="">How you confirmed it…</option>
                           {Object.entries(CHECKS)
-                            .filter(([key]) => key !== 'email_domain' || c.evidence.result === 'match')
+                            .filter(([key]) => key !== 'email_domain' || (c.evidence.result === 'match' && !c.websiteByOwner))
                             .map(([key, label]) => (
                               <option key={key} value={key}>
                                 {label}

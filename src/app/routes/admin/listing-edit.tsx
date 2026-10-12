@@ -1,21 +1,22 @@
-import { data, Form, Link, redirect, useNavigation } from 'react-router';
+import { data, Form, Link, redirect, type ShouldRevalidateFunctionArgs, useNavigation } from 'react-router';
 import { adminContext, cloudflareContext } from '@/app/context';
 import { ListingFields, type ListingValues } from '@/components/admin/ListingFields';
 import { isUuid } from '@/lib/ids.mjs';
 import { pageMeta } from '@/lib/meta';
 import { describePrice, type PricingModel } from '@/lib/price';
 import { ADMIN_TRANSITIONS, type ListingStatus, PRICING_MODELS, STATUS_LABEL } from '@/lib/listing-status';
-import { fieldErrors, formValues, listingInput, serviceInput } from '@/server/admin/listing-input';
+import { fieldErrors, formValues, listingInput, readLoadedListing, readLoadedService, serviceInput } from '@/server/admin/listing-input';
 import {
   changeListingStatus,
-  formOptions,
-  getListing,
   ListingConflict,
+  readFormOptions,
+  readListing,
   saveService,
   setServiceActive,
   updateListing,
 } from '@/server/admin/listings.server';
 import { listOwnerChanges, OwnerChangeConflict, removeOwner, undoOwnerChange } from '@/server/admin/owner-changes.server';
+import { withDb } from '@/server/db.server';
 import { emailPerson, renderEmail } from '@/server/email-templates.server';
 import type { Route } from './+types/listing-edit';
 import styles from './admin.module.css';
@@ -28,10 +29,21 @@ export const meta: Route.MetaFunction = ({ loaderData }) => [
 export async function loader({ params, request, context }: Route.LoaderArgs) {
   if (!isUuid(params.id)) throw data(null, { status: 404 });
   const { env } = context.get(cloudflareContext);
-  const [listing, options, owned] = await Promise.all([getListing(env, params.id), formOptions(env), listOwnerChanges(env, params.id)]);
+  // One connection for the page (each one costs time from the request's small CPU budget).
+  const [listing, options, owned] = await withDb(env, (db) =>
+    Promise.all([readListing(db, params.id), readFormOptions(db), listOwnerChanges(db, params.id)]),
+  );
   if (!listing) throw data(null, { status: 404 });
   return { listing, options, owner: owned.owner, ownerChanges: owned.cards, saved: new URL(request.url).searchParams.get('saved') };
 }
+
+// After an undo the cards are read again even when it was refused (someone else may
+// have undone that save first), so the page shows what's true now.
+export function shouldRevalidate({ formData, defaultShouldRevalidate }: ShouldRevalidateFunctionArgs) {
+  return formData?.get('intent') === 'owner-undo' || defaultShouldRevalidate;
+}
+
+const OUT_OF_DATE = 'This page was out of date. Reload it and try again.';
 
 const ACTION_WORDS: Record<ListingStatus, string> = {
   published: 'Publish',
@@ -57,14 +69,17 @@ export async function action({ params, request, context }: Route.ActionArgs) {
       const reason = String(form.get('reason') ?? '').replace(/\s+/g, ' ').trim().slice(0, 500);
       if (!reason) return data({ intent, auditId, errors: { form: 'Say why. The owner is emailed the reason.' } }, { status: 400 });
       const keys = form.getAll('key').map(String).slice(0, 200);
-      const result = await undoOwnerChange(env, admin, params.id, auditId, keys, reason);
-      if (result.owner) {
-        const owner = result.owner;
-        later(
-          emailPerson(env, owner, 'listing_change_undone', { type: 'owner_change', id: auditId },
-            renderEmail('undone', { name: owner.name, business: result.business, lines: result.lines, reason })),
-        );
-      }
+      const result = await undoOwnerChange(env, admin, params.id, auditId, keys, reason).catch((err: unknown) => {
+        if (err instanceof OwnerChangeConflict) return err;
+        throw err;
+      });
+      if (result instanceof OwnerChangeConflict) return data({ intent, auditId, errors: { form: result.message } }, { status: 409 });
+      if (!result.owner) return back('undone-no-email');
+      const owner = result.owner;
+      later(
+        emailPerson(env, owner, 'listing_change_undone', { type: 'owner_change', id: auditId },
+          renderEmail('undone', { name: owner.name, business: result.business, lines: result.lines, reason })),
+      );
       return back('undone');
     }
     if (intent === 'owner-remove') {
@@ -81,7 +96,9 @@ export async function action({ params, request, context }: Route.ActionArgs) {
       const raw = formValues(form, ['categoryIds']);
       const parsed = listingInput.safeParse(raw);
       if (!parsed.success) return data({ intent, errors: fieldErrors(parsed.error), values: raw }, { status: 400 });
-      await updateListing(env, admin, params.id, parsed.data);
+      const loaded = readLoadedListing(String(form.get('loaded') ?? ''));
+      if (!loaded) return data({ intent, errors: { form: OUT_OF_DATE }, values: raw }, { status: 400 });
+      await updateListing(env, admin, params.id, parsed.data, loaded);
       return back('details');
     }
     if (intent === 'status') {
@@ -99,7 +116,7 @@ export async function action({ params, request, context }: Route.ActionArgs) {
       if (!parsed.success) {
         return data({ intent, serviceId, errors: fieldErrors(parsed.error), values: raw }, { status: 400 });
       }
-      await saveService(env, admin, params.id, serviceId || null, parsed.data);
+      await saveService(env, admin, params.id, serviceId || null, parsed.data, readLoadedService(String(form.get('loaded') ?? '')));
       return back('service');
     }
     if (intent === 'service-visibility') {
@@ -112,7 +129,8 @@ export async function action({ params, request, context }: Route.ActionArgs) {
   } catch (err) {
     if (err instanceof OwnerChangeConflict) return data({ intent, errors: { form: err.message } }, { status: 409 });
     if (err instanceof ListingConflict) {
-      return data({ intent, errors: { [err.field]: err.message }, values: formValues(form, ['categoryIds']) }, { status: 409 });
+      const serviceId = String(form.get('serviceId') ?? '');
+      return data({ intent, serviceId, errors: { [err.field]: err.message }, values: formValues(form, ['categoryIds']) }, { status: 409 });
     }
     throw err;
   }
@@ -126,8 +144,9 @@ const SAVED: Record<string, string> = {
   unpublished: 'Hidden: it no longer shows on Localites.',
   archived: 'Archived.',
   draft: 'Moved back to draft.',
-  undone: 'Undone. The owner has been emailed what changed back, and why.',
-  'owner-removed': 'Owner removed. They’ve been emailed, and the listing is unclaimed again.',
+  undone: 'Undone. We’re emailing the owner what changed back, and why.',
+  'undone-no-email': 'Undone. The owner’s account no longer exists, so no email was sent.',
+  'owner-removed': 'Owner removed, and the listing is unclaimed again. We’re emailing them the reason.',
 };
 
 const PRICING_LABEL: Record<(typeof PRICING_MODELS)[number], string> = {
@@ -223,7 +242,7 @@ const FIELD_WORDS: Record<string, string> = {
   categoryIds: 'categories',
 };
 
-type ActionResult = { intent: string; serviceId?: string; errors: Record<string, string>; values?: Record<string, unknown> };
+type ActionResult = { intent: string; serviceId?: string; auditId?: string; errors: Record<string, string>; values?: Record<string, unknown> };
 
 export default function EditListing({ loaderData, actionData: rawResult }: Route.ComponentProps) {
   const actionData = rawResult as ActionResult | undefined;
@@ -234,6 +253,9 @@ export default function EditListing({ loaderData, actionData: rawResult }: Route
     actionData?.intent === intent && (intent !== 'service' || actionData.serviceId === serviceId) ? actionData.errors : undefined;
   const detailValues: ListingValues =
     actionData?.intent === 'details' && actionData.values ? (actionData.values as unknown as ListingValues) : listing;
+  // An undo's problem shows on its save's card while that card can still be undone, else at the top.
+  const undoCard =
+    actionData?.intent === 'owner-undo' ? ownerChanges.find((c) => c.auditId === actionData.auditId && !c.undone) : undefined;
   const newServiceErrors = errorsFor('service', '');
   const newServiceValues =
     newServiceErrors && actionData?.values
@@ -267,7 +289,7 @@ export default function EditListing({ loaderData, actionData: rawResult }: Route
           {SAVED[saved]}
         </p>
       )}
-      {actionData?.errors?.form && actionData.intent !== 'owner-undo' && (
+      {actionData?.errors?.form && !undoCard && (
         <p className="notice" role="alert">
           {actionData.errors.form}
         </p>
@@ -339,7 +361,9 @@ export default function EditListing({ loaderData, actionData: rawResult }: Route
                   <>
                     <ul className={styles.history}>
                       {c.lines.map((l) => (
-                        <li key={l.key}>{l.text}</li>
+                        <li key={l.key}>
+                          {l.text} <span className="muted">· {l.putBack ? 'put back' : 'kept as the owner set it'}</span>
+                        </li>
                       ))}
                     </ul>
                     <span className="muted">
@@ -363,9 +387,15 @@ export default function EditListing({ loaderData, actionData: rawResult }: Route
                         </label>
                       ))}
                     </fieldset>
-                    {actionData?.intent === 'owner-undo' && (actionData as { auditId?: string }).auditId === c.auditId && actionData.errors.form && (
+                    {undoCard === c && actionData?.errors.form && (
                       <p className="notice" role="alert">
                         {actionData.errors.form}
+                      </p>
+                    )}
+                    {c.lines.some((l) => l.possible) && (
+                      <p className="muted">
+                        Each save can be undone once. Anything you leave unticked stays as the owner set it (you can still change
+                        it under Details or Services).
                       </p>
                     )}
                     {c.lines.some((l) => l.possible) && (
@@ -396,6 +426,15 @@ export default function EditListing({ loaderData, actionData: rawResult }: Route
         )}
         <Form method="post" noValidate key={saved ?? 'details'}>
           <input type="hidden" name="intent" value="details" />
+          <input
+            type="hidden"
+            name="loaded"
+            value={
+              actionData?.intent === 'details' && typeof actionData.values?.loaded === 'string'
+                ? actionData.values.loaded
+                : JSON.stringify({ tagline: listing.tagline, description: listing.description, websiteUrl: listing.websiteUrl, publicPhone: listing.publicPhone })
+            }
+          />
           <fieldset disabled={archived} className={styles.plainFieldset}>
             <ListingFields values={detailValues} options={options} errors={errorsFor('details')} />
             <button type="submit" className="button button-primary" disabled={busy}>
@@ -424,6 +463,15 @@ export default function EditListing({ loaderData, actionData: rawResult }: Route
               <Form method="post" noValidate key={`${s.id}-${saved ?? ''}`}>
                 <input type="hidden" name="intent" value="service" />
                 <input type="hidden" name="serviceId" value={s.id} />
+                <input
+                  type="hidden"
+                  name="loaded"
+                  value={
+                    errors && typeof actionData?.values?.loaded === 'string'
+                      ? actionData.values.loaded
+                      : JSON.stringify({ name: s.name, description: s.description, pricingModel: s.pricingModel, priceCents: s.priceCents })
+                  }
+                />
                 <fieldset disabled={archived} className={styles.plainFieldset}>
                   <ServiceFields prefix={`s-${s.id}`} values={values} errors={errors} />
                   <div className={styles.buttons}>

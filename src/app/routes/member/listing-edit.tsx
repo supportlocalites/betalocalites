@@ -1,10 +1,11 @@
 import { useEffect, useRef, useState, useSyncExternalStore } from 'react';
-import { data, Form, isRouteErrorResponse, Link, redirect, useNavigation, useRouteError, useSearchParams } from 'react-router';
+import { data, Form, isRouteErrorResponse, Link, redirect, useBlocker, useNavigation, useRouteError, useSearchParams } from 'react-router';
 import { cloudflareContext, memberContext } from '@/app/context';
 import { SiteHeader } from '@/components/SiteHeader';
 import { VendorPage, type VendorView } from '@/components/VendorPage';
 import page from '@/components/VendorPage.module.css';
 import { pageMeta } from '@/lib/meta';
+import { tidyLine, tidyParagraphs } from '@/lib/owner-text';
 import { describePrice, type PricingModel } from '@/lib/price';
 import { alertTeam, NotOwner, OwnerRefused, ownedListing, readBase, saveOwnerEdits } from '@/server/owner-listing.server';
 import { parseOwnerForm } from '@/server/owner-input';
@@ -25,6 +26,7 @@ export async function loader({ params, context }: Route.LoaderArgs) {
   const member = context.get(memberContext);
   const result = await ownedListing(context.get(cloudflareContext).env, member.userId, params.slug);
   if (!result) throw data({ reason: 'not_owner' }, { status: 404 });
+  if ('archived' in result) throw data({ reason: 'archived' }, { status: 404 });
   if ('renamedTo' in result) throw redirect(`/vendors/${result.renamedTo}/edit`);
   return { ...result, base: JSON.stringify(result.values) };
 }
@@ -49,7 +51,7 @@ export async function action({ request, params, context }: Route.ActionArgs) {
     return refused('That’s a lot of saves in a minute. Please wait a moment, then save again.', 429);
   }
   if (!base) return refused('Something on the page was out of date. Please reload it and try again.');
-  const parsed = parseOwnerForm(fields);
+  const parsed = parseOwnerForm(fields, base);
   if (!parsed.ok) return reply({ kind: 'invalid', errors: parsed.errors, fields, nextBase: fields.base ?? '' }, 400);
 
   try {
@@ -103,27 +105,35 @@ function rowsFromFields(fields: Fields): Row[] {
 
 const blankRow = (): Row => ({ id: '', name: '', description: '', pricingModel: 'not_listed', price: '', shown: true });
 
-/** What a visitor would see, from what's typed in the form right now. */
+/** What a visitor would see, from what's typed in the form right now, tidied as the save will. */
 function previewOf(form: HTMLFormElement, view: { name: string; town: string; categories: string[] }): VendorView {
   const f = Object.fromEntries([...new FormData(form).entries()].map(([k, v]) => [k, String(v)]));
-  const text = (s: string | undefined) => (s ?? '').trim() || null;
-  const website = text(f.websiteUrl);
+  const line = (s: string | undefined) => tidyLine(s ?? '') || null;
+  const paragraphs = (s: string | undefined) => tidyParagraphs(s ?? '') || null;
+  const website = (f.websiteUrl ?? '').trim() || null;
   return {
     ...view,
     claimed: true,
-    tagline: text(f.tagline),
-    description: text(f.description),
+    tagline: line(f.tagline),
+    description: paragraphs(f.description),
     websiteUrl: website && !/^https?:\/\//i.test(website) ? `https://${website}` : website,
-    publicPhone: text(f.publicPhone),
+    publicPhone: (f.publicPhone ?? '').trim() || null,
     services: rowsFromFields(f)
-      .filter((r) => r.shown && r.name.trim())
+      .filter((r) => r.shown && tidyLine(r.name))
       .map((r) => {
         const cents = /^\d{1,7}(\.\d{1,2})?$/.test(r.price.replace(/[$,\s]/g, '')) ? Math.round(Number(r.price.replace(/[$,\s]/g, '')) * 100) : null;
         const price = PRICED.has(r.pricingModel) && cents === null ? null : describePrice(r.pricingModel as PricingModel, cents);
-        return { name: r.name.trim(), description: text(r.description), price };
+        return { name: tidyLine(r.name), description: paragraphs(r.description), price };
       }),
   };
 }
+
+const SERVICE_FIELD: Record<string, (v: unknown) => string> = {
+  name: (v) => `name “${clashText(v)}”`,
+  description: (v) => `details “${clashText(v)}”`,
+  price: (v) => `price: ${clashText(v)}`,
+  shown: (v) => (v ? 'shown on your page' : 'hidden from visitors'),
+};
 
 const keyFor = (field: string) => {
   const m = /^service\.(\d+)\.(\w+)$/.exec(field);
@@ -159,13 +169,22 @@ function Editor({
     () => true,
     () => false,
   );
-  const [extra, setExtra] = useState(0);
+  // Extra "Add a service" rows, counted afresh after each save attempt (its rows come back in `fields`).
+  const [extraRows, setExtraRows] = useState<{ after: unknown; n: number }>({ after: problem, n: 0 });
+  const extra = extraRows.after === problem ? extraRows.n : 0;
   const [preview, setPreview] = useState<{ vendor: VendorView; unsaved: boolean } | null>(null);
   const formRef = useRef<HTMLFormElement>(null);
   const summaryRef = useRef<HTMLDivElement>(null);
+  const previewBarRef = useRef<HTMLDivElement>(null);
+  const viewLinkRef = useRef<HTMLAnchorElement>(null);
+  const wasPreview = useRef(false);
   const dirty = useRef(false);
   useEffect(() => {
-    if (problem && problem.kind !== 'nothing') summaryRef.current?.focus();
+    // Not saved after all: the typed changes are still only on this page.
+    if (problem && problem.kind !== 'nothing') {
+      dirty.current = true;
+      summaryRef.current?.focus();
+    }
   }, [problem]);
   useEffect(() => {
     const warn = (e: BeforeUnloadEvent) => {
@@ -174,6 +193,33 @@ function Editor({
     window.addEventListener('beforeunload', warn);
     return () => window.removeEventListener('beforeunload', warn);
   }, []);
+  useEffect(() => {
+    // Keyboard and screen-reader users land on the preview's bar, and back on the link after.
+    if (preview) previewBarRef.current?.focus();
+    else if (wasPreview.current) viewLinkRef.current?.focus();
+    wasPreview.current = Boolean(preview);
+  }, [preview]);
+
+  // Moving within the site (a link, the phone's Back gesture) doesn't unload the page, so
+  // it's caught here: Back from the preview returns to editing, and leaving with unsaved
+  // changes asks first.
+  const backToEditing = useRef(false);
+  const blocker = useBlocker(({ currentLocation, nextLocation, historyAction }) => {
+    backToEditing.current = Boolean(preview) && historyAction === 'POP';
+    return backToEditing.current || (dirty.current && currentLocation.pathname !== nextLocation.pathname);
+  });
+  useEffect(() => {
+    if (blocker.state !== 'blocked') return;
+    if (backToEditing.current) {
+      setPreview(null);
+      blocker.reset();
+    } else if (window.confirm('You have changes that aren’t saved. Leave this page anyway?')) {
+      dirty.current = false;
+      blocker.proceed();
+    } else {
+      blocker.reset();
+    }
+  }, [blocker]);
 
   const rows: Row[] = fields
     ? rowsFromFields(fields)
@@ -212,9 +258,10 @@ function Editor({
       <main className="page">
         {preview && (
           <>
-            <div className={`notice ${styles.previewBar}`} role="status">
+            <div ref={previewBarRef} tabIndex={-1} className={`notice ${styles.previewBar}`}>
               <span>
-                This is how visitors see your listing.{preview.unsaved ? ' Not saved yet.' : ''}
+                {hidden ? 'This is how your listing will look to visitors.' : 'This is how visitors see your listing.'}
+                {preview.unsaved ? ' Not saved yet.' : ''}
               </span>
               <button type="button" className="button button-secondary" onClick={() => setPreview(null)}>
                 Back to editing
@@ -226,12 +273,13 @@ function Editor({
 
         <div hidden={Boolean(preview)}>
           <p className={`notice ${styles.topNote}`}>
-            You’re editing your listing. Changes show to visitors as soon as you save. Our team reads every change and may
-            change back anything that breaks our rules.
+            You’re editing your listing.{' '}
+            {hidden ? 'Your changes are kept as soon as you save.' : 'Changes show to visitors as soon as you save.'} Our team
+            reads every change and may change back anything that breaks our rules.
           </p>
           {saved && !problem && (
             <p className="notice" role="status">
-              Saved. Visitors see your changes now.{' '}
+              {hidden ? 'Saved. Visitors will see your changes once your listing is shown again.' : 'Saved. Visitors see your changes now.'}{' '}
               {!hidden && (
                 <Link to={`/vendors/${slug}`} className="text-link">
                   See your listing
@@ -264,19 +312,12 @@ function Editor({
                   </p>
                   <ul>
                     {problems.map(([name, message]) => (
-                      <li key={name}>
-                        <a href={`#${keyFor(name)}`}>{message}</a>
-                      </li>
+                      <li key={name}>{name === 'form' ? message : <a href={`#${keyFor(name)}`}>{message}</a>}</li>
                     ))}
                   </ul>
                 </>
               )}
             </div>
-          )}
-          {problem?.kind === 'nothing' && (
-            <p className="notice" role="status">
-              Nothing to save: you haven’t changed anything.
-            </p>
           )}
 
           <Form
@@ -293,7 +334,7 @@ function Editor({
             <input type="hidden" name="base" value={base} />
             <div className={page.layout}>
               <div className={`${page.photo} ${styles.photo}`}>
-                <span className="muted">Photos are coming later.</span>
+                <span className={styles.photoNote}>Photos are coming later.</span>
               </div>
               <div className={page.details}>
                 <span className="label">{[...view.categories, view.town].filter(Boolean).join(' · ')}</span>
@@ -352,7 +393,7 @@ function Editor({
                     {rows.map((r, i) => {
                       const k = (f: string) => `service.${i}.${f}`;
                       const id = (f: string) => `service-${i}-${f}`;
-                      const rowClash = Object.keys(clash).some((c) => r.id && c.startsWith(`service:${r.id}:`));
+                      const rowClashes = r.id ? Object.keys(clash).filter((c) => c.startsWith(`service:${r.id}:`)) : [];
                       return (
                         <li key={i} className={`${styles.serviceRow} ${r.shown || !r.id ? '' : styles.hiddenRow}`}>
                           <input type="hidden" name={k('id')} value={r.id} />
@@ -423,15 +464,19 @@ function Editor({
                             Show on my page
                           </label>
                           {r.id && !r.shown && <p className="muted">Hidden from visitors.</p>}
-                          {rowClash && (
-                            <p className={styles.clash}>Our team changed this service while you were editing. Check it, then save again.</p>
+                          {rowClashes.length > 0 && (
+                            <p className={styles.clash}>
+                              Our team changed this service while you were editing. It now has{' '}
+                              {rowClashes.map((c) => SERVICE_FIELD[c.split(':')[2]!]?.(clash[c]) ?? '').join(', ')}. Save again to use
+                              yours instead.
+                            </p>
                           )}
                         </li>
                       );
                     })}
                   </ul>
                   {hydrated && (
-                    <button type="button" className={`text-link ${styles.linkButton}`} onClick={() => setExtra((n) => n + 1)}>
+                    <button type="button" className={`text-link ${styles.linkButton}`} onClick={() => setExtraRows({ after: problem, n: extra + 1 })}>
                       + Add another service
                     </button>
                   )}
@@ -484,7 +529,12 @@ function Editor({
             </div>
 
             <div className={styles.saveBar}>
+              {/* Next to the button just tapped; always there, so screen readers announce the words. */}
+              <span className="muted" role="status">
+                {problem?.kind === 'nothing' ? 'Nothing to save: you haven’t changed anything.' : ''}
+              </span>
               <a
+                ref={viewLinkRef}
                 href={`/vendors/${slug}`}
                 className="text-link"
                 onClick={(e) => {
@@ -521,6 +571,7 @@ function clashText(v: unknown): string {
 export function ErrorBoundary() {
   const error = useRouteError();
   const notOwner = isRouteErrorResponse(error) && error.status === 404;
+  const archived = notOwner && (error.data as { reason?: string } | null)?.reason === 'archived';
   return (
     <>
       <SiteHeader />
@@ -528,9 +579,11 @@ export function ErrorBoundary() {
         <h1 className="title-1">{notOwner ? 'You can’t edit this listing' : 'Something went wrong'}</h1>
         <div className="title-rule" aria-hidden="true" />
         <p className="muted">
-          {notOwner
-            ? 'Only its owner can, once their claim is approved. If this is your business, open its page and choose “Claim this business”.'
-            : 'The page didn’t load. Please try again in a moment.'}
+          {archived
+            ? 'This listing is no longer on Localites, so it can’t be edited. If you think that’s a mistake, email supportlocalites@gmail.com.'
+            : notOwner
+              ? 'Only the business’s owner on Localites can edit it. If you’ve claimed it, we’ll email you once your claim is approved. If you think this should be yours, email supportlocalites@gmail.com.'
+              : 'The page didn’t load. Please try again in a moment.'}
         </p>
         <Link to="/account" className="button button-primary">
           Your account
