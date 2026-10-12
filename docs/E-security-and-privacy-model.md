@@ -1,7 +1,7 @@
 # E — Security & Privacy Model
 
 **Status:** Approved (D-00, 10 October 2026).
-**Last updated:** 2026-10-11 (§7: sign-up details and anyone may join, D-36; §2: emailed sign-in codes and claims)
+**Last updated:** 2026-10-12 (§2: "are you human" check on sign-in codes; §7: sign-up details and anyone may join, D-36; §2: emailed sign-in codes and claims)
 
 **Revision 2:** rebuilt around the two users, consumer and vendor. Added
 conversations, shared files, consumer-marked bookings, and reviews. Removed the
@@ -64,6 +64,11 @@ concierge role and inquiry/quote/booking records.
   it or remove the owner. Proven by `tests/e2e/owner-editing.mjs` (45 checks).
 - **Email processors:** Supabase sends sign-in codes through Resend (PO-13), and our own
   emails go through Resend (ADR-013). Resend sees each recipient's address and the email.
+- **"Are you human" check (ADR-028, PO-15):** signing in with an emailed code needs a pass
+  from Cloudflare's Turnstile, checked on our server; each pass works once and must be made
+  for this form on this site. Cloudflare (already our host) sees the visitor's browser and
+  internet address while it checks; Localites stores nothing from it. The privacy policy
+  (PO-07) should mention it. Proven by `tests/e2e/human-check.mjs` (20 checks).
 - **Browsing needs no account.** Guests (Stage 4) never need one.
 
 ## 3. Roles

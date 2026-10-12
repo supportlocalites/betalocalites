@@ -2,7 +2,10 @@
 //   - SMTP on 127.0.0.1:2525 accepts every email the local sign-in server sends and keeps
 //     it in memory (no TLS, no password: it only listens on this computer);
 //   - HTTP on 127.0.0.1:8787 serves our sign-in email template (emails/sign-in-code.html)
-//     to the sign-in server, and lets the tests read what was sent: GET /messages?to=<address>.
+//     to the sign-in server, and lets the tests read what was sent: GET /messages?to=<address>;
+//   - POST /turnstile/siteverify stands in for Cloudflare's "are you human" checker. An
+//     answer "pass:<form>:<site>:<anything>" passes for that form on that site, once; "fail"
+//     fails; "down" makes the checker answer with an error. Only the test secret is accepted.
 // Usage: node scripts/e2e/mail-server.mjs
 import { readFile } from 'node:fs/promises';
 import http from 'node:http';
@@ -13,6 +16,21 @@ const root = path.join(path.dirname(new URL(import.meta.url).pathname), '..', '.
 const SMTP_PORT = Number(process.env.E2E_SMTP_PORT ?? 2525);
 const HTTP_PORT = Number(process.env.E2E_MAIL_HTTP_PORT ?? 8787);
 const messages = []; // { to: string[], subject, body, at }
+const TURNSTILE_SECRET = process.env.E2E_TURNSTILE_SECRET ?? 'e2e-turnstile-secret-local-only';
+const spent = new Set();
+const checks = []; // what the site sent the checker: { response, remoteip }
+
+function siteverify(body) {
+  if (body.secret !== TURNSTILE_SECRET) return [200, { success: false, 'error-codes': ['invalid-input-secret'] }];
+  const answer = String(body.response ?? '');
+  checks.push({ response: answer, remoteip: body.remoteip ?? null });
+  if (answer === 'down') return [500, {}];
+  const [word, action, hostname] = answer.split(':');
+  if (word !== 'pass') return [200, { success: false, 'error-codes': ['invalid-input-response'] }];
+  if (spent.has(answer)) return [200, { success: false, 'error-codes': ['timeout-or-duplicate'] }];
+  spent.add(answer);
+  return [200, { success: true, action, hostname, challenge_ts: new Date().toISOString(), 'error-codes': [] }];
+}
 
 const decodeQuotedPrintable = (s) =>
   Buffer.from(
@@ -23,7 +41,11 @@ const decodeQuotedPrintable = (s) =>
 function keep(rcpt, lines) {
   const blank = lines.indexOf('');
   const head = lines.slice(0, blank);
-  const header = (name) => head.find((l) => l.toLowerCase().startsWith(`${name.toLowerCase()}:`))?.slice(name.length + 1).trim() ?? '';
+  const header = (name) =>
+    head
+      .find((l) => l.toLowerCase().startsWith(`${name.toLowerCase()}:`))
+      ?.slice(name.length + 1)
+      .trim() ?? '';
   let body = lines.slice(blank + 1).join('\r\n');
   if (/quoted-printable/i.test(header('Content-Transfer-Encoding'))) body = decodeQuotedPrintable(body);
   messages.push({ to: rcpt.map((r) => r.replace(/[<>]/g, '').toLowerCase()), subject: header('Subject'), body, at: Date.now() });
@@ -88,6 +110,21 @@ http
       const to = (url.searchParams.get('to') ?? '').toLowerCase();
       res.writeHead(200, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify(messages.filter((m) => m.to.includes(to))));
+    } else if (url.pathname === '/turnstile/siteverify' && req.method === 'POST') {
+      let raw = '';
+      for await (const chunk of req) raw += chunk;
+      let body = {};
+      try {
+        body = JSON.parse(raw);
+      } catch {
+        body = Object.fromEntries(new URLSearchParams(raw));
+      }
+      const [status, reply] = siteverify(body);
+      res.writeHead(status, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify(reply));
+    } else if (url.pathname === '/turnstile/checks') {
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify(checks));
     } else if (url.pathname === '/health') {
       res.writeHead(200);
       res.end('ok');

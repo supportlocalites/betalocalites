@@ -31,6 +31,33 @@ Every release and every database migration, in order. Appended before each deplo
 
 ## Releases
 
+### 2026-10-12 — "Are you human" check on signing in (Stage 1, not public)
+
+**Stage:** 1 (ADR-028 update)
+**What changed (plain English):** "Email me a code", "Send a new code" and checking a code
+now need Cloudflare's free "are you human" check (Turnstile). Usually it passes by itself in
+a second; now and then it asks for a tick. Our server confirms each pass with Cloudflare
+before sending a code or trying a guess, and each pass works once, so a script can no
+longer use up the day's sign-in codes, or someone's codes and guesses. If Cloudflare can't
+be asked, sign-in says "try again in a minute" rather than skipping the check. **It stays
+off until you add its two keys (PO-15)**; the team's Claims page says so until then.
+**Migrations applied:** none.
+**Destructive?** No.
+**Tests run:** unit 111/111 (6 new); end-to-end 43/43, 73/73, 20/20 (new: no code sent and
+no guess counted without a fresh pass for this form on this site; a pass can't be reused;
+a checker that can't be reached refuses), 55/55, 51/51; in a real browser 10/10 with a
+stand-in for Cloudflare's script (the button waits for the check, both forms carry the
+answer, a fresh check after every reply, a plain message if the check can't load). Not
+tested here: Cloudflare's own widget, which this workspace can't reach; check it on the
+test site after PO-15.
+**Security tests:** passes made for another form or another site are refused; the secret
+key never appears in pages.
+**Existing functionality affected:** sign-in by emailed code, once PO-15 is done. Team
+sign-in (/sign-in) is unchanged.
+**How to roll back:** Cloudflare → localites → Deployments → previous version → Deploy; or
+delete `TURNSTILE_SITE_KEY` to switch the check off.
+**Approved by:** Product owner (12 October 2026: "add are you human check").
+
 ### 2026-10-12 — Activity counting and the Analytics page (Stage 1, not public)
 
 **Stage:** 1 (D-22, D-30, D-37; ADR-030)

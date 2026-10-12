@@ -1,7 +1,7 @@
 # F — Operational Runbook
 
 **Status:** Proposed (Stage 0). No production environment exists yet.
-**Last updated:** 2026-10-10 (sign-in codes and claims)
+**Last updated:** 2026-10-12 (the "are you human" check on sign-in codes)
 
 How the application is deployed, monitored, backed up, restored, and recovered — and
 who is responsible for each part. Procedures marked *(to be verified)* will be tested
@@ -177,6 +177,15 @@ guide this live (PO-03 part 3). Changing the password later is the same two step
 - **"We've sent a lot of sign-in codes today":** our daily cap of 60 codes was reached. It
   clears itself within a day. If it happens often, the cap (`CODES_PER_DAY` in
   `src/server/auth/code-limits.server.ts`) can rise towards Resend's free 100 a day.
+- **"Are you human" check (Turnstile, PO-15):** on when both `TURNSTILE_SITE_KEY` and
+  `TURNSTILE_SECRET_KEY` are set in Cloudflare (Variables and Secrets); the **Claims** page
+  says when it's off. If people report "We couldn't run the are you human check", look in
+  the Worker's logs (Cloudflare → localites → Observability) for "are-you-human check":
+  "refused our key" means the secret key was mistyped or replaced (copy it again from
+  Cloudflare → Turnstile); otherwise Cloudflare's checker was briefly unreachable. If the
+  check box never appears, the site's address may be missing from the Turnstile widget's
+  **Hostnames** (add it there). To switch the check off in an emergency, delete
+  `TURNSTILE_SITE_KEY` and deploy; sign-in then works without it.
 - **Checking a claim (D-33):** on **Claims**, if it says the email matches the business's
   own website, you can approve. Otherwise contact the business at the phone number or
   email **it publishes itself** (shown on the claim), never the details the claimant gave,

@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react';
 import { data, Form, Link, redirect, useNavigation } from 'react-router';
 import { cloudflareContext } from '@/app/context';
+import { HumanCheckField, useHumanCheck } from '@/components/HumanCheck';
 import { NameFields, ProfileFields } from '@/components/ProfileFields';
 import { SiteHeader } from '@/components/SiteHeader';
 import { pageMeta } from '@/lib/meta';
@@ -13,6 +14,7 @@ import { CODE_MINUTES } from '@/lib/claim-terms';
 import { codeInput, emailInput, NAMES_NEEDED, namesInput, profileInput } from '@/server/member-input';
 import { isUniqueViolation } from '@/server/db.server';
 import type { ServerEnv } from '@/server/env';
+import { checkHuman, HUMAN_CHECK_FIELD, humanCheckSiteKey } from '@/server/turnstile.server';
 import { addressKey } from '@/server/visitor.server';
 import type { Route } from './+types/join';
 
@@ -30,21 +32,29 @@ type Step = 'email' | 'code' | 'name' | 'closed';
 export async function loader({ request, context }: Route.LoaderArgs) {
   const { env } = context.get(cloudflareContext);
   const next = safeNext(new URL(request.url).searchParams.get('next'), '/account');
-  if (!authConfigured(env)) return data({ step: 'email' as Step, next, configured: false, signUpOpen: false, email: '' }, { headers: noStore });
+  const humanCheck = humanCheckSiteKey(env);
+  if (!authConfigured(env))
+    return data({ step: 'email' as Step, next, configured: false, signUpOpen: false, email: '', humanCheck }, { headers: noStore });
 
   const { session, setCookies } = await loadSession(request, env);
   if (session) {
     const person = await findPerson(env, session.user.id);
     if (person && !person.closed) throw redirect(next, withCookies(undefined, setCookies));
     const step: Step = person?.closed ? 'closed' : 'name';
-    return data({ step, next, configured: true, signUpOpen: true, email: session.user.email }, withCookies({ headers: noStore }, setCookies));
+    return data(
+      { step, next, configured: true, signUpOpen: true, email: session.user.email, humanCheck },
+      withCookies({ headers: noStore }, setCookies),
+    );
   }
   // If Supabase can't be asked, assume new accounts are open; sending a code still works either way.
   const signUpOpen = await authSettings(env).then(
     (s) => s.signUpOpen,
     () => true,
   );
-  return data({ step: 'email' as Step, next, configured: true, signUpOpen, email: '' }, withCookies({ headers: noStore }, setCookies));
+  return data(
+    { step: 'email' as Step, next, configured: true, signUpOpen, email: '', humanCheck },
+    withCookies({ headers: noStore }, setCookies),
+  );
 }
 
 export const headers: Route.HeadersFunction = ({ loaderHeaders }) => loaderHeaders;
@@ -68,7 +78,8 @@ export async function action({ request, context }: Route.ActionArgs) {
     const profile = profileInput.safeParse(fields);
     if (!names.success || !profile.success) {
       const errors: Record<string, string> = {};
-      for (const issue of [...(names.error?.issues ?? []), ...(profile.error?.issues ?? [])]) errors[String(issue.path[0])] ??= issue.message;
+      for (const issue of [...(names.error?.issues ?? []), ...(profile.error?.issues ?? [])])
+        errors[String(issue.path[0])] ??= issue.message;
       const nameMissing = !String(fields.firstName ?? '').trim() || !String(fields.lastName ?? '').trim();
       const error = nameMissing ? NAMES_NEEDED : 'Please check what’s marked below.';
       return reply({ step: 'name', email, error, errors }, 400, setCookies);
@@ -89,7 +100,20 @@ export async function action({ request, context }: Route.ActionArgs) {
 
   // A few tries a minute from one internet address (kept by Cloudflare, never stored).
   if (env.SIGN_IN_LIMIT && !(await env.SIGN_IN_LIMIT.limit({ key: addressKey(request) })).success) {
-    return reply({ step: intent === 'send' ? 'email' : 'code', email: email.data, error: 'Too many tries. Please wait a minute, then try again.' }, 429);
+    return reply(
+      { step: intent === 'send' ? 'email' : 'code', email: email.data, error: 'Too many tries. Please wait a minute, then try again.' },
+      429,
+    );
+  }
+  // Cloudflare's "are you human" check (PO-15), before any code is sent or guessed: stops
+  // scripts using up the day's codes or someone's guesses (ADR-028).
+  const human = await checkHuman(env, request, form.get(HUMAN_CHECK_FIELD), 'join');
+  if (human !== 'passed') {
+    const error =
+      human === 'failed'
+        ? 'Please wait for the “are you human” check to finish (tick it if it asks), then try again.'
+        : 'We couldn’t run the “are you human” check just now. Please try again in a minute.';
+    return reply({ step: intent === 'send' ? 'email' : 'code', email: email.data, error }, human === 'failed' ? 400 : 503);
   }
   const hash = await addressHash(email.data);
   return intent === 'send' ? sendCode(env, email.data, hash) : checkCode(env, email.data, hash, form.get('code'), next);
@@ -105,7 +129,8 @@ async function sendCode(env: ServerEnv, email: string, hash: string) {
     return reply({ step: 'email', email, error: 'We’ve sent a lot of sign-in codes today. Please try again tomorrow.' }, 429);
   }
   if (check === 'address_limit') {
-    const notice = 'We’ve already sent 3 codes to this address in the last hour. Use the newest one. If none of them work, please try again in an hour.';
+    const notice =
+      'We’ve already sent 3 codes to this address in the last hour. Use the newest one. If none of them work, please try again in an hour.';
     return reply({ step: 'code', email, notice }, 429);
   }
   try {
@@ -159,7 +184,11 @@ export default function Join({ loaderData, actionData }: Route.ComponentProps) {
   const busy = useNavigation().state !== 'idle';
   const step = actionData?.step ?? loaderData.step;
   const email = actionData?.email || loaderData.email;
-  const { next, configured, signUpOpen } = loaderData;
+  const { next, configured, signUpOpen, humanCheck } = loaderData;
+  // One check per screen; a fresh one after every reply (an answer works once).
+  const { answer, widget } = useHumanCheck(step === 'email' || step === 'code' ? humanCheck : null, 'join', actionData);
+  const checkOn = Boolean(humanCheck);
+  const waiting = checkOn && !answer;
   const error = actionData?.error;
   const fieldErrors = actionData?.errors ?? {};
   const restart = `/join?next=${encodeURIComponent(next)}`;
@@ -219,17 +248,17 @@ export default function Join({ loaderData, actionData }: Route.ComponentProps) {
               ) : (
                 <>If {email} has an account, we’ve emailed it a 6-digit code.</>
               )}{' '}
-              It can take a minute to arrive, and works for {CODE_MINUTES} minutes. If you asked more than once, use the
-              newest one.
+              It can take a minute to arrive, and works for {CODE_MINUTES} minutes. If you asked more than once, use the newest one.
             </p>
             <p className="notice">
-              <strong>Not in your inbox?</strong> Check your <strong>spam or junk</strong> folder (and the “Other” or
-              “Promotions” tab). Emails from new senders often land there. Marking it “Not spam” helps next time.
+              <strong>Not in your inbox?</strong> Check your <strong>spam or junk</strong> folder (and the “Other” or “Promotions” tab).
+              Emails from new senders often land there. Marking it “Not spam” helps next time.
             </p>
             <Form method="post" noValidate>
               <input type="hidden" name="intent" value="verify" />
               <input type="hidden" name="next" value={next} />
               <input type="hidden" name="email" value={email} />
+              <HumanCheckField answer={answer} on={checkOn} />
               <div className="field">
                 <label htmlFor="code" className="field-label">
                   Code from the email
@@ -248,7 +277,8 @@ export default function Join({ loaderData, actionData }: Route.ComponentProps) {
                   {...invalid}
                 />
               </div>
-              <button type="submit" className="button button-primary" disabled={busy}>
+              {widget}
+              <button type="submit" className="button button-primary" disabled={busy || waiting}>
                 {busy ? 'Checking…' : 'Continue'}
               </button>
             </Form>
@@ -257,7 +287,8 @@ export default function Join({ loaderData, actionData }: Route.ComponentProps) {
               <input type="hidden" name="intent" value="send" />
               <input type="hidden" name="next" value={next} />
               <input type="hidden" name="email" value={email} />
-              <button type="submit" className="button button-secondary" disabled={busy}>
+              <HumanCheckField answer={answer} on={checkOn} />
+              <button type="submit" className="button button-secondary" disabled={busy || waiting}>
                 Send a new code
               </button>
             </Form>
@@ -270,12 +301,13 @@ export default function Join({ loaderData, actionData }: Route.ComponentProps) {
         ) : (
           <>
             <p className="muted">
-              Browsing needs no account. You need one to claim your business{signUpOpen ? '' : ' (new accounts open soon)'}.
-              We’ll email you a code; there’s no password to remember.
+              Browsing needs no account. You need one to claim your business{signUpOpen ? '' : ' (new accounts open soon)'}. We’ll email you
+              a code; there’s no password to remember.
             </p>
             <Form method="post" noValidate>
               <input type="hidden" name="intent" value="send" />
               <input type="hidden" name="next" value={next} />
+              <HumanCheckField answer={answer} on={checkOn} />
               <div className="field">
                 <label htmlFor="email" className="field-label">
                   Email address
@@ -294,7 +326,8 @@ export default function Join({ loaderData, actionData }: Route.ComponentProps) {
                   {...invalid}
                 />
               </div>
-              <button type="submit" className="button button-primary" disabled={busy}>
+              {widget}
+              <button type="submit" className="button button-primary" disabled={busy || waiting}>
                 {busy ? 'Sending…' : 'Email me a code'}
               </button>
             </Form>

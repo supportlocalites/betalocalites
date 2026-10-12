@@ -30,6 +30,9 @@ ADR-026 (every review approved by an admin, with an email notice; D-06) added.
 go through Localites, including vendors paying Localites. ADR-025 accepted. ADR-027
 (Suggest a business, D-25) added.
 
+**Revision 10 changes (12 October 2026):** ADR-028 updated: Cloudflare's free "are you
+human" check (Turnstile) on signing in with an emailed code, switched on by PO-15.
+
 **Revision 9 changes (12 October 2026):** ADR-030 (counting only what a real browser
 confirms, with signed notes; the nightly count; the team's activity pages and the owner's
 Analytics page, switched on per business; D-22, D-30, D-37) added and accepted. Extends
@@ -790,7 +793,15 @@ matches* — rejected for now; the team still decides (D-33).
 
 **Known limits.** Supabase sees every request as coming from Cloudflare, so its own
 per-internet-address limits apply to the whole site at once (ours apply per visitor).
-No "are you human" check yet (Cloudflare's free Turnstile can be added if bots appear).
+**Update (12 October 2026): the "are you human" check is built** (Cloudflare's free
+Turnstile). "Email me a code", "Send a new code" and checking a code each need a fresh
+pass, made for this form on this site, which Cloudflare confirms to our server before any
+code is sent or any guess is counted; each pass works once. If Cloudflare can't be asked,
+the form is refused with "try again in a minute", never let through. It is on exactly
+when both its keys are in Cloudflare (PO-15); until then the team's **Claims** page says
+it's off. This answers the two known limits below: using up the day's codes or one
+person's codes and guesses now needs a person for every try. The page needs JavaScript
+for the check. Suggest a business keeps its own protections (ADR-027).
 An address that asks for a code but never finishes leaves an unconfirmed Supabase
 account; a clean-up comes later. Supabase gives the same answer for "a code went to this
 address under a minute ago" and "the site has sent too many emails"; we tell them apart

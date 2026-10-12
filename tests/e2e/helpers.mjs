@@ -15,7 +15,12 @@ export const AUTH = process.env.E2E_AUTH_URL ?? 'http://127.0.0.1:9999';
 export const MAIL = process.env.E2E_MAIL_URL ?? 'http://127.0.0.1:8787';
 const SECRET = process.env.E2E_AUTH_JWT_SECRET;
 const DB_URL = process.env.E2E_DATABASE_ADMIN_URL;
-for (const [name, value] of Object.entries({ E2E_BASE_URL: BASE, E2E_AUTH_URL: AUTH, E2E_MAIL_URL: MAIL, E2E_DATABASE_ADMIN_URL: DB_URL ?? '' })) {
+for (const [name, value] of Object.entries({
+  E2E_BASE_URL: BASE,
+  E2E_AUTH_URL: AUTH,
+  E2E_MAIL_URL: MAIL,
+  E2E_DATABASE_ADMIN_URL: DB_URL ?? '',
+})) {
   if (!/^(https?|postgres(ql)?):\/\/([^@/]*@)?(localhost|127\.0\.0\.1)[:/]/.test(value)) {
     console.error(`${name} must point at this computer (localhost). These tests create accounts and listings.`);
     process.exit(1);
@@ -82,7 +87,12 @@ export async function account(email) {
     const res = await fetch(`${AUTH}/admin/users`, {
       method: 'POST',
       headers: adminHeaders(),
-      body: JSON.stringify({ email, password: 'e2e-password-123', email_confirm: true, user_metadata: { display_name: email.split('@')[0] } }),
+      body: JSON.stringify({
+        email,
+        password: 'e2e-password-123',
+        email_confirm: true,
+        user_metadata: { display_name: email.split('@')[0] },
+      }),
     });
     user = await res.json();
   }
@@ -93,14 +103,19 @@ export async function account(email) {
             on conflict (id) do nothing`;
   return user.id;
 }
-export const passwordSession = (email) => auth('/token?grant_type=password', { method: 'POST', body: { email, password: 'e2e-password-123' } });
+export const passwordSession = (email) =>
+  auth('/token?grant_type=password', { method: 'POST', body: { email, password: 'e2e-password-123' } });
 const authenticators = new Map(); // email → { id, secret } of the app set up in this run
 export async function twoStepSession(email) {
   const s = await passwordSession(email);
   let factor = authenticators.get(email);
   if (!factor) {
     // First time: set up an authenticator app (Supabase allows a second one only after two-step).
-    const made = await auth('/factors', { method: 'POST', token: s.access_token, body: { factor_type: 'totp', friendly_name: `e2e ${Date.now()}` } });
+    const made = await auth('/factors', {
+      method: 'POST',
+      token: s.access_token,
+      body: { factor_type: 'totp', friendly_name: `e2e ${Date.now()}` },
+    });
     factor = { id: made.id, secret: made.totp.secret };
     authenticators.set(email, factor);
   }
@@ -120,7 +135,10 @@ export async function mailFor(email) {
 /** The newest sign-in code emailed to an address (waits briefly for it to arrive). */
 export async function latestCode(email, after = 0) {
   for (let i = 0; i < 20; i++) {
-    const code = (await mailFor(email)).filter((m) => m.at > after).at(-1)?.subject.match(/\b(\d{6})\b/)?.[1];
+    const code = (await mailFor(email))
+      .filter((m) => m.at > after)
+      .at(-1)
+      ?.subject.match(/\b(\d{6})\b/)?.[1];
     if (code) return code;
     await new Promise((r) => setTimeout(r, 150));
   }
@@ -133,6 +151,10 @@ export async function latestCode(email, after = 0) {
  * internet address (Cloudflare sets CF-Connecting-IP itself on the real site).
  */
 export async function site(path, { cookie, method = 'GET', form, origin = BASE, ip } = {}) {
+  // Sign-in forms carry a passed "are you human" check, as a browser's would (unless the test sends its own).
+  if (form && path.startsWith('/join') && !('cf-turnstile-response' in form)) form = { ...form, 'cf-turnstile-response': humanPass() };
+  if (form?.['cf-turnstile-response'] === null)
+    form = Object.fromEntries(Object.entries(form).filter(([k]) => k !== 'cf-turnstile-response'));
   const headers = {};
   if (cookie) headers.Cookie = cookie;
   if (ip) headers['CF-Connecting-IP'] = ip;
@@ -143,6 +165,12 @@ export async function site(path, { cookie, method = 'GET', form, origin = BASE, 
   const res = await fetch(BASE + path, { method, headers, body: form ? new URLSearchParams(form) : undefined, redirect: 'manual' });
   return { status: res.status, location: res.headers.get('location') ?? '', headers: res.headers, body: await res.text() };
 }
+let humanAnswers = 0;
+/** A fresh answer the pretend checker passes, once, for the sign-in form on this site. */
+export const humanPass = (action = 'join', host = new URL(BASE).hostname) => `pass:${action}:${host}:${run}-${++humanAnswers}`;
+/** What the site sent the pretend checker. */
+export const humanChecks = async () => (await fetch(`${MAIL}/turnstile/checks`)).json();
+
 /** The cookies a response set, ready to send back. */
 export const cookiesFrom = (r) =>
   r.headers

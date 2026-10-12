@@ -32,6 +32,15 @@ export type ServerEnv = {
   TRACK_LIMIT?: RateLimit;
   /** New browsers (visitor cookies) given out per address, so a script can't pose as endless visitors. */
   NEW_VISITOR_LIMIT?: RateLimit;
+  /**
+   * Cloudflare's "are you human" check (Turnstile, ADR-028, PO-15) on signing in with an
+   * emailed code. On exactly when both are set (Cloudflare → Variables and Secrets).
+   * The site key is shown in pages; the secret key never leaves the server.
+   */
+  TURNSTILE_SITE_KEY?: string;
+  TURNSTILE_SECRET_KEY?: string;
+  /** Local tests only: a pretend checker on this computer (ignored unless it is localhost). */
+  TURNSTILE_VERIFY_URL?: string;
 };
 
 /** Where Cloudflare places the visitor (city level), from the request. Never stored with an address. */

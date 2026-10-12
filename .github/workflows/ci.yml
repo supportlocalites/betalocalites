@@ -109,6 +109,8 @@ jobs:
           printf 'CLOUDFLARE_HYPERDRIVE_LOCAL_CONNECTION_STRING_HYPERDRIVE=postgres://app_server:%s@localhost:5432/localites_e2e_test\nSUPABASE_AUTH_URL=http://127.0.0.1:9999\n' "$E2E_APP_PASSWORD" > .env
           # A throwaway activity key, made fresh for this run only, so counting is on (ADR-030).
           printf 'ACTIVITY_KEY=%s\n' "$(openssl rand -hex 32)" >> .env
+          # The "are you human" check, pointed at the pretend checker (tests/e2e/human-check.mjs).
+          printf 'TURNSTILE_SITE_KEY=e2e-turnstile-site-key\nTURNSTILE_SECRET_KEY=e2e-turnstile-secret-local-only\nTURNSTILE_VERIFY_URL=http://127.0.0.1:8787/turnstile/siteverify\n' >> .env
           npm run build
           nohup npx vite preview --port 4173 --strictPort > site.log 2>&1 &
           for i in $(seq 1 60); do

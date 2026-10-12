@@ -1,7 +1,7 @@
 # Roadmap & Estimates
 
 **Status:** Stage 0 approved (D-00). **Stage 1 approved (D-23, 10 October 2026); in progress.**
-**Last updated:** 2026-10-10
+**Last updated:** 2026-10-12
 
 **10 October 2026:** stages and estimates unchanged. Your answers on the launch list
 (D-03), launch area (D-09), team emails (D-11), Inquire (D-04, D-05) and activity
@@ -92,8 +92,8 @@ laid out like it, live at once, with the team's daily note, undo and Remove owne
 ADR-029). Activity is counted (only what a real browser confirms, ADR-030), added up each
 night, shown to the team on **Activity** and to owners on an **Analytics** page the team
 switches on per business (D-30, D-37); counting starts once the activity key is added
-(PO-14). Before the public launch: Cloudflare's free "are you human" check (Turnstile) on
-"Email me a code", so nobody can use up the day's sign-in codes (ADR-028).
+(PO-14). Cloudflare's free "are you human" check (Turnstile) on signing in with a code is
+built, so nobody can use up the day's sign-in codes (ADR-028); it switches on with PO-15.
 
 **Outcome.** A real, public directory of local event vendors, useful to a parent on its
 own, with the admin tools to build it. **Local businesses claim their listings** so
