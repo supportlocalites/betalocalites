@@ -24,7 +24,8 @@
   --font-display: 'Playfair Display', Georgia, 'Times New Roman', serif;
   --font-body: 'Jost', 'Helvetica Neue', Arial, sans-serif;
 
-  --text-welcome: 72px;
+  /* Shrinks on narrow phones so "Localites." always fits inside the frame (360px and below). */
+  --text-welcome: clamp(44px, calc((100vw - 92px) / 4.4), 72px);
   --text-title-1: 30px;
   --text-title-2: 26px;
   --text-title-3: 18px;

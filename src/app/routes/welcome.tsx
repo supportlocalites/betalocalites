@@ -11,14 +11,12 @@ export default function Welcome() {
     <main className={styles.screen}>
       <div className={styles.frame}>
         <div className={styles.words}>
-          <span className="label">Welcome to</span>
           <h1 className={styles.name}>
             <Wordmark suffix="." />
           </h1>
           <div className={styles.rule} aria-hidden="true" />
           <p className={styles.sub}>
-            <span>See what your community</span>
-            <span>has to offer…</span>
+            <span>Love where you live</span>
           </p>
         </div>
         <div className={styles.actions}>

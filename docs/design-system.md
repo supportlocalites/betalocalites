@@ -58,8 +58,8 @@ Two typefaces, both free (SIL Open Font License), **served with the site itself*
 than from Google, which is faster and sends no visitor data to a third party.
 
 - **Playfair Display** (600, 700; italic 500): the Localites name, page titles,
-  business names, numbers. Italic for soft accents ("In thirty-six days.", "See what
-  your community has to offer…").
+  business names, numbers. Italic for soft accents ("In thirty-six days.", "Love where
+  you live").
 - **Jost** (400, 500, 600): everything else.
 
 | Role | Phone | Desktop | Notes |
@@ -158,8 +158,8 @@ Mockups: phone `G-00` to `G-14`; desktop `G-D1` to `G-D6`.
   (D-04), never both. **Suggest a business** (text link) under search results, category
   pages and empty results (D-25). **Plan an event** appears on Welcome from Stage 2, when
   event plans exist; until then Welcome shows only **Browse local** (decided 10 October
-  2026), so no button leads nowhere. Welcome reads "Welcome to
-  Localites." / "See what your community has to offer…".
+  2026), so no button leads nowhere. Welcome reads "Localites." /
+  "Love where you live" ("Welcome to" removed; changed by the product owner, 12 October 2026).
 - Language rules in [A §6](./A-product-blueprint.md#6-language-rules) apply throughout.
 
 ## 10. Accessibility
