@@ -921,9 +921,19 @@ Engineering, within D-22, D-30 and D-37 (12 October 2026). Extends ADR-023. Scre
   showed (the businesses in a list, in order; or the business on its page, with where the
   visitor came from, read from the request). The page's script reports back with that note
   when something really happened. Search engines and link previews get no note (they run
-  no script anyway), so they're never counted. Nobody can make up a business, a place in a
-  list or a source: the note is signed with a secret (`ACTIVITY_KEY`) only the server has.
-  Counting is on exactly when that secret is set.
+  no script anyway), so they're never counted. A page can't change which businesses it
+  showed, in what order, or where the visitor came from: the note is signed with a secret
+  (`ACTIVITY_KEY`) only the server has. Counting is on exactly when that secret is set (at
+  least 32 characters).
+- **Each note belongs to one browser.** The page sends a new browser its visitor cookie
+  with the page, and the note names that browser; a report is accepted only with that
+  same cookie, so a note can't be passed around. New browsers are limited to 20 a minute
+  per internet address, so a script that drops its cookie can't pose as endless visitors.
+  A page opening keeps its "place in a list" only if that list page was recorded in the
+  last 12 hours.
+- **Daily limits on what's kept:** 10,000 actions and 5,000 searches a (Toronto) day;
+  past those, more aren't kept until the next day, so nothing can fill the free database
+  (D-20). The team's Activity page shows the day's use.
 - **Definitions** (what the owner's page says, word for word):
   - **Seen in lists:** a business's card at least half on screen for at least a second, in
     search results or a category list; once per list page shown. Stored only as daily
@@ -945,9 +955,13 @@ Engineering, within D-22, D-30 and D-37 (12 October 2026). Extends ADR-023. Scre
   older ones from the team's **Count this day again**.
 - **The owner's Analytics page** (`/vendors/<name>/analytics`): only the business's current
   owner, only when the team has switched it on for that business, never for an archived
-  listing, checked in the database on every request. It shows totals, never who; town,
-  device, time of day and where people came from show "fewer than 5" below 5; the category
-  average and rank only when the category has at least 5 published businesses. No emails.
+  listing, checked in the database on every request. It shows totals, never who. In each
+  breakdown (town, device, time of day, where people came from), rows under 5 are grouped as
+  "Others, each fewer than 5", and with under 10 page opens in the period no breakdown is
+  shown; visitor counts under 5 show as "fewer than 5". The category average and rank only
+  when the category has at least 5 published businesses. Days before counting began, and
+  days the nightly count hasn't reached yet, are said so, never shown as zeros, and nothing
+  is compared with a period that wasn't counted. No emails.
 - **The team** (`/admin/activity`, and each listing's **Activity** page): category figures,
   search demand, the nightly count, database space; each business's numbers; the switch
   (recorded in the audit log, with a note). The detail (each action, by browser) and the
@@ -966,8 +980,11 @@ for every page load, bots included). *A third-party analytics service* (rejected
 ADR-023).
 
 **Known limits.** People with scripts blocked aren't counted (the numbers say "at least").
-A scripted real browser can still add counts; the limits above, the 3-a-day cap and the
-team's "unusual" flag make it costly. The town comes from the internet connection and is
+A determined script can still add counts (and can claim any site sent it, since that's read
+from what the request says); the browser-tied notes, the new-browser limit, the 3-a-day cap,
+the daily limits and the team's "unusual" flag keep that small and visible, and the owner's
+numbers are labelled as approximate. Many people sharing one internet address (a library)
+can meet the new-browser limit; their visits then simply aren't counted. The town comes from the internet connection and is
 often a nearby larger town. A business's own visits are recognised only on browsers that
 have opened a signed-in page. Public pages must never be put behind a shared cache: each
 answer carries its own note. Email, social, share, directions and photo taps come with

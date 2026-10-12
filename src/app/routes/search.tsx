@@ -1,12 +1,12 @@
 import { useRef } from 'react';
-import { Link } from 'react-router';
+import { data, Link } from 'react-router';
 import { cloudflareContext } from '@/app/context';
 import { useListActivity } from '@/components/ActivityTracker';
 import { ResultList } from '@/components/ResultRow';
 import { SearchBar } from '@/components/SearchBar';
 import { SiteHeader } from '@/components/SiteHeader';
 import { pageMeta } from '@/lib/meta';
-import { listTrack } from '@/server/activity.server';
+import { cookieHeaders, listTrack } from '@/server/activity.server';
 import { readCategories, searchVendors } from '@/server/catalog.server';
 import { withDb } from '@/server/db.server';
 import type { Route } from './+types/search';
@@ -21,10 +21,16 @@ export async function loader({ request, context }: Route.LoaderArgs) {
   const [found, categories] = await withDb(env, (db) => Promise.all([searchVendors(db, q, categorySlug), readCategories(db)]));
   const categoryName = categories.find((c) => c.slug === categorySlug)?.name;
   // A signed note of what this page shows, for counting what's really seen (ADR-030).
-  const track = await listTrack(env, request, { words: q.trim(), category: categorySlug ?? null, ids: found.map((v) => v.id) });
+  const { track, setCookie } = await listTrack(env, request, { words: q.trim(), category: categorySlug ?? null, ids: found.map((v) => v.id) });
   const vendors = found.map((v) => ({ slug: v.slug, name: v.name, tagline: v.tagline, town: v.town }));
-  return { q, category: categorySlug ?? '', vendors, track, heading: categoryName ?? (q ? `Results for “${q}”` : 'All local businesses') };
+  return data(
+    { q, category: categorySlug ?? '', vendors, track, heading: categoryName ?? (q ? `Results for “${q}”` : 'All local businesses') },
+    { headers: cookieHeaders(setCookie) },
+  );
 }
+
+// The visitor cookie a new browser gets with the page (ADR-030).
+export const headers: Route.HeadersFunction = ({ loaderHeaders }) => loaderHeaders;
 
 export default function Search({ loaderData: { q, category, vendors, heading, track } }: Route.ComponentProps) {
   const listRef = useRef<HTMLDivElement>(null);

@@ -50,15 +50,30 @@ export async function setAnalytics(env: ServerEnv, admin: Admin, vendorId: strin
 
 export type DayCount = { day: string; seen: number; views: number; unusual: boolean };
 
-/** The last 28 days' totals, with days far above the business's own average marked (possible inflation). */
+/**
+ * The last 28 days' totals, with days far above the business's own usual marked (possible
+ * inflation): over 5 times the middle value of its other days. Only once it has a week of
+ * history, so a new listing's normal days aren't flagged.
+ */
 export async function recentDays(db: Db, vendorId: string, today: string): Promise<DayCount[]> {
   const rows = await db.execute<{ day: string; seen: number; views: number }>(sql`
     select day::text as day, sum(seen_in_search)::int as seen, sum(profile_views)::int as views
     from vendor_daily_stats where vendor_id = ${vendorId} and day >= ${today}::date - 28 and day < ${today}::date
     group by day order by day desc`);
-  const avgSeen = rows.reduce((a, r) => a + r.seen, 0) / 28;
-  const avgViews = rows.reduce((a, r) => a + r.views, 0) / 28;
-  return rows.map((r) => ({ ...r, unusual: (r.seen >= 20 && r.seen > 5 * avgSeen) || (r.views >= 10 && r.views > 5 * avgViews) }));
+  const median = (xs: number[]) => {
+    const s = [...xs].sort((a, b) => a - b);
+    return s.length === 0 ? 0 : s[Math.floor(s.length / 2)]!;
+  };
+  return rows.map((r) => {
+    const others = rows.filter((o) => o !== r);
+    const enough = others.length >= 7;
+    const seenUsual = median(others.map((o) => o.seen));
+    const viewsUsual = median(others.map((o) => o.views));
+    return {
+      ...r,
+      unusual: enough && ((r.seen >= 20 && r.seen > 5 * Math.max(1, seenUsual)) || (r.views >= 10 && r.views > 5 * Math.max(1, viewsUsual))),
+    };
+  });
 }
 
 export type DetailLook = { at: string; who: string | null; action: string; day: string | null };
@@ -154,7 +169,7 @@ export type RollupRow = { day: string; status: string; events: number; failureRe
 
 /** The team's overview: categories, search demand, the nightly count, and database space. */
 export async function overview(db: Db, from: string, to: string) {
-  const [categories, demand, typed, rollups, [space]] = await Promise.all([
+  const [categories, demand, typed, rollups, [space], [budget]] = await Promise.all([
     db.execute<CategoryRow>(sql`
       select c.name as category, count(distinct v.id)::int as businesses,
              coalesce(sum(s.profile_views), 0)::int as views, coalesce(sum(s.seen_in_search), 0)::int as seen,
@@ -180,6 +195,8 @@ export async function overview(db: Db, from: string, to: string) {
              (select sum(pg_total_relation_size(c.oid)) from pg_class c
               where c.relname in ('activity_event', 'search_record', 'vendor_daily_stats', 'vendor_daily_breakdown',
                                   'vendor_period_people', 'search_daily_stats'))::bigint as activity`),
+    db.execute<{ events: number; searches: number }>(sql`
+      select events, searches from activity_budget where day = (now() at time zone 'America/Toronto')::date`),
   ]);
   return {
     categories: [...categories],
@@ -187,6 +204,7 @@ export async function overview(db: Db, from: string, to: string) {
     typed: typed[0] ?? { searches: 0, foundNothing: 0 },
     rollups: [...rollups],
     space: { database: Number(space?.database ?? 0), activity: Number(space?.activity ?? 0) },
+    today: { events: budget?.events ?? 0, searches: budget?.searches ?? 0 },
   };
 }
 

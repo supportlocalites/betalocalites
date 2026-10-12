@@ -4,7 +4,7 @@ import { cloudflareContext } from '@/app/context';
 import { useVendorActivity } from '@/components/ActivityTracker';
 import { SiteHeader } from '@/components/SiteHeader';
 import { VendorPage } from '@/components/VendorPage';
-import { viewTrack } from '@/server/activity.server';
+import { cookieHeaders, viewTrack } from '@/server/activity.server';
 import { hasSessionCookie } from '@/server/auth/session.server';
 import { pageMeta } from '@/lib/meta';
 import { findRenamed, getVendor } from '@/server/catalog.server';
@@ -25,9 +25,12 @@ export async function loader({ request, params, context }: Route.LoaderArgs) {
   }
   const { id, ...vendor } = found;
   // A signed note of this page, for counting real visits and taps (ADR-030).
-  const track = await viewTrack(env, request, id);
-  return { vendor, slug: params.slug, signedIn: hasSessionCookie(request), track };
+  const { track, setCookie } = await viewTrack(env, request, id);
+  return data({ vendor, slug: params.slug, signedIn: hasSessionCookie(request), track }, { headers: cookieHeaders(setCookie) });
 }
+
+// The visitor cookie a new browser gets with the page (ADR-030).
+export const headers: Route.HeadersFunction = ({ loaderHeaders }) => loaderHeaders;
 
 /** Where the visitor came from, if they opened this page from a Localites list. */
 const listPlace = (state: unknown) => {

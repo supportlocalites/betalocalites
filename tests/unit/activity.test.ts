@@ -73,7 +73,7 @@ describe('a browser’s report', () => {
 
 describe('a page’s signed note', () => {
   const key = 'test-key-'.repeat(5);
-  const note = { k: 'view' as const, pv: 'p', v: 'v', src: 'direct', x: 2_000_000_000 };
+  const note = { k: 'view' as const, pv: 'p', v: 'v', src: 'direct', b: 'browser', x: 2_000_000_000 };
   it('reads back only when untouched, ours and not expired', async () => {
     const t = await signNote(key, note);
     expect(await readNote(key, t, 1_000)).toEqual(note);

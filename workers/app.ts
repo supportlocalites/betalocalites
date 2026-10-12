@@ -4,6 +4,7 @@ import * as build from 'virtual:react-router/server-build';
 import { cloudflareContext } from '@/app/context';
 import type { ServerEnv } from '@/server/env';
 import { runActivityRollup } from '@/server/activity-rollup.server';
+import { trackingOn } from '@/server/activity.server';
 import { runDailyNote } from '@/server/daily-note.server';
 import { refuseCrossSiteForm, withSecurityHeaders } from '@/server/security-headers';
 
@@ -32,7 +33,7 @@ export default {
    * second run of the day only retries what failed.
    */
   async scheduled(_controller: ScheduledController, env: ServerEnv, ctx: ExecutionContext): Promise<void> {
-    ctx.waitUntil(
+    if (trackingOn(env)) ctx.waitUntil(
       runActivityRollup(env).then(
         (outcome) => console.log('activity count:', outcome),
         (err) => console.error('activity count failed', err instanceof Error ? err.message : err),

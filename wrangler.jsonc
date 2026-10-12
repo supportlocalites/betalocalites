@@ -18,7 +18,9 @@
     // Owners saving their listing (D-34, ADR-029): 10 saves a minute per person.
     { "name": "OWNER_EDIT_LIMIT", "namespace_id": "1003", "simple": { "limit": 10, "period": 60 } },
     // Browsers reporting what was on screen (ADR-030): 60 reports a minute per address.
-    { "name": "TRACK_LIMIT", "namespace_id": "1004", "simple": { "limit": 60, "period": 60 } }
+    { "name": "TRACK_LIMIT", "namespace_id": "1004", "simple": { "limit": 60, "period": 60 } },
+    // New visitor cookies with a page that counts (ADR-030): 20 a minute per address.
+    { "name": "NEW_VISITOR_LIMIT", "namespace_id": "1005", "simple": { "limit": 20, "period": 60 } }
   ],
   // The team's daily note of owners' changes (ADR-029) and the nightly count of activity
   // (ADR-030), free on Cloudflare: 12:00 UTC is 8 am in Toronto in summer and 7 am in

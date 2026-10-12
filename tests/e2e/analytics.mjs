@@ -13,8 +13,9 @@ const today = (await sql`select (now() at time zone 'America/Toronto')::date::te
 const yesterday = (await sql`select ((now() at time zone 'America/Toronto')::date - 1)::text as d`)[0].d;
 
 /** A page as a phone browser asks for it (with its cookies and where it came from). */
-async function page(path, { cookie, referer, ua = PHONE } = {}) {
+async function page(path, { cookie, referer, ua = PHONE, ip } = {}) {
   const headers = { 'User-Agent': ua };
+  if (ip) headers['CF-Connecting-IP'] = ip;
   if (cookie) headers.Cookie = cookie;
   if (referer) headers.Referer = referer;
   const res = await fetch(BASE + path, { headers, redirect: 'manual' });
@@ -74,19 +75,24 @@ console.log('Activity counting');
 
 // 1. A list a browser reports.
 let p = await page(`/search?q=${run}`);
-check('a search page carries a signed note and numbered places', p.status === 200 && Boolean(p.note) && p.body.includes('data-pos="1"'), String(p.status));
+const visitorCookie = p.cookie.find((c) => c.startsWith('__Host-lc_vid='))?.split(';')[0] ?? '';
+check('a search page carries a signed note, numbered places, and the new browser’s visitor cookie',
+  p.status === 200 && Boolean(p.note) && p.body.includes('data-pos="1"') && Boolean(visitorCookie), String(p.status));
 const listNote = p.note;
 const order = [...p.body.matchAll(/href="\/vendors\/(e2e-an-[a-z]+-[a-z0-9]+)"/g)].map((m) => m[1]);
 const placeOf = (v) => order.indexOf(v.slug) + 1;
 let r = await report({ t: 'list', token: listNote, seen: [placeOf(a), placeOf(b)] });
-const visitorCookie = r.cookie?.split(';')[0] ?? '';
+check('a report without the browser’s cookie is refused (a note can’t be passed around)', r.status === 400 && (await stats(a.id)).seen === 0, String(r.status));
+r = await report({ t: 'list', token: listNote, seen: [placeOf(a), placeOf(b)] }, { cookie: `__Host-lc_vid=${crypto.randomUUID()}` });
+check('…nor with another browser’s cookie', r.status === 400 && (await stats(a.id)).seen === 0, String(r.status));
+r = await report({ t: 'list', token: listNote, seen: [placeOf(a), placeOf(b)] }, { cookie: visitorCookie });
 const [sa, sb] = [await stats(a.id), await stats(b.id)];
-check('places seen are counted once each, at their places, and the browser gets its visitor cookie',
-  r.status === 204 && Boolean(visitorCookie) && sa.seen === 1 && sb.seen === 1 && sa.pos === placeOf(a) && sb.pos === placeOf(b),
+check('places seen are counted once each, at their places',
+  r.status === 204 && sa.seen === 1 && sb.seen === 1 && sa.pos === placeOf(a) && sb.pos === placeOf(b),
   `${r.status} ${JSON.stringify([sa, sb, placeOf(a), placeOf(b)])}`);
 r = await report({ t: 'list', token: listNote, seen: [placeOf(a), placeOf(b)] }, { cookie: visitorCookie });
 check('the same report again counts nothing', r.status === 204 && (await stats(a.id)).seen === 1);
-r = await report({ t: 'list', token: `${listNote.slice(0, -3)}abc`, seen: [1] });
+r = await report({ t: 'list', token: `${listNote.slice(0, -3)}abc`, seen: [1] }, { cookie: visitorCookie });
 check('a changed note is refused', r.status === 400 && (await stats(a.id)).seen === 1, String(r.status));
 r = await report({ t: 'list', token: listNote, seen: [1] }, { origin: 'https://evil.example' });
 check('a report from another site is refused', r.status === 403, String(r.status));
@@ -96,18 +102,20 @@ r = await report(`t=list&token=${listNote}`, { type: 'application/x-www-form-url
 check('a plain form is refused', r.status === 403, String(r.status));
 const botPage = await page(`/search?q=${run}`, { ua: 'Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)' });
 r = await report({ t: 'list', token: listNote, seen: [1] }, { ua: 'Googlebot/2.1' });
-check('a search engine gets no note, and its reports are ignored (no cookie)', !botPage.note && r.status === 204 && !r.cookie, String(r.status));
+check('a search engine gets no note and no cookie, and its reports are ignored',
+  !botPage.note && !botPage.cookie.some((c) => c.startsWith('__Host-lc_vid=')) && r.status === 204, String(r.status));
 const nothing = 'zqxjvwkp yyzzqq';
-p = await page(`/search?q=${encodeURIComponent(nothing)}`);
-r = await report({ t: 'list', token: p.note, seen: [] });
+p = await page(`/search?q=${encodeURIComponent(nothing)}`, { cookie: visitorCookie });
+r = await report({ t: 'list', token: p.note, seen: [] }, { cookie: visitorCookie });
 const [none] = await sql`select result_count from search_record where words_norm = ${nothing} order by occurred_at desc limit 1`;
 check('a search that found nothing is recorded as such', r.status === 204 && none?.result_count === 0, JSON.stringify(none));
 
 // 2. A business's page.
-p = await page(`/vendors/${a.slug}`, { referer: 'https://www.google.ca/' });
+p = await page(`/vendors/${a.slug}`, { referer: 'https://www.google.ca/', cookie: visitorCookie });
 const viewNote = p.note;
 check('a business page carries a signed note', p.status === 200 && Boolean(viewNote));
-r = await report({ t: 'view', token: viewNote, pos: 2, list: '01900000-0000-7000-8000-000000000001' }, { cookie: visitorCookie });
+const listId = (await sql`select id::text from search_record where words_norm = ${run} order by occurred_at desc limit 1`)[0]?.id;
+r = await report({ t: 'view', token: viewNote, pos: 2, list: listId }, { cookie: visitorCookie });
 r = await report({ t: 'tap', token: viewNote, kind: 'website_tap' }, { cookie: visitorCookie });
 r = await report({ t: 'tap', token: viewNote, kind: 'website_tap' }, { cookie: visitorCookie });
 r = await report({ t: 'time', token: viewNote, seconds: 30 }, { cookie: visitorCookie });
@@ -118,10 +126,17 @@ check('opening, one tap and time on the page are recorded once each; repeats ign
 check('where the visitor came from is read on the server (Google), with the place in the list',
   events[0]?.source === 'web_search' && events[0]?.list_position === 2 && events[1]?.source === 'web_search', JSON.stringify(events[0]));
 check('time on the page keeps the larger figure; the device is a phone', events[2]?.duration_seconds === 30 && events[0]?.device === 'phone');
-r = await report({ t: 'list', token: viewNote, seen: [1] });
+r = await report({ t: 'list', token: viewNote, seen: [1] }, { cookie: visitorCookie });
 check('a page note can’t be used as a list note', r.status === 400, String(r.status));
-r = await report({ t: 'tap', token: viewNote, kind: 'email_tap' });
+r = await report({ t: 'tap', token: viewNote, kind: 'email_tap' }, { cookie: visitorCookie });
 check('an unknown kind of tap is refused', r.status === 400, String(r.status));
+
+// A script that drops its cookie each time gets only so many new browsers a minute.
+const fresh = [];
+const scriptAddress = `2001:db8:${crypto.getRandomValues(new Uint16Array(1))[0].toString(16)}::1`; // a fresh address each run
+for (let i = 0; i < 25; i++) fresh.push(await page(`/vendors/${b.slug}`, { ip: scriptAddress }));
+const withNotes = fresh.filter((f) => f.note).length;
+check('new browsers from one address are limited (no note past the limit)', withNotes <= 20 && withNotes >= 1, String(withNotes));
 
 // 3. The owner's and the team's own visits are marked (and left out of totals).
 const [ownerVid, teamVid] = [crypto.randomUUID(), crypto.randomUUID()];

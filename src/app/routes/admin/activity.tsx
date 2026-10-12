@@ -2,7 +2,8 @@ import { data, Form, Link, redirect, useNavigation } from 'react-router';
 import { adminContext, cloudflareContext } from '@/app/context';
 import { addDays, torontoDate } from '@/lib/activity';
 import { pageMeta } from '@/lib/meta';
-import { trackingOn } from '@/server/activity.server';
+import { KeyNotice } from '@/components/admin/KeyNotice';
+import { keyState } from '@/server/activity.server';
 import { overview, recountDay } from '@/server/admin/activity.server';
 import { withDb } from '@/server/db.server';
 import type { Route } from './+types/activity';
@@ -15,6 +16,10 @@ import styles from './admin.module.css';
 export const meta: Route.MetaFunction = () => [...pageMeta('Activity · Team'), { name: 'robots', content: 'noindex' }];
 
 const FREE_MB = 500;
+// The day's limits on what's kept (migration 0010).
+const DAILY_EVENTS = 10000;
+const DAILY_SEARCHES = 5000;
+
 const ARCHIVE_AT_MB = 400;
 
 export async function loader({ request, context }: Route.LoaderArgs) {
@@ -26,7 +31,7 @@ export async function loader({ request, context }: Route.LoaderArgs) {
     ...result,
     from,
     days: Array.from({ length: 7 }, (_, i) => addDays(today, -(i + 1))),
-    counting: trackingOn(env),
+    key: keyState(env),
     saved: new URL(request.url).searchParams.get('saved'),
   };
 }
@@ -45,15 +50,13 @@ export async function action({ request, context }: Route.ActionArgs) {
 const mb = (bytes: number) => Math.round(bytes / 1_000_000);
 
 export default function Activity({ loaderData, actionData }: Route.ComponentProps) {
-  const { categories, demand, typed, rollups, space, days, counting, saved, from } = loaderData;
+  const { categories, demand, typed, rollups, space, days, key, saved, from, today } = loaderData;
   const busy = useNavigation().state === 'submitting';
   return (
     <>
       <h1 className="title-1">Activity</h1>
       <div className="title-rule" aria-hidden="true" />
-      {!counting && (
-        <p className="notice">Counting is off: the activity key isn’t set in Cloudflare yet (runbook, “Activity counting”).</p>
-      )}
+      <KeyNotice state={key} />
       {saved === 'recount' && (
         <p className="notice" role="status">
           Counted again.
@@ -146,13 +149,7 @@ export default function Activity({ loaderData, actionData }: Route.ComponentProp
           <label htmlFor="day" className="visually-hidden">
             Day to count again
           </label>
-          <select id="day" name="day" className="input" defaultValue={days[0]}>
-            {days.map((d) => (
-              <option key={d} value={d}>
-                {d}
-              </option>
-            ))}
-          </select>
+          <input id="day" name="day" type="date" className="input" defaultValue={days[0]} max={days[0]} required />
           <button type="submit" className="button button-secondary" disabled={busy}>
             Count this day again
           </button>
@@ -161,6 +158,7 @@ export default function Activity({ loaderData, actionData }: Route.ComponentProp
 
       <section className={styles.section} aria-labelledby="space-heading">
         <h2 id="space-heading">Database space</h2>
+        <p>{`Kept today: ${today.events} of ${DAILY_EVENTS} actions and ${today.searches} of ${DAILY_SEARCHES} searches. Past those, more aren’t kept until tomorrow, so nothing can fill the database.`}</p>
         <p>
           {`${mb(space.database)} MB of the free ${FREE_MB} MB in use, ${mb(space.activity)} MB of it activity. At ${ARCHIVE_AT_MB} MB, older detail moves to archive storage (ADR-023).`}
         </p>

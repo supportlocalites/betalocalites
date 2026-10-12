@@ -30,6 +30,8 @@ export type ServerEnv = {
   ACTIVITY_KEY?: string;
   /** Browsers' activity reports: a per-address limit kept by Cloudflare, never stored. */
   TRACK_LIMIT?: RateLimit;
+  /** New browsers (visitor cookies) given out per address, so a script can't pose as endless visitors. */
+  NEW_VISITOR_LIMIT?: RateLimit;
 };
 
 /** Where Cloudflare places the visitor (city level), from the request. Never stored with an address. */

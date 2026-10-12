@@ -916,9 +916,10 @@ page says "Counting is off".
 1. In Cloudflare, open **Workers & Pages** → **localites** → **Settings** → **Variables
    and Secrets** → **Add**.
 2. **Type:** Secret. **Name:** `ACTIVITY_KEY`.
-3. **Value:** make up a long sentence of at least 40 characters, for example four or five
-   unrelated words with a few numbers mixed in. Don't reuse a password. You'll never need
-   to type it again or remember it.
+3. **Value:** make up a long sentence of at least 40 characters (it must be at least 32),
+   for example seven or eight unrelated words with a few numbers mixed in. Don't reuse a
+   password. You'll never need to type it again or remember it. If it's too short, the
+   team's Activity page says so.
 4. Click **Deploy** (or **Save and deploy**).
 
 **Never send us** the key. If you think it's been seen by someone else, replace it the same

@@ -2,7 +2,7 @@ import { isbot } from 'isbot';
 import { cloudflareContext } from '@/app/context';
 import { MAX_BEACON_BYTES, parseBeacon } from '@/lib/activity';
 import { recordBeacon, trackingOn } from '@/server/activity.server';
-import { addressKey, visitor } from '@/server/visitor.server';
+import { addressKey } from '@/server/visitor.server';
 import type { Route } from './+types/api-activity';
 
 /**
@@ -10,11 +10,16 @@ import type { Route } from './+types/api-activity';
  * with a note the page's server signed, only from real browsers, and rate-limited. Nothing
  * is counted unless counting is switched on (the ACTIVITY_KEY secret).
  */
-const answer = (status: number, cookie: string | null = null) => {
-  const headers = new Headers({ 'Cache-Control': 'no-store' });
-  if (cookie) headers.append('Set-Cookie', cookie);
-  return new Response(null, { status, headers });
-};
+const answer = (status: number) => new Response(null, { status, headers: { 'Cache-Control': 'no-store' } });
+
+/** The visitor cookie the page gave this browser; never a new one here. */
+function browserId(request: Request): string | null {
+  for (const part of (request.headers.get('Cookie') ?? '').split(';')) {
+    const [k, v] = part.trim().split('=');
+    if (k === '__Host-lc_vid' && v) return v;
+  }
+  return null;
+}
 
 export function loader() {
   return answer(405);
@@ -38,8 +43,7 @@ export async function action({ request, context }: Route.ActionArgs) {
   if (Number(request.headers.get('Content-Length') ?? 0) > MAX_BEACON_BYTES) return answer(413);
   const beacon = parseBeacon(await request.text());
   if (!beacon) return answer(400);
-  const browser = visitor(request);
-  const result = await recordBeacon(env, beacon, request, browser.id, place);
-  if (result === 'bad_note') return answer(400);
-  return answer(204, browser.setCookie);
+  // Only from the browser the page's note was made for (its own visitor cookie).
+  const result = await recordBeacon(env, beacon, request, browserId(request), place);
+  return answer(result === 'bad_note' ? 400 : 204);
 }

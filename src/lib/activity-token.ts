@@ -13,6 +13,7 @@ export type ListNote = {
   cat: string | null; // the category browsed
   ids: string[]; // the businesses shown, in order (at most 30)
   n: number; // how many results
+  b: string; // the browser it was made for (the visitor cookie)
   x: number; // expires (seconds since 1970)
 };
 export type ViewNote = {
@@ -20,6 +21,7 @@ export type ViewNote = {
   pv: string; // this page's id
   v: string; // the business
   src: string; // where the visitor came from (classifySource)
+  b: string; // the browser it was made for
   x: number;
 };
 export type Note = ListNote | ViewNote;

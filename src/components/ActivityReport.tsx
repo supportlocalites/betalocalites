@@ -1,4 +1,4 @@
-import { change, duration, ordinal, type Period, small, SOURCE_WORDS } from '@/lib/activity';
+import { addDays, change, duration, ordinal, type Period, SMALL, small, SOURCE_WORDS } from '@/lib/activity';
 import type { Report, Row, Totals } from '@/server/analytics.server';
 import styles from './ActivityReport.module.css';
 
@@ -20,6 +20,12 @@ const LEFT_OUT_WORDS: Record<string, string> = {
   team: 'Visits by the Localites team',
   over_daily_cap: 'More than 3 opens in a day from one browser',
 };
+
+/** Fewer page opens than this in a period: the owner's page shows no breakdown. */
+const MIN_TO_BREAK_DOWN = 10;
+
+export const dateWords = (s: string) =>
+  new Date(`${s}T12:00:00Z`).toLocaleDateString('en-CA', { month: 'long', day: 'numeric', year: 'numeric', timeZone: 'UTC' });
 
 const hourWords = (h: string) => {
   const n = Number(h);
@@ -62,7 +68,7 @@ export function ActivityReport({
           {
             label: 'Average place in lists',
             value: ordinal(Math.max(1, Math.round(t.positionSum / t.seen))),
-            note: 'Where you appeared on average (1st is the top). Search order is by how well you match, never paid for.',
+            note: 'Where you appeared on average (1st is the top). In searches, order is by how well you match the words; in category lists, it’s alphabetical. Never paid for.',
             compare: null,
           },
         ]
@@ -77,13 +83,13 @@ export function ActivityReport({
       ? [
           {
             label: 'Different visitors',
-            value: t.people.toLocaleString('en-CA'),
+            value: num(t.people),
             note: 'Counted by browser: one person on a phone and a computer counts twice.',
             compare: report.period === 'year' ? null : compare((x) => x.people),
           },
           {
             label: 'Came back',
-            value: (t.returning ?? 0).toLocaleString('en-CA'),
+            value: num(t.returning ?? 0),
             note: 'Visitors who had opened your page on an earlier day.',
             compare: null,
           },
@@ -119,8 +125,22 @@ export function ActivityReport({
       : []),
   ];
 
-  const table = (title: string, rows: Row[], label: (v: string) => string, note?: string) => {
-    const total = rows.reduce((a, r) => a + r.views, 0);
+  const table = (title: string, all: Row[], label: (v: string) => string, note?: string) => {
+    const total = all.reduce((a, r) => a + r.views, 0);
+    // On the owner's page, rows under 5 go together into one, so no small group of
+    // visitors can be singled out; with very few visits, no breakdown at all.
+    if (hideSmall && total > 0 && total < MIN_TO_BREAK_DOWN) {
+      return (
+        <section className={styles.section}>
+          <h2 className="label">{title}</h2>
+          <p className="muted">Not enough visits in this period to break down.</p>
+        </section>
+      );
+    }
+    const big = hideSmall ? all.filter((r) => r.views >= SMALL) : all;
+    const rest = all.filter((r) => !big.includes(r)).reduce((a, r) => a + r.views, 0);
+    const rows = rest > 0 ? [...big, { value: '__rest', views: rest }] : big;
+    const name = (v: string) => (v === '__rest' ? 'Others, each fewer than 5' : label(v));
     return (
       <section className={styles.section}>
         <h2 className="label">{title}</h2>
@@ -138,7 +158,7 @@ export function ActivityReport({
             <tbody>
               {rows.map((r) => (
                 <tr key={r.value}>
-                  <th scope="row">{label(r.value)}</th>
+                  <th scope="row">{name(r.value)}</th>
                   <td>
                     <span className={styles.bar} style={{ ['--share' as string]: total ? r.views / total : 0 }} aria-hidden="true" />
                     {num(r.views)}
@@ -152,9 +172,19 @@ export function ActivityReport({
     );
   };
 
+  const lastDay = addDays(report.range.to, -1);
+  const since = report.countingSince;
   return (
     <>
-      {!report.lastYear && <p className="muted">Comparisons with last year start once Localites has a year of numbers.</p>}
+      {since === null || since > lastDay ? (
+        <p className="notice">Counting hadn’t started yet in this period{since ? `: it started on ${dateWords(since)}` : ''}. Choose a later period.</p>
+      ) : since > report.range.from ? (
+        <p className="notice">{`Counting started on ${dateWords(since)}, so this period is counted from then.`}</p>
+      ) : null}
+      {report.countedTo !== null && report.countedTo < lastDay && (
+        <p className="muted">{`Page opens, taps and visitors are counted up to ${dateWords(report.countedTo)}; the days after are added each morning.`}</p>
+      )}
+      {!report.lastYear && <p className="muted">Comparisons start once the period they compare with has been counted.</p>}
       <ul className={styles.blocks}>
         {blocks.map((b) => (
           <li key={b.label} className={styles.block}>
@@ -183,10 +213,8 @@ export function ActivityReport({
 
       {report.category && (
         <section className={styles.section}>
-          <h2 className="label">Interest in {report.category.name}</h2>
-          <p>
-            Times people browsed {report.category.name}: {report.category.browsed.toLocaleString('en-CA')}.
-          </p>
+          <h2 className="label">Interest in {report.category.browsedName}</h2>
+          <p>{`Times people browsed ${report.category.browsedName}${report.category.browsedName !== report.category.name ? ` (which includes ${report.category.name})` : ''}: ${report.category.browsed.toLocaleString('en-CA')}.`}</p>
           {report.category.comparison ? (
             <p>
               Average for {report.category.name}: {report.category.comparison.average.toLocaleString('en-CA')} page opens. You:{' '}

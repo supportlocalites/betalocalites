@@ -244,7 +244,8 @@ to sell featured placements.
   to the account, so a business's own visits and the team's are left out of totals). The
   legal review (PO-07) confirms whether a notice is also needed on first visit.
 - **Only what a real browser confirms is counted** (ADR-030): pages carry a note signed by
-  the server, and bots get none. Each action also records phone, tablet or computer, the
+  the server for that browser, and bots get none. On an owner's page, small groups are
+  combined ("Others, each fewer than 5") so no single visitor can be singled out. Each action also records phone, tablet or computer, the
   approximate town and province from Cloudflare (never the internet address), where the
   visitor came from (the other site's name only), and their place in a list.
 - **Everything is tracked (D-30):** each action (a profile view, a tap, how long a

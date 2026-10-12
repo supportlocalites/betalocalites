@@ -5,6 +5,7 @@ import { expiry, type ListNote, type Note, readNote, signNote } from '@/lib/acti
 import { uuidv7 } from '@/lib/ids.mjs';
 import { withDb } from './db.server';
 import type { Place, ServerEnv } from './env';
+import { addressKey, visitor } from './visitor.server';
 
 /**
  * Counting how people find and use each business (D-22, D-30, ADR-023, ADR-030). Pages
@@ -12,21 +13,43 @@ import type { Place, ServerEnv } from './env';
  * anything written. Bots never get a note, so they're never counted.
  */
 
+/** The signing secret needs at least this many characters. */
+export const MIN_KEY_LENGTH = 32;
+
+/** Whether counting is on: 'off' (no key), 'short' (a key too short to be safe), or 'on'. */
+export const keyState = (env: ServerEnv): 'off' | 'short' | 'on' =>
+  !env.ACTIVITY_KEY ? 'off' : env.ACTIVITY_KEY.length < MIN_KEY_LENGTH ? 'short' : 'on';
+
 /** Counting is on exactly when the signing secret is set (a long one). */
-export const trackingOn = (env: ServerEnv): env is ServerEnv & { ACTIVITY_KEY: string } =>
-  typeof env.ACTIVITY_KEY === 'string' && env.ACTIVITY_KEY.length >= 32;
+export const trackingOn = (env: ServerEnv): env is ServerEnv & { ACTIVITY_KEY: string } => keyState(env) === 'on';
 
 const isPerson = (request: Request) => !isbot(request.headers.get('User-Agent') ?? '');
 
-export type ListTrack = { token: string; list: string };
+/**
+ * The browser a page's note is made for (ADR-030): its visitor cookie, or a new one sent
+ * with the page. New browsers are limited per internet address, so a script that drops
+ * its cookie each time can't pose as endless visitors; past the limit, no note.
+ */
+async function pageBrowser(env: ServerEnv, request: Request): Promise<{ id: string; setCookie: string | null } | null> {
+  const browser = visitor(request);
+  if (browser.setCookie && env.NEW_VISITOR_LIMIT && !(await env.NEW_VISITOR_LIMIT.limit({ key: addressKey(request) })).success) {
+    return null;
+  }
+  return browser;
+}
 
-/** The note for a search or category page, or null (counting off, or a bot). */
+export type ListTrack = { token: string; list: string };
+export type Tracked<T> = { track: T | null; setCookie: string | null };
+
+/** The note for a search or category page, or none (counting off, a bot, or too many new browsers). */
 export async function listTrack(
   env: ServerEnv,
   request: Request,
   list: { words: string; category: string | null; ids: string[] },
-): Promise<ListTrack | null> {
-  if (!trackingOn(env) || !isPerson(request)) return null;
+): Promise<Tracked<ListTrack>> {
+  if (!trackingOn(env) || !isPerson(request)) return { track: null, setCookie: null };
+  const browser = await pageBrowser(env, request);
+  if (!browser) return { track: null, setCookie: null };
   const pv = uuidv7();
   const note: ListNote = {
     k: 'list',
@@ -36,30 +59,43 @@ export async function listTrack(
     cat: list.category,
     ids: list.ids.slice(0, 30),
     n: Math.min(list.ids.length, 30),
+    b: browser.id,
     x: expiry(Date.now() / 1000),
   };
-  return { token: await signNote(env.ACTIVITY_KEY, note), list: pv };
+  return { track: { token: await signNote(env.ACTIVITY_KEY, note), list: pv }, setCookie: browser.setCookie };
 }
 
-/** The note for a business's page, with where the visitor came from (read here, not trusted from the page). */
-export async function viewTrack(env: ServerEnv, request: Request, vendorId: string): Promise<string | null> {
-  if (!trackingOn(env) || !isPerson(request)) return null;
+/**
+ * The note for a business's page, with where the visitor came from: read here from the
+ * request, so the page can't change it (a script can still claim any Referer it likes).
+ */
+export async function viewTrack(env: ServerEnv, request: Request, vendorId: string): Promise<Tracked<string>> {
+  if (!trackingOn(env) || !isPerson(request)) return { track: null, setCookie: null };
+  const browser = await pageBrowser(env, request);
+  if (!browser) return { track: null, setCookie: null };
   const src: Source = classifySource(request.headers.get('Referer'), new URL(request.url).origin);
-  return signNote(env.ACTIVITY_KEY, { k: 'view', pv: uuidv7(), v: vendorId, src, x: expiry(Date.now() / 1000) });
+  const token = await signNote(env.ACTIVITY_KEY, { k: 'view', pv: uuidv7(), v: vendorId, src, b: browser.id, x: expiry(Date.now() / 1000) });
+  return { track: token, setCookie: browser.setCookie };
 }
+
+/** The page's answer headers: the visitor cookie for a new browser. */
+export const cookieHeaders = (setCookie: string | null): HeadersInit | undefined => (setCookie ? { 'Set-Cookie': setCookie } : undefined);
 
 export type Recorded = 'recorded' | 'bad_note';
 
-/** Writes one browser report, in one statement. */
+/**
+ * Writes one browser report, in one statement. The report must come from the browser the
+ * page's note was made for (its visitor cookie), so a note can't be passed around.
+ */
 export async function recordBeacon(
   env: ServerEnv & { ACTIVITY_KEY: string },
   beacon: Beacon,
   request: Request,
-  visitorId: string,
+  visitorId: string | null,
   place: Place,
 ): Promise<Recorded> {
   const note: Note | null = await readNote(env.ACTIVITY_KEY, beacon.token, Date.now() / 1000);
-  if (!note || (beacon.t === 'list') !== (note.k === 'list')) return 'bad_note';
+  if (!note || (beacon.t === 'list') !== (note.k === 'list') || !visitorId || note.b !== visitorId) return 'bad_note';
   const device = deviceFrom(request.headers.get('User-Agent'), request.headers.get('Sec-CH-UA-Mobile'));
   await withDb(env, async (db) => {
     if (note.k === 'list' && beacon.t === 'list') {

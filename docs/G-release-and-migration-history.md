@@ -31,6 +31,54 @@ Every release and every database migration, in order. Appended before each deplo
 
 ## Releases
 
+### 2026-10-12 — Activity counting and the Analytics page (Stage 1, not public)
+
+**Stage:** 1 (D-22, D-30, D-37; ADR-030)
+**What changed (plain English):**
+- **Counting.** Localites now counts, for each business: how often it's seen in search
+  results and category lists (and at what place), page opens, Visit website and Call taps,
+  time on the page and whether the services were seen. It also records where visitors came
+  from (Localites, Google, social media, another site), phone or computer, an approximate
+  town, the time of day, and what people searched for (including searches that found
+  nothing).
+- **Only real visits count.** Only what a real browser confirms is counted, against a note
+  the page's server signed for that browser. Search engines, link previews and made-up
+  reports are refused.
+- **Limits.** New browsers per internet address are limited, and so is what's kept each day.
+- **Left out.** Visits by a business's own people and by the team are left out of the totals.
+- **Each morning** the day before is added into the totals.
+- **Owners** see their own **Analytics** page once the team switches it on for their
+  business. It shows totals, never who; small groups are combined. The team has
+  **Activity** (all businesses, search demand, the nightly count, database space) and an
+  Activity page per listing with the on/off switch. Each look at the detail is recorded.
+- **Counting stays off until the activity key is added (PO-14).**
+
+**Migrations applied:**
+- `0009_activity_tracking.sql`: more detail per action; list pages; nightly totals; which
+  browser is whose; the per-business switch; the nightly count's record; the recording
+  and counting functions.
+- `0010_activity_limits.sql`: daily limits; list places only from real lists; every town
+  kept per day.
+
+**Destructive?** No (new tables, columns, indexes and functions; three check lists widened;
+one grant narrowed; the activity tables were empty).
+**Tests run:**
+- Unit tests: 104/104 (new: where visitors came from, phone or computer, browser reports,
+  signed notes, bots, periods, the owner's wording).
+- Database checks: 51, 12, 19, 13, 5, 22, 4, 51 (new) and 9 (new), and 56/56.
+- End-to-end: 43/43, 73/73, 55/55 and 49/49 (new: signed notes tied to one browser; other
+  sites, forms, changed or passed-around notes and bots refused; the new-browser limit; the
+  owner's and team's visits marked; the nightly count; the owner's page only for its owner
+  with the switch on; owners can't switch it on; team pages refused to everyone else; each
+  look at the detail recorded once).
+- Real-browser check at phone size: seen in a list, opened from it, a tap, time on the page.
+
+An independent review found 4 confirmed and 15 smaller problems; all were fixed (see ADR-030).
+
+**How to roll back:** Cloudflare → localites → Deployments → previous version → Deploy.
+Remove the activity key to stop counting at once; the new tables can stay.
+**Approved by:** Product owner (D-22, D-30, D-37).
+
 ### 2026-10-12 — Owner editing: fixes from the independent review (Stage 1, not public)
 
 **Stage:** 1 (D-34, ADR-029 review)

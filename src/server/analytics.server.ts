@@ -30,13 +30,15 @@ export type Report = {
   now: Totals;
   before: Totals | null;
   lastYear: Totals | null; // null: not counted that long ago yet
+  /** The first day anything was counted, and the last day the nightly count has finished. */
+  countingSince: string | null;
   sources: Row[];
   devices: Row[];
   towns: Row[];
   hours: Row[];
   leftOut: Row[];
   askedFor: number;
-  category: { name: string; browsed: number; comparison: { businesses: number; average: number; rank: number } | null } | null;
+  category: { name: string; browsedName: string; browsed: number; comparison: { businesses: number; average: number; rank: number } | null } | null;
   countedTo: string | null; // the last day counted
 };
 
@@ -66,11 +68,12 @@ async function totals(db: Db, vendorId: string, r: Range): Promise<Totals> {
 export async function readReport(db: Db, vendorId: string, period: Period, today: string): Promise<Report> {
   const ranges = periodRanges(period, today);
   const r = ranges.now;
-  const [now, before, [known], breakdown, sources, [asked], [cat]] = await Promise.all([
+  const [now, [known], breakdown, sources, [asked], [cat]] = await Promise.all([
     totals(db, vendorId, r),
-    ranges.before ? totals(db, vendorId, ranges.before) : Promise.resolve(null),
+    // Counting began with the first total written (seen in lists is written as it happens).
     db.execute<{ since: string | null; to: string | null }>(sql`
-      select min(day)::text as since, max(day)::text as to from activity_rollup where status = 'done'`),
+      select (select min(day)::text from vendor_daily_stats) as since,
+             (select max(day)::text from activity_rollup where status = 'done') as to`),
     db.execute<{ dimension: string; value: string; views: number }>(sql`
       select dimension, value, sum(profile_views)::int as views from vendor_daily_breakdown
       where vendor_id = ${vendorId} and day >= ${r.from}::date and day < ${r.to}::date
@@ -85,16 +88,23 @@ export async function readReport(db: Db, vendorId: string, period: Period, today
       select c.id, c.name, c.parent_id as "parentId" from vendor_category vc join category c on c.id = vc.category_id
       where vc.vendor_id = ${vendorId} and vc.is_primary`),
   ]);
-  // Same period last year: only once counting had started by then.
-  const lastYear = known?.since && known.since <= ranges.lastYear.from ? await totals(db, vendorId, ranges.lastYear) : null;
+  // A comparison only with a period counted from its first day.
+  const counted = (from: string) => Boolean(known?.since && known.since <= from);
+  const [before, lastYear] = await Promise.all([
+    ranges.before && counted(ranges.before.from) ? totals(db, vendorId, ranges.before) : Promise.resolve(null),
+    counted(ranges.lastYear.from) ? totals(db, vendorId, ranges.lastYear) : Promise.resolve(null),
+  ]);
 
   let category: Report['category'] = null;
   if (cat) {
+    // People browse the top categories (Explore), so interest is the top one's, with its sub-categories.
+    const top = cat.parentId ?? cat.id;
     const [[browsed], peers] = await Promise.all([
-      db.execute<{ n: number }>(sql`
-        select coalesce(sum(searches), 0)::int as n from search_daily_stats
-        where placement = 'category' and category_id in (${cat.id}::uuid, ${cat.parentId}::uuid)
-          and day >= ${r.from}::date and day < ${r.to}::date`),
+      db.execute<{ n: number; name: string }>(sql`
+        select coalesce((select sum(searches) from search_daily_stats
+                         where placement = 'category' and day >= ${r.from}::date and day < ${r.to}::date
+                           and category_id in (select id from category where id = ${top} or parent_id = ${top})), 0)::int as n,
+               (select name from category where id = ${top}) as name`),
       db.execute<{ vendorId: string; views: number }>(sql`
         select v.id as "vendorId", coalesce(sum(s.profile_views), 0)::int as views
         from vendor v join vendor_category vc on vc.vendor_id = v.id and vc.is_primary and vc.category_id = ${cat.id}
@@ -105,6 +115,7 @@ export async function readReport(db: Db, vendorId: string, period: Period, today
     const mine = peers.find((p) => p.vendorId === vendorId)?.views ?? now.views;
     category = {
       name: cat.name,
+      browsedName: browsed?.name ?? cat.name,
       browsed: browsed?.n ?? 0,
       comparison:
         peers.length >= MIN_TO_COMPARE
@@ -118,6 +129,14 @@ export async function readReport(db: Db, vendorId: string, period: Period, today
   }
 
   const pick = (d: string) => breakdown.filter((b) => b.dimension === d).map(({ value, views }) => ({ value, views }));
+  // The 10 busiest towns over the whole period; the rest together.
+  const allTowns = pick('town');
+  const named = allTowns.filter((t) => t.value !== 'unknown');
+  const towns = [
+    ...named.slice(0, 10),
+    ...(named.length > 10 ? [{ value: 'elsewhere', views: named.slice(10).reduce((a, t) => a + t.views, 0) }] : []),
+    ...allTowns.filter((t) => t.value === 'unknown'),
+  ];
   return {
     period,
     range: r,
@@ -126,11 +145,12 @@ export async function readReport(db: Db, vendorId: string, period: Period, today
     lastYear,
     sources: [...sources],
     devices: pick('device'),
-    towns: pick('town'),
+    towns,
     hours: pick('hour').sort((a, b) => a.value.localeCompare(b.value)),
     leftOut: pick('left_out'),
     askedFor: asked?.n ?? 0,
     category,
     countedTo: known?.to ?? null,
+    countingSince: known?.since ?? null,
   };
 }

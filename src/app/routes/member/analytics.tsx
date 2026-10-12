@@ -1,8 +1,8 @@
 import { data, Form, isRouteErrorResponse, Link, redirect, useRouteError } from 'react-router';
 import { cloudflareContext, memberContext } from '@/app/context';
-import { ActivityReport, PERIOD_WORDS } from '@/components/ActivityReport';
+import { ActivityReport, dateWords, PERIOD_WORDS } from '@/components/ActivityReport';
 import { SiteHeader } from '@/components/SiteHeader';
-import { type Period, torontoDate } from '@/lib/activity';
+import { addDays, type Period, torontoDate } from '@/lib/activity';
 import { pageMeta } from '@/lib/meta';
 import { readReport } from '@/server/analytics.server';
 import { withDb } from '@/server/db.server';
@@ -24,7 +24,8 @@ export async function loader({ request, params, context }: Route.LoaderArgs) {
   const member = context.get(memberContext);
   const { env } = context.get(cloudflareContext);
   const asked = new URL(request.url).searchParams.get('period');
-  const period: Period = PERIODS.includes(asked as Period) ? (asked as Period) : 'month';
+  // This year so far by default: it always includes the latest counted days.
+  const period: Period = PERIODS.includes(asked as Period) ? (asked as Period) : 'year';
   const result = await withDb(env, async (db) => {
     const listing = await ownedAnalytics(db, member.userId, params.slug);
     if (!listing || 'renamedTo' in listing) return listing;
@@ -35,12 +36,8 @@ export async function loader({ request, params, context }: Route.LoaderArgs) {
   return { listing: { slug: result.listing.slug, name: result.listing.name, has: result.listing.has }, report: result.report };
 }
 
-const dateWords = (s: string) =>
-  new Date(`${s}T12:00:00Z`).toLocaleDateString('en-CA', { month: 'long', day: 'numeric', year: 'numeric', timeZone: 'UTC' });
-
 export default function Analytics({ loaderData: { listing, report } }: Route.ComponentProps) {
-  const lastDay = new Date(`${report.range.to}T12:00:00Z`);
-  lastDay.setUTCDate(lastDay.getUTCDate() - 1);
+  const empty = report.range.from >= report.range.to;
   return (
     <>
       <SiteHeader />
@@ -49,7 +46,8 @@ export default function Analytics({ loaderData: { listing, report } }: Route.Com
         <div className="title-rule" aria-hidden="true" />
         <p className="muted">
           How people found and used your page on Localites. You see totals only, never who. Numbers run to the end of
-          yesterday and are updated each night. Your own visits, and the Localites team’s, are left out.
+          yesterday and are updated each morning. Your own visits are left out on browsers where you’ve signed in to
+          Localites, and so are the Localites team’s.
         </p>
         <Form method="get" className="section-gap">
           <label htmlFor="period" className="field-label">
@@ -66,10 +64,14 @@ export default function Analytics({ loaderData: { listing, report } }: Route.Com
             Show
           </button>
         </Form>
-        <p className="label section-gap">
-          {dateWords(report.range.from)} to {dateWords(lastDay.toISOString().slice(0, 10))}
-        </p>
-        <ActivityReport report={report} hideSmall has={listing.has} />
+        {empty ? (
+          <p className="notice section-gap">The year has just started: its numbers appear from tomorrow. Choose last month to see December.</p>
+        ) : (
+          <>
+            <p className="label section-gap">{`${dateWords(report.range.from)} to ${dateWords(addDays(report.range.to, -1))}`}</p>
+            <ActivityReport report={report} hideSmall has={listing.has} />
+          </>
+        )}
         <p className="section-gap">
           <Link to={`/vendors/${listing.slug}/edit`} className="text-link">
             Edit your listing

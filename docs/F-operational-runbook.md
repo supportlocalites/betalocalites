@@ -235,14 +235,19 @@ If the backups outgrow free storage, we tell you before anything changes.
   written. Replacing the key is safe: open pages simply stop being counted until reloaded.
 - **The nightly count** runs with the daily note (12:00 and 14:00 UTC) and adds each
   finished Toronto day into the totals. **Activity** lists the last 7 days: "failed" days
-  are retried by the next run; for anything older use **Count this day again** (recorded).
+  are retried by the next run; for any older day, pick it in **Count this day again**
+  (recorded).
 - **An owner's Analytics page:** on the listing's **Activity** page, **Switch on** or
   **Switch off** (with an optional note; recorded). It takes effect at once. The owner
   sees totals only, never who.
 - **Looking at the detail** (each action by browser, or the words people searched) is
   recorded in the audit log every time; the listing's **Activity** page shows who looked.
   Use it to run the service and check unusual days, not out of curiosity.
-- **Unusual days** (far above the business's own average) are marked on its Activity page:
+- **Daily limits:** at most 10,000 actions and 5,000 searches are kept each day (Toronto
+  time); **Activity** shows today's use. Reaching them means a script, almost certainly:
+  look at the day's detail for one browser or business repeating itself.
+- **Unusual days** (over 5 times the business's usual day, once it has a week of history)
+  are marked on its Activity page:
   check the day's detail for one browser repeating itself, then tell the owner if their
   numbers were inflated.
 - **Database space:** shown on **Activity**. At 400 MB of the free 500 MB, move older

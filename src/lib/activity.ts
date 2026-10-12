@@ -19,7 +19,7 @@ export function classifySource(referer: string | null, siteOrigin: string): Sour
   if (!referer || !URL.canParse(referer)) return 'direct';
   const url = new URL(referer);
   if (url.origin === siteOrigin) {
-    if (url.pathname === '/search') return url.searchParams.get('q') ? 'search' : 'category';
+    if (url.pathname === '/search') return url.searchParams.get('q')?.trim() ? 'search' : 'category';
     return 'other';
   }
   // The name before the country or .com ending: google.ca, l.facebook.com, t.co.
@@ -179,7 +179,7 @@ export function duration(seconds: number): string {
 
 export const SOURCE_WORDS: Record<string, string> = {
   search: 'Localites search',
-  category: 'Browsing a category',
+  category: 'Browsing a category or the full list',
   web_search: 'Google or another search engine',
   social: 'Social media',
   other_site: 'Another website',

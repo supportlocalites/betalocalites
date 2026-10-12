@@ -4,7 +4,8 @@ import { ActivityReport, PERIOD_WORDS } from '@/components/ActivityReport';
 import { type Period, torontoDate } from '@/lib/activity';
 import { isUuid } from '@/lib/ids.mjs';
 import { pageMeta } from '@/lib/meta';
-import { trackingOn } from '@/server/activity.server';
+import { keyState } from '@/server/activity.server';
+import { KeyNotice } from '@/components/admin/KeyNotice';
 import { ActivityConflict, detailLooks, readSwitch, recentDays, setAnalytics } from '@/server/admin/activity.server';
 import { readReport } from '@/server/analytics.server';
 import { withDb } from '@/server/db.server';
@@ -47,7 +48,7 @@ export async function loader({ params, request, context }: Route.LoaderArgs) {
     return { listing, report, switched, days, looks };
   });
   if (!result) throw data(null, { status: 404 });
-  return { ...result, counting: trackingOn(env), saved: url.searchParams.get('saved') };
+  return { ...result, key: keyState(env), saved: url.searchParams.get('saved') };
 }
 
 export async function action({ params, request, context }: Route.ActionArgs) {
@@ -75,7 +76,7 @@ const SAVED: Record<string, string> = {
 const when = new Intl.DateTimeFormat('en-CA', { dateStyle: 'medium', timeStyle: 'short', timeZone: 'America/Toronto' });
 
 export default function ListingActivity({ loaderData, actionData }: Route.ComponentProps) {
-  const { listing, report, switched, days, looks, counting, saved } = loaderData;
+  const { listing, report, switched, days, looks, key, saved } = loaderData;
   const busy = useNavigation().state === 'submitting';
   const on = switched?.enabled ?? false;
   return (
@@ -91,9 +92,7 @@ export default function ListingActivity({ loaderData, actionData }: Route.Compon
       </p>
       <h1 className="title-1 section-gap">Activity: {listing.name}</h1>
       <div className="title-rule" aria-hidden="true" />
-      {!counting && (
-        <p className="notice">Counting is off: the activity key isn’t set in Cloudflare yet (runbook, “Activity counting”).</p>
-      )}
+      <KeyNotice state={key} />
       {saved && SAVED[saved] && (
         <p className="notice" role="status">
           {SAVED[saved]}
@@ -131,7 +130,11 @@ export default function ListingActivity({ loaderData, actionData }: Route.Compon
       </section>
 
       <section className={styles.section} aria-labelledby="numbers-heading">
-        <h2 id="numbers-heading">What the owner sees</h2>
+        <h2 id="numbers-heading">This business’s numbers</h2>
+        <p className="muted">
+          The owner sees the same, except that small figures show as “fewer than 5” (or are grouped) and the left-out visits
+          aren’t listed. Don’t quote small figures to them.
+        </p>
         <Form method="get" className={styles.buttons}>
           <label htmlFor="period" className="visually-hidden">
             Period
