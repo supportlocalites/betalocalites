@@ -27,13 +27,17 @@ export type Note = ListNote | ViewNote;
 /** Notes last 12 hours: long enough for a page left open, short enough to be useless later. */
 export const NOTE_HOURS = 12;
 
-const keys = new Map<string, Promise<CryptoKey>>();
-function keyFor(secret: string): Promise<CryptoKey> {
-  let key = keys.get(secret);
-  if (!key) {
-    key = crypto.subtle.importKey('raw', new TextEncoder().encode(secret), { name: 'HMAC', hash: 'SHA-256' }, false, ['sign', 'verify']);
-    keys.set(secret, key);
-  }
+// The finished key is kept for the next request (Workers can't share a pending promise
+// between requests).
+const keys = new Map<string, CryptoKey>();
+async function keyFor(secret: string): Promise<CryptoKey> {
+  const kept = keys.get(secret);
+  if (kept) return kept;
+  const key = await crypto.subtle.importKey('raw', new TextEncoder().encode(secret), { name: 'HMAC', hash: 'SHA-256' }, false, [
+    'sign',
+    'verify',
+  ]);
+  keys.set(secret, key);
   return key;
 }
 

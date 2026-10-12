@@ -293,7 +293,7 @@ export default function EditListing({ loaderData, actionData: rawResult }: Route
         )}
       </p>
       <p className="muted">
-        Analytics page for the owner: {analyticsOn ? 'On' : 'Off'} ·{' '}
+        {`Analytics page for the owner: ${analyticsOn ? 'On' : 'Off'} · `}
         <Link to={`/admin/listings/${listing.id}/activity`} className="text-link">
           See activity
         </Link>

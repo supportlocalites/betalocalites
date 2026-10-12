@@ -162,8 +162,7 @@ export default function Activity({ loaderData, actionData }: Route.ComponentProp
       <section className={styles.section} aria-labelledby="space-heading">
         <h2 id="space-heading">Database space</h2>
         <p>
-          {mb(space.database)} MB of the free {FREE_MB} MB in use, {mb(space.activity)} MB of it activity. At {ARCHIVE_AT_MB} MB, older
-          detail moves to archive storage (ADR-023).
+          {`${mb(space.database)} MB of the free ${FREE_MB} MB in use, ${mb(space.activity)} MB of it activity. At ${ARCHIVE_AT_MB} MB, older detail moves to archive storage (ADR-023).`}
         </p>
       </section>
     </>
