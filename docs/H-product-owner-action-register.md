@@ -86,7 +86,6 @@ Recorded from your messages of 9 and 10 October 2026. These now shape every docu
 | **PO-14** | Switch on activity counting: add one secret in Cloudflare (steps below) | Any numbers on the team's Activity pages and the owners' Analytics pages | 3 min |
 | **PO-15** | Once "Plan an event" reaches the test site: plan a test event and look at it (steps below) | Knowing that planning works on the real hosting, not only on our computers | 5 min |
 | **PO-16** | Switch on business photos: one storage folder in Supabase, three secrets in Cloudflare (steps below) | Businesses adding photos | 10 min |
-| **PO-17** | Let GitHub put the site live, after tests and database changes: one Cloudflare key into GitHub, then turn off Cloudflare's own automatic builds (steps below) | Updates never break pages while a database change catches up | 10 min |
 | **PO-11** | Check the 28 test businesses (drafts) and publish the ones that are right (steps below) | Real listings on the test site | At your pace, ~5 min each |
 | **D-12** | Mailing address for the privacy policy and terms | Public launch | 1 min, later |
 
@@ -1208,3 +1207,5 @@ you saw (a screenshot is fine; never include a key).
 | 2026-10-11 | PO-13: sign-in codes for everyone (Supabase emails through Resend; sign-ups open); a full test claim worked end to end |
 | 2026-10-12 | D-37 Analytics page; D-38 signing in stays the emailed code |
 | 2026-10-12 | D-39 (revised), D-40, D-41, D-42 and D-43: planning an event, what a booked business sees, flags, team-only counts, ideas and featured businesses |
+| 2026-10-13 | PO-17: GitHub puts the test site live only after every test and the database update (first deploy checked healthy); Cloudflare's own builds disconnected |
+| 2026-10-13 | D-45: a square profile photo for lists; the photos on a business's page shown whole |

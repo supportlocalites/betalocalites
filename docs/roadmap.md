@@ -101,7 +101,10 @@ on codes (ADR-028).
 
 **Still to do from Stage 1 (stated plainly, 13 October 2026):**
 - **Before public launch:** privacy policy and terms pages (PO-07 legal review; the mailing
-  address, D-12); the production environment; our own nightly backups and the first restore drill; alerts when
+  address, D-12); the production environment (localites.ca with its own database, updated only
+  when the product owner presses a **Release** button in GitHub, copying exactly what was tried
+  on the test site; the current workers.dev site and test database stay as the test site, where
+  every change lands first; free plans only; product owner, 13 October 2026); our own nightly backups and the first restore drill; alerts when
   the site breaks (D-11); automated accessibility and screen-size checks (done by hand so
   far).
 - **Built since (13 October 2026):** deleting your own account (0014); a business's team
