@@ -31,6 +31,24 @@ Every release and every database migration, in order. Appended before each deplo
 
 ## Releases
 
+### 2026-10-13 — Bookings marked before a business joined (Stage 2, not public)
+
+**Stage:** 2 (D-44, ADR-031)
+**What changed (plain English):** if someone marks a business booked before it is on
+Localites, and the business joins later, it sees that booking only if the event is still to
+come. Bookings for events already past stay hidden from it (and can't be flagged), so a
+new business can't see how popular it has been. The Mark as booked page says: "If … joins
+Localites before your event, they'll see that you marked them booked …".
+**Migrations applied:** `0013_bookings_before_joining.sql` (replaces two functions from 0012
+with the same columns and rights; adds one small helper).
+**Destructive?** No: no table or row changes. To undo, a later migration puts back the 0012
+versions.
+**Tests run:** database 0013 6/6 (new), 0012 164/164 and every earlier file; unit 136/136;
+end-to-end 363/363.
+**How to roll back:** Cloudflare → Deployments → previous version; the database change is
+undone by a new migration.
+**Approved by:** Product owner (D-44, 13 October 2026).
+
 ### 2026-10-13 — Sign-in: a 60-second countdown, honest replies, header always right (Stage 1, not public)
 
 **Stage:** 1 (ADR-028; reported by the product owner: a code that didn't arrive, and the

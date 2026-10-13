@@ -126,6 +126,8 @@ check('wrong password: refused, no cookies set', r.status === 400 && !(r.headers
 console.log('Suggest a business');
 const countSuggestions = async (name) => (await sql`select count(*)::int as n from vendor_suggestion where business_name = ${name}`)[0].n;
 // Per-visitor limit first (Cloudflare's per-address limit allows 3 a minute; this uses 1).
+// Earlier runs' test suggestions would count towards today's site-wide limit (local database only).
+await sql`delete from vendor_suggestion where business_name like 'E2E %'`;
 const busyVisitor = randomUUID();
 for (let i = 0; i < 5; i++) {
   await sql`insert into vendor_suggestion (business_name, visitor_id) values (${`E2E earlier ${run} ${i}`}, ${busyVisitor})`;

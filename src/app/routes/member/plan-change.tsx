@@ -86,7 +86,7 @@ function Explanation({ change, target, today }: { change: PlanChange; target: Ta
         <p>
           {target.claimed
             ? `${b} will see your name, the date, the town and about how many guests. Never your event’s name, where it is, the ages, your budget or your notes.`
-            : `If ${b} joins Localites later, they’ll see that you marked them booked: your name, the date, the town and about how many guests. Never your event’s name, where it is, the ages, your budget or your notes.`}
+            : `If ${b} joins Localites before your event, they’ll see that you marked them booked: your name, the date, the town and about how many guests. Never your event’s name, where it is, the ages, your budget or your notes.`}
         </p>
         <p className="muted">{NO_PAYMENTS_PERSON}</p>
       </>

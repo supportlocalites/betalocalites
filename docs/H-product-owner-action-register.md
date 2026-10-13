@@ -1,6 +1,6 @@
 # H — Product Owner Action Register
 
-**Last updated:** 2026-10-13 (revision 17: D-39 revised, D-40, D-41, D-42 and D-43 recorded as decided on 12 October 2026; "Plan an event" built)
+**Last updated:** 2026-10-13 (revision 18: D-44, bookings marked before a business joined; revision 17: D-39 revised to D-43, "Plan an event" built)
 
 **Revision 17 changes:** your five decisions on planning an event (D-39 to D-43) are recorded
 in your own words below, and in the table of decisions. "Plan an event" is built and tested
@@ -66,6 +66,7 @@ Recorded from your messages of 9 and 10 October 2026. These now shape every docu
 | ✅ D-41 | **"This isn't right": the team and the person are both told** (12 October 2026). The business's note stays with the team. | Built: the team gets an email (no note, no name) and a read-only **Booking flags** list; the person gets a polite email and a line on their plan. Deciding on flags comes in Stage 3. |
 | ✅ D-42 | **Count saves, adds to event plans and "marked booked" now, seen only by the Localites team** (12 October 2026). Not on a business's own Analytics page. | Built: "Planning (team only)" on the team's **Activity** pages, with totals by kind of event. Totals only: never who, never which event. |
 | ✅ D-43 | **Tailored ideas per kind of event, and featured businesses per kind, run by the team** (12 October 2026). | Built: on a person's plan, "Ideas for your …" with up to 3 businesses labelled **Featured** ("Featured businesses are promoted by the Localites team.") and the kinds of business people often need. The team chooses both at **Admin → Event types**. No money is recorded; any arrangement with a business happens outside Localites (D-24). Brought forward from Stage 5. |
+| ✅ D-44 | **A business that joins Localites later sees bookings marked before it joined only if the event is still to come** (13 October 2026). | The owner: "The only scenario where I see it is important is if they add them to Localites and their party hasn't technically yet happened. If it's in the past I wouldn't worry about it. Don't want them to see how popular/unpopular the business is on the app." Built (migration 0013): past bookings from before it joined stay hidden, and can't be flagged. |
 | ✅ D-35 | **Two claims for one business: the first approved wins.** Any other waiting claims are declined automatically with a polite email; a claimed business shows "This business manages its own listing" with a way to contact us. | ADR-028; the database allows only one owner per business. |
 
 ---
@@ -134,10 +135,9 @@ other businesses on the plan, or the person's email.
   when the business's last word was already "marked booked", so it is never left with old
   news; and no one gets more than 30 of these emails a day, so a person changing their mind
   can't flood a business's inbox.
-- A business not yet on Localites isn't emailed. If it joins Localites later, its **Bookings
-  marked** page shows bookings marked before it joined; the **Mark as booked** page tells the
-  person this plainly. (Review finding, 13 October 2026; tell us if you'd rather such bookings
-  stayed hidden from the business.)
+- A business not yet on Localites isn't emailed. If it joins later, it sees a booking marked
+  before it joined only while that event is still to come (D-44); the **Mark as booked** page
+  tells the person this plainly.
 
 **Status:** ✅ Decided, 12 October 2026. Built.
 

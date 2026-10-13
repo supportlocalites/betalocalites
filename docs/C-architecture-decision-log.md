@@ -1158,8 +1158,9 @@ database login (`app_server`, ADR-004) and keeping secrets out of the code are f
   A person's email on `app_user` is still hidden by the server's named queries (as in Stage 1).
 - **A flag belongs to one marking.** If the person un-marks and marks again, the old flag no
   longer counts and the business can say again that the new marking isn't right.
-- **Bookings marked before a business joined** are shown to it once it is claimed; the Mark as
-  booked page tells the person so.
+- **Bookings marked before a business joined** (D-44, migration 0013) are shown to it only
+  while the event is still to come; past ones stay hidden, so a new business can't gauge how
+  popular it has been. "Joined" is when its earliest current owner or manager started.
 - **Supabase's `postgres` role** must be able to see past row-level security for 0012 to
   apply; it is expected to, but this is first checked when the migration runs on the test
   project. If not, the migration stops, nothing changes, and the update isn't deployed.
