@@ -21,6 +21,8 @@
   width: var(--size-thumb);
   aspect-ratio: 1;
   background: var(--color-photo-1);
+  object-fit: cover;
+  display: block;
 }
 
 .name {

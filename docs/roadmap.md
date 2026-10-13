@@ -101,15 +101,16 @@ on codes (ADR-028).
 
 **Still to do from Stage 1 (stated plainly, 13 October 2026):**
 - **Before public launch:** privacy policy and terms pages (PO-07 legal review; the mailing
-  address, D-12); deleting your own account (must also remove events, plans and saves); the
-  production environment; our own nightly backups and the first restore drill; alerts when
+  address, D-12); the production environment; our own nightly backups and the first restore drill; alerts when
   the site breaks (D-11); automated accessibility and screen-size checks (done by hand so
   far).
-- **Team tools not built yet:** photo upload (owners and team), verification records,
+- **Built since (13 October 2026):** deleting your own account (0014); a business's team
+  (0015); business photos, added by owners and managers, reviewed and removed by the team
+  (0016, switched on by PO-16).
+- **Team tools not built yet:** verification records,
   categories, filters (attributes), places, collections, users and roles (adding admins is
   still done in the database, runbook), the audit-log page, listing review (X3).
-- **Pages not built yet:** collections, How it works, For vendors; a business's team
-  (teammates wait, D-29).
+- **Pages not built yet:** collections, How it works, For vendors.
 - **Owner steps waiting:** PO-11 (check and publish the test businesses), PO-14 (switch on
   activity counting).
 

@@ -246,3 +246,23 @@
 .buttons .orderBox {
   flex: 0 0 var(--size-thumb);
 }
+
+/* Photos (team): a small square of each photo, and the remove form under it. */
+.photoThumb {
+  display: block;
+  width: var(--size-thumb);
+  aspect-ratio: 1;
+  object-fit: cover;
+  background: var(--color-photo-1);
+}
+
+.inlineForm {
+  display: grid;
+  gap: var(--space-2);
+  justify-items: start;
+  max-width: var(--size-form-narrow);
+}
+
+.inlineForm > input {
+  width: 100%;
+}

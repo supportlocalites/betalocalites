@@ -25,6 +25,8 @@ export type ServerEnv = {
   OWNER_EDIT_LIMIT?: RateLimit;
   /** Planning an event (slice 2A): a per-person limit on changes, kept by Cloudflare. */
   PLAN_LIMIT?: RateLimit;
+  /** Business photos: a per-person limit on changes, kept by Cloudflare. */
+  PHOTO_EDIT_LIMIT?: RateLimit;
   /** The site's address, for links in emails sent on a schedule (wrangler.jsonc vars). */
   SITE_URL?: string;
   /**
@@ -45,6 +47,16 @@ export type ServerEnv = {
   TURNSTILE_SECRET_KEY?: string;
   /** Local tests only: a pretend checker on this computer (ignored unless it is localhost). */
   TURNSTILE_VERIFY_URL?: string;
+  /**
+   * Business photos (E §9): Supabase Storage's S3 keys, which reach file storage only, and the
+   * project's region. Owners can add photos exactly when all three are set (Cloudflare →
+   * Variables and Secrets, as Secrets). Photos already stored show either way.
+   */
+  PHOTO_KEY_ID?: string;
+  PHOTO_SECRET?: string;
+  PHOTO_REGION?: string;
+  /** Local tests only: a pretend file storage on this computer (ignored unless it is localhost). */
+  PHOTO_STORAGE_URL?: string;
 };
 
 /** Where Cloudflare places the visitor (city level), from the request. Never stored with an address. */

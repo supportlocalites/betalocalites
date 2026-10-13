@@ -324,6 +324,40 @@ guide this live (PO-03 part 3). Changing the password later is the same two step
   (`vendor_member.join`, `vendor_member.remove`, `vendor_invite.create`, `vendor_invite.revoke`).
 - **No new secrets and no owner steps** were needed.
 
+### Business photos (E §9, migration 0016)
+
+- **Switched on by PO-16:** the `vendor-photos` bucket in Supabase Storage (public, 2 MB
+  limit, JPEG and WebP only) and three Cloudflare secrets: `PHOTO_KEY_ID`, `PHOTO_SECRET`
+  (Supabase's S3 access key, which reaches file storage only) and `PHOTO_REGION`. Without
+  all three, the Photos page says adding isn't switched on; photos already stored still show.
+- **Who adds them:** the business's owner or a manager, at **Your account → Photos** (or
+  `/vendors/<name>/photos`): up to 8, each with a short description; the first is the main
+  photo. They go live at once. 20 photo changes a minute per person and 30 new photos a day
+  per business.
+- **Reviewing (weekly, or when told of a problem):** team pages → **Photos** lists the newest
+  60, with the business and who added it; **This business's photos** shows one business's.
+  Remove anything that isn't the business's own work or isn't suitable: write why in the box
+  (kept in the audit log) and click **Remove photo**, then email the business from
+  supportlocalites@gmail.com to say why. The team doesn't upload photos for businesses
+  (research rule: no copied photos).
+- **Removed photos** disappear from the site at once and their files are deleted from
+  storage straight after. Anyone who already had the photo's direct address may still see it
+  for up to an hour, from caches (Supabase's free plan can't clear its cache on demand). If storage was down at that moment, the nightly run (12:00 and
+  14:00 UTC) deletes them; the Worker's log says `removed photos: { deleted, left }`.
+- **"I can't add a photo":** the page says why in plain words (too large, not a photo, no
+  description, already 8). If it says "couldn't be saved just now", storage refused it:
+  check Supabase's status page and that the three secrets are still set. A rotated key
+  must be replaced in Cloudflare (PO-16, last paragraph).
+- **Known gap:** if the website stops in the split second between storing a photo and
+  recording it, the file stays in storage with nothing pointing to it (no one can find its
+  random name). Rare and harmless; if storage use ever looks much higher than the photos on
+  the site, compare the two before deleting anything.
+- **Storage use:** Supabase → **Storage** shows the bucket's size (free plan: 1 GB). Each
+  photo is usually 150–400 KB for both sizes together. Tell the product owner at 80% (§8).
+- **Backups:** the photos are not in the database backup. They're replaceable by the
+  businesses, so there's no separate copy yet (the weekly file copy in §5 is still to be
+  set up).
+
 ## 5. Backups
 
 | Layer | What | Frequency | Retention | Source |

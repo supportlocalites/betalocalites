@@ -11,8 +11,15 @@
   padding: var(--space-6);
 }
 
+/* The main photo fills the box; the Photos button sits over it. */
+.photo > img {
+  position: absolute;
+  inset: 0;
+}
+
 .photoNote {
-  color: var(--color-ink-soft);
+  position: relative;
+  background: var(--color-surface);
 }
 
 .teamOnly {

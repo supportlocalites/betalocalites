@@ -51,8 +51,8 @@ email (sign-in, message notices, feedback requests) won't work until a domain is
 | Limit | What happens if reached | Roughly when | What we'd do first (free) |
 |---|---|---|---|
 | **Email: 100/day** | Emails beyond the cap fail until the next day | A busy messaging day after Stage 2 | Sign-in emails always go first; message notices batched more tightly; a second free email service (Brevo: 300/day) as overflow |
-| **File storage: 1 GB** | New uploads fail | As photos and shared files accumulate | Compress photos on upload (already planned); lower the per-file size limit |
-| **Data transfer (photos served)** | Supabase's free monthly allowance runs out | With steady traffic | Serve photos through Cloudflare's cache so repeat views don't count |
+| **File storage: 1 GB** | New uploads fail | As photos and shared files accumulate. Business photos: at most 8 per business, each stored twice and under about 1.3 MB together (usually 150–400 KB), so typically 1–3 MB per business; removed photos are deleted | Photos are already shrunk in the owner's browser (built); lower the size limits or the photos per business |
+| **Data transfer (photos served)** | Supabase's free monthly allowance runs out | With steady traffic. Lists use the small version (usually under 60 KB); browsers and Supabase's cache keep each photo for an hour, so a removed photo stops showing within the hour | Serve photos through Cloudflare's cache so repeat views don't count |
 | **Database: 500 MB** | Writes fail | Years away for a local directory and its messages | Archive old data |
 | **Hosting: 100,000 requests/day** | Signed-in pages pause until midnight UTC | Thousands of active users a day | Pre-built public pages don't count toward it |
 

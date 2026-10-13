@@ -10,6 +10,7 @@ import { sendEmail, TEAM_ADDRESS } from './email.server';
 import type { ServerEnv } from './env';
 import { type ChangeSet, describeChanges, findClashes, flatten, ownerDiff, riskFlags, serviceIdOf } from './owner-changes';
 import { MAX_SHOWN_SERVICES, type OwnerValues } from './owner-input';
+import { type Photo, readPhotos, toPhotos } from './photo-store.server';
 
 /**
  * An owner editing their own listing (D-34, ADR-029). Every request checks, in the
@@ -107,7 +108,7 @@ async function findOwned(db: Db, userId: string, by: { slug: string } | { id: st
 }
 
 /** By web address, or by an old one the team has since changed (vendor_slug_history). */
-async function findOwnedBySlug(db: Db, userId: string, slug: string, lock = false): Promise<Owned | null> {
+export async function findOwnedBySlug(db: Db, userId: string, slug: string, lock = false): Promise<Owned | null> {
   const v = await findOwned(db, userId, { slug }, lock);
   if (v) return v;
   const [old] = await db.execute<{ vendorId: string }>(sql`
@@ -121,7 +122,7 @@ export type OwnedListing = {
   vendorId: string;
   slug: string;
   hidden: boolean;
-  view: { name: string; town: string; categories: string[] };
+  view: { name: string; town: string; categories: string[]; photos: Photo[] };
   values: OwnerValues;
   undone: UndoNotice[];
 };
@@ -145,7 +146,7 @@ export async function ownedListing(
       return archived ? { archived: true } : null;
     }
     if (v.slug !== slug) return { renamedTo: v.slug };
-    const [services, [where], undos] = await Promise.all([
+    const [services, [where], undos, photos] = await Promise.all([
       readServices(db, v.id),
       db.execute<{ town: string; categories: string[] }>(sql`
         select m.name as town,
@@ -159,13 +160,14 @@ export async function ownedListing(
         from owner_change oc join audit_log a on a.id = oc.audit_id join audit_log u on u.id = oc.undo_audit_id
         where oc.vendor_id = ${v.id} and a.actor_user_id = ${userId} and oc.undone_at > now() - interval '14 days'
         order by oc.undone_at desc limit 5`),
+      readPhotos(db, v.id),
     ]);
     const names = new Map(services.map((s) => [s.id, s.name]));
     return {
       vendorId: v.id,
       slug: v.slug,
       hidden: v.status !== 'published',
-      view: { name: v.name, town: where?.town ?? '', categories: where?.categories ?? [] },
+      view: { name: v.name, town: where?.town ?? '', categories: where?.categories ?? [], photos: toPhotos(env, photos) },
       values: toValues(v, services),
       undone: undos.map((u) => ({
         at: u.at,

@@ -45,9 +45,9 @@ insert into attribute_option (id, attribute_definition_id, value, label) values
   ('00000000-0000-7000-8000-0000000000d2', '00000000-0000-7000-8000-0000000000c1', 'outdoor', 'Outdoor'),
   ('00000000-0000-7000-8000-0000000000d3', '00000000-0000-7000-8000-0000000000c3', 'age_3_5', '3–5'),
   ('00000000-0000-7000-8000-0000000000d4', '00000000-0000-7000-8000-0000000000c3', 'age_6_8', '6–8');
-insert into media_asset (id, owner_kind, owner_id, bucket, storage_path, mime_type, byte_size) values
-  ('00000000-0000-7000-8000-0000000000e1', 'vendor', '00000000-0000-7000-8000-0000000000b1', 'public', 'v/1/a.webp', 'image/webp', 1000),
-  ('00000000-0000-7000-8000-0000000000e2', 'vendor', '00000000-0000-7000-8000-0000000000b1', 'public', 'v/1/b.webp', 'image/webp', 1000);
+insert into media_asset (id, owner_kind, owner_id, bucket, storage_path, mime_type, byte_size, alt_text) values
+  ('00000000-0000-7000-8000-0000000000e1', 'vendor', '00000000-0000-7000-8000-0000000000b1', 'public', 'v/1/a.webp', 'image/webp', 1000, 'Logo'),
+  ('00000000-0000-7000-8000-0000000000e2', 'vendor', '00000000-0000-7000-8000-0000000000b1', 'public', 'v/1/b.webp', 'image/webp', 1000, 'Logo');
 
 -- --------------------------------------------------------- honest pricing ---
 select pg_temp.expect_reject('fixed price with no amount',

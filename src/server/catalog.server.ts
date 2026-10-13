@@ -3,6 +3,7 @@ import { category, municipality, vendor, vendorCategory, vendorService } from '@
 import { describePrice, type PricingModel } from '@/lib/price';
 import { type Db, withDb } from './db.server';
 import type { ServerEnv } from './env';
+import { type Photo, readPhotos, toPhotos } from './photo-store.server';
 
 export type CategorySummary = { slug: string; name: string; vendorCount: number };
 
@@ -29,7 +30,8 @@ export async function readCategories(db: Db): Promise<CategorySummary[]> {
   return [...rows];
 }
 
-export type VendorResult = { id: string; slug: string; name: string; tagline: string | null; town: string };
+/** photoPath: where the main photo is stored (pages turn it into an address with smallPhotoUrl). */
+export type VendorResult = { id: string; slug: string; name: string; tagline: string | null; town: string; photoPath: string | null };
 
 /**
  * Published listings matching the words typed, ordered only by how well they match
@@ -38,7 +40,9 @@ export type VendorResult = { id: string; slug: string; name: string; tagline: st
 export async function searchVendors(db: Db, query: string, categorySlug?: string): Promise<VendorResult[]> {
   const q = query.trim().slice(0, 100);
   const rows = await db.execute<VendorResult>(sql`
-    select v.id, v.slug, v.display_name as name, v.tagline, m.name as town
+    select v.id, v.slug, v.display_name as name, v.tagline, m.name as town,
+           (select a.storage_path from vendor_media vm join media_asset a on a.id = vm.media_asset_id
+            where vm.vendor_id = v.id and a.deleted_at is null order by vm.sort_order, a.created_at limit 1) as "photoPath"
     from vendor v
     join municipality m on m.id = v.primary_municipality_id
     where v.listing_status = 'published'
@@ -77,6 +81,7 @@ export type VendorProfile = {
   claimed: boolean;
   categories: string[];
   services: { name: string; description: string | null; price: string | null }[];
+  photos: Photo[];
 };
 
 /** One published listing by its web address, or null if there's no such public listing. */
@@ -99,7 +104,7 @@ export async function getVendor(env: ServerEnv, slug: string): Promise<VendorPro
       .limit(1);
     if (!v) return null;
 
-    const [cats, services] = await Promise.all([
+    const [cats, services, photos] = await Promise.all([
       db
         .select({ name: category.name })
         .from(vendorCategory)
@@ -117,6 +122,7 @@ export async function getVendor(env: ServerEnv, slug: string): Promise<VendorPro
         .from(vendorService)
         .where(and(eq(vendorService.vendorId, v.id), eq(vendorService.isActive, true)))
         .orderBy(asc(vendorService.sortOrder), asc(vendorService.name)),
+      readPhotos(db, v.id),
     ]);
 
     return {
@@ -134,6 +140,7 @@ export async function getVendor(env: ServerEnv, slug: string): Promise<VendorPro
         description: s.description,
         price: describePrice(s.pricingModel as PricingModel, s.priceCents, s.currency),
       })),
+      photos: toPhotos(env, photos),
     };
   });
 }

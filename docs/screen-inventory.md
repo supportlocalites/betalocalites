@@ -20,7 +20,7 @@ added; quotes, bookings and the concierge queue removed.
 | P1 ★ | Home | What Localites is, for consumers and for vendors; categories; collections; search | 1 |
 | P2 | Category page | Vendors in a category, with filters | 1 |
 | P3 ★ | Search results | Keyword + filters; honest empty state | 1 |
-| P4 ★ | Vendor profile | Services, published prices, photos, area, verification; **Message** (claimed) or the business's own contact + **Inquire** (unclaimed or unverified, D-04); **Add to event**; reviews from Stage 3. **Planning an event?** section built (2A): **Add to event**, **Save**, and a line saying the business isn't told | 1 |
+| P4 ★ | Vendor profile | Services, published prices, photos (**built**: main photo on top, the rest under **Photos**; search results show the main photo small), area, verification; **Message** (claimed) or the business's own contact + **Inquire** (unclaimed or unverified, D-04); **Add to event**; reviews from Stage 3. **Planning an event?** section built (2A): **Add to event**, **Save**, and a line saying the business isn't told | 1 |
 | P5 | Collection page | A curated list | 1 |
 | P6 | How it works | For consumers and for vendors. States plainly that Localites doesn't handle payments. | 1 |
 | P7 | For vendors | Why join, how claiming works, that it's free | 1 |
@@ -65,7 +65,7 @@ added; quotes, bookings and the concierge queue removed.
 | # | Screen | Purpose | Stage |
 |---|---|---|---|
 | V1 | My business | Listing status; from Stage 2, unread conversations and bookings marked. **V1-lite built** (2A, `/business`): each business the person owns or manages, with bookings marked coming up and links to edit, Analytics and Bookings marked | 1 |
-| V2 | Edit listing | Profile, services, pricing information, areas, attributes, photos. **Built** (`/vendors/<name>/edit`, D-34, ADR-029): laid out like the public page, with "View as a visitor"; descriptions, services and prices, website and phone; photos later | 1 |
+| V2 | Edit listing | Profile, services, pricing information, areas, attributes, photos. **Built** (`/vendors/<name>/edit`, D-34, ADR-029): laid out like the public page, with "View as a visitor"; descriptions, services and prices, website and phone. **Photos built** (`/vendors/<name>/photos`, owner and managers, migration 0016): up to 8, each with a description; the first is the main photo; shrunk in the browser, checked and stripped of location details on the server; the team reviews and removes at **Admin → Photos** | 1 |
 | V3 | Submit for review / status | | 1 |
 | V4 | Team | Invite, change role, remove. **Built** (`/vendors/<name>/team`, owner only): invite a manager or staff by email (link works 7 days, once, for that address only), cancel an invitation, remove someone. To change someone's role, remove them and invite them again. The invited person accepts at `/team-invite/<link>` | 1 |
 | V5 | Claim status | **Built** as part of A4: waiting, approved, or not approved with the reason | 1 |

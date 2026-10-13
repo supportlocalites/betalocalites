@@ -106,7 +106,10 @@ function rowsFromFields(fields: Fields): Row[] {
 const blankRow = (): Row => ({ id: '', name: '', description: '', pricingModel: 'not_listed', price: '', shown: true });
 
 /** What a visitor would see, from what's typed in the form right now, tidied as the save will. */
-function previewOf(form: HTMLFormElement, view: { name: string; town: string; categories: string[] }): VendorView {
+function previewOf(
+  form: HTMLFormElement,
+  view: { name: string; town: string; categories: string[]; photos: VendorView['photos'] },
+): VendorView {
   const f = Object.fromEntries([...new FormData(form).entries()].map(([k, v]) => [k, String(v)]));
   const line = (s: string | undefined) => tidyLine(s ?? '') || null;
   const paragraphs = (s: string | undefined) => tidyParagraphs(s ?? '') || null;
@@ -121,7 +124,9 @@ function previewOf(form: HTMLFormElement, view: { name: string; town: string; ca
     services: rowsFromFields(f)
       .filter((r) => r.shown && tidyLine(r.name))
       .map((r) => {
-        const cents = /^\d{1,7}(\.\d{1,2})?$/.test(r.price.replace(/[$,\s]/g, '')) ? Math.round(Number(r.price.replace(/[$,\s]/g, '')) * 100) : null;
+        const cents = /^\d{1,7}(\.\d{1,2})?$/.test(r.price.replace(/[$,\s]/g, ''))
+          ? Math.round(Number(r.price.replace(/[$,\s]/g, '')) * 100)
+          : null;
         const price = PRICED.has(r.pricingModel) && cents === null ? null : describePrice(r.pricingModel as PricingModel, cents);
         return { name: tidyLine(r.name), description: paragraphs(r.description), price };
       }),
@@ -274,8 +279,8 @@ function Editor({
         <div hidden={Boolean(preview)}>
           <p className={`notice ${styles.topNote}`}>
             You’re editing your listing.{' '}
-            {hidden ? 'Your changes are kept as soon as you save.' : 'Changes show to visitors as soon as you save.'} Our team
-            reads every change and may change back anything that breaks our rules.
+            {hidden ? 'Your changes are kept as soon as you save.' : 'Changes show to visitors as soon as you save.'} Our team reads every
+            change and may change back anything that breaks our rules.
           </p>
           {saved && !problem && (
             <p className="notice" role="status">
@@ -288,15 +293,13 @@ function Editor({
             </p>
           )}
           {hidden && (
-            <p className="notice">
-              Your listing is hidden from visitors right now. Email supportlocalites@gmail.com to find out why.
-            </p>
+            <p className="notice">Your listing is hidden from visitors right now. Email supportlocalites@gmail.com to find out why.</p>
           )}
           {undone.map((u) => (
             <div key={u.at} className="notice">
               <p>
-                On {new Date(u.at).toLocaleDateString('en-CA', { month: 'short', day: 'numeric', timeZone: 'America/Toronto' })} our
-                team changed back: {u.lines.join('; ')}.
+                On {new Date(u.at).toLocaleDateString('en-CA', { month: 'short', day: 'numeric', timeZone: 'America/Toronto' })} our team
+                changed back: {u.lines.join('; ')}.
               </p>
               {u.reason && <p>Why: {u.reason}</p>}
             </div>
@@ -304,12 +307,12 @@ function Editor({
           {problem && problem.kind !== 'nothing' && (
             <div ref={summaryRef} tabIndex={-1} className="notice" role="alert">
               {problem.kind === 'refused' && <p>{problem.message}</p>}
-              {problem.kind === 'clash' && <p>Our team changed part of your listing while you were editing. Check the marked boxes, then save again.</p>}
+              {problem.kind === 'clash' && (
+                <p>Our team changed part of your listing while you were editing. Check the marked boxes, then save again.</p>
+              )}
               {problem.kind === 'invalid' && (
                 <>
-                  <p>
-                    {problems.length === 1 ? '1 thing' : `${problems.length} things`} to fix before saving:
-                  </p>
+                  <p>{problems.length === 1 ? '1 thing' : `${problems.length} things`} to fix before saving:</p>
                   <ul>
                     {problems.map(([name, message]) => (
                       <li key={name}>{name === 'form' ? message : <a href={`#${keyFor(name)}`}>{message}</a>}</li>
@@ -334,7 +337,10 @@ function Editor({
             <input type="hidden" name="base" value={base} />
             <div className={page.layout}>
               <div className={`${page.photo} ${styles.photo}`}>
-                <span className={styles.photoNote}>Photos are coming later.</span>
+                {view.photos[0] && <img src={view.photos[0].url} alt={view.photos[0].alt} className={page.photoImage} />}
+                <Link to={`/vendors/${slug}/photos`} className={`button button-secondary ${styles.photoNote}`}>
+                  {view.photos.length > 0 ? `Photos (${view.photos.length})` : 'Add photos'}
+                </Link>
               </div>
               <div className={page.details}>
                 <span className="label">{[...view.categories, view.town].filter(Boolean).join(' · ')}</span>
@@ -467,8 +473,8 @@ function Editor({
                           {rowClashes.length > 0 && (
                             <p className={styles.clash}>
                               Our team changed this service while you were editing. It now has{' '}
-                              {rowClashes.map((c) => SERVICE_FIELD[c.split(':')[2]!]?.(clash[c]) ?? '').join(', ')}. Save again to use
-                              yours instead.
+                              {rowClashes.map((c) => SERVICE_FIELD[c.split(':')[2]!]?.(clash[c]) ?? '').join(', ')}. Save again to use yours
+                              instead.
                             </p>
                           )}
                         </li>
@@ -476,7 +482,11 @@ function Editor({
                     })}
                   </ul>
                   {hydrated && (
-                    <button type="button" className={`text-link ${styles.linkButton}`} onClick={() => setExtraRows({ after: problem, n: extra + 1 })}>
+                    <button
+                      type="button"
+                      className={`text-link ${styles.linkButton}`}
+                      onClick={() => setExtraRows({ after: problem, n: extra + 1 })}
+                    >
                       + Add another service
                     </button>
                   )}

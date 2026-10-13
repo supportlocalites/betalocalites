@@ -5,6 +5,7 @@ import { cloudflareContext } from '@/app/context';
 import type { ServerEnv } from '@/server/env';
 import { runActivityRollup } from '@/server/activity-rollup.server';
 import { runDailyNote } from '@/server/daily-note.server';
+import { cleanUpRemovedPhotos } from '@/server/photos.server';
 import { refuseCrossSiteForm, withSecurityHeaders } from '@/server/security-headers';
 
 // Loaded when the Worker starts, not during a visitor's request: Cloudflare's free plan
@@ -46,6 +47,13 @@ export default {
       runDailyNote(env).then(
         (outcome) => console.log('daily note:', outcome),
         (err) => console.error('daily note failed', err instanceof Error ? err.message : err),
+      ),
+    );
+    // Removed photos whose files couldn't be deleted at the time (photos.server.ts).
+    ctx.waitUntil(
+      cleanUpRemovedPhotos(env).then(
+        (outcome) => console.log('removed photos:', outcome),
+        (err) => console.error('removed photos clean-up failed', err instanceof Error ? err.message : err),
       ),
     );
   },

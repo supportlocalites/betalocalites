@@ -21,6 +21,7 @@ export default [
     route('vendors/:slug/claim', 'routes/member/claim.tsx'),
     route('vendors/:slug/edit', 'routes/member/listing-edit.tsx'),
     route('vendors/:slug/analytics', 'routes/member/analytics.tsx'),
+    route('vendors/:slug/photos', 'routes/member/photos.tsx'),
     // Planning an event (slice 2A; D-13, D-39–D-43, ADR-022, ADR-031). The side comes from
     // the page: /events…, /saved and /vendors/:slug/add act as the person; /business and
     // /vendors/:slug/bookings act as the business.
@@ -52,5 +53,6 @@ export default [
     route('event-types', 'routes/admin/event-types.tsx'),
     route('booking-flags', 'routes/admin/booking-flags.tsx'),
     route('account-deletions', 'routes/admin/account-deletions.tsx'),
+    route('photos', 'routes/admin/photos.tsx'),
   ]),
 ] satisfies RouteConfig;

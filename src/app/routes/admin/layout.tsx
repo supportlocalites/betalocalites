@@ -65,6 +65,9 @@ export default function AdminLayout({ loaderData }: Route.ComponentProps) {
           <NavLink to="/admin/booking-flags" className="text-link">
             Booking flags ({loaderData.openFlags})
           </NavLink>
+          <NavLink to="/admin/photos" className="text-link">
+            Photos
+          </NavLink>
           <NavLink to="/admin/account-deletions" className="text-link">
             Deleted accounts{loaderData.deletions > 0 ? ` (${loaderData.deletions} to finish)` : ''}
           </NavLink>

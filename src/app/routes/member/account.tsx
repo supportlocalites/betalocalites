@@ -145,6 +145,9 @@ export default function Account({ loaderData, actionData }: Route.ComponentProps
                       <span>
                         <Link to={`/vendors/${b.slug}/edit`} className="button button-primary">
                           Edit your listing
+                        </Link>{' '}
+                        <Link to={`/vendors/${b.slug}/photos`} className="button button-secondary">
+                          Photos
                         </Link>
                         {b.analytics && (
                           <>

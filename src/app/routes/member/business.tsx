@@ -55,6 +55,9 @@ export default function MyBusiness({ loaderData: { businesses } }: Route.Compone
                       <Link to={`/vendors/${b.slug}/edit`} className="text-link">
                         Edit your listing
                       </Link>
+                      <Link to={`/vendors/${b.slug}/photos`} className="text-link">
+                        Photos
+                      </Link>
                       {b.analytics && (
                         <Link to={`/vendors/${b.slug}/analytics`} className="text-link">
                           Analytics

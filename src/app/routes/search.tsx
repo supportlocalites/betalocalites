@@ -9,6 +9,7 @@ import { pageMeta } from '@/lib/meta';
 import { cookieHeaders, listTrack } from '@/server/activity.server';
 import { readCategories, searchVendors } from '@/server/catalog.server';
 import { withDb } from '@/server/db.server';
+import { smallPhotoUrl } from '@/server/photo-store.server';
 import type { Route } from './+types/search';
 
 export const meta: Route.MetaFunction = () => pageMeta('Search');
@@ -21,8 +22,18 @@ export async function loader({ request, context }: Route.LoaderArgs) {
   const [found, categories] = await withDb(env, (db) => Promise.all([searchVendors(db, q, categorySlug), readCategories(db)]));
   const categoryName = categories.find((c) => c.slug === categorySlug)?.name;
   // A signed note of what this page shows, for counting what's really seen (ADR-030).
-  const { track, setCookie } = await listTrack(env, request, { words: q.trim(), category: categorySlug ?? null, ids: found.map((v) => v.id) });
-  const vendors = found.map((v) => ({ slug: v.slug, name: v.name, tagline: v.tagline, town: v.town }));
+  const { track, setCookie } = await listTrack(env, request, {
+    words: q.trim(),
+    category: categorySlug ?? null,
+    ids: found.map((v) => v.id),
+  });
+  const vendors = found.map((v) => ({
+    slug: v.slug,
+    name: v.name,
+    tagline: v.tagline,
+    town: v.town,
+    photo: smallPhotoUrl(env, v.photoPath),
+  }));
   return data(
     { q, category: categorySlug ?? '', vendors, track, heading: categoryName ?? (q ? `Results for “${q}”` : 'All local businesses') },
     { headers: cookieHeaders(setCookie) },
@@ -54,8 +65,7 @@ export default function Search({ loaderData: { q, category, vendors, heading, tr
           </>
         ) : (
           <p className="muted">
-            No businesses match yet. Localites is new and businesses are still being added, so try a broader word or
-            browse a category.
+            No businesses match yet. Localites is new and businesses are still being added, so try a broader word or browse a category.
           </p>
         )}
         <p className="muted section-gap">

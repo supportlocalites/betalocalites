@@ -31,6 +31,42 @@ Every release and every database migration, in order. Appended before each deplo
 
 ## Releases
 
+### 2026-10-13 — Business photos (Stage 1 leftover; screens V2, P4)
+
+**Stage:** 1 (E §9; ADR-003 file storage)
+**What changed (plain English):** a business's owner or manager can add up to 8 photos at
+**Your account → Photos**, each with a short description, and choose the main one. The main
+photo shows at the top of the business's page and small beside it in search results; the
+rest show under **Photos**. The owner's browser makes each photo smaller before sending it;
+the website checks every file again, accepts only real JPEG or WebP photos, and removes
+where and when the photo was taken. The team sees every new photo at **Admin → Photos** and
+can remove any, with a reason. Removing deletes the files; if storage is down, the nightly
+run finishes the job. Switched on by PO-16 (a storage folder in Supabase and three
+Cloudflare secrets); until then the page says it isn't on yet.
+**Migrations applied:** `0016_business_photos.sql` (rules on the photo tables made in 0001:
+at most 8 per business, only the business's own described images, file details fixed after
+upload, removed stays removed; one new column recording when a removed photo's files were
+deleted).
+**Destructive?** No.
+**Tests run:** database 0016 18/18 (new) and every earlier file; unit 147/147 (11 new, the
+file checks); end-to-end business photos 44/44 (new) plus every earlier suite (467 in all); one
+real-browser check (a 4000 × 3000 photo with a fake location became a 1600 × 1200 WebP with
+no location).
+**Security tests:** strangers, staff and another business's owner can't open the page, add,
+describe or remove (all "not found"); another owner can't remove a photo through their own
+page; files are judged by their contents (a PNG named .jpg, an SVG with a script and a
+3000-pixel photo are refused); location details are gone from the stored file, including any
+hidden between parts of the picture or after its end; a photo stored on its side is refused
+with what to do; forms from another website are refused; Admin → Photos refuses anyone not on
+the team. An independent review (security, free-plan limits, correctness) found 12 problems,
+all fixed before release (caches keep a removed photo an hour, not a year; the whole file is
+checked; uploads without a stated size are refused; no long retries when storage is down).
+**Existing functionality affected:** the business page, search results and the owner's edit
+page now show photos when there are any (otherwise as before).
+**How to roll back:** Cloudflare → Deployments → previous version (photos stop showing and
+the Photos page disappears; stored photos and their records stay).
+**Approved by:** Product owner (13 October 2026: "Business photos").
+
 ### 2026-10-13 — Owners add their own team (Stage 1 leftover, screen V4)
 
 **Stage:** 1 (E §3 roles; supersedes D-29's "no teammates yet", on the product owner's

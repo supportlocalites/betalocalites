@@ -238,7 +238,7 @@ Stage 4. Unchanged from revision 1:
 | Fake or fraudulent invoices | Localites never handles money, and says so in every conversation's footer: *"Localites doesn't process payments. Arrange payment directly with the business."* Report button on every message. Verified badge only for vendors with recorded checks. |
 | Malicious files | Images and PDFs only; content-type checked; PDFs download rather than open in Localites; 10 MB limit. No automatic virus scanning at launch (ADR-020): known gap, revisited if reports warrant it. |
 | A shared file link leaks | File links expire within minutes and are issued only after a membership check. |
-| Photos reveal home location | GPS data stripped from images on upload. |
+| Photos reveal home location | GPS data stripped from images on upload (business photos: built, in the browser and again on the server). |
 | Former staff keep access | Access ends the moment membership ends. |
 | Platform staff snoop | Staff can open a conversation only through a report, and each access is logged with the report ID. |
 
@@ -342,9 +342,27 @@ account exists, and detailed activity records kept for year-over-year reports (D
 | Kind | Storage | Access |
 |---|---|---|
 | Published vendor photos and logos | Public | Anyone |
-| Unpublished listing media | Private | Signed links after a permission check |
+| Unpublished listing media | Public storage, random file names (built: see below) | Anyone with the exact address; shown only on published pages |
 | Verification evidence | Private | Admins only |
 | **Files in conversations** | **Private, Canada** | **The two parties only**; links expire in minutes |
+
+**Built (13 October 2026, migration 0016): business photos.** The business's owner or a
+manager adds up to 8 at `/vendors/<name>/photos` (checked in the database on every request;
+staff, other businesses and everyone else get "not found"); the team removes any from
+**Admin → Photos**, with a reason. The owner's browser shrinks each photo (up to 1600 pixels a
+side, plus a 640-pixel copy for lists), which also drops where and when it was taken. The
+server doesn't trust that: it accepts only JPEG and WebP, judged from the file's contents,
+up to 2048 pixels and 1 MB, refuses moving pictures, and removes EXIF (including GPS), XMP
+and comments before storing. Each photo needs a short description (shown to screen readers).
+Files go to one public Supabase Storage bucket, `vendor-photos`, under random names, through
+Supabase's S3 connection with keys that reach file storage only (Cloudflare secrets, PO-16);
+a photo uploaded to a listing that isn't published yet is stored the same way but shown
+nowhere until it is. Removing a photo takes it off the business at once and deletes its
+files (anyone who already had the direct address may see it from caches for up to an hour);
+if storage is down, the nightly run retries. The server checks the whole file, not just its
+start: hidden details between parts of the picture, a second picture or anything after the
+end are removed, and in WebP only the picture, transparency and colour profile are kept. Every addition, description change,
+main-photo choice and removal is in `audit_log`.
 
 ## 10. Secrets and credentials
 

@@ -10,6 +10,34 @@
   max-width: var(--size-photo-max);
 }
 
+.photo {
+  display: block;
+  overflow: hidden;
+}
+
+/* Photos fill their square, cropped from the middle; square corners always (design-system.md). */
+.photoImage {
+  display: block;
+  width: 100%;
+  height: 100%;
+  aspect-ratio: 1;
+  object-fit: cover;
+}
+
+.gallery {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(var(--size-thumb), 1fr));
+  gap: var(--space-2);
+}
+
+.galleryLink {
+  display: block;
+  background: var(--color-photo-1);
+}
+
 .photo::after {
   content: '';
   position: absolute;

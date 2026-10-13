@@ -1,6 +1,9 @@
 # H — Product Owner Action Register
 
-**Last updated:** 2026-10-13 (revision 18: D-44, bookings marked before a business joined; revision 17: D-39 revised to D-43, "Plan an event" built)
+**Last updated:** 2026-10-13 (revision 19: business photos built, PO-16 to switch them on; revision 18: D-44, bookings marked before a business joined; revision 17: D-39 revised to D-43, "Plan an event" built)
+
+**Revision 19 changes:** businesses can add photos (you chose this on 13 October 2026). To
+switch it on, PO-16: make one storage folder in Supabase and copy two keys into Cloudflare.
 
 **Revision 17 changes:** your five decisions on planning an event (D-39 to D-43) are recorded
 in your own words below, and in the table of decisions. "Plan an event" is built and tested
@@ -78,6 +81,7 @@ Recorded from your messages of 9 and 10 October 2026. These now shape every docu
 | **ADR-005** | ✅ CPU time 8 ms with React Router (passes). A day after the speed improvements go live, glance at **Metrics** once more: CPU time, and whether any "Exceeded CPU" errors appear | Nothing; a final check | 2 min |
 | **PO-14** | Switch on activity counting: add one secret in Cloudflare (steps below) | Any numbers on the team's Activity pages and the owners' Analytics pages | 3 min |
 | **PO-15** | Once "Plan an event" reaches the test site: plan a test event and look at it (steps below) | Knowing that planning works on the real hosting, not only on our computers | 5 min |
+| **PO-16** | Switch on business photos: one storage folder in Supabase, three secrets in Cloudflare (steps below) | Businesses adding photos | 10 min |
 | **PO-11** | Check the 28 test businesses (drafts) and publish the ones that are right (steps below) | Real listings on the test site | At your pace, ~5 min each |
 | **D-12** | Mailing address for the privacy policy and terms | Public launch | 1 min, later |
 
@@ -1097,6 +1101,49 @@ with every request).
 
 **Done when:** all of that works. Reply *"PO-15 done"*, or tell us exactly what you saw if a
 step didn't work (a screenshot is fine; never include a code from your email).
+
+---
+
+### PO-16 — Switch on business photos (E §9, ADR-003)
+**When:** any time after the photos update reaches the test site. **Cost:** $0 (Supabase's
+free plan includes 1 GB of file storage; it stops rather than charges when full).
+**Time:** about 10 minutes.
+**Why:** photos are stored in Supabase's file storage. The website needs a storage folder and
+its own keys to put photos there. The keys reach file storage only, never the database.
+Until they're added, the Photos page says "Adding photos isn't switched on yet".
+
+**In Supabase** (your Localites project):
+1. Open **Storage** in the left menu → **New bucket**.
+2. **Name:** `vendor-photos` (exactly, lower case). Switch **Public bucket** on (photos are
+   meant to be seen by everyone; file names are random, so nobody can guess one).
+3. Open **Additional configuration**: switch **Restrict file size** on and set **2 MB**;
+   under **Allowed MIME types** enter `image/jpeg, image/webp`. Click **Save** (or **Create**).
+4. Open **Project Settings** (the cog) → **Storage**. Under **S3 Connection**, make sure
+   **Enable connection via S3 protocol** is on. Note the **Region** shown there (for example
+   `ca-central-1`); it isn't a secret.
+5. Under **S3 Access Keys**, click **New access key**. Description: `Localites website
+   photos`. Click **Create**. Supabase shows an **Access key ID** and a **Secret access key**
+   once. Keep the window open for the next steps.
+
+**In Cloudflare:**
+6. Open **Workers & Pages** → **localites** → **Settings** → **Variables and Secrets** →
+   **Add**. **Type:** Secret. **Name:** `PHOTO_KEY_ID`. **Value:** paste the Access key ID.
+7. **Add** again. **Type:** Secret. **Name:** `PHOTO_SECRET`. **Value:** paste the Secret
+   access key.
+8. **Add** again. **Type:** Secret. **Name:** `PHOTO_REGION`. **Value:** the region from
+   step 4, for example `ca-central-1`.
+9. Click **Deploy** (or **Save and deploy**). You can close the Supabase window now.
+
+**Never send us** the keys. If you think one has been seen by someone else: in Supabase,
+delete that access key and make a new one, then replace the two secrets in Cloudflare.
+
+**Try it:** sign in as the owner of a test business, open **Your account** → **Photos**,
+choose a photo from your phone or computer, describe it in a few words and tap **Add photo**.
+Open the business's page: the photo is at the top. Then open the team pages → **Photos**:
+it's listed there, with **Remove photo**.
+
+**Done when:** the photo shows on the business page. Reply *"PO-16 done"*, or tell us what
+you saw (a screenshot is fine; never include a key).
 
 ## Completed
 

@@ -8,7 +8,11 @@
 //     Only the test key is accepted;
 //   - POST /turnstile/siteverify stands in for Cloudflare's "are you human" checker. An
 //     answer "pass:<form>:<site>:<anything>" passes for that form on that site, once; "fail"
-//     fails; "down" makes the checker answer with an error. Only the test secret is accepted.
+//     fails; "down" makes the checker answer with an error. Only the test secret is accepted;
+//   - /storage/v1/… stands in for Supabase Storage (business photos): PUT and DELETE under
+//     /storage/v1/s3/<bucket>/<path> (only with the test key, signed the S3 way), GET under
+//     /storage/v1/object/public/<bucket>/<path>. GET /storage/files lists what is stored;
+//     POST /storage/fail?on=1 makes storage refuse every change until ?on=0.
 // Usage: node scripts/e2e/mail-server.mjs
 import { readFile } from 'node:fs/promises';
 import http from 'node:http';
@@ -22,6 +26,9 @@ const messages = []; // { to: string[], subject, body, at }
 const TURNSTILE_SECRET = process.env.E2E_TURNSTILE_SECRET ?? 'e2e-turnstile-secret-local-only';
 const EMAIL_KEY = process.env.E2E_EMAIL_KEY ?? 'e2e-email-key-local-only';
 const spent = new Set();
+const PHOTO_KEY = process.env.E2E_PHOTO_KEY ?? 'e2e-photo-key';
+const files = new Map(); // "<bucket>/<path>" -> { type, body: Buffer }
+let storageFails = false;
 const checks = []; // what the site sent the checker: { response, remoteip }
 
 function siteverify(body) {
@@ -149,6 +156,42 @@ http
     } else if (url.pathname === '/turnstile/checks') {
       res.writeHead(200, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify(checks));
+    } else if (url.pathname.startsWith('/storage/v1/s3/') && (req.method === 'PUT' || req.method === 'DELETE')) {
+      const key = decodeURIComponent(url.pathname.slice('/storage/v1/s3/'.length));
+      const chunks = [];
+      for await (const chunk of req) chunks.push(chunk);
+      const signed = String(req.headers.authorization ?? '').startsWith(`AWS4-HMAC-SHA256 Credential=${PHOTO_KEY}/`) && Boolean(req.headers['x-amz-date']);
+      if (!signed) {
+        res.writeHead(403, { 'Content-Type': 'application/xml' });
+        res.end('<Error><Code>AccessDenied</Code></Error>');
+      } else if (storageFails) {
+        res.writeHead(503);
+        res.end();
+      } else if (req.method === 'PUT') {
+        files.set(key, { type: String(req.headers['content-type'] ?? ''), body: Buffer.concat(chunks), cacheControl: req.headers['cache-control'] ?? null });
+        res.writeHead(200, { ETag: `"${files.size}"` });
+        res.end();
+      } else {
+        files.delete(key);
+        res.writeHead(204);
+        res.end();
+      }
+    } else if (url.pathname.startsWith('/storage/v1/object/public/') && req.method === 'GET') {
+      const file = files.get(decodeURIComponent(url.pathname.slice('/storage/v1/object/public/'.length)));
+      if (!file) {
+        res.writeHead(404);
+        res.end();
+      } else {
+        res.writeHead(200, { 'Content-Type': file.type, 'Content-Length': file.body.length });
+        res.end(file.body);
+      }
+    } else if (url.pathname === '/storage/files') {
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify([...files].map(([key, f]) => ({ key, type: f.type, size: f.body.length, cacheControl: f.cacheControl }))));
+    } else if (url.pathname === '/storage/fail' && req.method === 'POST') {
+      storageFails = url.searchParams.get('on') === '1';
+      res.writeHead(204);
+      res.end();
     } else if (url.pathname === '/health') {
       res.writeHead(200);
       res.end('ok');
