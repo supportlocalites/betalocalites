@@ -1130,8 +1130,9 @@ Until they're added, the Photos page says "Adding photos isn't switched on yet".
    **Add**. **Type:** Secret. **Name:** `PHOTO_KEY_ID`. **Value:** paste the Access key ID.
 7. **Add** again. **Type:** Secret. **Name:** `PHOTO_SECRET`. **Value:** paste the Secret
    access key.
-8. **Add** again. **Type:** Secret. **Name:** `PHOTO_REGION`. **Value:** the region from
-   step 4, for example `ca-central-1`.
+8. The region (`ca-central-1`) is already in the site's settings file (`wrangler.jsonc`), so
+   there's nothing to add for it. If Cloudflare ever shows a `PHOTO_REGION` variable that
+   differs from Supabase's region, tell us.
 9. Click **Deploy** (or **Save and deploy**). You can close the Supabase window now.
 
 **Never send us** the keys. If you think one has been seen by someone else: in Supabase,

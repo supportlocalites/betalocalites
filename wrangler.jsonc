@@ -31,7 +31,8 @@
   // winter; the 14:00 run only retries what failed.
   "triggers": { "crons": ["0 12 * * *", "0 14 * * *"] },
   // Public settings (not secrets). SITE_URL: where links in scheduled emails point.
-  "vars": { "SITE_URL": "https://localites.supportlocalites.workers.dev" },
+  // PHOTO_REGION: the Supabase project's storage region, for business photos (PO-16).
+  "vars": { "PHOTO_REGION": "ca-central-1", "SITE_URL": "https://localites.supportlocalites.workers.dev" },
   // Cloudflare Hyperdrive (free): the app's route to Supabase. It keeps the encrypted
   // connection to the database (SSL "require") and pools connections. The ID is not a
   // secret; the database login lives only in Cloudflare. localConnectionString is a

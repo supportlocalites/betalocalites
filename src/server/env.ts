@@ -48,9 +48,9 @@ export type ServerEnv = {
   /** Local tests only: a pretend checker on this computer (ignored unless it is localhost). */
   TURNSTILE_VERIFY_URL?: string;
   /**
-   * Business photos (E §9): Supabase Storage's S3 keys, which reach file storage only, and the
-   * project's region. Owners can add photos exactly when all three are set (Cloudflare →
-   * Variables and Secrets, as Secrets). Photos already stored show either way.
+   * Business photos (E §9): Supabase Storage's S3 keys, which reach file storage only (Cloudflare →
+   * Variables and Secrets, as Secrets), and the project's region (wrangler.jsonc vars, not a
+   * secret). Owners can add photos exactly when all three are set. Photos already stored show either way.
    */
   PHOTO_KEY_ID?: string;
   PHOTO_SECRET?: string;

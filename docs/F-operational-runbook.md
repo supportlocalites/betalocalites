@@ -333,8 +333,9 @@ guide this live (PO-03 part 3). Changing the password later is the same two step
 ### Business photos (E §9, migration 0016)
 
 - **Switched on by PO-16:** the `vendor-photos` bucket in Supabase Storage (public, 2 MB
-  limit, JPEG and WebP only) and three Cloudflare secrets: `PHOTO_KEY_ID`, `PHOTO_SECRET`
-  (Supabase's S3 access key, which reaches file storage only) and `PHOTO_REGION`. Without
+  limit, JPEG and WebP only), two Cloudflare secrets: `PHOTO_KEY_ID` and `PHOTO_SECRET`
+  (Supabase's S3 access key, which reaches file storage only), and `PHOTO_REGION`
+  (`ca-central-1`, a public setting in `wrangler.jsonc`). Without
   all three, the Photos page says adding isn't switched on; photos already stored still show.
 - **Who adds them:** the business's owner or a manager, at **Your account → Photos** (or
   `/vendors/<name>/photos`): up to 8, each with a short description; the first is the main
