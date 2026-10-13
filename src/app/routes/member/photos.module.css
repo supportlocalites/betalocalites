@@ -18,7 +18,7 @@
 .image {
   width: var(--size-thumb);
   aspect-ratio: 1;
-  object-fit: cover;
+  object-fit: contain; /* whole photo, never cropped */
   background: var(--color-photo-1);
   display: block;
 }

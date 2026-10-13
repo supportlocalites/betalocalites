@@ -27,7 +27,14 @@ export function VendorPage({ vendor, children }: { vendor: VendorView; children?
   return (
     <div className={styles.layout}>
       {main ? (
-        <a href={main.url} className={styles.photo} target="_blank" rel="noopener">
+        <a
+          href={main.url}
+          className={`${styles.photo} ${styles.photoShaped}`}
+          target="_blank"
+          rel="noopener"
+          // The photo's own shape (wide or tall), so none of it is cut off.
+          style={{ aspectRatio: main.width && main.height ? `${main.width} / ${main.height}` : '1' }}
+        >
           <img
             src={main.url}
             alt={main.alt}

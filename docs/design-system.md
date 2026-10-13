@@ -83,7 +83,7 @@ with 32px margins.
 
 | Thing | Shape |
 |---|---|
-| Photos | **Square corners**, always |
+| Photos | **Square corners**, always. **Shown whole, never cropped** (product owner, 13 October 2026): the main photo on a business page takes the photo's own shape (wide or tall, at most 80% of the screen's height); small squares fit the whole photo inside, on the placeholder colour |
 | Featured photos | 1px gold frame set inside the edge (6px in on phone, 8px on desktop) |
 | Buttons | 12px rounded corners, 52–58px tall |
 | Icon buttons | Circles, 44px, thin border |

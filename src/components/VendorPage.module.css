@@ -15,13 +15,24 @@
   overflow: hidden;
 }
 
-/* Photos fill their square, cropped from the middle; square corners always (design-system.md). */
+/* Photos are shown whole, never cropped: wide and tall photos fit inside their box, on the
+   placeholder colour; square corners always (design-system.md). */
 .photoImage {
   display: block;
   width: 100%;
   height: 100%;
+  object-fit: contain;
+}
+
+/* The main photo's box takes the photo's own shape (set on the page), up to a height. */
+.photoShaped {
+  aspect-ratio: auto;
+  max-height: var(--size-photo-max-height);
+  background: var(--color-photo-1);
+}
+
+.galleryLink .photoImage {
   aspect-ratio: 1;
-  object-fit: cover;
 }
 
 .gallery {

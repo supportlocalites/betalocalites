@@ -77,6 +77,8 @@
   --size-tile-height: 96px;
   --size-search-max: 640px;
   --size-photo-max: 560px;
+  /* A tall (portrait) main photo is shown whole, at most this high. */
+  --size-photo-max-height: 80vh;
   --size-form-narrow: 440px;
   --size-form-wide: 760px;
   --size-qr: 200px;
