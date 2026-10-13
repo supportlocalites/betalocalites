@@ -13,3 +13,4 @@ playwright-report/
 .dev.vars.*
 !.env.example
 .DS_Store
+look-shots/

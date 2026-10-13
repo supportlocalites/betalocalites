@@ -75,14 +75,13 @@ export default function Activity({ loaderData, actionData }: Route.ComponentProp
         </p>
       )}
       <p className="muted">
-        The last 30 days (from {from}), up to the end of yesterday. Each business’s own numbers are on its listing’s Activity
-        page.
+        The last 30 days (from {from}), up to the end of yesterday. Each business’s own numbers are on its listing’s Activity page.
       </p>
 
       <section className={styles.section} aria-labelledby="categories-heading">
         <h2 id="categories-heading">By main category</h2>
         <p className="muted">Category figures can be shared with other businesses; one business’s own numbers only with its permission.</p>
-        <div className={styles.tableWrap}>
+        <div className={styles.tableWrap} tabIndex={0} role="region" aria-label="By main category">
           <table className={styles.table}>
             <thead>
               <tr>
@@ -115,13 +114,13 @@ export default function Activity({ loaderData, actionData }: Route.ComponentProp
       <section className={styles.section} aria-labelledby="planning-heading">
         <h2 id="planning-heading">Planning (team only)</h2>
         <p className="muted">
-          Only the Localites team sees these. The business doesn’t (D-42). Totals only, never who or which event. Saves are
-          the ones still saved; a save taken back isn’t counted.
+          Only the Localites team sees these. The business doesn’t (D-42). Totals only, never who or which event. Saves are the ones still
+          saved; a save taken back isn’t counted.
         </p>
         {planning.businesses.length === 0 ? (
           <p className="muted">No business was saved, added to an event plan or marked booked in these 30 days.</p>
         ) : (
-          <div className={styles.tableWrap}>
+          <div className={styles.tableWrap} tabIndex={0} role="region" aria-label="Businesses most marked booked">
             <table className={styles.table}>
               <caption className="visually-hidden">The 20 businesses most marked booked, then most added</caption>
               <thead>
@@ -151,7 +150,7 @@ export default function Activity({ loaderData, actionData }: Route.ComponentProp
         {planning.types.length === 0 ? (
           <p className="muted">No events planned in these 30 days.</p>
         ) : (
-          <div className={styles.tableWrap}>
+          <div className={styles.tableWrap} tabIndex={0} role="region" aria-label="By kind of event">
             <table className={styles.table}>
               <thead>
                 <tr>
@@ -208,7 +207,12 @@ export default function Activity({ loaderData, actionData }: Route.ComponentProp
           <ul className={styles.history}>
             {rollups.map((r) => (
               <li key={r.day}>
-                {r.day}: {r.status === 'done' ? `counted (${r.events} actions)` : r.status === 'running' ? 'counting' : `failed (${r.failureReason})`}
+                {r.day}:{' '}
+                {r.status === 'done'
+                  ? `counted (${r.events} actions)`
+                  : r.status === 'running'
+                    ? 'counting'
+                    : `failed (${r.failureReason})`}
               </li>
             ))}
           </ul>

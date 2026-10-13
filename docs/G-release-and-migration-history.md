@@ -31,6 +31,28 @@ Every release and every database migration, in order. Appended before each deplo
 
 ## Releases
 
+### 2026-10-13 — Automatic look and accessibility checks on every update
+
+**Stage:** 1 (before launch)
+**What changed (plain English):** before any update can go live, a real browser now opens 30
+pages and screens (signed out, as a person planning an event, as a business owner, as the
+team; with the photo viewer and the framing screen open) at phone size and computer size,
+and checks that nothing is wider than the screen, that the standard accessibility checker
+(axe-core, WCAG 2.2 A and AA: colour contrast, tap-target size, labels, headings, keyboard
+reach) finds nothing, and that the page shows no errors. A failure stops the update, and the
+failing page's screenshot is kept for 7 days. The first run found one real problem, now
+fixed: the team's Activity tables, which scroll sideways on a phone, couldn't be scrolled
+with the keyboard; each is now reachable with Tab, named for screen readers, and outlined
+when it has focus.
+**Migrations applied:** none.
+**Destructive?** No.
+**Tests run:** look checks 241/241 locally (both sizes, 30 pages and states); every earlier
+suite.
+**Not checked by tools:** a tablet size, comparing screenshots with an approved version, and
+whether the wording makes sense read aloud.
+**How to roll back:** remove `node tests/e2e/look.mjs` from `npm run test:e2e`.
+**Approved by:** Product owner (13 October 2026: chose "Automatic look checks").
+
 ### 2026-10-13 — Nightly backups, each one proven to restore
 
 **Stage:** 1 (before launch)

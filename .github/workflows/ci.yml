@@ -122,11 +122,22 @@ jobs:
             sleep 1
           done
           echo "The site or sign-in server didn't start"; exit 1
+      # The browser for the look checks (tests/e2e/look.mjs), at the version package.json pins.
+      - name: Browser for the look checks
+        run: npx playwright install --with-deps chromium
       - name: Sign-in, admin and claiming tests
         run: npm run test:e2e
       - name: Logs (only if something failed)
         if: failure()
         run: tail -n 80 auth-server.log site.log mail-server.log || true
+      - name: Screenshots of pages that failed the look checks
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: look-shots
+          path: look-shots/
+          retention-days: 7
+          if-no-files-found: ignore
 
   # Keeps the Supabase TEST project (localites-test) in step with this branch, only
   # after every check above has passed. Uses the encrypted repository secret

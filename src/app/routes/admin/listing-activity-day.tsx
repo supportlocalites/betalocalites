@@ -47,13 +47,13 @@ export default function ActivityDay({ loaderData: { name, rows, day } }: Route.C
       </h1>
       <div className="title-rule" aria-hidden="true" />
       <p className="muted">
-        Toronto time. “Browser” is the end of the visitor’s browser code, so the same browser can be followed through the
-        day; it isn’t a name. This look has been recorded.
+        Toronto time. “Browser” is the end of the visitor’s browser code, so the same browser can be followed through the day; it isn’t a
+        name. This look has been recorded.
       </p>
       {rows.length === 0 ? (
         <p className="muted">Nothing that day.</p>
       ) : (
-        <div className={styles.tableWrap}>
+        <div className={styles.tableWrap} tabIndex={0} role="region" aria-label="This day’s activity">
           <table className={styles.table}>
             <thead>
               <tr>

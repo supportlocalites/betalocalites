@@ -33,7 +33,7 @@ export default function Searches({ loaderData: { day, rows } }: Route.ComponentP
       {rows.length === 0 ? (
         <p className="muted">No searches that day.</p>
       ) : (
-        <div className={styles.tableWrap}>
+        <div className={styles.tableWrap} tabIndex={0} role="region" aria-label="Searches on this day">
           <table className={styles.table}>
             <thead>
               <tr>

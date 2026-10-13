@@ -17,7 +17,7 @@ not a finished feature.
       with a keyboard
 - [ ] It follows the [design system](./design-system.md): built from the shared
       components, with no colour, font or size set outside the tokens file
-- [ ] Automated accessibility checks pass
+- [ ] Automated accessibility and screen-size checks pass (`tests/e2e/look.mjs`; add any new page to its list)
 - [ ] No wording implies Localites handles money or confirms bookings ([A §6](./A-product-blueprint.md#6-language-rules))
 - [ ] The stage's acceptance tests pass
 - [ ] Docs B, D, E and G are updated
@@ -32,11 +32,11 @@ not a finished feature.
 | **Integration tests** | Modules work together with the real database | Vitest against real PostgreSQL | Every change |
 | **Migration tests** | Each migration applies cleanly to the current and previous schema | Scripted | Changes touching migrations |
 | **End-to-end tests** | Key journeys in a real browser, at phone size and desktop size | Playwright | Every change |
-| **Screen-size checks** | Every page at 390 × 844, 768 × 1024 and 1440 × 900: nothing cut off, overlapping or scrolling sideways; screenshots compared with the last approved version so an unintended change on either size is caught | Playwright | Every change |
+| **Screen-size checks** | **Built (13 October 2026, `tests/e2e/look.mjs`):** 30 pages and states (signed out, as a person, as an owner, as the team; the photo viewer and the framing screen open) at phone size (360 × 740) and computer size (1280 × 900): nothing wider than the screen, no errors in the page; a failing page's screenshot is kept. **Not yet:** a tablet size, and comparing screenshots with the last approved version (an unintended change of look that breaks no rule still needs a person's eye) | Playwright | Every change |
 | **Design-token check** | No colour, font or size is written anywhere except the one tokens file, so a change to the look always reaches every screen | Scripted (lint rule) | Every change |
 | **Language check** | Banned words don't appear in screens or email templates | Scripted | Every change |
-| **Accessibility** | Automated checks on every page | axe-core in Playwright | Every change |
-| **Restore drill** | Backups can actually be restored | Scripted | Monthly |
+| **Accessibility** | **Built:** the same 30 pages and states, both sizes, checked against WCAG 2.2 A and AA with axe-core (including colour contrast, tap-target size, labels, headings, keyboard reach of scrolling areas); any problem fails the change. Not covered by tools: whether the wording and order make sense with a screen reader | axe-core in Playwright | Every change |
+| **Restore drill** | Backups can actually be restored (`scripts/backup/check-restore.sh`, runbook F §6) | Scripted | **Every night**, with the backup |
 | **Manual review** | It feels right | You, via preview links | Every release |
 
 **Real database, not mocks.** Permission and integration tests run against real

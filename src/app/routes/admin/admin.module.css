@@ -223,6 +223,12 @@
   overflow-x: auto;
 }
 
+/* A wide table can be scrolled with the keyboard too: it shows when it has focus. */
+.tableWrap:focus-visible {
+  outline: var(--focus-ring) solid var(--color-gold);
+  outline-offset: var(--focus-ring);
+}
+
 .table {
   width: 100%;
   border-collapse: collapse;
