@@ -86,6 +86,7 @@ Recorded from your messages of 9 and 10 October 2026. These now shape every docu
 | **PO-14** | Switch on activity counting: add one secret in Cloudflare (steps below) | Any numbers on the team's Activity pages and the owners' Analytics pages | 3 min |
 | **PO-15** | Once "Plan an event" reaches the test site: plan a test event and look at it (steps below) | Knowing that planning works on the real hosting, not only on our computers | 5 min |
 | **PO-16** | Switch on business photos: one storage folder in Supabase, three secrets in Cloudflare (steps below) | Businesses adding photos | 10 min |
+| **PO-18** | Switch on nightly backups: one passphrase into GitHub, and one GitHub setting (steps below) | A copy of everything to restore from if the database is ever damaged | 5 min |
 | **PO-11** | Check the 28 test businesses (drafts) and publish the ones that are right (steps below) | Real listings on the test site | At your pace, ~5 min each |
 | **D-12** | Mailing address for the privacy policy and terms | Public launch | 1 min, later |
 
@@ -1142,6 +1143,40 @@ then the database, then the website. An update that fails a test never goes live
 
 **Done when:** GitHub's run shows **Put the website live** ticked green and Cloudflare's own
 builds are disconnected. Reply *"PO-17 done"*.
+
+---
+
+### PO-18 — Switch on nightly backups
+
+Every night GitHub takes a full copy of the test database (every business, account and
+plan), locks it with a passphrase only you choose, keeps it for 30 days, and proves it can
+be restored by restoring it into a throwaway database and checking nothing is missing. If
+any of that fails, GitHub emails you. Free: it uses GitHub's included minutes (about 3 a night).
+
+**Part 1: the passphrase**
+1. Make up a long passphrase: five or six random words is ideal. It's the key to every
+   backup: **without it no one, including us, can open them**, so keep a copy wherever you
+   keep your passwords.
+2. In GitHub, open the **localites** repository → **Settings** → **Secrets and variables** →
+   **Actions** → **New repository secret**.
+3. Name: `BACKUP_PASSPHRASE`. Secret: your passphrase. Click **Add secret**.
+
+**Part 2: let GitHub run it every night**
+GitHub only runs scheduled jobs from the repository's main ("default") branch, and all of
+Localites lives on the branch `claude/event-discovery-architecture-dz0qgf`.
+4. Still in **Settings**, open **General**. Under **Default branch**, click the two-arrows
+   button, choose `claude/event-discovery-architecture-dz0qgf`, then **Update** and confirm.
+   Nothing else changes: the site, the tests and the deploys stay exactly as they are.
+
+**Part 3: the first backup**
+5. Open the **Actions** tab → **Nightly backup** (left) → **Run workflow** → **Run workflow**.
+6. After about 3 minutes it shows a green tick. Click it: the summary says the backup was
+   taken and the restore check passed, and the locked file is listed under **Artifacts**.
+
+**Never send us** the passphrase. If you think it's been seen, make a new one and replace
+the secret: new backups use it; older ones still need the old one until they expire.
+
+**Done when:** the run you started in step 5 shows the green tick. Reply *"PO-18 done"*.
 
 ---
 

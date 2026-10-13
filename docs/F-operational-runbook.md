@@ -39,7 +39,7 @@ screenshot of staging can't be mistaken for a real listing.
 | Paying for services | — | ✅ Domain only (~CA$15–25/year) |
 | Receiving alerts | ✅ | ✅ (plain-English summary) |
 | Responding to incidents | Per D-11 | Per D-11 |
-| Monthly restore test | ✅ | Receives confirmation |
+| Nightly backup and restore check (F §5–6) | ✅ | Emailed by GitHub if a night fails |
 | Approving any destructive production change | Proposes, with recovery plan | ✅ Approves |
 
 ## 3. How a change reaches production
@@ -406,9 +406,21 @@ guide this live (PO-03 part 3). Changing the password later is the same two step
 last night's state. Anything written since (messages, edits) could be lost. Continuous
 "restore to any second" recovery is a paid add-on and is not planned (D-20).
 
-**Where the backups live:** a free storage location outside Supabase, chosen and set up
-in Stage 1 week 1. While the database is small, our existing free accounts are enough.
-If the backups outgrow free storage, we tell you before anything changes.
+**Where the backups live (built 13 October 2026, switched on by PO-18):** GitHub, outside
+Supabase. The **Nightly backup** job (`.github/workflows/backup.yml`, 07:17 UTC, about 3 am in
+Toronto; also **Run workflow** for one on demand) runs `scripts/backup/take.sh`: `pg_dump` of
+the `public` and `auth` schemas (custom format, with grants, without owners) plus a
+`manifest.json` (rows per table, extensions, roles, the newest audit entry from before the
+export), locked together with `gpg` AES-256 and the passphrase `BACKUP_PASSPHRASE` (a GitHub
+secret; the product owner keeps the only other copy). The locked file is kept as the run's
+artifact for 30 days (`localites-backup-<time>`). The repository is private as well, but the
+lock is what we rely on. The same job then runs the restore drill (§6). A failed run emails
+the product owner (GitHub's own notice). It backs up the **test** database
+(`SUPABASE_TEST_ADMIN_URL`); production gets the same job, with its own secrets, before launch.
+At today's size a backup is about 1.5 MB; GitHub's free artifact storage is 500 MB, so 30
+nights fit with room to spare. If they ever don't, we tell you before anything changes.
+**Not in it:** photo files (Supabase Storage; see Business photos above) and Supabase's own
+internal schemas.
 
 ### Activity counting and the Analytics page (D-22, D-30, D-37, ADR-030)
 
@@ -441,16 +453,30 @@ If the backups outgrow free storage, we tell you before anything changes.
 
 ## 6. Restore procedure *(to be verified before launch)*
 
-**Restore drill:** monthly, engineering restores the latest independent backup into a
-scratch database, runs the integrity checks below, and records the result in
-[G](./G-release-and-migration-history.md). **A backup that has never been restored is
-not a backup.**
+**Restore drill: every night, automatically** (`scripts/backup/check-restore.sh`, in the
+backup job): the new backup is unlocked and restored into an empty Postgres of the same
+version on the job's own machine (never the live database), then checked. The result is
+on the run's summary page; a failure fails the run, and GitHub emails the product owner.
+Record the first one, and any failure, in [G](./G-release-and-migration-history.md).
+**A backup that has never been restored is not a backup.**
 
-Integrity checks after any restore:
-- Row counts for key tables are within expected range of the source.
-- Every foreign key is valid (the database enforces this on load).
-- A sample of 10 vendor profiles render correctly against the restored data.
-- The most recent `audit_log` timestamp matches the backup time.
+Integrity checks after any restore (all automatic in the drill):
+- Every table is there, with the rows the backup noted (within 1%, or 5 rows: the count
+  is taken just after the export, while the site keeps running).
+- Every link between tables (foreign key) holds: the database checks each one while
+  loading, and none may be left unchecked.
+- The 10 most recently changed published businesses come back with their town.
+- Nothing written before the backup began is missing (the newest `audit_log` entry from
+  then is there).
+Not checked automatically: pages rendering against the restored copy. After a real
+restore, open a few business pages by hand (step 5 below).
+
+**To restore by hand** (engineering): download the artifact from the run (Actions →
+Nightly backup → the run → Artifacts), then
+`gpg --decrypt localites-backup-<time>.tar.gpg | tar -xf -` (asks for the passphrase) gives
+`database.dump` and `manifest.json`; the drill script shows the exact steps: create the
+roles and extensions the manifest lists, drop the new database's empty `public` schema,
+then `pg_restore --no-owner --dbname=<new database> database.dump`.
 
 **Production restore** (only after an incident, with your approval):
 1. Put the site in maintenance mode (a static "we'll be right back" page).

@@ -1,0 +1,90 @@
+# Our own nightly backup (runbook F §5) and its restore drill (F §6), every night.
+# Takes a full copy of the test database, locked with BACKUP_PASSPHRASE, keeps it 30 days
+# as a file on this run, then restores it into an empty scratch database on the same
+# machine and checks nothing is missing. If anything fails, GitHub emails the product owner.
+# Switched on by PO-18 (the passphrase, and this branch as the repository's default, which
+# is where GitHub runs scheduled jobs). Never production: it gets its own step before launch.
+name: Nightly backup
+
+on:
+  schedule:
+    - cron: '17 7 * * *' # 07:17 UTC: about 3 am in Toronto, when the site is quietest
+  workflow_dispatch: # "Run workflow" in GitHub's Actions tab, for a backup on demand
+
+permissions:
+  contents: read
+
+concurrency:
+  group: backup
+  cancel-in-progress: false
+
+jobs:
+  backup:
+    name: Back up the test database and prove it restores
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    defaults:
+      run:
+        shell: bash # stops on any failure, including inside a pipe
+    env:
+      DATABASE_ADMIN_URL: ${{ secrets.SUPABASE_TEST_ADMIN_URL }}
+      BACKUP_PASSPHRASE: ${{ secrets.BACKUP_PASSPHRASE }}
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Check backups are switched on
+        id: on
+        run: |
+          if [ -z "$DATABASE_ADMIN_URL" ] || [ -z "$BACKUP_PASSPHRASE" ]; then
+            echo "::notice::SUPABASE_TEST_ADMIN_URL or BACKUP_PASSPHRASE isn't set yet (PO-18), so no backup was taken."
+            echo "on=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "on=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Database tools for the server's version
+        if: steps.on.outputs.on == 'true'
+        run: |
+          url=${DATABASE_ADMIN_URL/:6543\//:5432/}
+          major=$(psql "$url" -X -At -c "select current_setting('server_version_num')::int / 10000")
+          echo "PG_MAJOR=$major" >> "$GITHUB_ENV"
+          if [ ! -x "/usr/lib/postgresql/$major/bin/pg_dump" ]; then
+            sudo /usr/share/postgresql-common/pgdg/apt.postgresql.org.sh -y > /dev/null
+            sudo apt-get install -y -qq "postgresql-client-$major" > /dev/null
+          fi
+          echo "/usr/lib/postgresql/$major/bin" >> "$GITHUB_PATH"
+
+      - name: Start an empty scratch database for the restore drill
+        if: steps.on.outputs.on == 'true'
+        run: |
+          docker run -d --name scratch -e POSTGRES_PASSWORD=scratch-only -p 5433:5432 "postgis/postgis:${PG_MAJOR}-3.5" > /dev/null
+
+      - name: Take the backup (locked)
+        if: steps.on.outputs.on == 'true'
+        id: take
+        run: |
+          mkdir -p backup
+          file=$(bash scripts/backup/take.sh backup)
+          echo "file=$file" >> "$GITHUB_OUTPUT"
+          echo "name=$(basename "$file" .tar.gpg)" >> "$GITHUB_OUTPUT"
+          echo "Backup taken: $(basename "$file") ($(du -h "$file" | cut -f1), locked)" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Keep it for 30 days
+        if: steps.on.outputs.on == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ steps.take.outputs.name }}
+          path: ${{ steps.take.outputs.file }}
+          retention-days: 30
+          compression-level: 0
+          if-no-files-found: error
+
+      - name: Restore it into the scratch database and check it
+        if: steps.on.outputs.on == 'true'
+        run: |
+          for i in $(seq 1 60); do
+            if docker logs scratch 2>&1 | grep -q 'PostgreSQL init process complete' && docker exec scratch pg_isready -U postgres -q; then break; fi
+            sleep 2
+          done
+          RESTORE_ADMIN_URL=postgres://postgres:scratch-only@localhost:5433/postgres \
+            bash scripts/backup/check-restore.sh "${{ steps.take.outputs.file }}" | tee -a "$GITHUB_STEP_SUMMARY"

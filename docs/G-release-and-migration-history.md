@@ -31,6 +31,26 @@ Every release and every database migration, in order. Appended before each deplo
 
 ## Releases
 
+### 2026-10-13 — Nightly backups, each one proven to restore
+
+**Stage:** 1 (before launch)
+**What changed (plain English):** every night GitHub takes a full copy of the test
+database (every business, account, plan and record), locks it with a passphrase only the
+product owner chose, and keeps it for 30 days, outside Supabase. The same job then restores
+that copy into an empty scratch database and checks every table, every row count, every
+link between tables, a sample of published businesses and that nothing from before the
+backup is missing. A failure emails the product owner. Switched on by PO-18.
+**Migrations applied:** none.
+**Destructive?** No: the job only reads the database.
+**Tests run:** on a copy of the local test database (77 tables, about 30,000 rows): backup
+taken (1.5 MB locked), restored and checked in 7.5 seconds; the check fails as it should when
+rows are missing and with the wrong passphrase; the locked file holds no readable business
+names or email addresses.
+**Restore drill:** automatic, nightly (runbook F §6). The first run on GitHub is recorded here.
+**How to roll back:** delete `.github/workflows/backup.yml` (backups stop; existing ones
+expire after 30 days).
+**Approved by:** Product owner (13 October 2026: chose "Nightly backups").
+
 ### 2026-10-13 — A square profile photo, and every page photo shown whole
 
 **Stage:** 1 (photos)
