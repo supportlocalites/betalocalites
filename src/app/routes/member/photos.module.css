@@ -113,10 +113,6 @@
 }
 
 @media (min-width: 600px) {
-  .profile {
-    grid-template-columns: var(--size-profile-photo-large) minmax(0, 1fr);
-  }
-
   .photo {
     grid-template-columns: var(--size-tile-min) minmax(0, 1fr);
   }

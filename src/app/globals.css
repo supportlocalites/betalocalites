@@ -126,6 +126,7 @@ button.text-link {
   font-family: var(--font-body);
   text-decoration: underline;
   cursor: pointer;
+  min-height: var(--size-icon-button); /* easy to tap, though it reads as a link */
 }
 
 button.text-link:disabled {

@@ -87,12 +87,14 @@
   --hero-ratio: 4 / 3;
   --size-hero-max: 520px;
   /* The height a row of a business's photos aims for (each photo whole, in its own shape). */
-  --size-gallery-row: 120px;
+  --size-gallery-row: 96px;
   /* The square profile photo beside a business's name, and on the owner's Photos page. */
   --size-profile-photo: 88px;
   --size-profile-photo-large: 240px;
   /* The framing screen: the dimmed area around the square, and its guide lines. */
   --size-crop-shade-spread: 9999em;
+  /* The framing square's stage is never taller than this, so Save stays in reach (phones held sideways). */
+  --size-crop-stage-max: 65dvh;
   /* How soft the blurred copy behind a photo is. */
   --blur-photo-backdrop: 18px;
   --size-form-narrow: 440px;

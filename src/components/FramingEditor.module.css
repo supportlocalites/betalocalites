@@ -49,7 +49,8 @@
 /* The stage: square, as wide as the screen allows; the photo moves inside it. */
 .stage {
   position: relative;
-  width: 100%;
+  width: min(100%, var(--size-crop-stage-max));
+  margin-inline: auto;
   aspect-ratio: 1;
   background: var(--color-ink);
   overflow: hidden;

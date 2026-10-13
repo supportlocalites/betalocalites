@@ -505,7 +505,9 @@ function Editor({
                       </button>
                     )}
                   </section>
-
+                </div>
+                {/* As on the public page: how to reach the business, beside the rest on computers. */}
+                <aside className={page.side}>
                   <section aria-labelledby="contact">
                     <h2 id="contact" className="label">
                       Contact
@@ -549,7 +551,7 @@ function Editor({
                       {clashNote('publicPhone')}
                     </div>
                   </section>
-                </div>
+                </aside>
               </div>
             </div>
 

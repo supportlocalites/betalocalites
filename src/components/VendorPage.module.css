@@ -84,6 +84,7 @@
   }
 
   .side {
+    align-self: start; /* only as tall as its content, so it can stay in view */
     position: sticky;
     top: var(--space-6);
     padding-top: var(--space-6);
@@ -120,7 +121,7 @@
 
 /* Under a photo band, the profile photo rises halfway into it, like a name card. */
 .identityOver > :first-child {
-  margin-top: calc(var(--size-profile-photo) / -2 - var(--space-6));
+  margin-top: calc(var(--size-profile-photo) / -2 - var(--frame-inset-photo) - var(--space-6));
   margin-left: var(--space-4);
   position: relative;
 }
