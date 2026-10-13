@@ -30,6 +30,12 @@ export async function readCategories(db: Db): Promise<CategorySummary[]> {
   return [...rows];
 }
 
+/** A kind of business's name by its web address, shown or hidden (old links keep their heading). */
+export async function categoryName(db: Db, slug: string): Promise<string | null> {
+  const [c] = await db.execute<{ name: string }>(sql`select name from category where slug = ${slug}`);
+  return c?.name ?? null;
+}
+
 /** photoPath: where the main photo is stored (pages turn it into an address with smallPhotoUrl). */
 export type VendorResult = { id: string; slug: string; name: string; tagline: string | null; town: string; photoPath: string | null };
 

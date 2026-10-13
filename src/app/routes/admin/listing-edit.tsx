@@ -31,9 +31,11 @@ export async function loader({ params, request, context }: Route.LoaderArgs) {
   if (!isUuid(params.id)) throw data(null, { status: 404 });
   const { env } = context.get(cloudflareContext);
   // One connection for the page (each one costs time from the request's small CPU budget).
-  const [listing, options, owned, analytics] = await withDb(env, (db) =>
-    Promise.all([readListing(db, params.id), readFormOptions(db), listOwnerChanges(db, params.id), readSwitch(db, params.id)]),
-  );
+  const [listing, options, owned, analytics] = await withDb(env, async (db) => {
+    const found = await readListing(db, params.id);
+    const keep = found ? { municipalityId: found.municipalityId, categoryIds: found.categoryIds } : null;
+    return Promise.all([found, readFormOptions(db, keep), listOwnerChanges(db, params.id), readSwitch(db, params.id)]);
+  });
   if (!listing) throw data(null, { status: 404 });
   return {
     listing,
@@ -74,7 +76,10 @@ export async function action({ params, request, context }: Route.ActionArgs) {
     if (intent === 'owner-undo') {
       const auditId = String(form.get('auditId') ?? '');
       if (!isUuid(auditId)) throw data(null, { status: 400 });
-      const reason = String(form.get('reason') ?? '').replace(/\s+/g, ' ').trim().slice(0, 500);
+      const reason = String(form.get('reason') ?? '')
+        .replace(/\s+/g, ' ')
+        .trim()
+        .slice(0, 500);
       if (!reason) return data({ intent, auditId, errors: { form: 'Say why. The owner is emailed the reason.' } }, { status: 400 });
       const keys = form.getAll('key').map(String).slice(0, 200);
       const result = await undoOwnerChange(env, admin, params.id, auditId, keys, reason).catch((err: unknown) => {
@@ -85,18 +90,31 @@ export async function action({ params, request, context }: Route.ActionArgs) {
       if (!result.owner) return back('undone-no-email');
       const owner = result.owner;
       later(
-        emailPerson(env, owner, 'listing_change_undone', { type: 'owner_change', id: auditId },
-          renderEmail('undone', { name: owner.name, business: result.business, lines: result.lines, reason })),
+        emailPerson(
+          env,
+          owner,
+          'listing_change_undone',
+          { type: 'owner_change', id: auditId },
+          renderEmail('undone', { name: owner.name, business: result.business, lines: result.lines, reason }),
+        ),
       );
       return back('undone');
     }
     if (intent === 'owner-remove') {
-      const reason = String(form.get('reason') ?? '').replace(/\s+/g, ' ').trim().slice(0, 500);
+      const reason = String(form.get('reason') ?? '')
+        .replace(/\s+/g, ' ')
+        .trim()
+        .slice(0, 500);
       if (!reason) return data({ intent, errors: { form: 'Say why. The owner is emailed the reason.' } }, { status: 400 });
       const result = await removeOwner(env, admin, params.id, reason);
       later(
-        emailPerson(env, result.owner, 'owner_removed', { type: 'vendor', id: params.id },
-          renderEmail('ownerRemoved', { name: result.owner.name, business: result.business, reason })),
+        emailPerson(
+          env,
+          result.owner,
+          'owner_removed',
+          { type: 'vendor', id: params.id },
+          renderEmail('ownerRemoved', { name: result.owner.name, business: result.business, reason }),
+        ),
       );
       return back('owner-removed');
     }
@@ -112,7 +130,10 @@ export async function action({ params, request, context }: Route.ActionArgs) {
     if (intent === 'status') {
       const to = String(form.get('to') ?? '') as ListingStatus;
       if (!(to in STATUS_LABEL)) return data({ intent, errors: { form: 'Choose what to do with the listing.' } }, { status: 400 });
-      const reason = String(form.get('reason') ?? '').trim().slice(0, 500) || null;
+      const reason =
+        String(form.get('reason') ?? '')
+          .trim()
+          .slice(0, 500) || null;
       await changeListingStatus(env, admin, params.id, to, reason);
       return back(to);
     }
@@ -181,7 +202,14 @@ function ServiceFields({ prefix, values, errors = {} }: { prefix: string; values
           <label htmlFor={`${prefix}-name`} className="field-label">
             Service
           </label>
-          <input id={`${prefix}-name`} name="name" defaultValue={values.name} className="input" maxLength={120} aria-invalid={errors.name ? true : undefined} />
+          <input
+            id={`${prefix}-name`}
+            name="name"
+            defaultValue={values.name}
+            className="input"
+            maxLength={120}
+            aria-invalid={errors.name ? true : undefined}
+          />
           {err('name')}
         </div>
         <div className="field">
@@ -201,7 +229,15 @@ function ServiceFields({ prefix, values, errors = {} }: { prefix: string; values
           <label htmlFor={`${prefix}-price`} className="field-label">
             Price in dollars (only for a set, from or hourly price)
           </label>
-          <input id={`${prefix}-price`} name="price" defaultValue={values.price} className="input" inputMode="decimal" maxLength={12} aria-invalid={errors.price ? true : undefined} />
+          <input
+            id={`${prefix}-price`}
+            name="price"
+            defaultValue={values.price}
+            className="input"
+            inputMode="decimal"
+            maxLength={12}
+            aria-invalid={errors.price ? true : undefined}
+          />
           {err('price')}
         </div>
         <div className="field">
@@ -250,7 +286,13 @@ const FIELD_WORDS: Record<string, string> = {
   categoryIds: 'categories',
 };
 
-type ActionResult = { intent: string; serviceId?: string; auditId?: string; errors: Record<string, string>; values?: Record<string, unknown> };
+type ActionResult = {
+  intent: string;
+  serviceId?: string;
+  auditId?: string;
+  errors: Record<string, string>;
+  values?: Record<string, unknown>;
+};
 
 export default function EditListing({ loaderData, actionData: rawResult }: Route.ComponentProps) {
   const actionData = rawResult as ActionResult | undefined;
@@ -340,8 +382,8 @@ export default function EditListing({ loaderData, actionData: rawResult }: Route
         {owner ? (
           <>
             <p>
-              {owner.name} <span className="muted">({owner.email})</span> manages this listing and can change its
-              descriptions, services, prices, website and phone. Their changes are live at once and listed below.
+              {owner.name} <span className="muted">({owner.email})</span> manages this listing and can change its descriptions, services,
+              prices, website and phone. Their changes are live at once and listed below.
             </p>
             <Form method="post" className={styles.buttons}>
               <input type="hidden" name="intent" value="owner-remove" />
@@ -396,7 +438,9 @@ export default function EditListing({ loaderData, actionData: rawResult }: Route
                           <input type="checkbox" name="key" value={l.key} defaultChecked={l.possible} disabled={!l.possible} />
                           <span>
                             {l.text}
-                            {!l.possible && <span className="muted"> · Changed again since (now: {l.now}). Undo the later change first.</span>}
+                            {!l.possible && (
+                              <span className="muted"> · Changed again since (now: {l.now}). Undo the later change first.</span>
+                            )}
                           </span>
                         </label>
                       ))}
@@ -408,8 +452,8 @@ export default function EditListing({ loaderData, actionData: rawResult }: Route
                     )}
                     {c.lines.some((l) => l.possible) && (
                       <p className="muted">
-                        Each save can be undone once. Anything you leave unticked stays as the owner set it (you can still change
-                        it under Details or Services).
+                        Each save can be undone once. Anything you leave unticked stays as the owner set it (you can still change it under
+                        Details or Services).
                       </p>
                     )}
                     {c.lines.some((l) => l.possible) && (
@@ -417,7 +461,13 @@ export default function EditListing({ loaderData, actionData: rawResult }: Route
                         <label htmlFor={`why-${c.auditId}`} className="visually-hidden">
                           Why (the owner sees this)
                         </label>
-                        <input id={`why-${c.auditId}`} name="reason" className="input" placeholder="Why (the owner sees this)" maxLength={500} />
+                        <input
+                          id={`why-${c.auditId}`}
+                          name="reason"
+                          className="input"
+                          placeholder="Why (the owner sees this)"
+                          maxLength={500}
+                        />
                         <button type="submit" className="button button-secondary" disabled={busy}>
                           Undo the ticked changes
                         </button>
@@ -446,7 +496,12 @@ export default function EditListing({ loaderData, actionData: rawResult }: Route
             value={
               actionData?.intent === 'details' && typeof actionData.values?.loaded === 'string'
                 ? actionData.values.loaded
-                : JSON.stringify({ tagline: listing.tagline, description: listing.description, websiteUrl: listing.websiteUrl, publicPhone: listing.publicPhone })
+                : JSON.stringify({
+                    tagline: listing.tagline,
+                    description: listing.description,
+                    websiteUrl: listing.websiteUrl,
+                    publicPhone: listing.publicPhone,
+                  })
             }
           />
           <fieldset disabled={archived} className={styles.plainFieldset}>

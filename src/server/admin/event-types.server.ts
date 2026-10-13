@@ -102,8 +102,12 @@ export async function eventTypesPage(env: ServerEnv, admin: Admin): Promise<{ ty
       order by f.starts_on, f.created_at
       limit 1000`);
     const categories = await tx.execute<CategoryChoice>(sql`
-      select c.id, c.name, p.name as parent from category c left join category p on p.id = c.parent_id
-      where c.is_active order by coalesce(p.name, c.name), c.parent_id nulls first, c.name`);
+      select c.id, c.name || case when c.is_active and (p.id is null or p.is_active) then '' else ' (hidden: not shown on plans)' end as name,
+             p.name as parent
+      from category c left join category p on p.id = c.parent_id
+      -- Hidden kinds still listed where a type already suggests them, so saving doesn't drop them.
+      where (c.is_active and (p.id is null or p.is_active)) or exists (select 1 from event_type_category s where s.category_id = c.id)
+      order by coalesce(p.name, c.name), c.parent_id nulls first, c.name`);
     return {
       types: types.map((t) => {
         const mine = placements.filter((p) => p.typeId === t.id);

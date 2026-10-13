@@ -106,9 +106,9 @@ on codes (ADR-028).
   far).
 - **Built since (13 October 2026):** deleting your own account (0014); a business's team
   (0015); business photos, added by owners and managers, reviewed and removed by the team
-  (0016, switched on by PO-16).
+  (0016, switched on by PO-16); categories and towns for the team (0017).
 - **Team tools not built yet:** verification records,
-  categories, filters (attributes), places, collections, users and roles (adding admins is
+  filters (attributes), collections, users and roles (adding admins is
   still done in the database, runbook), the audit-log page, listing review (X3).
 - **Pages not built yet:** collections, How it works, For vendors.
 - **Owner steps waiting:** PO-11 (check and publish the test businesses), PO-14 (switch on

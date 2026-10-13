@@ -31,6 +31,33 @@ Every release and every database migration, in order. Appended before each deplo
 
 ## Releases
 
+### 2026-10-13 — Categories and towns for the team (Stage 1 leftover; screens X6, X8)
+
+**Stage:** 1
+**What changed (plain English):** the team pages have **Categories and towns**. The team can
+add, rename, describe, reorder and hide kinds of business (two levels: a main kind such as
+Sweets and kinds within it such as Custom cakes) and towns, instead of asking for a database
+change. Hidden ones stay on the businesses and events that use them but aren't offered for new
+ones; a hidden main kind isn't shown when people browse. Web addresses never change, so links
+keep working. A new town starts hidden until ticked. Every change is in the audit log.
+**Migrations applied:** `0017_categories_and_places.sql` (web addresses fixed once made; two
+levels only; no duplicate names under one main kind or in one region). Adds rules only.
+**Destructive?** No. (If duplicates already existed, the migration would stop and change
+nothing.)
+**Tests run:** database 0017 13/13 (new) and every earlier file; unit 147/147; end-to-end
+categories and towns 30/30 (new) plus every earlier suite (497 in all).
+**Security tests:** someone not on the team can't open the page or change anything (403);
+forms from another website are refused.
+**Existing functionality affected:** a listing or event that uses a hidden kind or town keeps
+it: the team's listing page and a person's Edit event page still offer it, marked "(hidden)",
+so saving never drops it or forces a new town. Kinds within a hidden main kind are no longer
+suggested on plans. The team's Activity page shows a kind within as "Main kind: Kind". A search
+link to a kind within, or a hidden kind, now shows its name as the heading. An independent
+review found 7 problems; all are fixed in this release.
+**How to roll back:** Cloudflare → Deployments → previous version (the page disappears;
+changes already made stay).
+**Approved by:** Product owner (13 October 2026: "Admin: categories and towns").
+
 ### 2026-10-13 — Business photos (Stage 1 leftover; screens V2, P4)
 
 **Stage:** 1 (E §9; ADR-003 file storage)

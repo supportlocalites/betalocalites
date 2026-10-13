@@ -93,9 +93,9 @@ added; quotes, bookings and the concierge queue removed.
 | X3 | Listing review | Approve or return with reason | 1 |
 | X4 | Claims | Approve (saying how it was confirmed, D-33) or decline with a reason emailed to the claimant; first approved wins (D-35). **Built** (`/admin/claims`) | 1 |
 | X5 | Verification | Record a check with evidence | 1 |
-| X6 | Categories | | 1 |
+| X6 | Categories | **Built** (`/admin/categories`, with X8): add, rename, describe, reorder, hide; two levels (a main kind and kinds within it); web addresses never change | 1 |
 | X7 | Attributes (filters) | | 1 |
-| X8 | Places | | 1 |
+| X8 | Places | **Built** (same page as X6): add, rename, reorder, show or hide towns; a new town starts hidden | 1 |
 | X9 | Collections | | 1 |
 | X10 | Users & roles | | 1 |
 | X11 | Audit log | | 1 |

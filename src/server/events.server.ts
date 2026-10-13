@@ -144,15 +144,19 @@ export type FormOptions = { types: { id: string; name: string }[]; towns: { id: 
 
 /**
  * The kinds of event and the towns to choose from: the shown ones in the team's order,
- * plus the event's own kind even if the team has hidden it since. Reference data: no one
+ * plus the event's own kind and town even if the team has hidden them since. Reference data: no one
  * needs to be acting.
  */
-export async function eventFormOptions(env: ServerEnv, keepTypeId: string | null = null): Promise<FormOptions> {
+export async function eventFormOptions(
+  env: ServerEnv,
+  keepTypeId: string | null = null,
+  keepTownId: string | null = null,
+): Promise<FormOptions> {
   return withDb(env, async (db) => {
     const types = await db.execute<{ id: string; name: string }>(sql`
       select id, name from event_type where is_active or id = ${keepTypeId}::uuid order by sort_order, name`);
     const towns = await db.execute<{ id: string; name: string }>(sql`
-      select id, name from municipality where is_active order by sort_order, name`);
+      select id, name from municipality where is_active or id = ${keepTownId}::uuid order by sort_order, name`);
     return { types: [...types], towns: [...towns] };
   });
 }
@@ -395,7 +399,9 @@ export async function eventPlan(env: ServerEnv, userId: string, eventId: string)
           order by f.n`);
         const categories = await tx.execute<{ slug: string; name: string }>(sql`
           select c.slug::text as slug, c.name from event_type_category s join category c on c.id = s.category_id
-          where s.event_type_id = ${e.typeId}::uuid and c.is_active order by s.sort_order, c.name`);
+          left join category p on p.id = c.parent_id
+          where s.event_type_id = ${e.typeId}::uuid and c.is_active and (p.id is null or p.is_active)
+          order by s.sort_order, c.name`);
         const onPlan = new Set(rows.filter((r) => r.status !== 'removed').map((r) => r.vendorId));
         ideas = {
           heading: ideasHeading({ key: e.typeKey, name: e.typeName }),

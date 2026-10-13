@@ -121,16 +121,22 @@ async function restore(tx: Db, vendorId: string, key: string, value: unknown) {
   if (!id) throw new OwnerChangeConflict('That change can’t be undone.');
   let updated: unknown[];
   if (field === 'name') {
-    updated = await tx.execute(sql`update vendor_service set name = ${value as string} where id = ${id} and vendor_id = ${vendorId} returning id`);
+    updated = await tx.execute(
+      sql`update vendor_service set name = ${value as string} where id = ${id} and vendor_id = ${vendorId} returning id`,
+    );
   } else if (field === 'description') {
-    updated = await tx.execute(sql`update vendor_service set description = ${value as string | null} where id = ${id} and vendor_id = ${vendorId} returning id`);
+    updated = await tx.execute(
+      sql`update vendor_service set description = ${value as string | null} where id = ${id} and vendor_id = ${vendorId} returning id`,
+    );
   } else if (field === 'price') {
     const p = value as { pricingModel: string; priceCents: number | null };
     updated = await tx.execute(sql`
       update vendor_service set pricing_model = ${p.pricingModel}, price_cents = ${p.priceCents}::int
       where id = ${id} and vendor_id = ${vendorId} returning id`);
   } else if (field === 'shown') {
-    updated = await tx.execute(sql`update vendor_service set is_active = ${value as boolean} where id = ${id} and vendor_id = ${vendorId} returning id`);
+    updated = await tx.execute(
+      sql`update vendor_service set is_active = ${value as boolean} where id = ${id} and vendor_id = ${vendorId} returning id`,
+    );
   } else {
     throw new OwnerChangeConflict('That change can’t be undone.');
   }
@@ -144,10 +150,19 @@ export type Undone = { owner: Person | null; business: string; lines: string[]; 
  * still holds what the save set; a service the save added is hidden, never deleted. One
  * undo per save. The owner is told (by the caller), with the reason.
  */
-export async function undoOwnerChange(env: ServerEnv, admin: Admin, vendorId: string, auditId: string, keys: string[], reason: string): Promise<Undone> {
+export async function undoOwnerChange(
+  env: ServerEnv,
+  admin: Admin,
+  vendorId: string,
+  auditId: string,
+  keys: string[],
+  reason: string,
+): Promise<Undone> {
   return withDb(env, (db) =>
     db.transaction(async (tx) => {
-      const [v] = await tx.execute<{ business: string }>(sql`select display_name as business from vendor where id = ${vendorId} for update`);
+      const [v] = await tx.execute<{ business: string }>(
+        sql`select display_name as business from vendor where id = ${vendorId} for update`,
+      );
       if (!v) throw new OwnerChangeConflict('This listing no longer exists.');
       const [oc] = await tx.execute<{ changes: ChangeSet; undoneAt: string | null; owner: Person | null }>(sql`
         select a.changes, oc.undone_at::text as "undoneAt",
@@ -190,7 +205,12 @@ export async function undoOwnerChange(env: ServerEnv, admin: Admin, vendorId: st
  * Ends the current owner's membership (wrong person approved, or broke the rules). The
  * listing goes back to unclaimed, so its real owner can claim it. Recorded everywhere.
  */
-export async function removeOwner(env: ServerEnv, admin: Admin, vendorId: string, reason: string): Promise<{ owner: Person; business: string }> {
+export async function removeOwner(
+  env: ServerEnv,
+  admin: Admin,
+  vendorId: string,
+  reason: string,
+): Promise<{ owner: Person; business: string }> {
   return withDb(env, (db) =>
     db.transaction(async (tx) => {
       const [v] = await tx.execute<{ business: string; claimStatus: string }>(sql`

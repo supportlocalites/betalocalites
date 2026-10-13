@@ -59,15 +59,25 @@ export async function formOptions(env: ServerEnv): Promise<FormOptions> {
   return withDb(env, readFormOptions);
 }
 
-/** The same, on a connection the caller already has. */
-export async function readFormOptions(db: Db): Promise<FormOptions> {
+/**
+ * The same, on a connection the caller already has. `keep`: a listing's own town and kinds,
+ * offered (marked "hidden") even when the team has hidden them since, so saving the listing
+ * never quietly drops them or forces a new town (Categories and towns, migration 0017).
+ */
+export async function readFormOptions(db: Db, keep: { municipalityId: string; categoryIds: string[] } | null = null): Promise<FormOptions> {
+  // As one Postgres array value (a plain list would be spread into the query, and can be empty).
+  // The listing's own ids arrive as that text already when read without type lookups.
+  const ids: unknown = keep?.categoryIds ?? [];
+  const keepIds = Array.isArray(ids) ? `{${ids.join(',')}}` : String(ids);
   const [towns, categories] = await Promise.all([
     db.execute<{ id: string; name: string }>(sql`
-      select id, name from municipality where is_active order by sort_order, name`),
+      select id, name || case when is_active then '' else ' (hidden)' end as name
+      from municipality where is_active or id = ${keep?.municipalityId ?? null}::uuid order by sort_order, name`),
     db.execute<{ id: string; name: string; group: string }>(sql`
-      select c.id, c.name, coalesce(p.name, c.name) as "group"
+      select c.id, c.name || case when c.is_active and (p.id is null or p.is_active) then '' else ' (hidden)' end as name,
+             coalesce(p.name, c.name) as "group"
       from category c left join category p on p.id = c.parent_id
-      where c.is_active and (p.id is null or p.is_active)
+      where (c.is_active and (p.id is null or p.is_active)) or c.id = any(${keepIds}::uuid[])
       order by coalesce(p.sort_order, c.sort_order), coalesce(p.name, c.name), p.id is not null, c.sort_order, c.name`),
   ]);
   return { towns: [...towns], categories: [...categories] };
@@ -106,7 +116,11 @@ export type ListingDetail = VendorRecord & {
   history: HistoryRow[];
 };
 
-async function readVendor(db: Db, id: string, lock = false): Promise<(VendorRecord & { status: ListingStatus; claimStatus: string }) | null> {
+async function readVendor(
+  db: Db,
+  id: string,
+  lock = false,
+): Promise<(VendorRecord & { status: ListingStatus; claimStatus: string }) | null> {
   const [v] = await db.execute<VendorRecord & { status: ListingStatus; claimStatus: string }>(sql`
     select v.display_name as name, v.slug::text as slug, v.tagline, v.description,
            v.primary_municipality_id as "municipalityId", v.website_url as "websiteUrl",
@@ -262,7 +276,14 @@ export async function updateListing(env: ServerEnv, admin: Admin, id: string, ed
         categoryIds: [...input.categoryIds].sort(),
       });
       if (Object.keys(changes).length > 0) {
-        await audit(tx, { actor: admin.userId, action: 'vendor.update', subjectType: 'vendor', subjectId: id, changes, sessionRef: admin.sessionId });
+        await audit(tx, {
+          actor: admin.userId,
+          action: 'vendor.update',
+          subjectType: 'vendor',
+          subjectId: id,
+          changes,
+          sessionRef: admin.sessionId,
+        });
       }
     }),
   );
@@ -282,7 +303,10 @@ export async function changeListingStatus(
         select listing_status as status from vendor where id = ${id} for update`);
       if (!row) throw new ListingConflict('form', 'This listing no longer exists.');
       if (!ADMIN_TRANSITIONS[row.status].includes(to)) {
-        throw new ListingConflict('form', `A listing that is ${STATUS_LABEL[row.status].toLowerCase()} can’t become ${STATUS_LABEL[to].toLowerCase()}.`);
+        throw new ListingConflict(
+          'form',
+          `A listing that is ${STATUS_LABEL[row.status].toLowerCase()} can’t become ${STATUS_LABEL[to].toLowerCase()}.`,
+        );
       }
       await tx.execute(sql`
         update vendor set listing_status = ${to},
@@ -334,7 +358,14 @@ export async function saveService(
           insert into vendor_service (id, vendor_id, name, description, pricing_model, price_cents, price_note, sort_order)
           values (${id}, ${vendorId}, ${input.name}, ${input.description}, ${input.pricingModel}, ${input.priceCents}, ${input.priceNote},
                   (select coalesce(max(sort_order), 0) + 1 from vendor_service where vendor_id = ${vendorId}))`);
-        await audit(tx, { actor: admin.userId, action: 'vendor.service.add', subjectType: 'vendor', subjectId: vendorId, changes: diff({}, { serviceId: id, ...input }), sessionRef: admin.sessionId });
+        await audit(tx, {
+          actor: admin.userId,
+          action: 'vendor.service.add',
+          subjectType: 'vendor',
+          subjectId: vendorId,
+          changes: diff({}, { serviceId: id, ...input }),
+          sessionRef: admin.sessionId,
+        });
         return;
       }
       // The service must belong to this listing: the id in the form is never trusted alone.
@@ -354,7 +385,10 @@ export async function saveService(
         input.pricingModel = before.pricingModel;
         input.priceCents = before.priceCents;
       } else if (!samePrice(before, loaded)) {
-        throw new ListingConflict('price', 'The owner changed the price while you were editing. Reload the page, then make your change again.');
+        throw new ListingConflict(
+          'price',
+          'The owner changed the price while you were editing. Reload the page, then make your change again.',
+        );
       }
       await tx.execute(sql`
         update vendor_service set name = ${input.name}, description = ${input.description}, pricing_model = ${input.pricingModel},
@@ -362,7 +396,14 @@ export async function saveService(
         where id = ${serviceId} and vendor_id = ${vendorId}`);
       const changes = diff(before, input);
       if (Object.keys(changes).length > 0) {
-        await audit(tx, { actor: admin.userId, action: 'vendor.service.update', subjectType: 'vendor', subjectId: vendorId, changes: { serviceId: { from: serviceId, to: serviceId }, ...changes }, sessionRef: admin.sessionId });
+        await audit(tx, {
+          actor: admin.userId,
+          action: 'vendor.service.update',
+          subjectType: 'vendor',
+          subjectId: vendorId,
+          changes: { serviceId: { from: serviceId, to: serviceId }, ...changes },
+          sessionRef: admin.sessionId,
+        });
       }
     }),
   );

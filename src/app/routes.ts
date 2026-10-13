@@ -54,5 +54,6 @@ export default [
     route('booking-flags', 'routes/admin/booking-flags.tsx'),
     route('account-deletions', 'routes/admin/account-deletions.tsx'),
     route('photos', 'routes/admin/photos.tsx'),
+    route('categories', 'routes/admin/categories.tsx'),
   ]),
 ] satisfies RouteConfig;

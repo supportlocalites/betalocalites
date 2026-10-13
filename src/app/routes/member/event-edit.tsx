@@ -28,7 +28,7 @@ export async function loader({ params, context }: Route.LoaderArgs) {
   const { env } = context.get(cloudflareContext);
   const event = await found(eventForEdit(env, member.userId, params.id));
   if (event.cancelled) throw redirect(`/events/${params.id}`);
-  const options = await eventFormOptions(env, event.values.typeId);
+  const options = await eventFormOptions(env, event.values.typeId, event.values.townId);
   return {
     id: params.id,
     title: event.values.title,

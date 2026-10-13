@@ -358,6 +358,24 @@ guide this live (PO-03 part 3). Changing the password later is the same two step
   businesses, so there's no separate copy yet (the weekly file copy in §5 is still to be
   set up).
 
+### Categories and towns (screens X6 and X8, migration 0017)
+
+- **Team pages → Categories and towns.** Kinds of business have two levels: a main kind
+  (Sweets) and kinds within it (Custom cakes). Open one to change its **Name**, **Description**,
+  **Order** (lower comes first), **Within** (which main kind) or untick **Shown**. Add new ones
+  at the bottom of each section. Every change is recorded in the audit log.
+- **Hide, never delete.** Businesses and events that use a hidden kind or town keep it; it
+  just isn't offered for new ones, and a hidden main kind isn't shown when people browse.
+- **Web addresses never change.** They're made from the first name (accents and "&" become
+  plain letters and "and"), so links such as `/search?category=…` keep working after a
+  rename. If a name was wrong from the start, rename it; don't add a duplicate.
+- **Towns start hidden** unless **Shown** is ticked, so the name and region can be checked
+  first. Adding a town widens where Localites says it serves: check with the product owner
+  first.
+- A main kind with kinds within it can't be put inside another; move its kinds out first.
+- No two kinds with the same name under one main kind, and no two towns with the same name in
+  one region (the page says so plainly).
+
 ## 5. Backups
 
 | Layer | What | Frequency | Retention | Source |

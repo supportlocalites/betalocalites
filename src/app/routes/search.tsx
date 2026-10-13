@@ -7,7 +7,7 @@ import { SearchBar } from '@/components/SearchBar';
 import { SiteHeader } from '@/components/SiteHeader';
 import { pageMeta } from '@/lib/meta';
 import { cookieHeaders, listTrack } from '@/server/activity.server';
-import { readCategories, searchVendors } from '@/server/catalog.server';
+import { categoryName as nameOfCategory, searchVendors } from '@/server/catalog.server';
 import { withDb } from '@/server/db.server';
 import { smallPhotoUrl } from '@/server/photo-store.server';
 import type { Route } from './+types/search';
@@ -19,8 +19,9 @@ export async function loader({ request, context }: Route.LoaderArgs) {
   const q = (params.get('q') ?? '').slice(0, 100);
   const categorySlug = (params.get('category') ?? '').slice(0, 80) || undefined;
   const { env } = context.get(cloudflareContext);
-  const [found, categories] = await withDb(env, (db) => Promise.all([searchVendors(db, q, categorySlug), readCategories(db)]));
-  const categoryName = categories.find((c) => c.slug === categorySlug)?.name;
+  const [found, categoryName] = await withDb(env, (db) =>
+    Promise.all([searchVendors(db, q, categorySlug), categorySlug ? nameOfCategory(db, categorySlug) : null]),
+  );
   // A signed note of what this page shows, for counting what's really seen (ADR-030).
   const { track, setCookie } = await listTrack(env, request, {
     words: q.trim(),

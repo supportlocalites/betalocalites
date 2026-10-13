@@ -59,6 +59,9 @@ export default function AdminLayout({ loaderData }: Route.ComponentProps) {
           <NavLink to="/admin/activity" className="text-link">
             Activity
           </NavLink>
+          <NavLink to="/admin/categories" className="text-link">
+            Categories and towns
+          </NavLink>
           <NavLink to="/admin/event-types" className="text-link">
             Event types
           </NavLink>

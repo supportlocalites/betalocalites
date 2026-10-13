@@ -23,7 +23,13 @@ export async function readSwitch(db: Db, vendorId: string): Promise<AnalyticsSwi
 export class ActivityConflict extends Error {}
 
 /** Switches a business's Analytics page on or off (D-37). Recorded in the audit log. */
-export async function setAnalytics(env: ServerEnv, admin: Admin, vendorId: string, enabled: boolean, note: string | null): Promise<'changed' | 'unchanged'> {
+export async function setAnalytics(
+  env: ServerEnv,
+  admin: Admin,
+  vendorId: string,
+  enabled: boolean,
+  note: string | null,
+): Promise<'changed' | 'unchanged'> {
   return withDb(env, (db) =>
     db.transaction(async (tx) => {
       const [v] = await tx.execute<{ id: string }>(sql`select id from vendor where id = ${vendorId} for update`);
@@ -71,7 +77,8 @@ export async function recentDays(db: Db, vendorId: string, today: string): Promi
     const viewsUsual = median(others.map((o) => o.views));
     return {
       ...r,
-      unusual: enough && ((r.seen >= 20 && r.seen > 5 * Math.max(1, seenUsual)) || (r.views >= 10 && r.views > 5 * Math.max(1, viewsUsual))),
+      unusual:
+        enough && ((r.seen >= 20 && r.seen > 5 * Math.max(1, seenUsual)) || (r.views >= 10 && r.views > 5 * Math.max(1, viewsUsual))),
     };
   });
 }
@@ -105,7 +112,12 @@ export type DetailRow = {
 const DETAIL_ROWS = 500;
 
 /** One Toronto day's detail for one business. The look is recorded in the same transaction: if it can't be, nothing is shown. */
-export async function dayDetail(env: ServerEnv, admin: Admin, vendorId: string, day: string): Promise<{ name: string; rows: DetailRow[] } | null> {
+export async function dayDetail(
+  env: ServerEnv,
+  admin: Admin,
+  vendorId: string,
+  day: string,
+): Promise<{ name: string; rows: DetailRow[] } | null> {
   return withDb(env, (db) =>
     db.transaction(async (tx) => {
       const [v] = await tx.execute<{ name: string }>(sql`select display_name as name from vendor where id = ${vendorId}`);
@@ -171,19 +183,21 @@ export type RollupRow = { day: string; status: string; events: number; failureRe
 export async function overview(db: Db, from: string, to: string) {
   const [categories, demand, typed, rollups, [space], [budget]] = await Promise.all([
     db.execute<CategoryRow>(sql`
-      select c.name as category, count(distinct v.id)::int as businesses,
+      -- One row per kind (two kinds may share a name under different main kinds, migration 0017).
+      select case when p.name is null then c.name else p.name || ': ' || c.name end as category, count(distinct v.id)::int as businesses,
              coalesce(sum(s.profile_views), 0)::int as views, coalesce(sum(s.seen_in_search), 0)::int as seen,
              coalesce(sum(s.website_taps), 0)::int as "websiteTaps", coalesce(sum(s.phone_taps), 0)::int as "phoneTaps"
-      from category c
+      from category c left join category p on p.id = c.parent_id
       join vendor_category vc on vc.category_id = c.id and vc.is_primary
       join vendor v on v.id = vc.vendor_id and v.listing_status = 'published'
       left join vendor_daily_stats s on s.vendor_id = v.id and s.day >= ${from}::date and s.day < ${to}::date
-      group by c.name order by views desc, c.name`),
+      group by c.id, c.name, p.name order by views desc, 1`),
     db.execute<DemandRow>(sql`
-      select coalesce(c.name, 'All businesses') as category, sum(d.searches)::int as searches, sum(d.found_nothing)::int as "foundNothing"
-      from search_daily_stats d left join category c on c.id = d.category_id
+      select coalesce(case when p.name is null then c.name else p.name || ': ' || c.name end, 'All businesses') as category,
+             sum(d.searches)::int as searches, sum(d.found_nothing)::int as "foundNothing"
+      from search_daily_stats d left join category c on c.id = d.category_id left join category p on p.id = c.parent_id
       where d.placement = 'category' and d.day >= ${from}::date and d.day < ${to}::date
-      group by c.name order by searches desc`),
+      group by c.id, c.name, p.name order by searches desc`),
     db.execute<{ searches: number; foundNothing: number }>(sql`
       select coalesce(sum(searches), 0)::int as searches, coalesce(sum(found_nothing), 0)::int as "foundNothing"
       from search_daily_stats where placement = 'search' and day >= ${from}::date and day < ${to}::date`),

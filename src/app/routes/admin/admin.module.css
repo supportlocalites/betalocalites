@@ -266,3 +266,8 @@
 .inlineForm > input {
   width: 100%;
 }
+
+/* Kinds of business within a main kind, set in under it. */
+.nested {
+  margin-left: var(--space-6);
+}
