@@ -1,7 +1,7 @@
 # B — Domain & Data Model
 
 **Status:** Approved (D-00, 10 October 2026).
-**Last updated:** 2026-10-10 (claims: state machines for `vendor_claim` and `vendor.claim_status`; `sign_in_code_event`; `notification` moved to Stage 1)
+**Last updated:** 2026-10-13 (events, plans and saves built in migration 0012: §3.3, §3.6, §4, §6 and §8; earlier: claims state machines, `sign_in_code_event`, `notification` in Stage 1)
 
 **Revision 2:** reworked around the two users, consumer and vendor, and the
 relationship between them. The commercial domain (quotes, vendor-confirmed bookings,
@@ -94,8 +94,10 @@ erDiagram
     VENDOR   ||--o{ VENDOR_INTEREST : "unclaimed"
     VENDOR   }o--o{ CATEGORY : "listed under"
     VENDOR   }o--o{ MUNICIPALITY : serves
-    EVENT    }o--o| MUNICIPALITY : "located in"
-    EVENT    }o--|| EVENT_TYPE : "is a"
+    EVENT    }o--|| MUNICIPALITY : "located in"
+    EVENT    }o--o| EVENT_TYPE : "is a (optional)"
+    EVENT    ||--|| EVENT_PRIVATE : "host's own details"
+    EVENT_TYPE ||--o{ FEATURED_PLACEMENT : "features"
     EVENT    ||--o{ GUEST : "invites (S4)"
 ```
 
@@ -165,28 +167,72 @@ is in [db/migrations/0001_stage1_foundation.sql](../db/migrations/0001_stage1_fo
 
 ### 3.3 The handshake: events, plans, conversations — [S2]
 
+**Events, plans and saves are built** (migration
+[0012_event_plans.sql](../db/migrations/0012_event_plans.sql), ADR-031). Conversations,
+messages, files and inquiries are still proposed
+([schema/stage2-3-proposed.sql](./schema/stage2-3-proposed.sql)).
+
 ```mermaid
 erDiagram
     EVENT {
         uuid id PK
         uuid host_user_id FK "the consumer"
-        uuid event_type_id FK
-        text title
-        date event_date
+        uuid event_type_id FK "optional, one tap (D-39)"
+        date event_date "60 days back to 3 years ahead"
         time start_time "optional"
         time end_time "optional"
         text timezone
-        uuid municipality_id FK "optional"
+        uuid municipality_id FK "required"
         int  guest_count_estimate "optional"
-        text status "planning|cancelled|archived"
+        text status "planning|cancelled  (archived later)"
+        timestamptz cancelled_at "set by the database"
+    }
+    EVENT_PRIVATE {
+        uuid event_id PK "and host_user_id: same host as the event"
+        text title "the event's name: required, private"
+        text venue_note "optional"
+        smallint age_range_min "optional"
+        smallint age_range_max "optional"
+        int  budget_cents "optional, private planning figure"
+        text notes "optional"
     }
     EVENT_VENDOR {
         uuid id PK
         uuid event_id FK
+        uuid host_user_id FK "copy of the event's host, held by a two-column key"
         uuid vendor_id FK
         text status "considering|booked|removed  (set by consumer only)"
-        timestamptz booked_at
+        timestamptz booked_at "set by the database"
+        timestamptz removed_at "set by the database"
         timestamptz vendor_flagged_at "vendor says: not a real booking"
+        uuid vendor_flagged_by "set by the database"
+        timestamptz flag_resolved_at "Stage 3"
+    }
+    SAVED_VENDOR {
+        uuid user_id PK
+        uuid vendor_id PK
+        timestamptz created_at
+    }
+    EVENT_TYPE {
+        uuid id PK
+        text key "never changes"
+        text name "the team renames"
+        bool is_active "hidden types stay on old events"
+        int  sort_order
+    }
+    EVENT_TYPE_CATEGORY {
+        uuid event_type_id PK
+        uuid category_id PK "kinds of business suggested (D-43)"
+        int  sort_order
+    }
+    FEATURED_PLACEMENT {
+        uuid id PK
+        uuid vendor_id FK
+        uuid event_type_id FK
+        date starts_on
+        date ends_on
+        text note "team only; no money columns"
+        timestamptz ended_at "ended early by the team"
     }
     CONVERSATION {
         uuid id PK
@@ -219,11 +265,23 @@ erDiagram
         timestamptz notified_joined_at
     }
     EVENT ||--o{ EVENT_VENDOR : ""
+    EVENT ||--|| EVENT_PRIVATE : ""
+    EVENT_TYPE |o--o{ EVENT : ""
+    EVENT_TYPE ||--o{ EVENT_TYPE_CATEGORY : ""
+    EVENT_TYPE ||--o{ FEATURED_PLACEMENT : ""
     EVENT |o--o{ CONVERSATION : ""
     CONVERSATION ||--o{ MESSAGE : ""
     MESSAGE ||--o{ MESSAGE_ATTACHMENT : ""
     CONVERSATION ||--o{ CONVERSATION_READ_MARKER : ""
 ```
+
+**Who sees what (as built, ADR-031).** The event's name, where it is, the ages, the budget
+and the notes live in `event_private`, which only the host can read: never a business, never
+the team. A business marked **booked** sees the person's name, the date, the town and about
+how many guests (D-40). The team sees only flagged bookings, and featured placements and
+suggestions it manages. Saves are seen only by the person who saved; the team sees totals
+(D-42). The kind of event is optional and is used only for ideas on the person's own plan and
+the team's totals; a business never sees it.
 
 ### 3.4 Feedback & reviews — [S3]
 
@@ -265,7 +323,8 @@ erDiagram
 **A review is chained to a booking:** `review → event_vendor (status = booked) → event
 (date passed) → host`. The database refuses a review that breaks any link in that
 chain. See the proposed SQL in
-[schema/stage2-3-proposed.sql](./schema/stage2-3-proposed.sql).
+[schema/stage2-3-proposed.sql](./schema/stage2-3-proposed.sql), which now applies on top of
+the built migrations 0001–0012 (the event part moved into 0012).
 
 ### 3.5 Guests & RSVPs — [S4]
 
@@ -332,6 +391,20 @@ Stages are unchanged.
   start and end dates, set by an admin. Vendors pay outside Localites; no prices or
   payment details are stored.
 
+**Built 12–13 October 2026 (migration 0012, D-39 to D-43):**
+- **Events:** the town is required; the kind of event is optional; the event's name is
+  required and private (`event_private.title`). A business never sees the name or the kind.
+- **Plans:** `event_vendor` copies the host's id (held to the event by a two-column key) so
+  the per-person rules never loop; the database sets every time and writes `status_change`.
+  The flag columns gain who flagged it, a team-only note, and room for Stage 3's decision.
+- **Ideas per kind of event (D-43):** `event_type_category` (the kinds of business suggested
+  for each kind of event) and `featured_placement` (a business the team features for a kind
+  of event between two dates; no money columns).
+- **Team-only counts (D-42):** two database functions add up saves, adds and bookings per
+  business and per kind of event; nothing new is stored for them.
+- **Notifications:** three more kinds: `booked_event_cancelled`, `booked_event_changed`
+  (to the business) and `booking_flagged` (to the person, D-41).
+
 ## 4. Lifecycle states and what they do NOT mean
 
 User-facing wording must match the "means" column and must never imply the "does not
@@ -346,7 +419,7 @@ mean" column.
 | File shared | `message_attachment` | Either | A file was sent in the conversation | Anything about its contents. Localites doesn't read or act on files. |
 | Added to event | `event_vendor.status = considering` | Consumer | The consumer is considering this vendor | Contacted or booked. The vendor isn't told. |
 | Booked | `event_vendor.status = booked` | Consumer | **The consumer says** they've booked this vendor | That Localites or the vendor confirmed it, or that money moved |
-| Booking flagged | `event_vendor.vendor_flagged_at` | Vendor | The vendor says this booking isn't real | That it isn't; the platform team resolves it |
+| Booking flagged | `event_vendor.vendor_flagged_at` | Vendor (owner or manager) | The vendor says this booking isn't right. The team and the person are told (D-41); the note stays with the team | That it isn't; the platform team resolves it (Stage 3) |
 | Feedback requested | `review_request.status = sent` | System | An email was actually sent (or the in-app prompt shown) | That it was read |
 | Review submitted | `review.moderation_status = pending` | Consumer | Awaiting the platform team's check | Published |
 | Review published | `review.moderation_status = published` | Platform | Passed the review policy and is public | Localites endorses the vendor or the opinion |
@@ -355,14 +428,29 @@ mean" column.
 
 Only these transitions are allowed; anything else is rejected by the server (ADR-017).
 
-**`event_vendor.status`** — consumer only.
+**`event.status`** — consumer only. Built (0012).
 ```
+planning → cancelled   (final in 2A; businesses marked booked are emailed)
+planning → archived    (reserved; not offered yet)
+```
+A cancelled event can't be changed, and nor can its plan.
+
+**`event_vendor.status`** — consumer only. Built (0012): enforced by the database, which also
+sets `booked_at`/`removed_at` and writes `status_change`.
+```
+(new)       → considering  (consumer adds a published business; it isn't told)
 considering → booked       (consumer marks booked; vendor is notified)
 booked      → considering  (consumer un-marks; vendor is notified; any pending feedback request is cancelled)
 considering → removed      (row kept, removed_at set)
 booked      → removed      (row kept; vendor is notified)
 removed     → considering  (consumer re-adds the same vendor; same row, history kept)
 ```
+A business the person is on the team of can't be added or marked booked on their own event.
+A business not yet on Localites (unclaimed) can be added and marked booked; nobody is told
+and nothing is kept for later.
+
+**`event_vendor.vendor_flagged_at`** — the business (owner or manager) only, once, and only
+while it's marked booked. Deciding on it (`flag_outcome`) is Stage 3.
 
 **`conversation.status`**
 ```
@@ -422,7 +510,7 @@ hiding there.
 | To add… | You do… | Developer needed? |
 |---|---|---|
 | A category or subcategory | Admin → Categories → Add | No |
-| An event type ("Retirement party") | Admin → Event types → Add | No |
+| An event type ("Retirement party"), its suggested kinds of business, or a featured business for it | Admin → Event types (built) | No |
 | A filter ("Offers gluten-free") | Admin → Attributes → Add | No |
 | A town | Admin → Places → Add | No |
 | A new **core** field | Migration + code | Yes, by design |
@@ -432,10 +520,10 @@ hiding there.
 | Relationship | Cardinality | What ending it means |
 |---|---|---|
 | Person ↔ Vendor team (`vendor_member`) | many-to-many, with role | Ended, not deleted. Past messages stay attributed to the business. |
-| Consumer → Event | one host, many events | Cancelling sets status; vendors marked booked are notified. |
+| Consumer → Event | one host, many events | Cancelling sets status and is final; businesses marked booked are emailed. A change of date or town is also emailed to them (every real change; at most 30 planning emails a day to anyone). |
 | Event ↔ Vendor (`event_vendor`) | one row per event+vendor pair | Removing sets `removed`; re-adding reuses the row. History in `status_change`. |
 | Consumer ↔ Vendor (`conversation`) | at most one general conversation per pair, plus at most one per event | Blocking closes it for both; nothing is deleted. |
-| Conversation → Event | optional; can be linked later | The vendor sees only the event's type, date, town and guest-count estimate. |
+| Conversation → Event | optional; can be linked later | Proposed: the vendor sees only the event's date, town and guest-count estimate (D-40 removed the kind of event for bookings; the same is expected for conversations). |
 | Event ↔ Vendor → Review | at most one | Enforced by the database. |
 | Consumer ↔ unclaimed Vendor (`vendor_interest`) | one per pair | When the vendor claims, the consumer is told they can now message them. |
 
@@ -471,9 +559,12 @@ hiding there.
 | `activity_event` | Analytics | S1 | One meaningful action on a vendor (profile view and source, tap; from Stage 2 save, inquiry, conversation, message): time, vendor, person or visitor ID. Kept with no deletion date (D-22, ADR-023). |
 | `vendor_daily_stats` | Analytics | S1 | Per vendor, day, placement and town: seen in search, views, taps (from Stage 2 also saves, inquiries, conversations, messages), unique people. Kept. |
 | `vendor_suggestion` | Discovery | S1 | Businesses people suggest (D-25): name, website, phone or email, where on the site, status, the vendor it became, whether the team email was sent |
-| `saved_vendor` | Consumer | S2 | Private bookmarks |
-| `event_type`, `event` | Event | S2 | The consumer's event |
-| `event_vendor` | Event | S2 | Considering → booked |
+| `saved_vendor` | Consumer | S2 | Private bookmarks. **Built** (0012) |
+| `event_type`, `event` | Event | S2 | The consumer's event: date, town (required), kind (optional), times, guest estimate, status. **Built** (0012) |
+| `event_private` | Event | S2 | The host's own details: the event's name (required), where, ages, budget, notes. Host only. **Built** (0012) |
+| `event_vendor` | Event | S2 | Considering → booked; the business's flag. **Built** (0012) |
+| `event_type_category` | Event | S2 | Kinds of business suggested for each kind of event, chosen by the team (D-43). **Built** (0012) |
+| `featured_placement` | Commercial | S2 | A business the team features for a kind of event, between two dates; team-only note; no money (D-43). **Built** (0012) |
 | `conversation`, `message`, `message_attachment` | Handshake | S2 | Consumer ↔ vendor messaging with files |
 | `conversation_read_marker` | Handshake | S2 | Private unread counts |
 | `vendor_interest` | Handshake | S2 | **Inquiries** (D-04, D-05): who asked about an unclaimed or unverified vendor, an optional note and event, and whether the team email was sent |
@@ -484,7 +575,7 @@ hiding there.
 | `vendor_plan` | Vendors | S5 | Which vendors have a paid plan and until when; set by an admin; no prices or payment details (D-24, ADR-025) |
 | `vendor_rating_summary` | Reviews | S3 | Calculated view. Average shown only at 3+ reviews. |
 | `guest`, `invitation`, `event_question`, `rsvp`, `rsvp_answer`, `event_update` | Guests | S4 | Invitations and RSVPs |
-| `entitlement`, `placement` | Commercial | Future | Designed only, if ever approved |
+| `entitlement`, `placement` | Commercial | Future | Designed only, if ever approved (featured placements on plans are `featured_placement` above) |
 
 **Removed in revision 2:** `inquiry`, `inquiry_message`, `quote`, `quote_line`,
 `booking`, `document`, `review_eligibility`, and the concierge role.

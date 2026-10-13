@@ -1,0 +1,9 @@
+Subject: {{person}} cancelled their event on {{date}}
+
+Hi {{name}},
+
+{{person}} cancelled their event on {{date}}. They had marked {{business}} as booked for it.
+
+{{link}}
+
+Localites

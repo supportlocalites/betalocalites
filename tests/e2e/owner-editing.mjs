@@ -216,7 +216,10 @@ check('a partly undone save says which parts were put back and which kept',
 r = await site(edit(mine), { cookie: owner });
 check('the owner’s edit page says what the team changed back, and why', r.body.includes('our') && r.body.includes('changed back') && r.body.includes('E2E: test undo'));
 
-// 7. The team's daily note (run as Cloudflare's scheduler would).
+// 7. The team's daily note (run as Cloudflare's scheduler would). An earlier run today may
+// have sent today's note (the pretend email service accepts it), so its saves are put back
+// in waiting before the note is removed and run again.
+await sql`update owner_change set digest_day = null where digest_day = (now() at time zone 'America/Toronto')::date`;
 await sql`delete from team_digest where day = (now() at time zone 'America/Toronto')::date`;
 r = await site('/cdn-cgi/handler/scheduled?cron=0+12+*+*+*');
 await new Promise((res) => setTimeout(res, 1500));

@@ -10,9 +10,20 @@ export function SiteHeader() {
       <Link to="/explore" className={styles.wordmark}>
         <Wordmark small />
       </Link>
-      <Link to={signedIn ? '/account' : '/join'} className="text-link">
-        {signedIn ? 'Your account' : 'Sign in'}
-      </Link>
+      {signedIn ? (
+        <nav aria-label="Your pages" className={styles.links}>
+          <Link to="/events" className="text-link">
+            My events
+          </Link>
+          <Link to="/account" className="text-link">
+            Account
+          </Link>
+        </nav>
+      ) : (
+        <Link to="/join" className="text-link">
+          Sign in
+        </Link>
+      )}
     </header>
   );
 }

@@ -1,7 +1,7 @@
 # E — Security & Privacy Model
 
 **Status:** Approved (D-00, 10 October 2026).
-**Last updated:** 2026-10-12 (§2: "are you human" check on sign-in codes; §7: sign-up details and anyone may join, D-36; §2: emailed sign-in codes and claims)
+**Last updated:** 2026-10-13 (§3, §4.2, §7, §7a, §8, §12: planning an event built, ADR-031, D-39 to D-43; earlier, §2: "are you human" check on sign-in codes; §7: sign-up details and anyone may join, D-36; §2: emailed sign-in codes and claims)
 
 **Revision 2:** rebuilt around the two users, consumer and vendor. Added
 conversations, shared files, consumer-marked bookings, and reviews. Removed the
@@ -90,6 +90,14 @@ One person can be a consumer and a vendor team member (ADR-022). Permissions are
 checked against **the side they're acting as** in each request. Acting for your
 business never gives access to your personal events, and vice versa.
 
+**Built for planning (ADR-031): the side follows the page.** `/events…`, `/saved` and
+`/vendors/<name>/add` act as the person; `/business` and `/vendors/<name>/bookings` act as
+the business (its current owner or manager, not staff, and not for an archived business);
+`/admin/…` acts as the team after the team gate. The server tells the database the person and
+the side at the start of each request, and the database's own rules apply that side's
+permissions. Someone on a business's team switches between **My events** and **My business**
+(screen A5).
+
 There's no "super user" bypass. Admins go through the same checks; their role simply
 grants more, and every admin action is recorded in `audit_log`.
 
@@ -109,7 +117,9 @@ grants more, and every admin action is recorded in `audit_log`.
 | Vendor team | — | — | R; owner C U X (own) | R (own) | R C U X |
 | Claim request | — | C, R (own) | — | — | R U |
 | Verification evidence | — (outcome only) | — (outcome only) | R (own) | — | R C U |
-| Categories, attributes, places, event types | R | R | R | R | R C U X |
+| Categories, attributes, places, event types | R | R | R | R | R C U X (event types: hide, not delete) |
+| Suggested kinds of business per event type (D-43) | — | R (on own plan) | — | — | R C U X |
+| Featured placements (D-43) | — | Which businesses only, for current placements of published businesses, at most 3 per kind of event, on own plan; never the note | — | — | R C; end early (no edit, no delete) |
 | Activity totals (seen in search, visits, taps, saves, inquiries, messages; §7a) | — | — | R (own; the owner only, when the team has switched the Analytics page on; staff wait for D-29) | R (own, same) | R (detail, logged) |
 | Suggest a business (D-25) | C (rate-limited) | C; R (own, from Stage 2) | — | — | R U |
 
@@ -117,17 +127,39 @@ grants more, and every admin action is recorded in `audit_log`.
 
 | Record | Visitor | The consumer | Another consumer | Vendor on the plan | Admin |
 |---|---|---|---|---|---|
-| Saved vendors | — | R C X (own) | — | — (not told) | aggregate counts only |
-| Event | — | R C U X (own) | — | **Summary only**¹ | R (support, logged) |
-| Event plan: vendors *considering* | — | R C U X (own) | — | — (not told) | R (support, logged) |
-| Event plan: vendor *booked* | — | R U (own) | — | R (own row)²; can flag | R; resolves flags |
-| Budget, notes | — | R U (own) | — | — | — |
+| Saved vendors | — | R C X (own) | — | — (not told) | aggregate counts only (D-42) |
+| Event | — | R C U; cancel (own) | — | **Summary only**¹ | R only when a booking on it is flagged |
+| Event plan: vendors *considering* | — | R C U X (own) | — | — (not told) | — |
+| Event plan: vendor *booked* | — | R U (own) | — | R (own row)²; can flag once | R when flagged (read-only in 2A); resolves flags in Stage 3 |
+| The event's name, where, ages, budget, notes (`event_private`) | — | R U (own) | — | — | — |
+| Flag note | — | — | — | C (own flag) | R |
+| Saves, adds and bookings per business (D-42) | — | — | — | — (not on their Analytics page) | totals only |
 
-¹ The event's type, date, town and guest-count estimate, and only if the consumer
-linked the event to a conversation with that vendor, or marked them booked. Never the
-title, notes, budget, address, or guest list.
+¹ **Built (D-40):** for a booking, the person's name, the date, the town and about how many
+guests. Never the event's name or kind, start time, where, ages, budget, notes, the other
+businesses on the plan, or the person's email. For conversations (not built yet), only if
+the consumer links the event, and the same summary is expected.
 ² The vendor sees that they were marked booked and the event summary, so they can
-recognise the booking or flag it.
+recognise the booking or flag it. When it flags, the team and the person are told; the note
+stays with the team (D-41).
+
+**How each cell is enforced (ADR-031).**
+- *By the database's per-side rules:* everything the person may not see of another person;
+  a business seeing only rows that mark it booked; the team seeing only flagged bookings;
+  only the team writing event types, suggestions and placements; only the host changing a
+  plan's status; only the business flagging, once.
+- *By a separate table with a host-only rule:* the event's name, where, ages, budget and notes
+  (`event_private`). No business or team rule exists for it.
+- *By a database function that returns only totals or only business ids:* the team's counts
+  (D-42) and the featured list (D-43).
+- *By two database functions for the business side:* a booked business has no rules on the
+  planning tables; `bookings_for_business()` returns only the person's name, the date, the
+  town and about how many guests, and `flag_booking()` is the only way to flag. The flag note
+  is in a team-only table. (Review fix, 13 October 2026.)
+- *By the server asking only for named columns, plus end-to-end tests:* the person's email
+  on `app_user` (as in Stage 1).
+- *Admin "support, logged" reads of any event:* not built; the team can't open a person's
+  event unless a booking on it is flagged.
 
 ### 4.3 Conversations & files (Stage 2)
 
@@ -206,7 +238,8 @@ Changing any of these requires product owner approval.
 with no minimum age, and sign-up asks for a date of birth, so Localites may hold children's
 details. Before launch the lawyer (PO-07) confirms what's needed, in particular a parent's
 consent for children under 13. An event may have an optional age range ("ages 4–7"). The
-event title is free text; no child's name is required.
+event's name is required but private (D-39); its hint says "No need to use a child’s full
+name." Only the person sees it: never a business, never the team.
 
 **About consumers:** First name, last name and email required. Asked at sign-up but not required (D-36):
 gender, full date of birth and full street address, kept in their own table
@@ -238,9 +271,9 @@ to sell featured placements.
 
 | Who | Sees |
 |---|---|
-| A business's owner, on its Analytics page, when the team has switched it on (D-37) | Totals for their own business only: seen in search, profile views, website and phone taps, saves, inquiries, conversations, messages, reply times (later, bookings marked). **Never who** viewed or saved them. They see the people who message them, as part of the conversation. |
+| A business's owner, on its Analytics page, when the team has switched it on (D-37) | Totals for their own business only: seen in search, profile views, website and phone taps; later inquiries, conversations, messages, reply times. **Never who** viewed them. **Not saves, adds to plans or bookings marked** (D-42: team only). They see the people who message them, as part of the conversation, and the people who marked them booked (D-40). |
 | Other vendors and prospective vendors | Category-level figures, or one vendor's own numbers only with that vendor's permission |
-| The Localites team (platform admins) | The detailed records, to run the service, prepare reports and compare year over year. Every look is recorded in the audit log. |
+| The Localites team (platform admins) | The detailed records, to run the service, prepare reports and compare year over year. Every look is recorded in the audit log. **Planning (D-42):** totals only of saves, adds to plans and bookings marked, per business and per kind of event; never who, never which event. |
 | Anyone else | Nothing. Tracking data is never sold. |
 
 - **Told plainly** in the privacy policy, in everyday words. Visitors who aren't signed in
@@ -266,8 +299,10 @@ to sell featured placements.
   as long as a stated purpose needs it; the privacy policy names that purpose, and the
   legal review (PO-07) confirms it.
 - **Starts with each feature:** seen in search, profile views, taps and the D-30 additions
-  from Stage 1; saves, inquiries, conversations and messages from Stage 2, when those
-  exist.
+  from Stage 1; inquiries, conversations and messages from Stage 2, when those exist. Saves,
+  adds and bookings are **not** recorded as activity yet (ADR-031): the team's totals come
+  from the planning records themselves (D-42). Featured businesses on plans aren't counted
+  as "seen" yet (D-43: later).
 
 ## 8. Retention and deletion
 
@@ -278,7 +313,7 @@ account exists, and detailed activity records kept for year-over-year reports (D
 |---|---|---|
 | Events and event plans (type, date, place, vendors, bookings, guest names and replies) | As long as the host's account exists, with no time limit, so hosts can look back years later | Deleted with the account |
 | Conversations and files | While both parties' accounts exist, up to 3 years after the last message | Deleted |
-| When a consumer deletes their account | — | Their events, plans and saved vendors are deleted. In conversations, their messages show as *"Former Localites member"* and their files are deleted, so the vendor keeps a record of their own side. |
+| When a consumer deletes their account | — | Their events, plans and saved vendors are deleted. In conversations, their messages show as *"Former Localites member"* and their files are deleted, so the vendor keeps a record of their own side. **Not built yet:** account deletion comes before launch; it must also remove `event`, `event_private`, `event_vendor` and `saved_vendor` rows (a new reviewed migration with the delete rights the app doesn't have today) and decide what a business's Bookings marked shows afterwards. |
 | When a vendor leaves Localites | — | The listing is archived. Consumers keep their copies of conversations, shown as *"This business has left Localites"*. Published reviews stay, without the reply option. |
 | Published reviews | While the listing exists | The author is shown as *"A Localites member"* if they delete their account |
 | Guest phone numbers and emails (Stage 4) | Until 90 days after the event | Erased. Guest names and their replies stay with the event so the host can look back |
@@ -342,6 +377,25 @@ Every row of §4 becomes automated tests run before every deployment, including:
 **Current results (database layer, 2026-10-10):** 85 of 85 checks passed on PostgreSQL
 16. That's 29 for Stage 1 rules and 56 for the consumer–vendor relationship rules,
 including the review rule chosen in D-06. Application-layer tests will be added with the code.
+
+**Planning an event (13 October 2026), as built:**
+- **Database ([0012 checks](../db/tests/0012_event_plans.test.sql), 164 of 164):** each side
+  sees only its own rows; nobody but the host reads `event_private`; another person's event,
+  plan or save is refused; a business reads only rows that mark it booked and flags once; the
+  host can't flag and the business can't change a status; the database sets the times and
+  writes the history; only the team writes event types, suggestions and placements; the
+  person reads featured businesses only through the function, never the note; ended, expired
+  and unpublished placements aren't returned; no money columns exist; the team's counts
+  refuse every other side and hold no personal data; browser-facing roles see nothing.
+- **End to end ([tests/e2e/event-plans.mjs](../tests/e2e/event-plans.mjs), 120 of 120):**
+  planning privacy (a business never sees a "considering" plan, the event's name, kind,
+  start time, where, ages, budget, notes, the person's email or other businesses on the
+  plan, on any page or in any email); booking integrity (a business can't mark itself
+  booked; another person, another business, staff and a non-member get "not found" on
+  someone else's event, plan rows or bookings, and nothing changes); role escalation (a
+  non-admin can't reach Event types or Booking flags, and a person can't reach the team's
+  planning counts); the flag tells the team and the person, never with the note; every page
+  and email is checked for words implying payment or confirmation.
 
 ## 13. Legal context (not legal advice)
 

@@ -9,6 +9,11 @@ change X, what else is affected?"*
 
 **Status key:** 📐 designed · 🔨 in progress · ✅ released · ⏸ deferred
 
+**Note (13 October 2026):** the status column is from the design stage and isn't kept up to
+date; what is built is in [roadmap.md](./roadmap.md) and [screen-inventory.md](./screen-inventory.md).
+Slice 2A added `event_private`, `saved_vendor`, `event_type_category`, `featured_placement`,
+`event_vendor_flag_note` and the team-only counts (D-42, D-43; ADR-031).
+
 ---
 
 ## Modules

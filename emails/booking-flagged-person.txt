@@ -1,0 +1,10 @@
+Subject: {{business}} says it isn’t booked for your event
+
+Hi {{name}},
+
+{{business}} told us it isn’t booked for your event on {{date}}. It may be a mix-up. If you did arrange something with them, please contact them directly: their phone number and website are on their Localites page.
+
+You can change your plan here:
+{{link}}
+
+Localites

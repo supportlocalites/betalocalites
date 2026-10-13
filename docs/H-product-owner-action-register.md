@@ -1,6 +1,14 @@
 # H — Product Owner Action Register
 
-**Last updated:** 2026-10-12 (revision 16: D-38, signing in stays a 6-digit emailed code; the "are you human" check is parked)
+**Last updated:** 2026-10-13 (revision 17: D-39 revised, D-40, D-41, D-42 and D-43 recorded as decided on 12 October 2026; "Plan an event" built)
+
+**Revision 17 changes:** your five decisions on planning an event (D-39 to D-43) are recorded
+in your own words below, and in the table of decisions. "Plan an event" is built and tested
+on our computers with all five (see [G](./G-release-and-migration-history.md)); it reaches
+the test site with the next update. One new check for you after that: PO-15.
+
+**Revision 16 changes:** D-38, signing in stays a 6-digit emailed code; the "are you human"
+check is parked.
 
 This is the one place where everything that needs **you** is listed. If it isn't here,
 you don't need to do it.
@@ -53,6 +61,11 @@ Recorded from your messages of 9 and 10 October 2026. These now shape every docu
 | ✅ D-36 | **Sign-up asks about the person.** **First name and last name, in two boxes**, are needed to continue: nothing says "required", but if either is empty, *Continue* shows "Please enter your first and last name to continue." Gender, full date of birth and full street address are asked on the same screen but not required, and not labelled either way, so people fill in what they're happy to; anyone can add or change them later on **Your account**. **Anyone can create an account** (no minimum age). Businesses never see these details (they see totals only, D-30). | Built: migrations 0005 (`person_profile`) and 0006 (first and last name). Changes the privacy promise in E §7 (it said name and email only, and no children's accounts): the lawyer reviews it (PO-07), in particular a parent's consent for children under 13. |
 | ✅ D-37 | **Business analytics live on an Analytics page, switched on per business.** Owners see their numbers on an Analytics page in their business's area of Localites, not by email. The team turns it on or off for each business, so it can become part of a paid plan (paid for outside Localites, D-24). Owners get no daily emails; the daily note of owners' changes (D-34) goes only to the team. | **Built (12 October 2026, ADR-030):** the owner's **Analytics** page (`/vendors/<name>/analytics`, linked from Your account) and the team's switch on each listing's **Activity** page. Counting starts once you add the activity key (PO-14). |
 | ✅ D-38 | **Signing in stays a 6-digit code sent by email, with no "are you human" check** (12 October 2026). | The check (Cloudflare Turnstile) was built and is **parked**: its code stays in the project, switched off, so it can be turned on later without rebuilding (ADR-028). Our own limits on codes stay in place. Known limit: someone determined could still use up the day's sign-in codes. |
+| ✅ D-39 | **Planning an event asks for a name, a date and a town; the kind of event is optional, one tap** (revised by you, 12 October 2026). The name is private to the person. Starting kinds: Children's birthday party, Birthday party, Baby shower, Wedding, Wedding shower, Graduation, Anniversary, Retirement party, Work or team event, Fundraiser, Something else. | Built (migration 0012, ADR-031). The team renames, reorders, hides or adds kinds at **Admin → Event types** without a developer. Businesses never see the kind or the name. |
+| ✅ D-40 | **What a booked business sees: the person's name, the date, the town and about how many guests. Nothing else** (12 October 2026). | Built: the business's **Bookings marked** page and its emails show only those four things, and the database itself gives the business nothing else; the person is told exactly this on the event form and on **Mark as booked**. |
+| ✅ D-41 | **"This isn't right": the team and the person are both told** (12 October 2026). The business's note stays with the team. | Built: the team gets an email (no note, no name) and a read-only **Booking flags** list; the person gets a polite email and a line on their plan. Deciding on flags comes in Stage 3. |
+| ✅ D-42 | **Count saves, adds to event plans and "marked booked" now, seen only by the Localites team** (12 October 2026). Not on a business's own Analytics page. | Built: "Planning (team only)" on the team's **Activity** pages, with totals by kind of event. Totals only: never who, never which event. |
+| ✅ D-43 | **Tailored ideas per kind of event, and featured businesses per kind, run by the team** (12 October 2026). | Built: on a person's plan, "Ideas for your …" with up to 3 businesses labelled **Featured** ("Featured businesses are promoted by the Localites team.") and the kinds of business people often need. The team chooses both at **Admin → Event types**. No money is recorded; any arrangement with a business happens outside Localites (D-24). Brought forward from Stage 5. |
 | ✅ D-35 | **Two claims for one business: the first approved wins.** Any other waiting claims are declined automatically with a polite email; a claimed business shows "This business manages its own listing" with a way to contact us. | ADR-028; the database allows only one owner per business. |
 
 ---
@@ -63,6 +76,7 @@ Recorded from your messages of 9 and 10 October 2026. These now shape every docu
 |---|---|---|---|
 | **ADR-005** | ✅ CPU time 8 ms with React Router (passes). A day after the speed improvements go live, glance at **Metrics** once more: CPU time, and whether any "Exceeded CPU" errors appear | Nothing; a final check | 2 min |
 | **PO-14** | Switch on activity counting: add one secret in Cloudflare (steps below) | Any numbers on the team's Activity pages and the owners' Analytics pages | 3 min |
+| **PO-15** | Once "Plan an event" reaches the test site: plan a test event and look at it (steps below) | Knowing that planning works on the real hosting, not only on our computers | 5 min |
 | **PO-11** | Check the 28 test businesses (drafts) and publish the ones that are right (steps below) | Real listings on the test site | At your pace, ~5 min each |
 | **D-12** | Mailing address for the privacy policy and terms | Public launch | 1 min, later |
 
@@ -73,6 +87,134 @@ this one" is a perfectly good answer.
 ---
 
 ## Decisions
+
+The newest decisions come first; older ones follow in their original order.
+
+### D-39 — What we ask when someone plans an event (revised)
+
+**What you said (12 October 2026).** First: "just name the event". Then, on reflection: *"it
+would be nice to track what type of events it was.. just worried about asking for too much
+info"*.
+
+**Decided.**
+- **Name your event: required.** The hint says "Just for you, like “Sam’s party”. No need
+  to use a child’s full name." It is private: only the person sees it, never a business and
+  never the team.
+- **What kind of event? (optional).** One row of buttons under the name, with **None**
+  chosen to begin with, so skipping it is one less tap, not one more. The kind is used for
+  ideas on the person's own plan (D-43) and for the team's totals (D-42). **A business never
+  sees it.**
+- **Also required:** the date and the town. Everything else (times, how many guests, where,
+  ages, budget, notes) is optional and tucked under "Add more details".
+- **Starting list of kinds:** Children's birthday party, Birthday party, Baby shower,
+  Wedding, Wedding shower, Graduation, Anniversary, Retirement party, Work or team event,
+  Fundraiser, Something else. The team can rename, reorder, hide or add kinds at **Admin →
+  Event types** at any time, without a developer. A hidden kind stays on events that already
+  use it.
+
+**Status:** ✅ Decided, 12 October 2026 (revised the same day). Built (migration 0012).
+
+---
+
+### D-40 — What a business sees when it's marked booked
+
+**Choices we gave you:** a limited summary (our recommendation), or more of the event.
+
+**Decided (12 October 2026): the limited summary**, adjusted for D-39. A booked business sees
+**the person's name, the date, the town and about how many guests. Nothing else:** not the
+event's name, its kind, the start time, where it is, the ages, the budget, the notes, the
+other businesses on the plan, or the person's email.
+
+- The person is told exactly this on the event form and again on the **Mark as booked** page
+  (every way of sharing passes that page): *"… will see your name, the date, the town and
+  about how many guests. Never your event’s name, where it is, the ages, your budget or your
+  notes."*
+- The business gets an email when it's marked booked, when it's un-marked, when the event is
+  cancelled, and when the date or town changes. A "marked booked" email is held back only
+  when the business's last word was already "marked booked", so it is never left with old
+  news; and no one gets more than 30 of these emails a day, so a person changing their mind
+  can't flood a business's inbox.
+- A business not yet on Localites isn't emailed. If it joins Localites later, its **Bookings
+  marked** page shows bookings marked before it joined; the **Mark as booked** page tells the
+  person this plainly. (Review finding, 13 October 2026; tell us if you'd rather such bookings
+  stayed hidden from the business.)
+
+**Status:** ✅ Decided, 12 October 2026. Built.
+
+---
+
+### D-41 — "This isn't right": who is told
+
+**Our first recommendation** was that only the team is told. **You chose: the team and the
+person are both told** (12 October 2026).
+
+- When a business says a booking isn't right, **the team** gets an email naming the business,
+  with a link (no note, no person's name), and the booking appears on **Admin → Booking
+  flags**.
+- **The person who marked it booked** gets a polite email: *"{Business} told us it isn’t
+  booked for your event on {date}. It may be a mix-up. If you did arrange something with
+  them, please contact them directly: their phone number and website are on their Localites
+  page."*, with a link to their plan. Their plan shows the quiet line "{Business} says it
+  isn’t booked for this event."
+- **The business's note stays with the team.** It is never in either email and never shown
+  to the person.
+- A booking can be flagged once. **Deciding on flags comes in Stage 3**, with reviews: until
+  then the team's list is for reading only.
+
+**Status:** ✅ Decided, 12 October 2026. Built.
+
+---
+
+### D-42 — Counting saves, adds to plans and bookings
+
+**Our first recommendation** was not to count them yet. **You chose: count saves, adds to event
+plans and "marked booked" now, seen only by the Localites team** (12 October 2026).
+
+- The team sees, for any period, how many times each business was **saved**, **added to an
+  event plan** and **marked booked**, on the business's **Activity** page ("Planning (team
+  only)") and as a top-20 table on **Activity**, with a small table by kind of event (events
+  planned, businesses marked booked, and "No type given" as its own row).
+- **Totals only:** never who, never which event. The page says "Only the Localites team sees
+  these. The business doesn’t (D-42)."
+- **Not** on a business's own Analytics page, and not part of the nightly activity count.
+- **Honest limit:** a save that is later un-saved isn't counted (un-saving removes it).
+  Marking, un-marking and re-marking the same booking counts once.
+
+**Status:** ✅ Decided, 12 October 2026. Built.
+
+---
+
+### D-43 — Ideas for each kind of event, and featured businesses
+
+**What you said (12 October 2026):** *"I like Tailored but we need to program this on the back
+end - likely businesses that pay more we would put as a featured business and tailor it to
+specific parties they want. It's super important we think like this in how we optimize the
+website for our end users but also how we can make opportunities to charge more ways for the
+businesses to promote their business."*
+
+**Decided and built.**
+- On a person's plan, when they chose a kind of event, a section **"Ideas for your …"** (for
+  example "Ideas for your children's birthday party") shows:
+  - **Featured:** up to 3 businesses the team features for that kind of event, each labelled
+    **Featured**, with the line **"Featured businesses are promoted by the Localites team."**
+    always visible, a link to the business and **Add to event**;
+  - **Businesses people often need:** the kinds of business the team chose for that kind of
+    event, each linking to that category's list.
+- With no kind chosen, one quiet line: "Tell us what kind of event it is to see ideas.",
+  linking to Edit details.
+- **The team runs it** at **Admin → Event types**: for each kind, tick the kinds of business
+  to suggest (with an order), and feature a business between a first and last day, with an
+  optional note only the team sees. A placement can be ended early. Every change is recorded.
+  If more than 3 placements overlap, the page warns that only the first 3 are shown.
+- **No money in Localites (D-16, D-24):** Localites records only that a placement exists and
+  its dates. Any arrangement with the business, including payment, happens outside the site.
+- **Featured never changes search results, reviews or anything else**, and is always labelled.
+- Counting how often each featured business is shown comes later.
+- This brings "featured placements" forward from Stage 5 (roadmap), for plans only.
+
+**Status:** ✅ Decided, 12 October 2026. Built.
+
+---
 
 ### D-00 — Approve the revised architecture
 
@@ -113,7 +255,9 @@ with that vendor. We'd tell the consumer this clearly when they tap "Mark as boo
 The alternative is to keep "booked" completely private, which removes the flagging
 protection.
 
-**Status:** ✅ Approved, 10 October 2026 (all eight rules).
+**Status:** ✅ Approved, 10 October 2026 (all eight rules). **Refined by D-40 and D-41 (12
+October 2026):** a booked business sees the person's name, the date, the town and about how
+many guests (not the kind of event); when a business flags a booking, the person is told too.
 
 ---
 
@@ -238,7 +382,9 @@ with renewals.
    legal review confirms).
 
 **Status:** ✅ Decided, 10 October 2026; amended the same day (paid dashboard, admins see
-everything, detail kept for year-over-year numbers).
+everything, detail kept for year-over-year numbers). **For now, by D-42 (12 October 2026):**
+saves, adds to event plans and "marked booked" are counted as totals for the Localites team
+only, not on a business's Analytics page.
 
 ---
 
@@ -931,6 +1077,27 @@ way; nothing is lost (pages simply get new notes).
 night). To show an owner their numbers, open their listing's **Activity** page and click
 **Switch on**.
 
+---
+
+### PO-15 — Try "Plan an event" on the test site (D-39 to D-43)
+**When:** after we tell you the update with "Plan an event" has reached the test site. **Cost:**
+$0. **Time:** about 5 minutes. Nothing to type into any settings, and no secrets.
+**Why:** everything was tested on our computers. This proves it also works through the real
+hosting and database connection (ADR-031 relies on a setting the site sends the database
+with every request).
+
+1. On the test site, sign in with your own email (the 6-digit code), not a team account.
+2. Tap **My events** at the top, then **Plan an event**. Give it a name (for example "Test
+   party"), pick a kind of event, a date and a town, and tap **Plan event**.
+3. Your event's plan opens. Check that it shows your event's name, and "Ideas for your …"
+   with "Businesses people often need".
+4. Open any published test business, tap **Add to event**, choose your test event. Go back to
+   your plan: the business is under **Considering**.
+5. Optional, to tidy up: on the plan tap **Edit details**, then **Cancel this event**.
+
+**Done when:** all of that works. Reply *"PO-15 done"*, or tell us exactly what you saw if a
+step didn't work (a screenshot is fine; never include a code from your email).
+
 ## Completed
 
 | Date | Item |
@@ -949,3 +1116,5 @@ night). To show an owner their numbers, open their listing's **Activity** page a
 | 2026-10-10 | PO-08: test set of our 28 suggested businesses (up to 5 per category); vendor list to be refreshed later |
 | 2026-10-11 | PO-12: email from localites.ca (Cloudflare DNS, Resend verified, website key added); team emails arrive |
 | 2026-10-11 | PO-13: sign-in codes for everyone (Supabase emails through Resend; sign-ups open); a full test claim worked end to end |
+| 2026-10-12 | D-37 Analytics page; D-38 signing in stays the emailed code |
+| 2026-10-12 | D-39 (revised), D-40, D-41, D-42 and D-43: planning an event, what a booked business sees, flags, team-only counts, ideas and featured businesses |

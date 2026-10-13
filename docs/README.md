@@ -4,11 +4,15 @@ This folder is the permanent home for the documents the product owner asked us t
 maintain from day one. Everything here is written to be read **without reading source
 code**.
 
-**Status: Stage 0 (Discovery & Architecture). Architecture approved by the product owner
-(D-00, 10 October 2026). Stage 1 approved (D-23, 10 October 2026) and in progress.**
-No application code has been written. No infrastructure has been created. The only
-spending so far is the web address, `localites.ca`, bought by the product owner. The
-design is chosen: direction G, one website for phones and computers
+**Status (13 October 2026): Stage 1 in progress, and the first part of Stage 2 built.**
+Architecture approved (D-00) and Stage 1 approved (D-23), both 10 October 2026. The test
+site runs on Cloudflare's free plan with a free Supabase database: the public directory,
+sign-in, claiming, owner editing, the team's admin pages and activity counting are built.
+**"Plan an event"** (Stage 2, slice 2A: events, plans, saved businesses, bookings marked,
+flags, ideas and featured businesses per kind of event; D-39 to D-43) is built and tested on
+our computers and reaches the test site with the next update. What is still to do is listed
+plainly in the [roadmap](./roadmap.md). The only spending is the web address,
+`localites.ca`. The design is direction G, one website for phones and computers
 ([Design System](./design-system.md)).
 
 **Revision 2** reworks the plan around the product owner's clarification: two users
@@ -48,7 +52,7 @@ and "Booked" that lead to post-event feedback and reviews.
 
 | Doc | What it answers |
 |---|---|
-| [Screen Inventory](./screen-inventory.md) | All 63 screens, by user and stage |
+| [Screen Inventory](./screen-inventory.md) | All 65 screens, by user and stage, and which are built |
 | [Roadmap & Estimates](./roadmap.md) | Stage scope, effort, dependencies, risks, acceptance criteria |
 | [Cost Model](./cost-model.md) | Monthly costs, with sources |
 | [API & Integration Strategy](./api-strategy.md) | Internal contracts, messaging delivery, third-party services |
@@ -56,8 +60,8 @@ and "Booked" that lead to post-event feedback and reviews.
 | [Design System](./design-system.md) | How Localites looks and behaves on phones and computers (direction G) |
 | [Launch vendor research](./launch/vendor-research-2026-10-10.md) | Researched Orillia-area businesses for the launch list (PO-08) |
 | [Design archive](./design/README.md) | Every mockup explored (A to H), kept for reference |
-| [Database migrations](../db/migrations/) · [checks](../db/tests/) (Stage 1, built) · [original proposal](./schema/stage1-proposed.sql) | Vendors and discovery tables (not applied) |
-| [Proposed schema: Stages 2–3](./schema/stage2-3-proposed.sql) · [checks](./schema/stage2-3-proposed.test.sql) | Events, conversations, files, reviews (not applied) |
+| [Database migrations](../db/migrations/) · [checks](../db/tests/) (built: 0001–0011 Stage 1; 0012 events, plans and saves, Stage 2) · [original proposal](./schema/stage1-proposed.sql) | The real database, in order (the Stage 1 proposal was not applied as is) |
+| [Proposed schema: Stages 2–3](./schema/stage2-3-proposed.sql) · [checks](./schema/stage2-3-proposed.test.sql) | Conversations, files, inquiries, reviews (not applied); checked on top of migrations 0001–0012. The event part is built in 0012 |
 
 ---
 

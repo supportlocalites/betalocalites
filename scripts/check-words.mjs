@@ -8,13 +8,17 @@ const BANNED = [
   'book now', 'booking confirmed', 'secure your booking', 'reserved', 'request a quote', 'request to book',
   'checkout', 'deposit', 'pay now', 'payment due', 'invoice received', 'transaction', 'verified purchase',
   'verified booking', 'guarantee', 'localites-approved', 'shortlist confirmed', 'occasion', 'add a vendor',
+  // Slice 2A (planning an event): nothing is paid for or secured through Localites.
+  'secure booking', 'list a business', 'fee', 'fees',
 ];
 
 async function* walk(dir) {
   for (const e of await readdir(dir, { withFileTypes: true })) {
     const p = path.join(dir, e.name);
     if (e.isDirectory()) yield* walk(p);
-    else if (/\.(tsx|mdx|html|txt)$/.test(e.name)) yield p;
+    // Words shown on screens also live in src/lib/*-terms.ts. Not every .ts file: code
+    // words such as db.transaction would trip the check.
+    else if (/\.(tsx|mdx|html|txt)$/.test(e.name) || /-terms\.ts$/.test(e.name)) yield p;
   }
 }
 

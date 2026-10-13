@@ -7,6 +7,7 @@ import { pageMeta } from '@/lib/meta';
 import { keyState } from '@/server/activity.server';
 import { KeyNotice } from '@/components/admin/KeyNotice';
 import { ActivityConflict, detailLooks, readSwitch, recentDays, setAnalytics } from '@/server/admin/activity.server';
+import { planCountsFor } from '@/server/admin/plan-counts.server';
 import { readReport } from '@/server/analytics.server';
 import { withDb } from '@/server/db.server';
 import { sql } from 'drizzle-orm';
@@ -48,7 +49,9 @@ export async function loader({ params, request, context }: Route.LoaderArgs) {
     return { listing, report, switched, days, looks };
   });
   if (!result) throw data(null, { status: 404 });
-  return { ...result, key: keyState(env), saved: url.searchParams.get('saved') };
+  // Planning counts for the same period (D-42): the team only, never on the owner's page.
+  const planning = await planCountsFor(env, context.get(adminContext), params.id, result.report.range.from, result.report.range.to);
+  return { ...result, planning, key: keyState(env), saved: url.searchParams.get('saved') };
 }
 
 export async function action({ params, request, context }: Route.ActionArgs) {
@@ -76,7 +79,7 @@ const SAVED: Record<string, string> = {
 const when = new Intl.DateTimeFormat('en-CA', { dateStyle: 'medium', timeStyle: 'short', timeZone: 'America/Toronto' });
 
 export default function ListingActivity({ loaderData, actionData }: Route.ComponentProps) {
-  const { listing, report, switched, days, looks, key, saved } = loaderData;
+  const { listing, report, switched, days, looks, key, saved, planning } = loaderData;
   const busy = useNavigation().state === 'submitting';
   const on = switched?.enabled ?? false;
   return (
@@ -151,6 +154,16 @@ export default function ListingActivity({ loaderData, actionData }: Route.Compon
           </button>
         </Form>
         <ActivityReport report={report} hideSmall={false} has={listing} />
+      </section>
+
+      <section className={styles.section} aria-labelledby="planning-heading">
+        <h2 id="planning-heading">Planning (team only)</h2>
+        <p className="muted">Only the Localites team sees these. The business doesn’t (D-42). Same period as above; totals only.</p>
+        <ul className={styles.history}>
+          <li>Saved: {planning.saved}</li>
+          <li>Added to an event plan: {planning.added}</li>
+          <li>Marked booked: {planning.markedBooked}</li>
+        </ul>
       </section>
 
       <section className={styles.section} aria-labelledby="days-heading">

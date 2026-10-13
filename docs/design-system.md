@@ -1,7 +1,7 @@
 # Localites Design System (direction G)
 
 **Status:** Adopted (D-21, 10 October 2026).
-**Last updated:** 2026-10-10
+**Last updated:** 2026-10-13 (§6 and §9: planning an event as built, D-39 to D-43)
 
 This is how Localites looks and behaves, on phones and on computers. It's taken from
 mockup **G** ([design archive](./design/README.md)). The build follows it; when it and a
@@ -112,7 +112,7 @@ Icons are thin line drawings (1.2–1.6px) with square corners, as in D's menu.
 | Message | Theirs: plain text with a small-capital name and time. Yours: `tint` box | |
 | File card | Gold-bordered, file name and size | An invoice is just a file |
 | Composer | Attach, text field, round black send button | |
-| Bottom sheet | Dimmed page behind, sheet rises from the bottom | Mark as booked |
+| Bottom sheet | Dimmed page behind, sheet rises from the bottom | Planned for Mark as booked; **built (2A) as its own short page** that asks first, so it works without JavaScript and with Back |
 | Rating | Five black stars, a word label ("Exceptional") | |
 | Count block | Large Playfair number over a small-capital label | Going, Maybe, Can't go, No reply |
 | Payment notice | One small line | Wording in §9 |
@@ -147,18 +147,36 @@ Mockups: phone `G-00` to `G-14`; desktop `G-D1` to `G-D6`.
 - **Paid placement is shown as paid.** Paid spots appear only under the heading
   "Featured near Orillia" (or "Featured"). Never "Popular", "Top" or "Recommended".
   Search results are never paid for and are fairly ordered.
+  **Built on plans (D-43):** under "Ideas for your …", each featured business carries the
+  label **Featured**, and the line *"Featured businesses are promoted by the Localites
+  team."* is always visible beside them (never in a tooltip). At most 3. Featuring never
+  changes search results, reviews or ratings, and no wording suggests paying through
+  Localites. "Businesses people often need" (the team's suggested kinds of business) is
+  plain links, not featured.
 - **No payments.** Conversations, Mark as booked and the business side carry the line
   *"Localites doesn't process payments. Arrange payment directly with the business."*
   (business side: "…with your customer").
+- **Mark as booked (C5), as built:** "This is your own record, to help you keep track."
+  then **"We’ll let {Business} know you’ve marked them as booked"** for {date}, and the
+  no-payments line. For a business not on Localites yet: "{Business} isn’t on Localites yet,
+  so we can’t let them know. It’s still your own record." Un-marking and removing say whether
+  the business will be told. "After the day, we’ll ask how it went" is **left out** until
+  Stage 3 builds it.
+- **Not on Localites yet** is the status shown on the event plan (C3) for a business that
+  hasn't claimed its listing.
+- **Privacy is stated where it matters:** the event form says exactly what a booked business
+  sees (D-40); the plan says "Only you can see this"; adding and saving say the business
+  isn't told; "This isn't right" says the team and the person will be told (D-41).
 - **Guest privacy is stated where it matters.** Invite screens say guests never see
   vendors, budget, notes or other guests' replies.
 - **Words we use:** Event (not "occasion"), Booked, Considering, Awaiting reply, Not on
   Localites yet, Mark as booked, Browse local, Plan an event. **Message** on claimed,
   verified businesses; **Inquire** (secondary button) on businesses not yet on Localites
   (D-04), never both. **Suggest a business** (text link) under search results, category
-  pages and empty results (D-25). **Plan an event** appears on Welcome from Stage 2, when
-  event plans exist; until then Welcome shows only **Browse local** (decided 10 October
-  2026), so no button leads nowhere. Welcome reads "Localites." /
+  pages and empty results (D-25). **Plan an event** is **live** on Welcome (2A, 13 October
+  2026), as a secondary button under **Browse local** (side by side on a computer, stacked
+  full width on a phone), and as **My events** in the header when signed in. The event's
+  kind is asked as "What kind of event? (optional)" with **None** chosen (D-39). Welcome reads "Localites." /
   "Love where you live" ("Welcome to" removed; changed by the product owner, 12 October 2026).
 - Language rules in [A §6](./A-product-blueprint.md#6-language-rules) apply throughout.
 

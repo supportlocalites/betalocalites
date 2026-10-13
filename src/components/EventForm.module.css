@@ -1,0 +1,98 @@
+/* The event form (C2, C4's quick form). Tokens only. */
+
+.chips {
+  border: 0;
+  padding: 0;
+  margin: 0 0 var(--space-5);
+  min-width: 0;
+}
+
+.chips legend {
+  font-size: var(--text-small);
+  font-weight: 500;
+  margin-bottom: var(--space-2);
+  padding: 0;
+}
+
+.chipRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+/* Each kind of event is one tap: a radio button drawn as a chip. */
+.chip {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--size-icon-button);
+  padding-inline: var(--space-4);
+  border: var(--hairline) solid var(--color-line);
+  border-radius: var(--radius-pill);
+  background: var(--color-surface);
+  font-size: var(--text-small);
+  cursor: pointer;
+  max-width: 100%;
+}
+
+.chip input {
+  position: absolute;
+  inset: 0;
+  margin: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.chip:has(input:checked) {
+  background: var(--color-ink);
+  border-color: var(--color-ink);
+  color: var(--color-on-ink);
+}
+
+.chip:has(input:focus-visible) {
+  outline: var(--focus-ring) solid var(--color-ink);
+  outline-offset: var(--focus-ring);
+}
+
+.pair {
+  display: grid;
+  gap: 0 var(--space-4);
+}
+
+@media (min-width: 480px) {
+  .pair {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+.more {
+  margin-bottom: var(--space-5);
+}
+
+.more > summary {
+  cursor: pointer;
+  padding-block: var(--space-3);
+  font-weight: 500;
+}
+
+.more[open] > summary {
+  margin-bottom: var(--space-3);
+}
+
+.privacy {
+  border: var(--hairline) solid var(--color-line);
+  border-radius: var(--radius-file);
+  background: var(--color-surface);
+  padding: var(--space-3) var(--space-4);
+  font-size: var(--text-small);
+}
+
+.submit {
+  width: 100%;
+}
+
+@media (min-width: 600px) {
+  .submit {
+    width: auto;
+  }
+}

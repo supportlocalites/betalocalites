@@ -23,6 +23,9 @@ export default function Welcome() {
           <Link to="/explore" className="button button-primary">
             Browse local
           </Link>
+          <Link to="/events/new" className="button button-secondary">
+            Plan an event
+          </Link>
         </div>
       </div>
     </main>

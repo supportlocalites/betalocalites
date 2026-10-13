@@ -1,11 +1,12 @@
 import { useRef } from 'react';
-import { data, Link, redirect, useLocation } from 'react-router';
+import { data, Form, Link, redirect, useLocation, useSearchParams } from 'react-router';
 import { cloudflareContext } from '@/app/context';
 import { useVendorActivity } from '@/components/ActivityTracker';
 import { SiteHeader } from '@/components/SiteHeader';
 import { VendorPage } from '@/components/VendorPage';
 import { cookieHeaders, viewTrack } from '@/server/activity.server';
 import { hasSessionCookie } from '@/server/auth/session.server';
+import { isUuid } from '@/lib/ids.mjs';
 import { pageMeta } from '@/lib/meta';
 import { findRenamed, getVendor } from '@/server/catalog.server';
 import type { Route } from './+types/vendor';
@@ -38,6 +39,36 @@ const listPlace = (state: unknown) => {
   return s && typeof s.pos === 'number' && typeof s.list === 'string' ? { pos: s.pos, list: s.list } : null;
 };
 
+/**
+ * What happened after Save or Add to event (C4, C6), read from the address. Only an event
+ * id goes in it; the event's page checks it's the person's own.
+ */
+function PlanNotice({ name }: { name: string }) {
+  const [params] = useSearchParams();
+  const event = (key: string) => {
+    const id = params.get(key);
+    return id && isUuid(id) ? id : null;
+  };
+  const added = event('added');
+  const already = event('already');
+  const message = params.has('saved')
+    ? { text: 'Saved. Only you can see your saved businesses.', link: '/saved', label: 'See saved' }
+    : added
+      ? { text: 'Added to your event as Considering.', link: `/events/${added}`, label: 'See your plan' }
+      : already
+        ? { text: `${name} is already on that event.`, link: `/events/${already}`, label: 'See your plan' }
+        : null;
+  if (!message) return null;
+  return (
+    <p className="notice" role="status">
+      {message.text}{' '}
+      <Link to={message.link} className="text-link">
+        {message.label}
+      </Link>
+    </p>
+  );
+}
+
 export default function VendorProfile({ loaderData: { vendor, slug, signedIn, track } }: Route.ComponentProps) {
   const pageRef = useRef<HTMLElement>(null);
   const location = useLocation();
@@ -46,7 +77,27 @@ export default function VendorProfile({ loaderData: { vendor, slug, signedIn, tr
     <>
       <SiteHeader />
       <main className="page" ref={pageRef} onClickCapture={onTap}>
+        <PlanNotice name={vendor.name} />
         <VendorPage vendor={vendor}>
+          {/* Only here, not on the owner's edit page or preview (they share VendorPage). */}
+          <section aria-labelledby="plan" className={styles.owner}>
+            <h2 id="plan" className="label">
+              Planning an event?
+            </h2>
+            <div className={styles.contact}>
+              <Link to={`/vendors/${slug}/add`} className="button button-secondary">
+                Add to event
+              </Link>
+              <Form method="post" action={`/vendors/${slug}/add`}>
+                <input type="hidden" name="intent" value="save" />
+                <input type="hidden" name="return" value="profile" />
+                <button type="submit" className="button button-secondary">
+                  Save
+                </button>
+              </Form>
+            </div>
+            <p className="muted">Saving and adding to an event are private. {vendor.name} isn’t told.</p>
+          </section>
           <section aria-labelledby="owner" className={styles.owner}>
             <h2 id="owner" className="label">
               Is this your business?

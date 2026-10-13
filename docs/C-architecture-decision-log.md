@@ -2,7 +2,7 @@
 
 **Status:** Accepted (D-00, 10 October 2026). ADR-022 accepted with D-13; ADR-025 accepted
 with D-24.
-**Last updated:** 2026-10-10
+**Last updated:** 2026-10-13 (revision 11: ADR-031)
 
 Each entry records a significant technical decision: what we chose, why, what we
 rejected, what it costs, and what would make us reconsider. Once approved, entries are
@@ -29,6 +29,12 @@ ADR-026 (every review approved by an admin, with an email notice; D-06) added.
 **Revision 6 changes (10 October 2026):** ADR-018 extended by D-24: no payments of any kind
 go through Localites, including vendors paying Localites. ADR-025 accepted. ADR-027
 (Suggest a business, D-25) added.
+
+**Revision 11 changes (13 October 2026):** ADR-031 (who is acting, in the database: the
+per-person rules for planning an event, featured placements per kind of event and the team's
+planning counts; D-13, D-39 to D-43) added and accepted. Notes added to ADR-004 (per-person
+rules built for events, plans and saves), ADR-017 (the gatekeeper for plans), ADR-021 (what
+the business is told, D-40, D-41) and ADR-025 (featured placements, D-43).
 
 **Revision 10 changes (12 October 2026):** ADR-028 updated: Cloudflare's free "are you
 human" check (Turnstile) on signing in with an emailed code built, then **parked** by D-38
@@ -86,6 +92,7 @@ ADR-014 caveat updated. Nothing in the data model or security model changes.
 | ADR-028 | The public signs in with an emailed 6-digit code; businesses claim listings, checked by the team, first approved wins | **Needs approval** (user experience; D-32, D-33, D-35) | Accepted (D-32, D-33, D-35) |
 | ADR-029 | Owners edit their own listing on a page laid out like it; live at once; the team gets a daily note, can undo any save, and can remove an owner | **Needs approval** (user experience; D-34) | Accepted (D-34) |
 | ADR-030 | Activity is counted only when a real browser confirms it, against a note the page's server signed; totals each night; owners see theirs on an Analytics page the team switches on | Engineering, within D-22, D-30 and D-37 | Accepted |
+| ADR-031 | Who is acting, in the database: every planning request tells the database which person and which side (person, business or team) it is for, and the database's own rules decide what that side may see and change; featured placements are team-run, labelled and money-free | Engineering, within D-13 and D-39 to D-43 | Accepted |
 
 ---
 
@@ -180,6 +187,10 @@ The database itself refuses access that doesn't come through the proper door.
 - **Relationship rules, from Stage 2:** the database itself refuses a message from
   someone who isn't in the conversation, a conversation started by a vendor, and a
   review that doesn't trace to a real booking.
+
+**Built for events, plans and saves (migration 0012, 13 October 2026):** the per-person
+rules above now exist for events, their private details, event plans and saved businesses.
+How they work is in ADR-031. Conversations, messages and files get theirs when they're built.
 
 **Why not let the browser query the database directly?** Supabase supports that, with
 the database rules as the only protection. It puts the whole security model in one
@@ -454,6 +465,11 @@ flags), and (3) writes the change and a history row in one transaction.
 **Why.** If any screen could set any status, eventually one would say "booked" when
 nothing was. One gatekeeper makes honest states enforceable.
 
+**Built for event plans (migration 0012):** the gatekeeper is `changePlan` in the server
+(`src/server/events.server.ts`) together with the database's own rule
+`enforce_event_vendor_rules`, which refuses any other change. The database writes the history
+row itself (`record_plan_change`), so no screen can skip it (ADR-031).
+
 ---
 
 ## ADR-018 — Localites never handles money
@@ -546,6 +562,10 @@ booking can't lead to a review until the platform team resolves it.
 
 **Why.** It gives consumers a simple planning tool and gives Localites a truthful signal to
 ask for feedback, without pretending to be a booking system.
+
+**Built (13 October 2026, D-40, D-41):** the business sees "{Name} marked you as booked" with
+the date, the town and about how many guests; never the kind of event (D-40). When it flags a
+booking, the team and the person are both told (D-41). Resolving flags is Stage 3.
 
 ---
 
@@ -673,6 +693,10 @@ company.
 
 **Not planned.** Online payments of any kind (D-24). Changing that would need a new
 product decision, a payment company, a security review and new terms.
+
+**Featured placements built for plans (D-43, 13 October 2026):** `featured_placement` records
+only the business, the kind of event, the first and last day, an optional team note, and who
+added or ended it. No price or payment column exists. See ADR-031.
 
 ---
 
@@ -1014,3 +1038,145 @@ those features.
 
 **Cost.** $0: our own database (about 200 MB a year at 1,000 visitors a day, ADR-023),
 Cloudflare's free scheduler and limiter.
+
+---
+
+## ADR-031 — Who is acting, in the database (planning an event)
+
+Engineering, within D-13 (R3, R4, R5, R8), D-18 and D-39 to D-43 (13 October 2026). Builds
+the per-person rules ADR-004 promised, for events, plans and saved businesses. Migration
+`0012_event_plans.sql`; screens C1–C6, A5, V1-lite, V8, X12 and X16 (read-only).
+
+**Plain English.** The website already checks who you are on every page. For planning, the
+database now checks too: every request tells it *which person* is asking and *for which side*
+(planning their own event, acting for their business, or working as the Localites team), and
+the database's own rules decide what that side may see or change. If our website code had a
+bug that forgot to check, the database would still refuse, or show nothing.
+
+**Decision.**
+- **Who is acting.** The server opens one transaction per page or form and, as its first
+  step, sets three settings that last only for that transaction: the person, the side
+  (`person`, `business` or `team`) and, for a business, which one
+  (`src/server/acting.server.ts`: `actAs`, `actingAs`). The database reads them through
+  `acting_user()`, `acting_side()`, `acting_vendor()`, `acting_for_business()` (a current
+  owner or manager of a business that isn't archived) and `acting_as_team()` (a current team
+  admin). Nothing set means nothing is visible. **The side follows the page:** `/events…`,
+  `/saved` and `/vendors/<name>/add` act as the person; `/business` and
+  `/vendors/<name>/bookings` act as the business; `/admin/…` acts as the team, after the usual
+  team gate.
+- **Rules per side (row-level security on all seven new tables, written out one by one; no
+  blanket rule for the app):**
+  - **The person** reads and changes only their own events, plans and saves.
+  - **A business** reads only the plan rows that mark it **booked**, and the event's date,
+    town and guest estimate for those; it may flag such a row once and change nothing else.
+  - **The team** reads only flagged bookings (and those events), never anyone's private
+    details or saves; it manages event types, suggested kinds of business and featured
+    placements.
+- **Private details live in their own table.** `event_private` holds the event's name
+  (required, D-39), where it is, the ages, the budget and the notes. Its only rule is "the
+  host, acting as the person". No business rule and no team rule exist, so neither can read
+  it even by mistake (E §4.2).
+- **No loops between rules.** `event_vendor` keeps a copy of the host's id, held to the event
+  by a two-column foreign key, so its rules never need to read `event`.
+- **The database owns the times and the history.** When a business is marked booked, removed,
+  an event cancelled or a booking flagged, the database sets the time and who did it,
+  whatever the server sent; the app has no right to write those columns. Every status change
+  and every flag is written to `status_change` by the database itself (ADR-017).
+- **Refusals carry a code** (`LP100`–`LP110`) that the server turns into plain words:
+  can't be changed, not yours (shown as "not found"), cancelled, kind of event not offered,
+  town not offered, date outside 60 days back to 3 years ahead, business not listed, your own
+  business, change not possible, already flagged. "Not yours" is always answered as a plain
+  404, so nobody can tell someone else's event exists.
+- **Every event has a name.** A check at the end of each transaction refuses an event created
+  without its private row (`LP109`).
+- **Limits** (so one person can't flood anyone): 10 new events a day and 50 open at once; 40
+  businesses per event; 15 "marked booked" a day; 500 saved; 30 planning changes a minute
+  (`PLAN_LIMIT`, Cloudflare's free limiter). Emails to businesses: a repeat of the same email
+  about the same booking within a day is held back, "no longer booked" goes only to a business
+  that was told it was booked, and at most 30 planning emails a day reach any one person. Each
+  decision is a `notification` row with an honest status (`sent`, `failed` or `suppressed`
+  with the reason).
+- **What a booked business sees (D-40):** the person's name, the date, the town and about how
+  many guests. Never the event's name or kind, the start time, where, the ages, the budget,
+  the notes, the other businesses on the plan or the person's email.
+- **Flags (D-41):** the business may say "This isn't right" once, with an optional note. The
+  team is emailed (no note, no person's name) and sees it on **Booking flags** (read-only,
+  every look recorded in `audit_log`); the person is emailed politely and sees a quiet line on
+  their plan. The note is team-only. Resolving flags is Stage 3.
+- **Featured placements and ideas per kind of event (D-43):**
+  - `event_type_category`: the kinds of business suggested for each kind of event. Anyone may
+    read it; only the team changes it.
+  - `featured_placement`: a business featured for a kind of event between two Toronto dates,
+    with an optional team-only note. **No money columns at all** (D-16, D-24, ADR-025). Only
+    the team reads or writes it. A placement can't be edited afterwards, only ended early,
+    once; the database records when and by whom. It refuses a placement in someone else's
+    name, for a business that isn't published, or one already over.
+  - People see featured businesses only through `featured_for_type()`, which returns just the
+    business, for at most 3 current placements of published businesses (earliest start
+    first): never the note, never who added it.
+  - **Rules for featuring:** always labelled **Featured**, with the line "Featured businesses
+    are promoted by the Localites team." always visible; set only by the team; no payment
+    through Localites (any arrangement happens outside the site); it never changes search
+    results, their order, reviews or ratings. It appears only on a person's own plan.
+  - Every change by the team (types, suggestions, placements) writes `audit_log` in the same
+    transaction.
+- **Counts for the team only (D-42):** `plan_counts_for_team()` (saved, added to a plan,
+  marked booked, per business) and `plan_type_counts_for_team()` (events planned and marked
+  booked per kind of event, with "no type given" as its own row) return totals for whole
+  Toronto days and refuse anyone not acting as the team. Never who, never which event. They
+  are not on a business's Analytics page and not in the nightly activity count.
+- **Fails closed.** A forgotten "who is acting" shows empty pages, never someone else's data.
+  Functions that must see past the rules (the featured list and the two counts) run with the
+  migration's rights, return only what's described above, and only the app's database role may
+  run them. Migration 0012 stops unless its role can see past row-level security, so these
+  can't silently return nothing.
+
+**Trust model.** This guards against **our own bugs** in the website code: a missing check,
+a wrong id, a page on the wrong side. It does not protect against someone who takes over the
+server itself, which could set any settings it liked. That is what the separate, restricted
+database login (`app_server`, ADR-004) and keeping secrets out of the code are for.
+
+**Alternatives turned down.**
+- *A database role per side, switched with `set role`:* the strongest model on paper, but it
+  has never been tried through Hyperdrive and Supabase's pooler, isn't tested in CI on that
+  stack, and needs every grant repeated for three roles, so a missing grant would only show
+  up on the live site.
+- *All reads through "security definer" functions:* each function would bypass the rules,
+  so the rules would protect nothing; kept only for the narrow functions above (featured list,
+  team counts, and the business's view and flag).
+- *One rule that lets the app see everything (`using (true)`), as Stage 1 tables do:* then
+  only the website's code would stand between one person and another's plans.
+
+**Known limits (residual risk, stated plainly).**
+- **What a business sees is enforced by the database (review fix, 13 October 2026).** A
+  business has no rules on `event` or `event_vendor` at all: it reads its bookings only
+  through `bookings_for_business()`, which returns exactly D-40's summary (the person's name,
+  the date, the town, about how many guests; coming up or earlier is by date, so no time is
+  revealed), and flags only through `flag_booking()`. The business's note is kept in its own
+  team-only table (`event_vendor_flag_note`), which the person's rules can't reach. Plan row
+  ids are random, so an id doesn't reveal when the person started considering a business.
+  A person's email on `app_user` is still hidden by the server's named queries (as in Stage 1).
+- **A flag belongs to one marking.** If the person un-marks and marks again, the old flag no
+  longer counts and the business can say again that the new marking isn't right.
+- **Bookings marked before a business joined** are shown to it once it is claimed; the Mark as
+  booked page tells the person so.
+- **Supabase's `postgres` role** must be able to see past row-level security for 0012 to
+  apply; it is expected to, but this is first checked when the migration runs on the test
+  project. If not, the migration stops, nothing changes, and the update isn't deployed.
+- **An owner using a second account** to mark their own business booked can't be prevented;
+  flags and Stage 3 review approval are the backstop.
+- **Account deletion** isn't built yet (E §8). When it is, it must also remove saves, plans,
+  private details and events, in a new reviewed migration.
+- **Featured impressions: later.** How often each featured business is shown isn't counted
+  yet (D-43); no activity kinds were added.
+- **Activity counting of saves, adds and bookings is deferred** (the D-30 funnel): the nightly
+  count isn't built for them, and D-42 gives the team its totals another way. The facts are
+  already stored (`saved_vendor`, `event_vendor`, `status_change`), so a later migration can
+  count them; a save that was un-saved is the only thing lost.
+
+**Engineering defaults (not owner decisions; easy to change):** dates from 60 days back to 3
+years ahead; cancelling is final (no archive or undo in 2A); owners and managers see
+**Bookings marked** (today only owners exist, D-29); staff see nothing.
+
+**Cost.** $0: our own database and Cloudflare's free limiter. Each page is one transaction
+of one to three queries, well inside the free plan's 10 ms of CPU.

@@ -43,6 +43,9 @@ decisions are in [docs/H-product-owner-action-register.md](docs/H-product-owner-
   every request; only changed fields are written; every save goes to `audit_log` plus
   `owner_change`. The business page is one component (`src/components/VendorPage.tsx`) used
   by the public page, the edit page and the preview.
+- Events, plans and saved businesses are read and written only through `actAs`/`actingAs`
+  (`src/server/acting.server.ts`); the database refuses them otherwise (ADR-031). Person pages
+  live under `/events…`, business pages under `/business` and `/vendors/:slug/bookings`.
 - Admin pages live under `src/app/routes/admin/`; every request passes `adminGate`
   (`src/server/auth/admin.server.ts`). Every admin change writes `audit_log`.
 - React Router 8 on Cloudflare Workers (free plan: 10 ms CPU per request). Database code lives in

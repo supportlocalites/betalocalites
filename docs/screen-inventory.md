@@ -1,7 +1,7 @@
 # Screen Inventory
 
 **Status:** Proposed (Stage 0, revision 2).
-**Last updated:** 2026-10-10 (sign-in with emailed codes, claiming: A1–A4, P8, V5 and X4 built)
+**Last updated:** 2026-10-13 (Plan an event, slice 2A: C1–C6, A5, V1-lite, V8, X12 and X16 (read-only) built; earlier, sign-in with emailed codes and claiming: A1–A4, P8, V5 and X4)
 
 Every screen in the intended product, grouped by who uses it. **★** marks the screens
 we'll prototype first (PO-09) so you can judge the experience on your phone. Every
@@ -20,7 +20,7 @@ added; quotes, bookings and the concierge queue removed.
 | P1 ★ | Home | What Localites is, for consumers and for vendors; categories; collections; search | 1 |
 | P2 | Category page | Vendors in a category, with filters | 1 |
 | P3 ★ | Search results | Keyword + filters; honest empty state | 1 |
-| P4 ★ | Vendor profile | Services, published prices, photos, area, verification; **Message** (claimed) or the business's own contact + **Inquire** (unclaimed or unverified, D-04); **Add to event**; reviews from Stage 3 | 1 |
+| P4 ★ | Vendor profile | Services, published prices, photos, area, verification; **Message** (claimed) or the business's own contact + **Inquire** (unclaimed or unverified, D-04); **Add to event**; reviews from Stage 3. **Planning an event?** section built (2A): **Add to event**, **Save**, and a line saying the business isn't told | 1 |
 | P5 | Collection page | A curated list | 1 |
 | P6 | How it works | For consumers and for vendors. States plainly that Localites doesn't handle payments. | 1 |
 | P7 | For vendors | Why join, how claiming works, that it's free | 1 |
@@ -36,19 +36,19 @@ added; quotes, bookings and the concierge queue removed.
 | A1 | Sign in or create an account: one screen for both (D-27). **Built** (`/join`): email, a 6-digit emailed code (with a reminder to check spam), then, for new people, their name and, if they wish, gender, date of birth and address (D-32, D-36) | 1 |
 | A2 | "We've emailed you a code" (part of A1; codes, not links, D-32) | 1 |
 | A3 | ~~Reset password~~: not needed, no passwords for the public (D-32). The team's password reset is in the runbook | — |
-| A4 | Account settings, delete my account. **First version built** (`/account`): name, email, personal details (D-36), your businesses and claims, sign out; deleting an account comes before launch | 1 |
-| A5 | Switch: "My events" ⇄ "My business" (only shown to people on a vendor team) | 2 |
+| A4 | Account settings, delete my account. **First version built** (`/account`): name, email, personal details (D-36), your businesses and claims, a "Planning" section and, for owners, **Bookings marked**, sign out; deleting an account comes before launch | 1 |
+| A5 | Switch: "My events" ⇄ "My business" (only shown to people on a vendor team). **Built** (2A) on My events, Saved businesses and My business | 2 |
 
 ## Consumer
 
 | # | Screen | Purpose | Stage |
 |---|---|---|---|
-| C1 | My events | Upcoming and past | 2 |
-| C2 | Create event | Type, date, town; everything else optional | 2 |
-| C3 ★ | Event plan | One calm page: vendors **considering** and **booked**, conversations about this event, what's next | 2 |
-| C4 | Add to event | From a profile: pick an event (or create one) | 2 |
-| C5 | Mark as booked | Confirms, and says plainly: *"We'll let [Vendor] know you've marked them as booked."* | 2 |
-| C6 | Saved vendors | | 2 |
+| C1 | My events | Upcoming and past. **Built** (`/events`): cards show the event's name, date and town; **Plan an event** | 2 |
+| C2 | Create event | **Built** (`/events/new`, `/events/<id>/edit`, D-39): name (required, private), "What kind of event? (optional)" with **None** chosen, date, town; "Add more details" (times, guests, where, ages, budget, notes); the box saying what a booked business sees (D-40). Editing tells booked businesses when the date or town changes; **Cancel this event** is final | 2 |
+| C3 ★ | Event plan | One calm page: vendors **considering** and **booked**, conversations about this event, what's next. **Built** (`/events/<id>`): Booked, Considering, Removed, What's next, "Only you can see this", a flagged booking's quiet line (D-41), and **Ideas for your …** with up to 3 **Featured** businesses (always with "Featured businesses are promoted by the Localites team.") and "Businesses people often need" (D-43); with no kind of event, one quiet line linking to Edit details. Conversations come with messaging | 2 |
+| C4 | Add to event | From a profile: pick an event (or create one). **Built** (`/vendors/<name>/add`): two taps, or a three-box quick event; also **Save** and **Remove from saved** | 2 |
+| C5 | Mark as booked | Confirms, and says plainly: *"We'll let [Vendor] know you've marked them as booked."* **Built** (`/events/<id>/plan/<row>/book`, with un-mark, remove and put back, each asking first and working without JavaScript); for a business not on Localites yet it says it can't be told | 2 |
+| C6 | Saved vendors | **Built** (`/saved`, "Saved businesses"): private; nobody is told | 2 |
 | C7 | Messages | All conversations, unread first | 2 |
 | C8 ★ | Conversation | Messages and files; "about" an event (optional); block, report; "Localites doesn't process payments" footer | 2 |
 | C9 | Start a conversation | Choose whether to share an event, with a preview of exactly what the vendor will see | 2 |
@@ -64,14 +64,14 @@ added; quotes, bookings and the concierge queue removed.
 
 | # | Screen | Purpose | Stage |
 |---|---|---|---|
-| V1 | My business | Listing status; from Stage 2, unread conversations and bookings marked | 1 |
+| V1 | My business | Listing status; from Stage 2, unread conversations and bookings marked. **V1-lite built** (2A, `/business`): each business the person owns or manages, with bookings marked coming up and links to edit, Analytics and Bookings marked | 1 |
 | V2 | Edit listing | Profile, services, pricing information, areas, attributes, photos. **Built** (`/vendors/<name>/edit`, D-34, ADR-029): laid out like the public page, with "View as a visitor"; descriptions, services and prices, website and phone; photos later | 1 |
 | V3 | Submit for review / status | | 1 |
 | V4 | Team | Invite, change role, remove | 1 |
 | V5 | Claim status | **Built** as part of A4: waiting, approved, or not approved with the reason | 1 |
 | V6 | Inbox | Conversations with consumers | 2 |
 | V7 ★ | Conversation (vendor view) | Messages and files; event summary panel (type, date, town, guest estimate) when shared | 2 |
-| V8 | Bookings marked | Consumers who marked the business booked; **"This isn't right"** to flag | 2 |
+| V8 | Bookings marked | Consumers who marked the business booked; **"This isn't right"** to flag. **Built** (`/vendors/<name>/bookings`, owners and managers): the person's name, the date, the town and about how many guests only (D-40); flag once with an optional note for the team; afterwards "You told us this isn’t right on …" (D-41) | 2 |
 | V9 | Reviews | Published reviews; reply once | 3 |
 | V10 | Analytics | The business's own anonymous counts: seen in search, profile views, taps; later saves, inquiries, messages, bookings marked, reviews; compared with last year. Shown only when the team has switched it on for that business (D-22, D-37; may be part of a paid plan, D-24). **Built** (`/vendors/<name>/analytics`, ADR-030): last week, last month or this year so far; compared with the period before and last year; how people found you, device, town, time of day; category average and rank | 1 |
 
@@ -99,13 +99,13 @@ added; quotes, bookings and the concierge queue removed.
 | X9 | Collections | | 1 |
 | X10 | Users & roles | | 1 |
 | X11 | Audit log | | 1 |
-| X12 | Event types | | 2 |
+| X12 | Event types | **Built** (`/admin/event-types`, D-39, D-43): add, rename, order, hide (never delete); per type, the kinds of business to suggest (ticks and order) and featured businesses (first and last day, team note, End early; showing now, coming up, earlier; a warning when more than 3 overlap); a business finder. Every change recorded | 2 |
 | X13 | Reports | Reported messages, conversations, listings. Opening a conversation is logged. | 2 |
 | X14 | Inquiries | Every inquiry, by business, to follow up and invite (D-04) | 2 |
 | X15 | Review moderation | Approve or decline each review against the written policy; opened from the new-review email (D-06, ADR-026) | 3 |
-| X16 | Booking flags | Resolve vendor flags | 3 |
+| X16 | Booking flags | Resolve vendor flags. **Read-only list built** (2A, `/admin/booking-flags`, "Booking flags (n)" in the team menu): business, note, who marked it, when; every look recorded. Resolving stays Stage 3 | 3 |
 | X17 | Operations report | Listings, claims, conversations, reply rates, reviews | 3 |
-| X18 | Vendor activity reports | One vendor's totals by period (seen in search, views, taps; later saves, inquiries, messages), and the switch that turns on that business's Analytics page (V10, D-37); category-level figures for others (D-22). **Built** (`/admin/activity`, each listing's **Activity** page; the detail by day and the words searched, each look recorded) | 1 |
+| X18 | Vendor activity reports | One vendor's totals by period (seen in search, views, taps; later saves, inquiries, messages), and the switch that turns on that business's Analytics page (V10, D-37); category-level figures for others (D-22). **Built** (`/admin/activity`, each listing's **Activity** page; the detail by day and the words searched, each look recorded). **Plus "Planning (team only)"** (D-42): saved, added to an event plan and marked booked per business, a top-20 table, and totals by kind of event with "No type given" | 1 |
 | X19 | Suggested businesses | Every suggestion, with likely duplicates; mark added, declined or duplicate; link to the new listing (D-25) | 1 |
 
 ## Counts

@@ -1,0 +1,27 @@
+.switch {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  border: var(--hairline) solid var(--color-gold);
+  border-radius: var(--radius-button);
+  overflow: hidden;
+  margin-bottom: var(--space-6);
+  max-width: var(--size-form-narrow);
+}
+
+.switch a {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: var(--size-icon-button);
+  padding-inline: var(--space-3);
+  font-size: var(--text-label);
+  font-weight: 600;
+  letter-spacing: var(--tracking-label);
+  text-transform: uppercase;
+  text-decoration: none;
+}
+
+.switch a[aria-current='page'] {
+  background: var(--color-ink);
+  color: var(--color-on-ink);
+}

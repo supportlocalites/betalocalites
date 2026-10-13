@@ -1,0 +1,9 @@
+Subject: {{person}} no longer has {{business}} marked as booked
+
+Hi {{name}},
+
+{{person}} no longer has {{business}} marked as booked for {{date}} on Localites. They may have changed their plans. Nothing else is needed from you.
+
+{{link}}
+
+Localites

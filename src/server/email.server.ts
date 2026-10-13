@@ -4,6 +4,20 @@ import type { ServerEnv } from './env';
 export const TEAM_ADDRESS = 'supportlocalites@gmail.com';
 export const FROM_ADDRESS = 'Localites <notices@localites.ca>';
 
+const RESEND_URL = 'https://api.resend.com/emails';
+
+/** Local tests only: a pretend email service on this computer. Any other address is ignored. */
+export function emailApiUrl(env: ServerEnv): string {
+  const local = env.EMAIL_API_URL;
+  if (!local) return RESEND_URL;
+  try {
+    const host = new URL(local).hostname;
+    return host === '127.0.0.1' || host === 'localhost' ? local : RESEND_URL;
+  } catch {
+    return RESEND_URL;
+  }
+}
+
 export type EmailResult = { sent: true } | { sent: false; reason: string };
 
 /**
@@ -17,7 +31,7 @@ export async function sendEmail(
 ): Promise<EmailResult> {
   if (!env.RESEND_API_KEY) return { sent: false, reason: 'Email isn’t set up yet (PO-12).' };
   try {
-    const response = await fetch('https://api.resend.com/emails', {
+    const response = await fetch(emailApiUrl(env), {
       method: 'POST',
       headers: { Authorization: `Bearer ${env.RESEND_API_KEY}`, 'Content-Type': 'application/json' },
       body: JSON.stringify({

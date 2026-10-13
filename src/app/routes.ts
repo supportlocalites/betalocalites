@@ -19,6 +19,19 @@ export default [
     route('vendors/:slug/claim', 'routes/member/claim.tsx'),
     route('vendors/:slug/edit', 'routes/member/listing-edit.tsx'),
     route('vendors/:slug/analytics', 'routes/member/analytics.tsx'),
+    // Planning an event (slice 2A; D-13, D-39–D-43, ADR-022, ADR-031). The side comes from
+    // the page: /events…, /saved and /vendors/:slug/add act as the person; /business and
+    // /vendors/:slug/bookings act as the business.
+    route('events', 'routes/member/events.tsx'),
+    route('events/new', 'routes/member/event-new.tsx'),
+    route('events/:id', 'routes/member/event-plan.tsx'),
+    route('events/:id/edit', 'routes/member/event-edit.tsx'),
+    route('events/:id/cancel', 'routes/member/event-cancel.tsx'),
+    route('events/:id/plan/:rowId/:change', 'routes/member/plan-change.tsx'),
+    route('saved', 'routes/member/saved.tsx'),
+    route('vendors/:slug/add', 'routes/member/vendor-add.tsx'),
+    route('business', 'routes/member/business.tsx'),
+    route('vendors/:slug/bookings', 'routes/member/bookings.tsx'),
   ]),
   // Team only: every request under /admin passes the gate in routes/admin/layout.tsx.
   route('admin', 'routes/admin/layout.tsx', [
@@ -31,5 +44,7 @@ export default [
     route('activity/searches/:day', 'routes/admin/activity-searches.tsx'),
     route('claims', 'routes/admin/claims.tsx'),
     route('suggestions', 'routes/admin/suggestions.tsx'),
+    route('event-types', 'routes/admin/event-types.tsx'),
+    route('booking-flags', 'routes/admin/booking-flags.tsx'),
   ]),
 ] satisfies RouteConfig;

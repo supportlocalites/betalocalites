@@ -1,8 +1,10 @@
 # Roles & Relationships: Consumers and Vendors
 
-**Status:** Approved in direction (D-00, 10 October 2026). The eight consumer–vendor rules (R1–R8)
-still await D-13.
-**Last updated:** 2026-10-09
+**Status:** Approved (D-00, 10 October 2026). The eight consumer–vendor rules R1–R8 were
+approved as D-13 (10 October 2026); R3, R4 and R5 were refined for bookings by D-40 and D-41
+(12 October 2026).
+**Last updated:** 2026-10-13 (R8 numbered to match H's D-13 table; planning an event built:
+what a business sees and hears, D-40 to D-42)
 
 Localites has **two users**: the **consumer**, who is planning an event, and the
 **vendor**, a local business that provides a service for it. Everything in the product
@@ -47,7 +49,7 @@ vendor is the **business** (one record, forever). The people who run it are its
 |---|---|
 | Claim and manage their listing | Message a consumer who hasn't messaged them first |
 | Reply to consumers and share files | See a consumer's private planning (who else they're considering) |
-| See when a consumer marks them **booked** | See a consumer's guest list |
+| See when a consumer marks them **booked** (name, date, town, about how many guests) | See a consumer's guest list, or the name, kind or other details of their event |
 | Flag a booking that isn't real | Edit or remove a consumer's review |
 | Reply publicly, once, to each review | Pay for better reviews or ratings |
 
@@ -76,11 +78,11 @@ never claims a step happened when it didn't.
 | # | Step | Who does it | What the consumer sees | What the vendor sees | It does **not** mean |
 |---|---|---|---|---|---|
 | 1 | **Finds** the vendor | Consumer | The public profile | Totals: times seen in search, profile visits, website/phone taps (no names; D-22) | Localites endorses them, or that they're available |
-| 2 | **Saves** the vendor | Consumer | It's in their saved list | Only a total of how many people saved them, never who (D-22) | Any contact |
+| 2 | **Saves** the vendor | Consumer | It's in their saved list | Nothing. Only the Localites team sees totals of saves, never who (D-42) | Any contact |
 | 3 | **Starts a conversation** | Consumer only | The conversation | The message, the consumer's name, and any event details the consumer chose to share | Availability or agreement |
 | 4 | **Plans it out** | Both | Messages and files | Messages and files | That Localites is involved in any payment. An invoice shared here is between them. |
 | 5 | **Adds to event** | Consumer | The vendor on their event plan | Nothing. Who a consumer is considering stays private. | Booked |
-| 6 | **Marks as booked** | Consumer | "Booked" on their event | A notice: *"[Name] marked you as booked for Sat 14 Nov"* | That Localites confirmed it, or that any money moved |
+| 6 | **Marks as booked** | Consumer | "Booked" on their event | An email and their **Bookings marked** page: *"[Name] marked [Business] as booked for [date]"*, with the town and about how many guests, nothing else (D-40). They can say "This isn't right" once; the team and the consumer are told (D-41) | That Localites confirmed it, or that any money moved |
 | 7 | **Event happens** | — | The morning after: *"How was [Vendor]?"* | Nothing yet | — |
 | 8 | **Leaves a review** | Consumer | Their review, once published | The review on their profile, and a chance to reply once | That Localites endorses the vendor |
 
@@ -114,10 +116,17 @@ These shape trust on both sides. **Approved by you as decision D-13** (10 Octobe
 | R2 | **A conversation is between one consumer and one vendor.** It can optionally be "about" one of the consumer's events. | Keeps every conversation private and easy to reason about. |
 | R3 | **"Considering" is private; "booked" is shared.** Adding a vendor to an event tells no one. Marking them booked notifies the vendor. | Consumers can shortlist freely. Vendors learn about real bookings, which is also the most honest evidence we can give them that Localites works. |
 | R4 | **Vendors can flag a booking that isn't real.** A flagged booking can't produce a review until the platform team resolves it. | Protects vendors from fake bookings used to post a bad review. |
-| R5 | **The consumer controls what event details a vendor sees.** When a conversation is about an event, the vendor sees its type, date, town and approximate guest count, and nothing else. Never the guest list. | Private by default. |
+| R5 | **The consumer controls what event details a vendor sees.** When a conversation is about an event, the vendor sees its type, date, town and approximate guest count, and nothing else. Never the guest list. **For bookings (D-40, built):** the person's name, the date, the town and about how many guests; not the kind of event. | Private by default. |
 | R6 | **Localites staff don't read conversations** unless one side reports it. Every such access is logged. | People need to trust the messaging to use it. |
 | R7 | **Either side can block the other.** Blocking ends the conversation for both. | Basic safety. |
-| R8 | **Messaging is only possible with claimed vendors.** For an unclaimed or unverified listing, the consumer sees the business's own phone and website, and can tap **Inquire**, which reaches the Localites team (D-04). | We can't deliver a message to a business that isn't on Localites, and we won't pretend to. Consumer interest becomes a truthful reason for the business to join. (Decisions D-04, D-05.) |
+| R8 | **One account per person.** A person can be both a consumer and on a vendor's team, and switches between "My events" and "My business" (ADR-022, D-29; built in 2A). | Two logins would be confusing and would duplicate people. Each side sees only what that side should see. |
+
+**Also decided (D-04, D-05; not one of R1–R8):** **messaging is only possible with claimed
+vendors.** For an unclaimed or unverified listing, the consumer sees the business's own phone
+and website, and can tap **Inquire**, which reaches the Localites team. We can't deliver a
+message to a business that isn't on Localites, and we won't pretend to. Consumer interest
+becomes a truthful reason for the business to join. (This was listed as R8 here before;
+H's D-13 table, which you approved, numbers "one account per person" as R8.)
 
 ## 4. What Localites never does
 

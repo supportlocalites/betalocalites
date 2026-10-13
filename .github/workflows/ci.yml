@@ -111,6 +111,8 @@ jobs:
           printf 'ACTIVITY_KEY=%s\n' "$(openssl rand -hex 32)" >> .env
           # The "are you human" check, pointed at the pretend checker (tests/e2e/human-check.mjs).
           printf 'TURNSTILE_SITE_KEY=e2e-turnstile-site-key\nTURNSTILE_SECRET_KEY=e2e-turnstile-secret-local-only\nTURNSTILE_VERIFY_URL=http://127.0.0.1:8787/turnstile/siteverify\n' >> .env
+          # The site's own emails, sent to the pretend email service so the tests can read them (tests/e2e/event-plans.mjs).
+          printf 'RESEND_API_KEY=e2e-email-key-local-only\nEMAIL_API_URL=http://127.0.0.1:8787/emails\n' >> .env
           npm run build
           nohup npx vite preview --port 4173 --strictPort > site.log 2>&1 &
           for i in $(seq 1 60); do

@@ -2,8 +2,8 @@
 -- Checks for docs/schema/stage2-3-proposed.sql
 -- =============================================================================
 -- Proves the database itself enforces the consumer–vendor relationship rules.
--- Run against a scratch database with stage1 and stage2-3 schemas applied:
---   psql -v ON_ERROR_STOP=1 -f stage2-3-proposed.test.sql
+-- Run by `npm run test:db` on top of the real migrations (0001–0012) and the
+-- remaining proposal (stage2-3-proposed.sql).
 -- Runs in one transaction and is rolled back. Uses obviously fake data.
 --
 -- Cast of characters (all fake):
@@ -62,15 +62,16 @@ insert into vendor_member (vendor_id, user_id, role, ended_at) values
   ('30000000-0000-7000-8000-000000000003', '10000000-0000-7000-8000-000000000008', 'owner', null),
   ('30000000-0000-7000-8000-000000000004', '10000000-0000-7000-8000-000000000008', 'owner', null);
 
+-- The real types are seeded by migration 0012; this one is the file's own.
 insert into event_type (id, key, name) values
-  ('40000000-0000-7000-8000-000000000001', 'kids_birthday', 'Kids birthday');
+  ('40000000-0000-7000-8000-000000000001', 'test_party', 'Test party');
 
-insert into event (id, host_user_id, event_type_id, title, event_date) values
-  ('50000000-0000-7000-8000-000000000001', '10000000-0000-7000-8000-000000000001', '40000000-0000-7000-8000-000000000001', 'A past party',   current_date - 10),
-  ('50000000-0000-7000-8000-000000000002', '10000000-0000-7000-8000-000000000001', '40000000-0000-7000-8000-000000000001', 'A future party', current_date + 20),
-  ('50000000-0000-7000-8000-000000000003', '10000000-0000-7000-8000-000000000002', '40000000-0000-7000-8000-000000000001', 'B past party',   current_date - 12),
-  ('50000000-0000-7000-8000-000000000004', '10000000-0000-7000-8000-000000000001', '40000000-0000-7000-8000-000000000001', 'A older party',  current_date - 30),
-  ('50000000-0000-7000-8000-000000000005', '10000000-0000-7000-8000-000000000001', '40000000-0000-7000-8000-000000000001', 'A ancient party', current_date - 90);
+insert into event (id, host_user_id, event_type_id, municipality_id, event_date) values
+  ('50000000-0000-7000-8000-000000000001', '10000000-0000-7000-8000-000000000001', '40000000-0000-7000-8000-000000000001', '20000000-0000-7000-8000-000000000001', current_date - 10),
+  ('50000000-0000-7000-8000-000000000002', '10000000-0000-7000-8000-000000000001', '40000000-0000-7000-8000-000000000001', '20000000-0000-7000-8000-000000000001', current_date + 20),
+  ('50000000-0000-7000-8000-000000000003', '10000000-0000-7000-8000-000000000002', '40000000-0000-7000-8000-000000000001', '20000000-0000-7000-8000-000000000001', current_date - 12),
+  ('50000000-0000-7000-8000-000000000004', '10000000-0000-7000-8000-000000000001', '40000000-0000-7000-8000-000000000001', '20000000-0000-7000-8000-000000000001', current_date - 30),
+  ('50000000-0000-7000-8000-000000000005', '10000000-0000-7000-8000-000000000001', '40000000-0000-7000-8000-000000000001', '20000000-0000-7000-8000-000000000001', current_date - 90);
 
 insert into media_asset (id, owner_kind, owner_id, bucket, storage_path, mime_type, byte_size, uploaded_by) values
   ('80000000-0000-7000-8000-000000000001', 'user', '10000000-0000-7000-8000-000000000001', 'private', 'c/a/1.pdf',  'application/pdf', 5000, '10000000-0000-7000-8000-000000000001'),
@@ -79,25 +80,10 @@ insert into media_asset (id, owner_kind, owner_id, bucket, storage_path, mime_ty
   ('80000000-0000-7000-8000-000000000004', 'user', '10000000-0000-7000-8000-000000000004', 'private', 'c/s/4.pdf',  'application/pdf', 5000, '10000000-0000-7000-8000-000000000004');
 
 -- ------------------------------------------------------------ event plans ---
-select pg_temp.expect_reject('age range upside down',
-  $q$insert into event (host_user_id, event_type_id, title, event_date, age_range_min, age_range_max)
-     values ('10000000-0000-7000-8000-000000000001', '40000000-0000-7000-8000-000000000001', 'x', current_date, 9, 4)$q$);
-select pg_temp.expect_reject('someone else adds a vendor to A''s event',
-  $q$insert into event_vendor (event_id, vendor_id, added_by)
-     values ('50000000-0000-7000-8000-000000000001', '30000000-0000-7000-8000-000000000001', '10000000-0000-7000-8000-000000000002')$q$);
-select pg_temp.expect_accept('A adds a vendor to her own event (considering)',
-  $q$insert into event_vendor (id, event_id, vendor_id, added_by)
-     values ('90000000-0000-7000-8000-000000000001', '50000000-0000-7000-8000-000000000001', '30000000-0000-7000-8000-000000000001', '10000000-0000-7000-8000-000000000001')$q$);
-select pg_temp.expect_reject('same vendor added twice to one event',
-  $q$insert into event_vendor (event_id, vendor_id, added_by)
-     values ('50000000-0000-7000-8000-000000000001', '30000000-0000-7000-8000-000000000001', '10000000-0000-7000-8000-000000000001')$q$);
-select pg_temp.expect_reject('booked with no booked date',
-  $q$update event_vendor set status = 'booked' where id = '90000000-0000-7000-8000-000000000001'$q$);
-select pg_temp.expect_reject('removed with no removed date',
-  $q$update event_vendor set status = 'removed' where id = '90000000-0000-7000-8000-000000000001'$q$);
-select pg_temp.expect_accept('A adds an unclaimed business to her event (allowed: she may have phoned them)',
-  $q$insert into event_vendor (event_id, vendor_id, added_by)
-     values ('50000000-0000-7000-8000-000000000001', '30000000-0000-7000-8000-000000000002', '10000000-0000-7000-8000-000000000001')$q$);
+-- The event-plan checks now live with the migration: db/tests/0012_event_plans.test.sql.
+-- This file needs one plan row: A considering Test Vendor 1 for her past party.
+insert into event_vendor (id, event_id, vendor_id, host_user_id) values
+  ('90000000-0000-7000-8000-000000000001', '50000000-0000-7000-8000-000000000001', '30000000-0000-7000-8000-000000000001', '10000000-0000-7000-8000-000000000001');
 
 -- ---------------------------------------------------------- conversations ---
 select pg_temp.expect_reject('conversation with a business that has not joined Localites',
@@ -189,13 +175,13 @@ select pg_temp.expect_reject('review written by someone other than the host',
   $q$insert into review (event_vendor_id, author_user_id, rating)
      values ('90000000-0000-7000-8000-000000000001', '10000000-0000-7000-8000-000000000002', 1)$q$);
 
-insert into event_vendor (id, event_id, vendor_id, added_by, status, booked_at) values
+insert into event_vendor (id, event_id, vendor_id, host_user_id, status, booked_at) values
   ('90000000-0000-7000-8000-000000000002', '50000000-0000-7000-8000-000000000002', '30000000-0000-7000-8000-000000000001', '10000000-0000-7000-8000-000000000001', 'booked', now());
 select pg_temp.expect_reject('review before the event has happened',
   $q$insert into review (event_vendor_id, author_user_id, rating)
      values ('90000000-0000-7000-8000-000000000002', '10000000-0000-7000-8000-000000000001', 5)$q$);
 
-insert into event_vendor (id, event_id, vendor_id, added_by, status, booked_at) values
+insert into event_vendor (id, event_id, vendor_id, host_user_id, status, booked_at) values
   ('90000000-0000-7000-8000-000000000005', '50000000-0000-7000-8000-000000000005', '30000000-0000-7000-8000-000000000001', '10000000-0000-7000-8000-000000000001', 'booked', now());
 select pg_temp.expect_reject('review after the 60-day window',
   $q$insert into review (event_vendor_id, author_user_id, rating)
@@ -206,7 +192,7 @@ insert into conversation (id, consumer_user_id, vendor_id) values
   ('60000000-0000-7000-8000-000000000003', '10000000-0000-7000-8000-000000000001', '30000000-0000-7000-8000-000000000003');
 insert into message (conversation_id, author_user_id, author_side, body) values
   ('60000000-0000-7000-8000-000000000003', '10000000-0000-7000-8000-000000000001', 'consumer', 'Hi there');
-insert into event_vendor (id, event_id, vendor_id, added_by, status, booked_at) values
+insert into event_vendor (id, event_id, vendor_id, host_user_id, status, booked_at) values
   ('90000000-0000-7000-8000-000000000003', '50000000-0000-7000-8000-000000000001', '30000000-0000-7000-8000-000000000003', '10000000-0000-7000-8000-000000000001', 'booked', now());
 -- D-06 option B: allowed, but recorded as planned outside Localites, even if the
 -- app claims otherwise.
@@ -228,8 +214,8 @@ insert into conversation (id, consumer_user_id, vendor_id) values
 insert into message (conversation_id, author_user_id, author_side, body) values
   ('60000000-0000-7000-8000-000000000004', '10000000-0000-7000-8000-000000000001', 'consumer', 'Hi'),
   ('60000000-0000-7000-8000-000000000004', '10000000-0000-7000-8000-000000000008', 'vendor', 'Sorry, we''re fully booked');
-insert into event_vendor (id, event_id, vendor_id, added_by, status, booked_at, vendor_flagged_at, vendor_flag_note) values
-  ('90000000-0000-7000-8000-000000000004', '50000000-0000-7000-8000-000000000001', '30000000-0000-7000-8000-000000000004', '10000000-0000-7000-8000-000000000001', 'booked', now(), now(), 'We never did this event');
+insert into event_vendor (id, event_id, vendor_id, host_user_id, status, booked_at, vendor_flagged_at, vendor_flagged_by) values
+  ('90000000-0000-7000-8000-000000000004', '50000000-0000-7000-8000-000000000001', '30000000-0000-7000-8000-000000000004', '10000000-0000-7000-8000-000000000001', 'booked', now(), now(), '10000000-0000-7000-8000-000000000008');
 select pg_temp.expect_reject('review of a booking the vendor has flagged',
   $q$insert into review (event_vendor_id, author_user_id, rating)
      values ('90000000-0000-7000-8000-000000000004', '10000000-0000-7000-8000-000000000001', 1)$q$);
@@ -297,7 +283,7 @@ insert into conversation (id, consumer_user_id, vendor_id) values
 insert into message (conversation_id, author_user_id, author_side, body) values
   ('60000000-0000-7000-8000-000000000002', '10000000-0000-7000-8000-000000000002', 'consumer', 'Hi'),
   ('60000000-0000-7000-8000-000000000002', '10000000-0000-7000-8000-000000000003', 'vendor', 'Hello!');
-insert into event_vendor (id, event_id, vendor_id, added_by, status, booked_at) values
+insert into event_vendor (id, event_id, vendor_id, host_user_id, status, booked_at) values
   ('90000000-0000-7000-8000-000000000006', '50000000-0000-7000-8000-000000000003', '30000000-0000-7000-8000-000000000001', '10000000-0000-7000-8000-000000000002', 'booked', now()),
   ('90000000-0000-7000-8000-000000000007', '50000000-0000-7000-8000-000000000004', '30000000-0000-7000-8000-000000000001', '10000000-0000-7000-8000-000000000001', 'booked', now());
 insert into review (event_vendor_id, author_user_id, rating, moderation_status, moderated_by, moderated_at, published_at)

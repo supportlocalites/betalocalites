@@ -5,6 +5,7 @@ import { pageMeta } from '@/lib/meta';
 import { KeyNotice } from '@/components/admin/KeyNotice';
 import { keyState } from '@/server/activity.server';
 import { overview, recountDay } from '@/server/admin/activity.server';
+import { planTotals } from '@/server/admin/plan-counts.server';
 import { withDb } from '@/server/db.server';
 import type { Route } from './+types/activity';
 import styles from './admin.module.css';
@@ -26,9 +27,13 @@ export async function loader({ request, context }: Route.LoaderArgs) {
   const { env } = context.get(cloudflareContext);
   const today = torontoDate(new Date());
   const from = addDays(today, -30);
-  const result = await withDb(env, (db) => overview(db, from, today));
+  const [result, planning] = await Promise.all([
+    withDb(env, (db) => overview(db, from, today)),
+    planTotals(env, context.get(adminContext), from, today),
+  ]);
   return {
     ...result,
+    planning,
     from,
     days: Array.from({ length: 7 }, (_, i) => addDays(today, -(i + 1))),
     key: keyState(env),
@@ -52,7 +57,7 @@ export async function action({ request, context }: Route.ActionArgs) {
 const mb = (bytes: number) => Math.round(bytes / 1_000_000);
 
 export default function Activity({ loaderData, actionData }: Route.ComponentProps) {
-  const { categories, demand, typed, rollups, space, days, key, saved, from, today } = loaderData;
+  const { categories, demand, typed, rollups, space, days, key, saved, from, today, planning } = loaderData;
   const busy = useNavigation().state === 'submitting';
   return (
     <>
@@ -105,6 +110,68 @@ export default function Activity({ loaderData, actionData }: Route.ComponentProp
             </tbody>
           </table>
         </div>
+      </section>
+
+      <section className={styles.section} aria-labelledby="planning-heading">
+        <h2 id="planning-heading">Planning (team only)</h2>
+        <p className="muted">
+          Only the Localites team sees these. The business doesn’t (D-42). Totals only, never who or which event. Saves are
+          the ones still saved; a save taken back isn’t counted.
+        </p>
+        {planning.businesses.length === 0 ? (
+          <p className="muted">No business was saved, added to an event plan or marked booked in these 30 days.</p>
+        ) : (
+          <div className={styles.tableWrap}>
+            <table className={styles.table}>
+              <caption className="visually-hidden">The 20 businesses most marked booked, then most added</caption>
+              <thead>
+                <tr>
+                  <th scope="col">Business</th>
+                  <th scope="col">Marked booked</th>
+                  <th scope="col">Added to an event plan</th>
+                  <th scope="col">Saved</th>
+                </tr>
+              </thead>
+              <tbody>
+                {planning.businesses.map((b) => (
+                  <tr key={b.vendorId}>
+                    <th scope="row">
+                      <Link to={`/admin/listings/${b.vendorId}/activity`}>{b.name}</Link>
+                    </th>
+                    <td>{b.markedBooked}</td>
+                    <td>{b.added}</td>
+                    <td>{b.saved}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+        <h3 className="label section-gap">By kind of event</h3>
+        {planning.types.length === 0 ? (
+          <p className="muted">No events planned in these 30 days.</p>
+        ) : (
+          <div className={styles.tableWrap}>
+            <table className={styles.table}>
+              <thead>
+                <tr>
+                  <th scope="col">Kind of event</th>
+                  <th scope="col">Events planned</th>
+                  <th scope="col">Businesses marked booked</th>
+                </tr>
+              </thead>
+              <tbody>
+                {planning.types.map((t) => (
+                  <tr key={t.typeName ?? ''}>
+                    <th scope="row">{t.typeName ?? 'No type given'}</th>
+                    <td>{t.eventsPlanned}</td>
+                    <td>{t.markedBooked}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
       </section>
 
       <section className={styles.section} aria-labelledby="demand-heading">

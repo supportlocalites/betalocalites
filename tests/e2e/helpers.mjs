@@ -135,8 +135,9 @@ export async function mailFor(email) {
 /** The newest sign-in code emailed to an address (waits briefly for it to arrive). */
 export async function latestCode(email, after = 0) {
   for (let i = 0; i < 20; i++) {
+    // Only sign-in codes: the site's own emails (a claim received, …) can arrive in between.
     const code = (await mailFor(email))
-      .filter((m) => m.at > after)
+      .filter((m) => m.at > after && /\b\d{6}\b/.test(m.subject))
       .at(-1)
       ?.subject.match(/\b(\d{6})\b/)?.[1];
     if (code) return code;

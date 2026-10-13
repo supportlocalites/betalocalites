@@ -1,0 +1,14 @@
+Subject: {{person}} marked {{business}} as booked for {{date}}
+
+Hi {{name}},
+
+{{person}} marked {{business}} as booked on Localites for {{date}}.
+Their event is in {{town}}{{guests}}.
+
+This is their own record, to help them keep track. Arrange the details directly with your customer.
+Localites doesn’t process payments. Arrange payment directly with your customer.
+
+See everyone who has marked you as booked, or tell us if this isn’t right:
+{{link}}
+
+Localites

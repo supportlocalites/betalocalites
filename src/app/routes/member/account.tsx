@@ -95,6 +95,22 @@ export default function Account({ loaderData, actionData }: Route.ComponentProps
           </Form>
         </section>
 
+        <section aria-labelledby="planning" className={styles.section}>
+          <h2 id="planning" className="label">
+            Planning
+          </h2>
+          <p>
+            <Link to="/events" className="text-link">
+              My events
+            </Link>{' '}
+            ·{' '}
+            <Link to="/saved" className="text-link">
+              Saved businesses
+            </Link>
+          </p>
+          <p className="muted">Only you can see your events and saved businesses.</p>
+        </section>
+
         <section aria-labelledby="businesses" className={styles.section}>
           <h2 id="businesses" className="label">
             Your businesses
@@ -110,6 +126,13 @@ export default function Account({ loaderData, actionData }: Route.ComponentProps
                   <li key={b.id}>
                     {b.listed ? <Link to={`/vendors/${b.slug}`}>{b.name}</Link> : <span>{b.name}</span>}
                     <span className="muted">{ROLE[b.role] ?? b.role}</span>
+                    {(b.role === 'owner' || b.role === 'manager') && !b.archived && (
+                      <span>
+                        <Link to={`/vendors/${b.slug}/bookings`} className="text-link">
+                          Bookings marked
+                        </Link>
+                      </span>
+                    )}
                     {b.role === 'owner' && !b.archived && (
                       <span>
                         <Link to={`/vendors/${b.slug}/edit`} className="button button-primary">

@@ -15,12 +15,16 @@ export type ServerEnv = {
   SUPABASE_AUTH_URL?: string;
   /** Resend's sending key (ADR-013, PO-12). Without it, emails wait and the admin page says so. */
   RESEND_API_KEY?: string;
+  /** Local tests only: a pretend email service on this computer (ignored unless it is localhost). */
+  EMAIL_API_URL?: string;
   /** Suggest a business: a per-address limit kept by Cloudflare, never stored (wrangler.jsonc). */
   SUGGEST_LIMIT?: RateLimit;
   /** Sign in with an emailed code: a per-address limit kept by Cloudflare, never stored. */
   SIGN_IN_LIMIT?: RateLimit;
   /** Owners saving their listing: a per-person limit kept by Cloudflare. */
   OWNER_EDIT_LIMIT?: RateLimit;
+  /** Planning an event (slice 2A): a per-person limit on changes, kept by Cloudflare. */
+  PLAN_LIMIT?: RateLimit;
   /** The site's address, for links in emails sent on a schedule (wrangler.jsonc vars). */
   SITE_URL?: string;
   /**

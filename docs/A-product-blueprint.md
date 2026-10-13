@@ -99,7 +99,8 @@ is **designed for** now: the data model and permissions already have a place for
 ### C. The consumer side — Stage 2
 - Free account
 - Saved vendors
-- Create an event: type, date, place; everything else optional
+- Create an event: a private name, the date and the town; the kind of event is optional (one
+  tap) and brings ideas for it, set by the team (D-39, D-43); everything else optional
 - Event plan: vendors **considering** → **booked**
 - **Message vendors and share files**
 - **Inquire** about businesses not yet on Localites, which reaches the Localites team
@@ -143,8 +144,9 @@ is **designed for** now: the data model and permissions already have a place for
 - Every staff action logged; staff permissions enforced on the server
 
 ### H. Future, not committed
-More communities; the paid vendor dashboard (D-22, D-24); featured placements, clearly
-labelled (these never affect reviews or ratings); notifications by text message;
+More communities; the paid vendor dashboard (D-22, D-24); more featured placements, clearly
+labelled (these never affect reviews or ratings; featured businesses on an event's ideas, per
+kind of event, were brought forward by D-43 and are built); notifications by text message;
 richer coordination. All payments, including vendors paying for a paid plan, happen
 outside Localites (D-24).
 

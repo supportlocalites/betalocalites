@@ -3,6 +3,9 @@
 //     it in memory (no TLS, no password: it only listens on this computer);
 //   - HTTP on 127.0.0.1:8787 serves our sign-in email template (emails/sign-in-code.html)
 //     to the sign-in server, and lets the tests read what was sent: GET /messages?to=<address>;
+//   - POST /emails stands in for Resend's sending service (the site's own emails, when the
+//     site is pointed here with EMAIL_API_URL): it keeps the email like the ones above.
+//     Only the test key is accepted;
 //   - POST /turnstile/siteverify stands in for Cloudflare's "are you human" checker. An
 //     answer "pass:<form>:<site>:<anything>" passes for that form on that site, once; "fail"
 //     fails; "down" makes the checker answer with an error. Only the test secret is accepted.
@@ -17,6 +20,7 @@ const SMTP_PORT = Number(process.env.E2E_SMTP_PORT ?? 2525);
 const HTTP_PORT = Number(process.env.E2E_MAIL_HTTP_PORT ?? 8787);
 const messages = []; // { to: string[], subject, body, at }
 const TURNSTILE_SECRET = process.env.E2E_TURNSTILE_SECRET ?? 'e2e-turnstile-secret-local-only';
+const EMAIL_KEY = process.env.E2E_EMAIL_KEY ?? 'e2e-email-key-local-only';
 const spent = new Set();
 const checks = []; // what the site sent the checker: { response, remoteip }
 
@@ -110,6 +114,26 @@ http
       const to = (url.searchParams.get('to') ?? '').toLowerCase();
       res.writeHead(200, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify(messages.filter((m) => m.to.includes(to))));
+    } else if (url.pathname === '/emails' && req.method === 'POST') {
+      let raw = '';
+      for await (const chunk of req) raw += chunk;
+      let email = null;
+      try {
+        email = JSON.parse(raw);
+      } catch {
+        email = null; // answered below as a validation error, as Resend would
+      }
+      if (req.headers.authorization !== `Bearer ${EMAIL_KEY}`) {
+        res.writeHead(401, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ name: 'invalid_api_key', message: 'API key is invalid' }));
+      } else if (!Array.isArray(email?.to) || typeof email.subject !== 'string' || typeof email.text !== 'string') {
+        res.writeHead(422, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ name: 'validation_error', message: 'Missing to, subject or text' }));
+      } else {
+        messages.push({ to: email.to.map((t) => String(t).toLowerCase()), subject: email.subject, body: email.text, at: Date.now() });
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ id: `e2e-${messages.length}` }));
+      }
     } else if (url.pathname === '/turnstile/siteverify' && req.method === 'POST') {
       let raw = '';
       for await (const chunk of req) raw += chunk;

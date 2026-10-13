@@ -5,6 +5,12 @@ import received from '../../emails/claim-received.txt?raw';
 import team from '../../emails/claim-team.txt?raw';
 import undone from '../../emails/listing-change-undone.txt?raw';
 import ownerRemoved from '../../emails/owner-removed.txt?raw';
+import bookedEventCancelled from '../../emails/booked-event-cancelled.txt?raw';
+import bookedEventChanged from '../../emails/booked-event-changed.txt?raw';
+import bookingFlagTeam from '../../emails/booking-flag-team.txt?raw';
+import bookingFlaggedPerson from '../../emails/booking-flagged-person.txt?raw';
+import bookingUnmarked from '../../emails/booking-unmarked.txt?raw';
+import markedBooked from '../../emails/marked-booked.txt?raw';
 import { uuidv7 } from '@/lib/ids.mjs';
 import { withDb } from './db.server';
 import { sendEmail, TEAM_ADDRESS } from './email.server';
@@ -14,7 +20,21 @@ import type { ServerEnv } from './env';
  * Emails written as plain text files in emails/ (checked by `npm run check:words`).
  * The first line is "Subject: …"; {{name}} placeholders are filled in here.
  */
-const TEMPLATES = { approved, declined, received, team, undone, ownerRemoved } as const;
+const TEMPLATES = {
+  approved,
+  declined,
+  received,
+  team,
+  undone,
+  ownerRemoved,
+  // Planning an event (slice 2A, D-40, D-41).
+  markedBooked,
+  bookingUnmarked,
+  bookedEventCancelled,
+  bookedEventChanged,
+  bookingFlagTeam,
+  bookingFlaggedPerson,
+} as const;
 export type TemplateName = keyof typeof TEMPLATES;
 
 export function renderEmail(name: TemplateName, values: Record<string, string | string[]>): { subject: string; text: string } {
@@ -26,7 +46,13 @@ export function renderEmail(name: TemplateName, values: Record<string, string | 
     return Array.isArray(v) ? v.map((item) => `- ${oneLine(item)}`).join('\n') : oneLine(v);
   });
   const [first, ...rest] = filled.split('\n');
-  return { subject: (first ?? '').replace(/^Subject:\s*/, '').trim(), text: rest.join('\n').replace(/^\n+/, '').replace(/\n{3,}/g, '\n\n') };
+  return {
+    subject: (first ?? '').replace(/^Subject:\s*/, '').trim(),
+    text: rest
+      .join('\n')
+      .replace(/^\n+/, '')
+      .replace(/\n{3,}/g, '\n\n'),
+  };
 }
 
 /**
@@ -57,4 +83,83 @@ export async function emailPerson(
 export async function emailTeam(env: ServerEnv, content: { subject: string; text: string }): Promise<void> {
   const result = await sendEmail(env, { to: TEAM_ADDRESS, ...content });
   if (!result.sent && env.RESEND_API_KEY) console.error('team email not sent:', result.reason);
+}
+
+/** Emails about plans (slice 2A): to a booked business (D-40), and to the person when a business flags a booking (D-41). */
+export type PlanEmailKind = 'marked_booked' | 'booking_unmarked' | 'booked_event_cancelled' | 'booked_event_changed' | 'booking_flagged';
+const PLAN_EMAIL_KINDS: PlanEmailKind[] = [
+  'marked_booked',
+  'booking_unmarked',
+  'booked_event_cancelled',
+  'booked_event_changed',
+  'booking_flagged',
+];
+
+/**
+ * When an email about a plan is held back, so a person's taps can't flood a business's
+ * inbox, without ever holding back news the business doesn't have yet:
+ *   unless_known_booked: "marked booked" unless the last word they had was already "marked booked";
+ *   only_after_marked: "no longer booked" only if the last word they had was "marked booked";
+ *   always: every time (a real change of date or town, a cancelled event, a flag).
+ * Every rule also has the daily limit per person below.
+ */
+export type RepeatRule = 'unless_known_booked' | 'only_after_marked' | 'always';
+
+/** Plan emails to one person in 24 hours, whatever the rule (Resend's free plan: 100 a day for everything). */
+export const PLAN_EMAILS_PER_DAY = 30;
+
+/**
+ * Emails one person about a plan unless a rule holds it back. Every decision is a
+ * `notification` row with an honest status: "suppressed" with the reason, or "sent" /
+ * "failed" as emailPerson. Decided under a lock per person, so two quick changes can't
+ * both pass the check.
+ */
+export async function emailPersonUnlessRepeat(
+  env: ServerEnv,
+  to: { userId: string; email: string },
+  kind: PlanEmailKind,
+  subject: { type: 'event_vendor'; id: string },
+  content: { subject: string; text: string },
+  rule: RepeatRule,
+): Promise<'sent' | 'failed' | 'suppressed'> {
+  const id = uuidv7();
+  const kinds = `{${PLAN_EMAIL_KINDS.join(',')}}`;
+  const [row] = await withDb(env, (db) =>
+    db.transaction(async (tx) => {
+      await tx.execute(sql`select pg_advisory_xact_lock(hashtextextended(${`localites.plan-email:${to.userId}`}, 0))`);
+      return tx.execute<{ status: string }>(sql`
+        with why as (
+          select case
+            when (select count(*) from notification n
+                  where n.user_id = ${to.userId} and n.kind = any(${kinds}::text[]) and n.status in ('queued', 'sent')
+                    and n.created_at > now() - interval '1 day') >= ${PLAN_EMAILS_PER_DAY}
+              then 'daily limit'
+            when ${rule} = 'unless_known_booked' and coalesce((
+                  select n.kind = 'marked_booked' from notification n
+                  where n.user_id = ${to.userId} and n.subject_type = ${subject.type} and n.subject_id = ${subject.id}
+                    and n.kind in ('marked_booked', 'booking_unmarked') and n.status in ('queued', 'sent')
+                  order by n.created_at desc, n.id desc limit 1), false)
+              then 'they already know it’s marked booked'
+            when ${rule} = 'only_after_marked' and not coalesce((
+                  select n.kind = 'marked_booked' and n.status = 'sent' from notification n
+                  where n.user_id = ${to.userId} and n.subject_type = ${subject.type} and n.subject_id = ${subject.id}
+                    and n.kind in ('marked_booked', 'booking_unmarked')
+                  order by n.created_at desc, n.id desc limit 1), false)
+              then 'they weren’t told it was booked'
+          end as reason)
+        insert into notification (id, user_id, kind, subject_type, subject_id, status, failure_reason)
+        select ${id}, ${to.userId}, ${kind}, ${subject.type}, ${subject.id},
+               case when reason is null then 'queued' else 'suppressed' end, reason
+        from why
+        returning status`);
+    }),
+  );
+  if (row?.status !== 'queued') return 'suppressed';
+  const result = await sendEmail(env, { to: to.email, ...content, replyTo: TEAM_ADDRESS });
+  await withDb(env, (db) =>
+    result.sent
+      ? db.execute(sql`update notification set status = 'sent', sent_at = now() where id = ${id}`)
+      : db.execute(sql`update notification set status = 'failed', failure_reason = ${result.reason} where id = ${id}`),
+  );
+  return result.sent ? 'sent' : 'failed';
 }

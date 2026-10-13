@@ -1,7 +1,10 @@
 # Roadmap & Estimates
 
 **Status:** Stage 0 approved (D-00). **Stage 1 approved (D-23, 10 October 2026); in progress.**
-**Last updated:** 2026-10-12
+**Stage 2 started:** its first part, "Plan an event" (slice 2A), is built and tested (D-39 to
+D-43, 12–13 October 2026), ahead of the Stage 1 launch, because the product owner's decisions
+were ready.
+**Last updated:** 2026-10-13
 
 **10 October 2026:** stages and estimates unchanged. Your answers on the launch list
 (D-03), launch area (D-09), team emails (D-11), Inquire (D-04, D-05) and activity
@@ -96,6 +99,20 @@ switches on per business (D-30, D-37); counting starts once the activity key is 
 built but **parked** (D-38): signing in stays a 6-digit emailed code, with our own limits
 on codes (ADR-028).
 
+**Still to do from Stage 1 (stated plainly, 13 October 2026):**
+- **Before public launch:** privacy policy and terms pages (PO-07 legal review; the mailing
+  address, D-12); deleting your own account (must also remove events, plans and saves); the
+  production environment; our own nightly backups and the first restore drill; alerts when
+  the site breaks (D-11); automated accessibility and screen-size checks (done by hand so
+  far).
+- **Team tools not built yet:** photo upload (owners and team), verification records,
+  categories, filters (attributes), places, collections, users and roles (adding admins is
+  still done in the database, runbook), the audit-log page, listing review (X3).
+- **Pages not built yet:** collections, How it works, For vendors; a business's team
+  (teammates wait, D-29).
+- **Owner steps waiting:** PO-11 (check and publish the test businesses), PO-14 (switch on
+  activity counting).
+
 **Outcome.** A real, public directory of local event vendors, useful to a parent on its
 own, with the admin tools to build it. **Local businesses claim their listings** so
 they're ready for messaging.
@@ -159,6 +176,38 @@ inquiries in Stage 2, give a truthful reason to claim).
 
 ## Stage 2 — The handshake
 
+**Progress (13 October 2026): slice 2A "Plan an event" is built and tested** (migration 0012,
+ADR-031; not yet on the test site):
+- **Accounts and switching:** consumer accounts (since Stage 1's sign-in) and the switch
+  between **My events** and **My business** (D-13 R8, D-29).
+- **Saving and events:** saved businesses; events with a private name, date and town, an
+  optional kind of event (D-39) and optional details.
+- **The event plan:** **Add to event** → **Mark as booked** → un-mark, remove and put back.
+- **The business side:** **Bookings marked** with the limited summary (D-40) and **This
+  isn't right** (D-41), with emails to the business, and to the person when flagged.
+- **Ideas and featured businesses per kind of event (D-43):** run by the team at **Event
+  types**. **Featured placements were brought forward from Stage 5 by D-43**, for plans
+  only: clearly labelled, set by the team, no payment through Localites, never affecting
+  search order, reviews or ratings.
+- **Team pages:** read-only **Booking flags**, and team-only planning counts (D-42).
+- **Per-person database rules** for events, plans and saves.
+
+**Not built yet in Stage 2:**
+- conversations and messages (with unread counts and email notices);
+- files in conversations;
+- **Inquire** for unclaimed businesses, and the team's Inquiries list;
+- block and report, and the team's Reports queue;
+- batched email digests (each planning email is sent on its own, with repeats held back);
+- counting how often featured businesses are shown (D-43: later);
+- counting saves, inquiries, conversations and messages as activity (the D-30 funnel; D-42
+  gives the team planning totals meanwhile);
+- suggestions from signed-in people linked to their account;
+- linking a conversation to an event.
+
+Also deferred from 2A: archiving or un-cancelling events, the team opening any event for
+support, typing in a business that isn't on Localites, and the team's screens for managers
+and staff.
+
 **Outcome.** A consumer can find a vendor, talk to them directly, share files, plan
 the event, and keep track of who they've booked. A vendor can reply, share files, and
 see who marked them booked.
@@ -192,25 +241,26 @@ domain registered so email works (D-07).
 **Effort.** 5–7 weeks.
 | Work | Weeks |
 |---|---|
-| Consumer accounts, side switching, saved vendors | 0.5–1 |
-| Events and event plan (considering / booked / flag) | 1–1.5 |
+| Consumer accounts, side switching, saved vendors | 0.5–1 (✅ built, 2A) |
+| Events and event plan (considering / booked / flag), plus ideas and featured businesses per kind of event (D-43) | 1–1.5 (✅ built, 2A) |
 | Conversations, messages, files, unread counts, polling | 1.5–2 |
 | Email notices (batched), block, report, reports queue, Inquire | 1 |
 | Per-person database rules, security tests, hardening | 1–1.5 |
 
-**Acceptance criteria.**
+**Acceptance criteria** (✅ = passing tests now).
 1. A consumer can go from a vendor profile to a sent message in under a minute on a
    phone.
 2. A vendor team member receives an email notice and can reply from their phone.
 3. Both sides can share a photo and a PDF; nobody else can open them, even with the link
    (tested).
-4. Only the consumer can mark booked; the vendor is notified and can flag it.
-5. A vendor can never see a consumer's "considering" list, budget, notes, or guest list
-   (tested).
+4. ✅ Only the consumer can mark booked; the vendor is notified and can flag it.
+5. ✅ A vendor can never see a consumer's "considering" list, budget, notes, or guest list
+   (tested; also the event's name and kind, D-40).
 6. Vendors cannot start conversations; nobody can post into a conversation they're not
    in (database-enforced, already proven).
 7. The words in [A §6](./A-product-blueprint.md#6-language-rules) are checked across all
-   screens and emails: no wording implies payment or confirmation.
+   screens and emails: no wording implies payment or confirmation (✅ for every planning
+   page and email).
 8. Blocking stops messages both ways; reports reach the queue.
 9. **Inquire** saves the inquiry and emails the team; if the email fails, the person and
    the team's list say so honestly. Nothing suggests the business received a message.
@@ -263,6 +313,11 @@ vendors on a paid plan**, showing only their own anonymous counts (D-22; paid fo
 outside Localites, D-24) · more communities (data only) · featured placements, clearly labelled and sold by
 the team (never affecting reviews) · text-message notices (needs a service and
 approval).
+
+**Brought forward by D-43 (12 October 2026):** featured businesses per kind of event, shown
+on a person's own plan, are built in Stage 2 (slice 2A). Featured spots elsewhere (search,
+category pages, Welcome) and counting how often they're shown stay here, each needing its
+own approval.
 
 ---
 

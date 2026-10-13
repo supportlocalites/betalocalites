@@ -31,6 +31,97 @@ Every release and every database migration, in order. Appended before each deplo
 
 ## Releases
 
+### 2026-10-13 — Plan an event (Stage 2, slice 2A; not public)
+
+**Stage:** 2 (D-13, D-18, D-39 to D-43; ADR-031)
+**Status:** built and tested on our computers; not yet committed or deployed. It reaches the
+test site with the next update, then PO-15.
+**What changed (plain English):**
+- **People plan events.** **My events** in the header (when signed in) and **Plan an event**
+  on Welcome. An event needs a name (private), a date and a town; the kind of event is one
+  optional tap. More details (times, guests, where, ages, budget, notes) are optional. The
+  box on the form says exactly what a booked business will see (D-40).
+- **The event's plan.** Businesses **Booked** and **Considering**, removed ones, "What's
+  next", and **Ideas for your …**: up to 3 businesses labelled **Featured** with "Featured
+  businesses are promoted by the Localites team.", and "Businesses people often need"
+  linking to category lists (D-43). With no kind of event, one quiet line linking to Edit
+  details. Edit, cancel (final), mark booked, un-mark, remove and put back, each asking first
+  in plain words and working without JavaScript.
+- **From a business's page:** **Add to event** (two taps, or a quick new event) and **Save**;
+  **Saved businesses** lists them. Nobody is told.
+- **Businesses:** **My business** lists a person's businesses with bookings coming up; the
+  switch between **My events** and **My business** for people on a business's team.
+  **Bookings marked** shows only the person's name, the date, the town and about how many
+  guests (D-40), with **This isn't right** (once). Emails when marked booked, no longer
+  booked, the event cancelled or its date or town changed, with repeats held back.
+- **Flags (D-41):** the team is emailed (no note, no name) and sees **Booking flags (n)**
+  (read-only, every look recorded); the person is emailed politely and their plan says so.
+- **The team:** **Event types** (add, rename, order, hide; suggested kinds of business;
+  featured businesses with first and last day, a team note and End early; all recorded) and
+  "Planning (team only)" counts on **Activity** and each listing's Activity page (D-42).
+- **Your account** has a "Planning" section and, for owners, a **Bookings marked** link.
+- **Local tests only:** a pretend email service now also receives the site's own emails
+  (`EMAIL_API_URL`, used only when it points at this computer), so tests can check what
+  each email says.
+
+**Migrations applied:** `0012_event_plans.sql` (to the local test database only so far):
+who is acting; `event_type` (11 starting kinds, D-39), `event`, `event_private`,
+`event_vendor`, `saved_vendor`, `event_type_category` (77 starting suggestions, only from
+existing categories), `featured_placement` (no money columns); the rules and history
+triggers; `featured_for_type()`, `plan_counts_for_team()`, `plan_type_counts_for_team()`;
+three notification kinds; row-level security on all seven tables with minimal rights.
+The proposed Stage 2–3 schema and its checks were trimmed to match (the event part moved
+into 0012).
+**Destructive?** No: new tables, functions, rules and rights; one list of notification kinds
+widened; starting kinds and suggestions added; no existing row changed. To undo, a later
+migration drops the new tables and functions.
+**Tests run (13 October 2026):**
+- `npm run check` (lint, types, tokens, words): passed. The words check now also covers
+  "secure booking", "list a business", "fee" and "fees", and scans `src/lib/*-terms.ts`.
+- Unit tests: **136 / 136** (25 new for planning: inputs and dates, wording, refusal codes,
+  emails never carrying private values, the one-statement "who is acting" setting).
+- Database checks: 0001 51/51, 0003 12/12, 0004 19/19, 0005 13/13, 0006 5/5, 0007 22/22,
+  0008 4/4, 0009 51/51, 0010 9/9, 0011 5/5, **0012 164/164 (new)**; proposed Stage 2–3 schema
+  **49/49** (was 56: its 7 event-plan checks moved into 0012).
+- End-to-end: admin access 43/43, sign-in and claiming 73/73, are-you-human 20/20, owner
+  editing 55/55, activity and analytics 51/51, **event planning 120/120 (new)**.
+- Build: Worker 255 KiB compressed, 8% of the free plan's 3 MiB.
+- Real browser by hand at 360 px (phone) and 1280 px (computer), as a person, an owner and
+  the team: 91/91 checks, 56 screenshots, no sideways scrolling; four small display problems
+  found and fixed (missing open/close arrows, "12 October" date order, radio colour, the
+  team menu on a phone).
+**Independent review (13 October 2026), fixed before release:** a business now reaches its
+bookings only through two database functions that give exactly the D-40 summary (before, the
+database would have let its side read the event's kind and times); the business's note is
+in a team-only table (before, the person's side could have read it); plan row ids are
+random; a flag belongs to one marking; "marked booked" and date or town changes are no
+longer held back when they are news; events older than 60 days can still be edited; "Put
+back" respects the 40-business limit and a listing that's gone; email dates give the year;
+My events always lists upcoming events first; the edit and cancel pages promise to tell
+only businesses that can be told; the Mark as booked page says exactly what the business
+will see, and what happens if a business not on Localites joins later. (One review area,
+platform and deploy risks, was cut short by a usage limit and is to be re-run.)
+**Security tests:** another person, another business's owner, staff, and someone not on the
+business all get "not found" on events, plans, bookings and flags that aren't theirs, and
+nothing changes; a business never sees a "considering" plan, the event's name or kind, start
+time, where, ages, budget, notes, other businesses or the person's email, on any page or in
+any email; the flag note never reaches the person; non-team accounts are refused Event types,
+Booking flags and the planning counts; no page or email suggests paying or a confirmed
+booking.
+**Existing functionality affected:** the header (My events, Account), Welcome (Plan an event
+button), Your account, the public business page (Planning an event? section), the team's
+Activity pages and menu. The other suites' emails are now recorded as `sent` in local tests
+and CI (the pretend email service accepts them); their checks accept either. The owner-editing
+suite now puts back in waiting any saves from an earlier run's note on the same day before
+running the daily note again, so the suite can be rerun on one database the same day.
+**Not tested here (stated plainly):** the "who is acting" settings through Hyperdrive and
+Supabase's pooler (PO-15 and the runbook's after-deploy check); whether Supabase's `postgres`
+role can apply 0012 (it stops cleanly if not); the CI changes have run only locally so far;
+real email delivery through Resend for the new emails.
+**How to roll back:** Cloudflare → localites → Deployments → previous version → Deploy. The
+new tables can stay; nothing else reads them.
+**Approved by:** Product owner (D-39 revised, D-40, D-41, D-42, D-43; 12 October 2026).
+
 ### 2026-10-12 — "Are you human" check on signing in (Stage 1, not public)
 
 **Stage:** 1 (ADR-028 update)

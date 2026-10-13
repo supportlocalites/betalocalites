@@ -1,0 +1,286 @@
+/* Planning an event (slice 2A): My events, the event plan, adding a business, saved,
+   My business and Bookings marked. Phone first (narrow phones up); tokens only. */
+
+.section {
+  margin-top: var(--space-8);
+}
+
+.section > h2 {
+  margin-bottom: var(--space-3);
+}
+
+/* Buttons stack full width on a phone, and sit side by side on wider screens. */
+.actions {
+  display: grid;
+  gap: var(--space-3);
+  margin-block: var(--space-4);
+}
+
+@media (min-width: 600px) {
+  .actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+  }
+}
+
+.list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  border-top: var(--hairline) solid var(--color-line-soft);
+}
+
+.list > li {
+  display: grid;
+  gap: var(--space-1);
+  padding-block: var(--space-4);
+  border-bottom: var(--hairline) solid var(--color-line-soft);
+  min-width: 0;
+}
+
+.cardLink {
+  display: grid;
+  gap: var(--space-1);
+  text-decoration: none;
+  min-width: 0;
+}
+
+.cardLink:hover .name,
+.cardLink:focus-visible .name {
+  text-decoration: underline;
+  text-underline-offset: var(--underline-offset);
+}
+
+.name {
+  font-family: var(--font-display);
+  font-size: var(--text-title-3);
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.meta {
+  font-size: var(--text-small);
+  color: var(--color-muted);
+  overflow-wrap: anywhere;
+}
+
+.rowHead {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-2) var(--space-3);
+}
+
+.pill {
+  font-size: var(--text-label);
+  font-weight: 600;
+  letter-spacing: var(--tracking-label);
+  text-transform: uppercase;
+  border: var(--hairline) solid var(--color-gold);
+  border-radius: var(--radius-pill);
+  padding: 0 var(--space-2);
+  white-space: nowrap;
+}
+
+.rowActions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2) var(--space-5);
+}
+
+.rowActions form {
+  margin: 0;
+}
+
+/* A form button that reads as a link ("Remove", "Put back"). */
+.textButton {
+  background: none;
+  border: 0;
+  padding: 0;
+  color: inherit;
+  cursor: pointer;
+  font-family: var(--font-body);
+  font-size: var(--text-label);
+  font-weight: 600;
+  letter-spacing: var(--tracking-label);
+  text-transform: uppercase;
+  text-decoration: underline;
+  text-underline-offset: var(--underline-offset);
+  min-height: var(--size-icon-button);
+}
+
+.change > summary,
+.more > summary {
+  cursor: pointer;
+  font-size: var(--text-small);
+  font-weight: 500;
+  padding-block: var(--space-3);
+}
+
+.change[open] > summary {
+  margin-bottom: var(--space-1);
+}
+
+.change .rowActions {
+  padding-left: var(--space-4);
+}
+
+.flagged {
+  font-size: var(--text-small);
+  color: var(--color-muted);
+}
+
+/* "Only you can see this": the person's own details. */
+.private {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: var(--space-2) var(--space-4);
+  margin: 0;
+}
+
+.privateRow {
+  display: contents;
+}
+
+.private dt {
+  color: var(--color-muted);
+  font-size: var(--text-small);
+}
+
+.private dd {
+  margin: 0;
+  white-space: pre-line;
+  overflow-wrap: anywhere;
+}
+
+/* "Ideas for your …" (D-43). */
+.featured {
+  list-style: none;
+  margin: 0 0 var(--space-5);
+  padding: 0;
+  display: grid;
+  gap: var(--space-3);
+}
+
+@media (min-width: 768px) {
+  .featured {
+    grid-template-columns: repeat(auto-fill, minmax(var(--size-tile-min), 1fr));
+  }
+}
+
+.featuredCard {
+  display: grid;
+  gap: var(--space-1);
+  align-content: start;
+  border: var(--hairline) solid var(--color-gold);
+  border-radius: var(--radius-file);
+  background: var(--color-surface);
+  padding: var(--space-4);
+  min-width: 0;
+}
+
+.ideaLinks {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2) var(--space-5);
+}
+
+.ideaLinks a {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--size-icon-button);
+}
+
+/* C4: one large row per event to choose from. */
+.choices {
+  border: 0;
+  padding: 0;
+  margin: 0 0 var(--space-4);
+  min-width: 0;
+  display: grid;
+  gap: var(--space-2);
+}
+
+.choices legend {
+  font-size: var(--text-small);
+  font-weight: 500;
+  margin-bottom: var(--space-2);
+  padding: 0;
+}
+
+.choice {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  min-height: var(--size-button);
+  padding: var(--space-2) var(--space-4);
+  border: var(--hairline) solid var(--color-line);
+  border-radius: var(--radius-file);
+  background: var(--color-surface);
+  cursor: pointer;
+  min-width: 0;
+}
+
+.choice input {
+  accent-color: var(--color-ink);
+}
+
+.choice:has(input:checked) {
+  border-color: var(--color-ink);
+  border-width: var(--focus-ring);
+}
+
+.choice:has(input:disabled) {
+  cursor: default;
+  color: var(--color-muted);
+}
+
+.choice > span {
+  display: grid;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.box {
+  border: var(--hairline) solid var(--color-line);
+  border-radius: var(--radius-file);
+  background: var(--color-surface);
+  padding: var(--space-4);
+  margin-block: var(--space-4);
+}
+
+.box > :first-child {
+  margin-top: 0;
+}
+
+.box > :last-child {
+  margin-bottom: 0;
+}
+
+.footer {
+  margin-top: var(--space-12);
+  padding-top: var(--space-4);
+  border-top: var(--hairline) solid var(--color-line-soft);
+  font-size: var(--text-small);
+  color: var(--color-muted);
+}
+
+.small {
+  font-size: var(--text-small);
+}
+
+.wide {
+  width: 100%;
+}
+
+@media (min-width: 600px) {
+  .wide {
+    width: auto;
+  }
+}

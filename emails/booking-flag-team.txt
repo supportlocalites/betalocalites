@@ -1,0 +1,3 @@
+Subject: A business says a booking isn’t right
+
+{{business}} told us a booking marked on Localites isn’t right. See it: {{link}}

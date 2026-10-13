@@ -1,0 +1,9 @@
+Subject: {{person}} changed the date or town of their event
+
+Hi {{name}},
+
+{{person}} changed their event, which they had marked {{business}} as booked for. It’s now {{date}} in {{town}} (it was {{was}}).
+
+{{link}}
+
+Localites

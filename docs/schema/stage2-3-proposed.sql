@@ -1,8 +1,9 @@
 -- =============================================================================
 -- Localites — PROPOSED Stage 2–3 schema: the consumer–vendor handshake and reviews
 -- =============================================================================
--- STATUS: PROPOSAL FOR REVIEW. NOT APPLIED TO ANY DATABASE.
--- Applies on top of stage1-proposed.sql.
+-- STATUS: the event-plan part is BUILT (migration 0012). The conversation, file and
+-- review parts below are still a PROPOSAL FOR REVIEW, NOT APPLIED TO ANY DATABASE.
+-- Applies on top of migrations 0001–0012.
 --
 -- What this models (see docs/roles-and-relationships.md):
 --   * A consumer plans an event and adds vendors to it (considering -> booked).
@@ -18,102 +19,8 @@
 -- decision, and change if that decision goes the other way.
 -- =============================================================================
 
--- =============================================================================
--- EVENTS
--- =============================================================================
-
-create table event_type (
-  id          uuid primary key default gen_random_uuid(),
-  key         text not null unique check (key ~ '^[a-z][a-z0-9_]{1,62}$'),
-  name        text not null,
-  is_active   boolean not null default true,
-  sort_order  int not null default 0
-);
-
-create table event (
-  id                    uuid primary key default gen_random_uuid(),
-  host_user_id          uuid not null references app_user(id),   -- the consumer
-  event_type_id         uuid not null references event_type(id),
-  title                 text not null check (char_length(title) between 1 and 120),
-  event_date            date not null,
-  start_time            time,
-  end_time              time,
-  timezone              text not null default 'America/Toronto'
-                        check (timezone ~ '^[A-Za-z_]+(/[A-Za-z0-9_+-]+)*$'),
-  municipality_id       uuid references municipality(id),
-  venue_note            text check (char_length(venue_note) <= 200),
-  guest_count_estimate  int check (guest_count_estimate between 1 and 5000),
-  age_range_min         smallint check (age_range_min between 0 and 120),
-  age_range_max         smallint check (age_range_max between 0 and 120),
-  budget_cents          int check (budget_cents >= 0),     -- the consumer's private planning figure
-  notes                 text check (char_length(notes) <= 5000),
-  status                text not null default 'planning'
-                        check (status in ('planning', 'cancelled', 'archived')),
-  cancelled_at          timestamptz,
-  archived_at           timestamptz,
-  created_at            timestamptz not null default now(),
-  updated_at            timestamptz not null default now(),
-  check (age_range_min is null or age_range_max is null or age_range_min <= age_range_max),
-  check (status <> 'cancelled' or cancelled_at is not null),
-  check (status <> 'archived' or archived_at is not null)
-);
-create trigger event_updated before update on event
-  for each row execute function set_updated_at();
-create index event_host on event (host_user_id, event_date);
-
--- When an event is over: its end time if given (next day if it runs past
--- midnight), otherwise the end of its date, in the event's own time zone.
--- "Completed" is never stored; it is a fact calculated from the date.
-create function event_ends_at(e event) returns timestamptz
-language sql stable as $$
-  select ((e.event_date
-           + case when e.end_time is not null and e.start_time is not null
-                       and e.end_time < e.start_time then 1 else 0 end)
-          + coalesce(e.end_time, time '23:59:59')) at time zone e.timezone
-$$;
-
--- A vendor on a consumer's event plan. Only the consumer sets the status.
-create table event_vendor (
-  id                 uuid primary key default gen_random_uuid(),
-  event_id           uuid not null references event(id),
-  vendor_id          uuid not null references vendor(id),
-  status             text not null default 'considering'
-                     check (status in ('considering', 'booked', 'removed')),
-  booked_at          timestamptz,
-  removed_at         timestamptz,
-  -- The vendor's side: "this isn't a real booking" (protects review integrity).
-  vendor_flagged_at  timestamptz,
-  vendor_flag_note   text check (char_length(vendor_flag_note) <= 1000),
-  flag_resolved_at   timestamptz,
-  flag_outcome       text check (flag_outcome in ('booking_stands', 'booking_not_real')),
-  added_by           uuid not null references app_user(id),
-  created_at         timestamptz not null default now(),
-  updated_at         timestamptz not null default now(),
-  unique (event_id, vendor_id),
-  check ((status = 'booked') = (booked_at is not null)),
-  check ((status = 'removed') = (removed_at is not null)),
-  check ((flag_resolved_at is null) = (flag_outcome is null)),
-  check (flag_resolved_at is null or vendor_flagged_at is not null)
-);
-create trigger event_vendor_updated before update on event_vendor
-  for each row execute function set_updated_at();
-create index event_vendor_by_vendor on event_vendor (vendor_id, status);
-
-create function enforce_event_vendor_owner() returns trigger
-language plpgsql as $$
-begin
-  if tg_op = 'UPDATE' and (new.event_id <> old.event_id or new.vendor_id <> old.vendor_id) then
-    raise exception 'an event-vendor link cannot be moved to another event or vendor';
-  end if;
-  if not exists (select 1 from event e where e.id = new.event_id and e.host_user_id = new.added_by) then
-    raise exception 'only the person planning the event can add vendors to it';
-  end if;
-  return new;
-end $$;
-
-create trigger event_vendor_owner
-  before insert or update on event_vendor
-  for each row execute function enforce_event_vendor_owner();
+-- EVENTS: now in db/migrations/0012_event_plans.sql (event_type, event, event_private,
+-- event_vendor, saved_vendor, with per-person rules). What follows reads them as built.
 
 -- =============================================================================
 -- THE HANDSHAKE: conversations, messages, files
@@ -484,16 +391,16 @@ group by ev.vendor_id;
 -- =============================================================================
 -- As in Stage 1: row-level security on, no access for browser-facing roles.
 -- Stage 2 also adds per-request ownership rules for app_server on the most
--- private tables (event, conversation, message, message_attachment), so that
--- even a bug in the application's permission check cannot expose another
--- person's events or conversations. Those policies are written with the
--- Stage 2 code, because they depend on how the server passes the acting user.
+-- private tables, so that even a bug in the application's permission check cannot
+-- expose another person's events or conversations. Events and plans have them
+-- (0012, ADR-031: who is acting, in the database); conversation, message and
+-- message_attachment get theirs, the same way, when they are built.
 
 do $$
 declare t text;
 begin
   foreach t in array array[
-    'event_type', 'event', 'event_vendor', 'conversation', 'message',
+    'conversation', 'message',
     'message_attachment', 'conversation_read_marker', 'vendor_interest',
     'moderation_report', 'review_request', 'review'
   ] loop

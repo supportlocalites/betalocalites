@@ -1,7 +1,7 @@
 # F — Operational Runbook
 
 **Status:** Proposed (Stage 0). No production environment exists yet.
-**Last updated:** 2026-10-12 (the "are you human" check on sign-in codes)
+**Last updated:** 2026-10-13 (planning an event: after-deploy check, event types, suggested kinds of business, featured businesses, booking flags, planning counts; earlier, the "are you human" check)
 
 How the application is deployed, monitored, backed up, restored, and recovered — and
 who is responsible for each part. Procedures marked *(to be verified)* will be tested
@@ -220,6 +220,72 @@ guide this live (PO-03 part 3). Changing the password later is the same two step
   the save is refused with what it says now: reload the page, then make your change again.
 - **Hidden or archived listings:** a hidden listing can still be edited by its owner (they
   see it's hidden); an archived one can't.
+
+### Planning an event (D-39 to D-43, ADR-031)
+
+- **After each deploy that touches planning:** sign in on the site with an ordinary (not
+  team) account, open **My events**, plan a test event and open its plan (PO-15 has the
+  steps). This proves the "who is acting" settings reach the database through Hyperdrive
+  and Supabase's pooler, which our automatic tests can't (they use a plain database). If
+  **My events** is empty after creating an event, or the plan says "not found", stop:
+  roll back (§7) and start a session with what you saw.
+- **Hyperdrive caching must stay off** (see "Is the site connected to its database?"
+  above). Planning pages read inside transactions, but a cached answer could show one
+  person's list to another.
+- **Migration 0012 needs Supabase's `postgres` role** (which can see past row-level
+  security). If it is ever run by a role that can't, it stops with "migration 0012 must be
+  run by a role that bypasses row-level security", changes nothing, and the update isn't
+  deployed (§3).
+- **No new secrets and no owner steps** were needed. `PLAN_LIMIT` (30 planning changes a
+  minute per person) is Cloudflare's free limiter, set in `wrangler.jsonc`; when it's
+  reached the page says "You’re going a bit fast. Please wait a minute and try again."
+- **Planning emails are sent once.** A failed one (for example on a day Resend's free limit
+  is used up) is recorded as `failed` and is not retried automatically in 2A; nothing yet
+  gives sign-in codes priority. Follow up by hand if it matters.
+- **Emails to businesses and people** (marked booked, no longer booked, event cancelled,
+  event changed, "a business says it isn't booked") count toward Resend's free 100 a day,
+  shared with sign-in codes and team emails. Each is recorded in `notification`: `sent`,
+  `failed` (with Resend's reason) or `suppressed` (with why: "they already know it’s marked
+  booked", "they weren’t told it was booked", or "daily limit", which is 30 planning emails a day to any one
+  person). If Resend's daily limit is near, tell the product owner before anything changes
+  (D-20).
+- **Event types (Admin → Event types):** the kinds of event people may choose. Open a type
+  to change its **Name and order** (lower comes first) or untick **Shown to people planning**
+  to hide it. Hide, never delete: events that use it keep it. **Add an event type** at the
+  bottom; its key is made from the name and never changes. Every change is recorded.
+- **Suggested kinds of business (same page, per type):** under **Kinds of business to
+  suggest**, tick the categories people planning that kind of event usually need, give each
+  an order, and save. They appear on the person's plan as "Businesses people often need",
+  linking to each category's list. (Search has no town filter yet, so the links don't
+  include the event's town.)
+- **Featured businesses (same page, per type):**
+  1. Use **Find a business to feature** to look up the business; note its web address (the
+     part after `/vendors/`).
+  2. In the type's **Feature a business** form, enter that web address, the **First day**
+     and **Last day** (both included, Toronto dates), and an optional note only the team
+     sees (for example who arranged it). Click **Feature this business**.
+  3. Up to 3 show on the plans of events of that type, earliest start first, labelled
+     **Featured** with "Featured businesses are promoted by the Localites team." If more than
+     3 overlap, the page warns which days. Only published businesses are shown.
+  4. To stop one early, click **End early**. A placement can't be edited: end it and add a
+     new one. Lists show **Showing now**, **Coming up**, and **Earlier** (finished or ended
+     early).
+  Any arrangement with the business, including payment, happens outside Localites (D-24):
+  never record prices or payment details in the note. Featuring never changes search
+  results or reviews.
+- **Booking flags (Admin → Booking flags (n)):** bookings a business said aren't right,
+  with the business's note and who marked it booked (never the event's private details).
+  Every look is recorded in the audit log. The team and the person were already emailed. In
+  2A this list is for reading: if something looks wrong (for example a business flagging
+  every booking), contact the business or the person directly from
+  supportlocalites@gmail.com. Deciding on flags comes in Stage 3.
+- **Planning counts (D-42):** on **Activity** ("Planning (team only)": the top 20 businesses
+  and totals by kind of event) and on each listing's **Activity** page. Whole Toronto days
+  up to the end of yesterday. Never show them to a business (they aren't on its Analytics
+  page), and quote only totals.
+- **Support questions about someone's event:** the team can't open a person's event or
+  plan (only a flagged booking). Ask the person to describe what they see, or to send a
+  screenshot.
 
 ## 5. Backups
 
