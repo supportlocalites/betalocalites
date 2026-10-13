@@ -39,6 +39,21 @@
   min-width: 0;
 }
 
+/* A business's square profile photo beside its details (plans, saved, adding). */
+.list > li.withPhoto,
+.withPhoto {
+  display: grid;
+  grid-template-columns: var(--size-thumb) minmax(0, 1fr);
+  column-gap: var(--space-4);
+  align-items: start;
+}
+
+.rowBody {
+  display: grid;
+  gap: var(--space-1);
+  min-width: 0;
+}
+
 .cardLink {
   display: grid;
   gap: var(--space-1);

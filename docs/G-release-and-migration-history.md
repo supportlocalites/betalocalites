@@ -31,6 +31,22 @@ Every release and every database migration, in order. Appended before each deplo
 
 ## Releases
 
+### 2026-10-13 — Profile photos in a person's lists too
+
+**Stage:** 1 and 2 (D-45)
+**What changed (plain English):** the square profile photo now shows beside each business on
+an event plan (Booked, Considering, Removed), on the plan's featured suggestions, in Saved
+businesses and at the top of "Add to an event", as it already did in search results. A
+business that's no longer listed shows an empty square instead (its photos show nowhere
+until it's published again, E §9).
+**Migrations applied:** none.
+**Destructive?** No.
+**Tests run:** look checks 246/246 (4 new: the photo on a plan, in Saved and on Add to an
+event; gone from the plan and Saved once the business isn't listed); event planning
+120/120; unit; checks.
+**How to roll back:** Cloudflare → Deployments → previous version.
+**Approved by:** Product owner (13 October 2026: chose "Profile photos in more lists").
+
 ### 2026-10-13 — Alerts when the site breaks (the site watch)
 
 **Stage:** 1 (before launch; D-11)

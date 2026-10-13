@@ -155,6 +155,17 @@ export function toListPhoto(env: ServerEnv, c: ListPhotoColumns): ListPhoto | nu
   return { url, width: num(c.photoWidth), height: num(c.photoHeight), frame };
 }
 
+/**
+ * A row read with LIST_PHOTO_COLUMNS, made ready for a page: the photo columns become one
+ * `photo` (the storage path never leaves the server). `show` false gives no photo, for a
+ * business that isn't published (its photos show nowhere until it is, E §9).
+ */
+export function withListPhoto<T extends ListPhotoColumns>(env: ServerEnv, row: T, show = true): Omit<T, keyof ListPhotoColumns> & { photo: ListPhoto | null } {
+  const { photoPath, photoWidth, photoHeight, cropX, cropY, cropW, cropH, ...rest } = row;
+  const photo = show ? toListPhoto(env, { photoPath, photoWidth, photoHeight, cropX, cropY, cropW, cropH }) : null;
+  return { ...rest, photo };
+}
+
 function client(env: ServerEnv): { s3: AwsClient; base: string } | null {
   const base = storageBase(env);
   if (!base || !env.PHOTO_KEY_ID || !env.PHOTO_SECRET || !env.PHOTO_REGION) return null;

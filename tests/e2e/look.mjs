@@ -233,4 +233,23 @@ for (const size of SIZES) {
 }
 for (const ctx of contexts.values()) await ctx.close();
 await browser.close();
+
+// ---- the square profile photo in a person's lists (D-45), and gone once the business isn't listed
+const [logo] = await sql`select a.storage_path as path from vendor_media vm join media_asset a on a.id = vm.media_asset_id
+  where vm.vendor_id = ${V.id} and vm.role = 'logo'`;
+const small = logo.path.replace(/\.(\w+)$/, '-small.$1');
+const person = cookieOf(sessions.person);
+await site(`/vendors/${V.slug}/add`, { cookie: person, method: 'POST', form: { intent: 'save' } });
+for (const [what, path] of [
+  ['an event plan', `/events/${eventId}`],
+  ['Saved businesses', '/saved'],
+  ['Add to an event', `/vendors/${V.slug}/add`],
+]) {
+  check(`${what} shows the business’s square profile photo`, (await site(path, { cookie: person })).body.includes(small));
+}
+await sql`update vendor set listing_status = 'unpublished' where id = ${V.id}`;
+check('once it isn’t listed, its photo shows on neither the plan nor Saved',
+  !(await site(`/events/${eventId}`, { cookie: person })).body.includes(small) && !(await site('/saved', { cookie: person })).body.includes(small));
+await sql`update vendor set listing_status = 'published' where id = ${V.id}`;
+
 await finish('look');

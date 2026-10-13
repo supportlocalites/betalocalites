@@ -18,6 +18,7 @@ import {
 import { eventPlan, type PlanRow } from '@/server/events.server';
 import { found, todayIso } from '@/server/plan-pages.server';
 import type { Route } from './+types/event-plan';
+import { SquarePhoto } from '@/components/SquarePhoto';
 import styles from './plan.module.css';
 
 /**
@@ -133,26 +134,29 @@ export default function EventPlan({ loaderData }: Route.ComponentProps) {
             </h2>
             <ul className={styles.list}>
               {booked.map((r) => (
-                <li key={r.rowId}>
-                  <div className={styles.rowHead}>
-                    <BusinessName row={r} />
-                    <span className={styles.pill}>{STATUS_WORDS.booked}</span>
+                <li key={r.rowId} className={styles.withPhoto}>
+                  <SquarePhoto photo={r.photo} alt="" />
+                  <div className={styles.rowBody}>
+                    <div className={styles.rowHead}>
+                      <BusinessName row={r} />
+                      <span className={styles.pill}>{STATUS_WORDS.booked}</span>
+                    </div>
+                    {r.category && <span className={styles.meta}>{r.category}</span>}
+                    {r.flaggedAt && <span className={styles.flagged}>{r.name} says it isn’t booked for this event.</span>}
+                    {open && (
+                      <details className={styles.change}>
+                        <summary>Change this</summary>
+                        <div className={styles.rowActions}>
+                          <Link to={`${base}/plan/${r.rowId}/unbook`} className="text-link">
+                            Un-mark as booked
+                          </Link>
+                          <Link to={`${base}/plan/${r.rowId}/remove`} className="text-link">
+                            Remove from this event
+                          </Link>
+                        </div>
+                      </details>
+                    )}
                   </div>
-                  {r.category && <span className={styles.meta}>{r.category}</span>}
-                  {r.flaggedAt && <span className={styles.flagged}>{r.name} says it isn’t booked for this event.</span>}
-                  {open && (
-                    <details className={styles.change}>
-                      <summary>Change this</summary>
-                      <div className={styles.rowActions}>
-                        <Link to={`${base}/plan/${r.rowId}/unbook`} className="text-link">
-                          Un-mark as booked
-                        </Link>
-                        <Link to={`${base}/plan/${r.rowId}/remove`} className="text-link">
-                          Remove from this event
-                        </Link>
-                      </div>
-                    </details>
-                  )}
                 </li>
               ))}
             </ul>
@@ -166,29 +170,32 @@ export default function EventPlan({ loaderData }: Route.ComponentProps) {
             </h2>
             <ul className={styles.list}>
               {considering.map((r) => (
-                <li key={r.rowId}>
-                  <div className={styles.rowHead}>
-                    <BusinessName row={r} />
-                    <span className={styles.pill}>{STATUS_WORDS.considering}</span>
-                  </div>
-                  {r.category && <span className={styles.meta}>{r.category}</span>}
-                  {!r.listed ? (
-                    <span className={styles.meta}>No longer listed on Localites</span>
-                  ) : (
-                    !r.claimed && <span className={styles.meta}>Not on Localites yet</span>
-                  )}
-                  {open && (
-                    <div className={styles.rowActions}>
-                      <Link to={`${base}/plan/${r.rowId}/book`} className="button button-primary">
-                        Mark as booked
-                      </Link>
-                      <Form method="post" action={`${base}/plan/${r.rowId}/remove`}>
-                        <button type="submit" className={styles.textButton}>
-                          Remove
-                        </button>
-                      </Form>
+                <li key={r.rowId} className={styles.withPhoto}>
+                  <SquarePhoto photo={r.photo} alt="" />
+                  <div className={styles.rowBody}>
+                    <div className={styles.rowHead}>
+                      <BusinessName row={r} />
+                      <span className={styles.pill}>{STATUS_WORDS.considering}</span>
                     </div>
-                  )}
+                    {r.category && <span className={styles.meta}>{r.category}</span>}
+                    {!r.listed ? (
+                      <span className={styles.meta}>No longer listed on Localites</span>
+                    ) : (
+                      !r.claimed && <span className={styles.meta}>Not on Localites yet</span>
+                    )}
+                    {open && (
+                      <div className={styles.rowActions}>
+                        <Link to={`${base}/plan/${r.rowId}/book`} className="button button-primary">
+                          Mark as booked
+                        </Link>
+                        <Form method="post" action={`${base}/plan/${r.rowId}/remove`}>
+                          <button type="submit" className={styles.textButton}>
+                            Remove
+                          </button>
+                        </Form>
+                      </div>
+                    )}
+                  </div>
                 </li>
               ))}
             </ul>
@@ -200,18 +207,21 @@ export default function EventPlan({ loaderData }: Route.ComponentProps) {
             <summary>Removed ({removed.length})</summary>
             <ul className={styles.list}>
               {removed.map((r) => (
-                <li key={r.rowId}>
-                  <BusinessName row={r} />
-                  {r.category && <span className={styles.meta}>{r.category}</span>}
-                  {open && (
-                    <div className={styles.rowActions}>
-                      <Form method="post" action={`${base}/plan/${r.rowId}/readd`}>
-                        <button type="submit" className={styles.textButton}>
-                          Put back
-                        </button>
-                      </Form>
-                    </div>
-                  )}
+                <li key={r.rowId} className={styles.withPhoto}>
+                  <SquarePhoto photo={r.photo} alt="" />
+                  <div className={styles.rowBody}>
+                    <BusinessName row={r} />
+                    {r.category && <span className={styles.meta}>{r.category}</span>}
+                    {open && (
+                      <div className={styles.rowActions}>
+                        <Form method="post" action={`${base}/plan/${r.rowId}/readd`}>
+                          <button type="submit" className={styles.textButton}>
+                            Put back
+                          </button>
+                        </Form>
+                      </div>
+                    )}
+                  </div>
                 </li>
               ))}
             </ul>
@@ -257,6 +267,7 @@ export default function EventPlan({ loaderData }: Route.ComponentProps) {
                     <ul className={styles.featured}>
                       {ideas.featured.map((f) => (
                         <li key={f.slug} className={styles.featuredCard}>
+                          <SquarePhoto photo={f.photo} alt="" />
                           <span className="label">Featured</span>
                           <Link to={`/vendors/${f.slug}`} className={styles.name}>
                             {f.name}

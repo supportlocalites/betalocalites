@@ -5,6 +5,7 @@ import { type Acting, actingAs, PlanCapped, planned, PlanNotFound, PlanRefused }
 import { type Db, withDb } from './db.server';
 import type { ServerEnv } from './env';
 import type { EventValues } from './event-input';
+import { LIST_PHOTO, LIST_PHOTO_COLUMNS, type ListPhoto, type ListPhotoColumns, withListPhoto } from './photo-store.server';
 
 /**
  * The person's side of planning an event (C1–C6; D-13, D-39–D-43, ADR-031). Everything
@@ -341,12 +342,14 @@ export type PlanRow = {
   bookedAt: string | null;
   /** The business said this booking isn't right (D-41). Never the note: only the team sees that. */
   flaggedAt: string | null;
+  /** Its square profile photo (none once it's no longer listed). */
+  photo: ListPhoto | null;
 };
 
 export type Ideas = {
   heading: string;
   /** At most 3, chosen by the team, clearly labelled where shown (D-43). */
-  featured: { slug: string; name: string; town: string; category: string | null; onPlan: boolean }[];
+  featured: { slug: string; name: string; town: string; category: string | null; onPlan: boolean; photo: ListPhoto | null }[];
   /** "Businesses people often need": category pages (the search page filtered by category). */
   categories: { slug: string; name: string }[];
 };
@@ -376,27 +379,33 @@ export async function eventPlan(env: ServerEnv, userId: string, eventId: string)
         ${CARD_FROM}
         where e.id = ${eventId} and e.host_user_id = ${userId}`);
       if (!e) throw new PlanNotFound();
-      const rows = [
-        ...(await tx.execute<PlanRow>(sql`
+      const rows = (
+        await tx.execute<Omit<PlanRow, 'photo'> & ListPhotoColumns>(sql`
           select ev.id as "rowId", v.id as "vendorId", v.slug::text as slug, v.display_name as name, ${MAIN_CATEGORY} as category,
                  v.claim_status = 'claimed' as claimed, v.listing_status = 'published' as listed, ev.status,
                  ev.booked_at::text as "bookedAt",
                  -- A flag counts only for the current marking (the person may un-mark and mark again).
-                 case when ev.vendor_flagged_at >= ev.booked_at then ev.vendor_flagged_at::text end as "flaggedAt"
+                 case when ev.vendor_flagged_at >= ev.booked_at then ev.vendor_flagged_at::text end as "flaggedAt",
+                 ${LIST_PHOTO_COLUMNS}
           from event_vendor ev join vendor v on v.id = ev.vendor_id
+          ${LIST_PHOTO}
           where ev.event_id = ${eventId} and ev.host_user_id = ${userId}
-          order by ev.created_at`)),
-      ];
+          order by ev.created_at`)
+      ).map((r) => withListPhoto(env, r, r.listed));
 
       let ideas: Ideas | null = null;
       if (e.typeId && e.typeName && e.typeKey) {
         // Featured: only what featured_for_type gives (current placements of listed
         // businesses, at most 3, in the team's order); never the team's note.
-        const featured = await tx.execute<{ slug: string; name: string; town: string; category: string | null; vendorId: string }>(sql`
-          select v.id as "vendorId", v.slug::text as slug, v.display_name as name, mu.name as town, ${MAIN_CATEGORY} as category
-          from featured_for_type(${e.typeId}::uuid) with ordinality as f(vendor_id, n)
-          join vendor v on v.id = f.vendor_id join municipality mu on mu.id = v.primary_municipality_id
-          order by f.n`);
+        const featured = (
+          await tx.execute<{ slug: string; name: string; town: string; category: string | null; vendorId: string } & ListPhotoColumns>(sql`
+            select v.id as "vendorId", v.slug::text as slug, v.display_name as name, mu.name as town, ${MAIN_CATEGORY} as category,
+                   ${LIST_PHOTO_COLUMNS}
+            from featured_for_type(${e.typeId}::uuid) with ordinality as f(vendor_id, n)
+            join vendor v on v.id = f.vendor_id join municipality mu on mu.id = v.primary_municipality_id
+            ${LIST_PHOTO}
+            order by f.n`)
+        ).map((f) => withListPhoto(env, f));
         const categories = await tx.execute<{ slug: string; name: string }>(sql`
           select c.slug::text as slug, c.name from event_type_category s join category c on c.id = s.category_id
           left join category p on p.id = c.parent_id
@@ -522,7 +531,7 @@ export async function changePlan(
 // ------------------------------------------------------------------ C4: add to an event, save
 
 export type AddingChoices = {
-  vendor: { id: string; slug: string; name: string; ownBusiness: boolean; saved: boolean };
+  vendor: { id: string; slug: string; name: string; ownBusiness: boolean; saved: boolean; photo: ListPhoto | null };
   /** The person's events still being planned that haven't passed, soonest first. */
   events: { id: string; name: string; date: string; town: string; status: 'considering' | 'booked' | null }[];
 };
@@ -530,12 +539,14 @@ export type AddingChoices = {
 export async function addingChoices(env: ServerEnv, userId: string, slug: string): Promise<AddingChoices> {
   return planned(
     actingAs(env, asPerson(userId), async (tx) => {
-      const [v] = await tx.execute<AddingChoices['vendor']>(sql`
+      const [found] = await tx.execute<Omit<AddingChoices['vendor'], 'photo'> & ListPhotoColumns>(sql`
         select v.id, v.slug::text as slug, v.display_name as name,
                exists (select 1 from vendor_member m where m.vendor_id = v.id and m.user_id = ${userId} and m.ended_at is null) as "ownBusiness",
-               exists (select 1 from saved_vendor s where s.user_id = ${userId} and s.vendor_id = v.id) as saved
-        from vendor v where v.slug = ${slug} and v.listing_status = 'published'`);
-      if (!v) throw new PlanNotFound();
+               exists (select 1 from saved_vendor s where s.user_id = ${userId} and s.vendor_id = v.id) as saved,
+               ${LIST_PHOTO_COLUMNS}
+        from vendor v ${LIST_PHOTO} where v.slug = ${slug} and v.listing_status = 'published'`);
+      if (!found) throw new PlanNotFound();
+      const v = withListPhoto(env, found);
       const events = await tx.execute<AddingChoices['events'][number]>(sql`
         select e.id, p.title as name, e.event_date::text as date, mu.name as town,
                case when ev.status in ('considering', 'booked') then ev.status end as status
@@ -575,19 +586,22 @@ export async function addToEvent(env: ServerEnv, userId: string, eventId: string
   );
 }
 
-export type SavedVendor = { slug: string; name: string; town: string; category: string | null; listed: boolean };
+export type SavedVendor = { slug: string; name: string; town: string; category: string | null; listed: boolean; photo: ListPhoto | null };
 
 /** C6: the person's saved businesses, newest first. */
 export async function savedVendors(env: ServerEnv, userId: string): Promise<{ saved: SavedVendor[]; onTeam: boolean }> {
   return planned(
     actingAs(env, asPerson(userId), async (tx) => {
-      const saved = await tx.execute<SavedVendor>(sql`
-        select v.slug::text as slug, v.display_name as name, mu.name as town, ${MAIN_CATEGORY} as category,
-               v.listing_status = 'published' as listed
-        from saved_vendor s join vendor v on v.id = s.vendor_id join municipality mu on mu.id = v.primary_municipality_id
-        where s.user_id = ${userId}
-        order by s.created_at desc
-        limit ${PLAN_LIMITS.savedMax}`);
+      const saved = (
+        await tx.execute<Omit<SavedVendor, 'photo'> & ListPhotoColumns>(sql`
+          select v.slug::text as slug, v.display_name as name, mu.name as town, ${MAIN_CATEGORY} as category,
+                 v.listing_status = 'published' as listed, ${LIST_PHOTO_COLUMNS}
+          from saved_vendor s join vendor v on v.id = s.vendor_id join municipality mu on mu.id = v.primary_municipality_id
+          ${LIST_PHOTO}
+          where s.user_id = ${userId}
+          order by s.created_at desc
+          limit ${PLAN_LIMITS.savedMax}`)
+      ).map((r) => withListPhoto(env, r, r.listed));
       const [t] = await tx.execute<{ onTeam: boolean }>(sql`select ${ON_TEAM(userId)} as "onTeam"`);
       return { saved: [...saved], onTeam: t?.onTeam ?? false };
     }),

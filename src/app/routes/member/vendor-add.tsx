@@ -9,6 +9,7 @@ import { dateWindow, parseQuickEventForm } from '@/server/event-input';
 import { addingChoices, addToEvent, createEvent, eventFormOptions, saveVendor, unsaveVendor } from '@/server/events.server';
 import { formFields, found, refusal, todayIso, tooFast } from '@/server/plan-pages.server';
 import type { Route } from './+types/vendor-add';
+import { SquarePhoto } from '@/components/SquarePhoto';
 import styles from './plan.module.css';
 
 /**
@@ -105,8 +106,13 @@ export default function AddToEvent({ loaderData, actionData, params }: Route.Com
     <>
       <SiteHeader />
       <main className="page narrow">
-        <h1 className="title-1">Add {vendor.name} to an event</h1>
-        <div className="title-rule" aria-hidden="true" />
+        <div className={styles.withPhoto}>
+          <SquarePhoto photo={vendor.photo} alt="" />
+          <div className={styles.rowBody}>
+            <h1 className="title-1">Add {vendor.name} to an event</h1>
+            <div className="title-rule" aria-hidden="true" />
+          </div>
+        </div>
         {done && (
           <p className="notice" role="status">
             {done}{' '}

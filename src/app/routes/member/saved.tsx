@@ -8,6 +8,7 @@ import { TOO_FAST } from '@/lib/plan-terms';
 import { savedVendors, unsaveVendor } from '@/server/events.server';
 import { refusal, tooFast } from '@/server/plan-pages.server';
 import type { Route } from './+types/saved';
+import { SquarePhoto } from '@/components/SquarePhoto';
 import styles from './plan.module.css';
 
 /** Screen C6: the person's saved businesses. Private: businesses aren't told (B §4). */
@@ -61,23 +62,26 @@ export default function Saved({ loaderData, actionData }: Route.ComponentProps) 
         ) : (
           <ul className={styles.list}>
             {saved.map((s) => (
-              <li key={s.slug}>
-                <span className={styles.name}>{s.listed ? <Link to={`/vendors/${s.slug}`}>{s.name}</Link> : s.name}</span>
-                <span className={styles.meta}>{[s.category, s.town].filter(Boolean).join(' · ')}</span>
-                {!s.listed && <span className={styles.meta}>No longer listed</span>}
-                <div className={styles.rowActions}>
-                  {s.listed && (
-                    <Link to={`/vendors/${s.slug}/add`} className="text-link">
-                      Add to event
-                    </Link>
-                  )}
-                  <Form method="post">
-                    <input type="hidden" name="intent" value="unsave" />
-                    <input type="hidden" name="slug" value={s.slug} />
-                    <button type="submit" className={styles.textButton} disabled={busy}>
-                      Remove
-                    </button>
-                  </Form>
+              <li key={s.slug} className={styles.withPhoto}>
+                <SquarePhoto photo={s.photo} alt="" />
+                <div className={styles.rowBody}>
+                  <span className={styles.name}>{s.listed ? <Link to={`/vendors/${s.slug}`}>{s.name}</Link> : s.name}</span>
+                  <span className={styles.meta}>{[s.category, s.town].filter(Boolean).join(' · ')}</span>
+                  {!s.listed && <span className={styles.meta}>No longer listed</span>}
+                  <div className={styles.rowActions}>
+                    {s.listed && (
+                      <Link to={`/vendors/${s.slug}/add`} className="text-link">
+                        Add to event
+                      </Link>
+                    )}
+                    <Form method="post">
+                      <input type="hidden" name="intent" value="unsave" />
+                      <input type="hidden" name="slug" value={s.slug} />
+                      <button type="submit" className={styles.textButton} disabled={busy}>
+                        Remove
+                      </button>
+                    </Form>
+                  </div>
                 </div>
               </li>
             ))}
