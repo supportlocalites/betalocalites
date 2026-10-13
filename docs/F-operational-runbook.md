@@ -415,7 +415,10 @@ export), locked together with `gpg` AES-256 and the passphrase `BACKUP_PASSPHRAS
 secret; the product owner keeps the only other copy). The locked file is kept as the run's
 artifact for 30 days (`localites-backup-<time>`). The repository is private as well, but the
 lock is what we rely on. The same job then runs the restore drill (§6). A failed run emails
-the product owner (GitHub's own notice). It backs up the **test** database
+the product owner (GitHub's own notice, to whoever last switched the job on: PO-18 has them
+switch it off and on). With the variable `BACKUPS_ON=true`, a missing secret fails the run
+rather than skipping it. The database address's password, user and host are hidden in the
+logs, and the drill never prints row data. It backs up the **test** database
 (`SUPABASE_TEST_ADMIN_URL`); production gets the same job, with its own secrets, before launch.
 At today's size a backup is about 1.5 MB; GitHub's free artifact storage is 500 MB, so 30
 nights fit with room to spare. If they ever don't, we tell you before anything changes.
@@ -461,11 +464,14 @@ Record the first one, and any failure, in [G](./G-release-and-migration-history.
 **A backup that has never been restored is not a backup.**
 
 Integrity checks after any restore (all automatic in the drill):
-- Every table is there, with the rows the backup noted (within 1%, or 5 rows: the count
+- Every table is there, with exactly the rows in the backup file (counted in the file
+  itself), and the file holds about what the database had (within 1% or 5 rows: that count
   is taken just after the export, while the site keeps running).
 - Every link between tables (foreign key) holds: the database checks each one while
   loading, and none may be left unchecked.
-- The 10 most recently changed published businesses come back with their town.
+- The 10 most recently changed published businesses come back exactly: every detail of
+  each matches a fingerprint taken with the backup (one changed during the export is
+  reported as such).
 - Nothing written before the backup began is missing (the newest `audit_log` entry from
   then is there).
 Not checked automatically: pages rendering against the restored copy. After a real

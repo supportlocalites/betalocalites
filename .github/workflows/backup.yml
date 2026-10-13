@@ -29,22 +29,29 @@ jobs:
     env:
       DATABASE_ADMIN_URL: ${{ secrets.SUPABASE_TEST_ADMIN_URL }}
       BACKUP_PASSPHRASE: ${{ secrets.BACKUP_PASSPHRASE }}
+      BACKUPS_ON: ${{ vars.BACKUPS_ON }}
     steps:
       - uses: actions/checkout@v5
 
       - name: Check backups are switched on
         id: on
         run: |
-          if [ -z "$DATABASE_ADMIN_URL" ] || [ -z "$BACKUP_PASSPHRASE" ]; then
-            echo "::notice::SUPABASE_TEST_ADMIN_URL or BACKUP_PASSPHRASE isn't set yet (PO-18), so no backup was taken."
-            echo "on=false" >> "$GITHUB_OUTPUT"
-          else
+          if [ -n "$DATABASE_ADMIN_URL" ] && [ -n "$BACKUP_PASSPHRASE" ]; then
             echo "on=true" >> "$GITHUB_OUTPUT"
+          elif [ "$BACKUPS_ON" = true ]; then
+            # Switched on, but a secret has gone: that's a failure (and an email), never a quiet skip.
+            echo "::error::Backups are switched on (BACKUPS_ON) but SUPABASE_TEST_ADMIN_URL or BACKUP_PASSPHRASE is missing, so no backup was taken."
+            exit 1
+          else
+            echo "::notice::Backups aren't switched on yet (PO-18), so no backup was taken."
+            echo "on=false" >> "$GITHUB_OUTPUT"
           fi
 
       - name: Database tools for the server's version
         if: steps.on.outputs.on == 'true'
         run: |
+          # Kept out of the logs: the password, and the user name and host (they name the project).
+          node -e "const u = new URL(process.argv[1]); const plain = (v) => { try { return decodeURIComponent(v); } catch { return v; } }; for (const v of [u.password, plain(u.password), u.username, u.hostname]) if (v) console.log('::add-mask::' + v)" "$DATABASE_ADMIN_URL"
           url=${DATABASE_ADMIN_URL/:6543\//:5432/}
           major=$(psql "$url" -X -At -c "select current_setting('server_version_num')::int / 10000")
           echo "PG_MAJOR=$major" >> "$GITHUB_ENV"

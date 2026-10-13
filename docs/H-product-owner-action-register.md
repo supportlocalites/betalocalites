@@ -86,7 +86,7 @@ Recorded from your messages of 9 and 10 October 2026. These now shape every docu
 | **PO-14** | Switch on activity counting: add one secret in Cloudflare (steps below) | Any numbers on the team's Activity pages and the owners' Analytics pages | 3 min |
 | **PO-15** | Once "Plan an event" reaches the test site: plan a test event and look at it (steps below) | Knowing that planning works on the real hosting, not only on our computers | 5 min |
 | **PO-16** | Switch on business photos: one storage folder in Supabase, three secrets in Cloudflare (steps below) | Businesses adding photos | 10 min |
-| **PO-18** | Switch on nightly backups: one passphrase into GitHub, and one GitHub setting (steps below) | A copy of everything to restore from if the database is ever damaged | 5 min |
+| **PO-18** | Switch on nightly backups: a passphrase and a switch in GitHub, and two GitHub settings (steps below) | A copy of everything to restore from if the database is ever damaged | 10 min |
 | **PO-11** | Check the 28 test businesses (drafts) and publish the ones that are right (steps below) | Real listings on the test site | At your pace, ~5 min each |
 | **D-12** | Mailing address for the privacy policy and terms | Public launch | 1 min, later |
 
@@ -1160,23 +1160,34 @@ any of that fails, GitHub emails you. Free: it uses GitHub's included minutes (a
 2. In GitHub, open the **localites** repository → **Settings** → **Secrets and variables** →
    **Actions** → **New repository secret**.
 3. Name: `BACKUP_PASSPHRASE`. Secret: your passphrase. Click **Add secret**.
+4. On the same page, open the **Variables** tab → **New repository variable**. Name:
+   `BACKUPS_ON`, value: `true`, then **Add variable**. (Not secret. It tells the job backups
+   are meant to run, so if the passphrase ever goes missing it fails and emails you, rather
+   than quietly skipping.)
 
 **Part 2: let GitHub run it every night**
 GitHub only runs scheduled jobs from the repository's main ("default") branch, and all of
 Localites lives on the branch `claude/event-discovery-architecture-dz0qgf`.
-4. Still in **Settings**, open **General**. Under **Default branch**, click the two-arrows
+5. Still in **Settings**, open **General**. Under **Default branch**, click the two-arrows
    button, choose `claude/event-discovery-architecture-dz0qgf`, then **Update** and confirm.
    Nothing else changes: the site, the tests and the deploys stay exactly as they are.
 
-**Part 3: the first backup**
-5. Open the **Actions** tab → **Nightly backup** (left) → **Run workflow** → **Run workflow**.
-6. After about 3 minutes it shows a green tick. Click it: the summary says the backup was
+**Part 3: make sure a failure emails you**
+GitHub emails the person who last switched a scheduled job on, so:
+6. Open the **Actions** tab → **Nightly backup** (left) → the **…** button (top right) →
+   **Disable workflow**. Then the same button → **Enable workflow**.
+7. Your GitHub picture (top right) → **Settings** → **Notifications** → under **Actions**,
+   make sure **Email** and **Only notify for failed workflows** are ticked.
+
+**Part 4: the first backup**
+8. **Actions** → **Nightly backup** → **Run workflow** → **Run workflow**.
+9. After about 3 minutes it shows a green tick. Click it: the summary says the backup was
    taken and the restore check passed, and the locked file is listed under **Artifacts**.
 
 **Never send us** the passphrase. If you think it's been seen, make a new one and replace
 the secret: new backups use it; older ones still need the old one until they expire.
 
-**Done when:** the run you started in step 5 shows the green tick. Reply *"PO-18 done"*.
+**Done when:** the run you started in step 8 shows the green tick. Reply *"PO-18 done"*.
 
 ---
 

@@ -33,6 +33,11 @@ q "select json_build_object(
                     from pg_extension e join pg_namespace n on n.oid = e.extnamespace
                     where e.extname <> 'plpgsql'),
      'roles', (select json_agg(rolname order by rolname) from pg_roles where rolname !~ '^pg_'),
+     -- The 10 most recently changed published businesses, each as a fingerprint of the whole
+     -- row: after restoring, each must come back exactly (unless it changed during the export).
+     'businesses', (select json_agg(json_build_object('id', v.id, 'fingerprint', md5(row_to_json(v)::text)))
+                    from (select * from public.vendor where listing_status = 'published'
+                          order by updated_at desc limit 10) v),
      'rows', (select json_object_agg(t.table_schema || '.' || t.table_name,
                 (xpath('/row/n/text()', query_to_xml(format('select count(*) as n from %I.%I', t.table_schema, t.table_name),
                  false, true, '')))[1]::text::bigint order by t.table_schema, t.table_name)
@@ -44,4 +49,9 @@ tar -C "$work" -cf - database.dump manifest.json |
   gpg --batch --yes --quiet --pinentry-mode loopback --passphrase-fd 3 --symmetric --cipher-algo AES256 \
     --output "$out/$name" 3<<<"$BACKUP_PASSPHRASE"
 echo "$major" > "$out/pg-major"
+# Early warning: 30 nights must fit in GitHub's free 500 MB of stored files.
+size=$(stat -c %s "$out/$name")
+if (( size > 12 * 1024 * 1024 )); then
+  echo "::warning::This backup is $(( size / 1024 / 1024 )) MB: 30 nights may no longer fit GitHub's free storage. Tell the product owner (runbook F §5)." >&2
+fi
 echo "$out/$name"

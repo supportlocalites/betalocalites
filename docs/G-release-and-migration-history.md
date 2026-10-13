@@ -66,8 +66,12 @@ backup is missing. A failure emails the product owner. Switched on by PO-18.
 **Destructive?** No: the job only reads the database.
 **Tests run:** on a copy of the local test database (77 tables, about 30,000 rows): backup
 taken (1.5 MB locked), restored and checked in 7.5 seconds; the check fails as it should when
-rows are missing and with the wrong passphrase; the locked file holds no readable business
-names or email addresses.
+rows are missing, when a business comes back different and with the wrong passphrase; the
+locked file holds no readable business names or email addresses. An independent review's
+findings were fixed: exact row counts from the backup file itself; each of 10 businesses
+compared detail by detail; no row data in error messages; a missing secret fails loudly once
+switched on; failure emails reach the product owner (PO-18 step 6); the database address is
+hidden in the logs.
 **Restore drill:** automatic, nightly (runbook F §6). The first run on GitHub is recorded here.
 **How to roll back:** delete `.github/workflows/backup.yml` (backups stop; existing ones
 expire after 30 days).
