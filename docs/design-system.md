@@ -132,7 +132,7 @@ Widths: phone below 768px (designed first), tablet 768–1199px, desktop 1200px 
 
 | Screen | Phone | Desktop (tablet sits between) |
 |---|---|---|
-| Welcome | Words centred in the upper third (product owner, 12 October 2026), buttons two-thirds down, stacked | Words and buttons centred, side by side; no photos |
+| Welcome | Words centred in the upper third (product owner, 12 October 2026), buttons two-thirds down, stacked | Words and buttons centred; buttons stacked, Browse local on top (product owner, 13 October 2026); no photos |
 | Home | Search bar, Featured row (scrolls sideways), Collections | Title and category chips, Featured 4 across, Collections 3 across |
 | Search | Results list; filters open from a button | Filters in a left column, results on the right |
 | Vendor profile | Photo on top; Add to event / Message bar fixed at the bottom | Large photo left; details, prices and buttons right |
