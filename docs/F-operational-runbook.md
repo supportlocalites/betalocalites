@@ -174,6 +174,14 @@ guide this live (PO-03 part 3). Changing the password later is the same two step
   templates from `emails/sign-in-code.html`, sign-ups on, "Confirm email" on, codes of 6
   digits lasting 900 seconds. If codes stop arriving, check Resend's **Emails** log first,
   then Supabase **Authentication** → **Emails** → **SMTP Settings**.
+- **"I never got my code":** (1) ask them to check spam, junk and the "Promotions" tab;
+  (2) in **Resend → Emails**, look for an email to their address at that time: *delivered*
+  means it reached their mail provider, *bounced* or *failed* gives the reason; (3) if there
+  is no email in Resend at all, open Supabase → **Authentication → Logs** for that time.
+  The site waits **60 seconds** between codes to one address (the "Send a new code" button
+  counts down), the same as Supabase's own minimum interval; if Supabase still refuses one,
+  the page says so rather than claiming a code was sent. If Supabase's interval is ever
+  changed, change `RESEND_WAIT_SECONDS` in `src/lib/claim-terms.ts` to match.
 - **"We've sent a lot of sign-in codes today":** our daily cap of 60 codes was reached. It
   clears itself within a day. If it happens often, the cap (`CODES_PER_DAY` in
   `src/server/auth/code-limits.server.ts`) can rise towards Resend's free 100 a day.

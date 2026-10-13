@@ -12,7 +12,7 @@ export default function Welcome() {
       <div className={styles.frame}>
         <div className={styles.words}>
           <h1 className={styles.name}>
-            <Wordmark suffix="." />
+            <Wordmark />
           </h1>
           <div className={styles.rule} aria-hidden="true" />
           <p className={styles.sub}>

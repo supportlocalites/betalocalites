@@ -2,6 +2,7 @@ import { sql } from 'drizzle-orm';
 import type { Db } from '../db.server';
 import { withDb } from '../db.server';
 import type { ServerEnv } from '../env';
+import { RESEND_WAIT_SECONDS } from '@/lib/claim-terms';
 import { CODE_MINUTES } from '../member-input';
 
 /**
@@ -28,30 +29,50 @@ export async function addressHash(email: string): Promise<string> {
 /** Holds a lock on one address until the transaction ends, so its counts can't race. */
 const lockAddress = (tx: Db, hash: string) => tx.execute(sql`select pg_advisory_xact_lock(hashtextextended(${hash}, 0))`);
 
-export type SendCheck = 'ok' | 'address_limit' | 'daily_limit';
+export type SendCheck = 'ok' | 'too_soon' | 'address_limit' | 'daily_limit';
 
 /**
  * Counts a request for a code, if the limits allow it. "sent" rows record requests that
  * passed our limits, whether or not Supabase then sent an email.
  */
-export async function claimCodeSend(env: ServerEnv, hash: string): Promise<{ check: SendCheck; recentlyAsked: boolean }> {
+export async function claimCodeSend(
+  env: ServerEnv,
+  hash: string,
+): Promise<{ check: SendCheck; recentlyAsked: boolean; sinceLast: number | null }> {
   return withDb(env, (db) =>
     db.transaction(async (tx) => {
       await lockAddress(tx, hash);
-      const [row] = await tx.execute<{ address: number; minute: number; today: number }>(sql`
+      const [row] = await tx.execute<{ address: number; minute: number; today: number; sinceLast: number | null }>(sql`
         select count(*) filter (where email_hash = ${hash} and created_at > now() - interval '1 hour')::int as address,
                count(*) filter (where email_hash = ${hash} and created_at > now() - interval '65 seconds')::int as minute,
-               count(*)::int as today
+               count(*)::int as today,
+               floor(extract(epoch from now() - max(created_at) filter (where email_hash = ${hash})))::int as "sinceLast"
         from sign_in_code_event
         where kind = 'sent' and created_at > now() - interval '1 day'`);
       const recentlyAsked = (row?.minute ?? 0) > 0;
-      if ((row?.today ?? 0) >= CODES_PER_DAY) return { check: 'daily_limit', recentlyAsked };
-      if ((row?.address ?? 0) >= CODES_PER_ADDRESS_PER_HOUR) return { check: 'address_limit', recentlyAsked };
+      const sinceLast = row?.sinceLast ?? null;
+      if ((row?.today ?? 0) >= CODES_PER_DAY) return { check: 'daily_limit', recentlyAsked, sinceLast };
+      if ((row?.address ?? 0) >= CODES_PER_ADDRESS_PER_HOUR) return { check: 'address_limit', recentlyAsked, sinceLast };
+      // Too soon after the last one: not counted, and the page says how long to wait.
+      if (sinceLast !== null && sinceLast < RESEND_WAIT_SECONDS) return { check: 'too_soon', recentlyAsked, sinceLast };
       await tx.execute(sql`insert into sign_in_code_event (email_hash, kind) values (${hash}, 'sent')`);
       // Keep only two days: enough for the limits above.
       await tx.execute(sql`delete from sign_in_code_event where created_at < now() - interval '2 days'`);
-      return { check: 'ok', recentlyAsked };
+      return { check: 'ok', recentlyAsked, sinceLast };
     }),
+  );
+}
+
+/**
+ * Takes back the newest request just counted, when Supabase refused to send it (it waits
+ * between codes to one address): it doesn't use up the address's 3 an hour, and the wait
+ * runs from the code that was really sent.
+ */
+export async function uncountCodeSend(env: ServerEnv, hash: string): Promise<void> {
+  await withDb(env, (db) =>
+    db.execute(sql`
+      delete from sign_in_code_event where id = (
+        select id from sign_in_code_event where email_hash = ${hash} and kind = 'sent' order by created_at desc, id desc limit 1)`),
   );
 }
 

@@ -7,6 +7,14 @@
 /** How long an emailed sign-in code works (the Supabase setting in PO-13 matches). */
 export const CODE_MINUTES = 15;
 
+/**
+ * How long to wait before asking for another code: the "Send a new code" button counts
+ * down from this, and the server refuses sooner requests. It matches Supabase's own minimum
+ * interval between emails to one address (60 seconds, its default), so a code asked for
+ * once the button is ready is really sent. If Supabase's setting ever changes, change this.
+ */
+export const RESEND_WAIT_SECONDS = 60;
+
 /** Open claims one person may have at a time (keeps the team's queue honest). */
 export const OPEN_CLAIMS_PER_PERSON = 3;
 

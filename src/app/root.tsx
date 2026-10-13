@@ -26,6 +26,13 @@ export function loader({ request }: Route.LoaderArgs) {
   return { signedIn: hasSessionCookie(request) };
 }
 
+/**
+ * Read again on every page change, so the header never shows "Sign in" to someone signed
+ * in, or "My events" and "Account" to someone whose session has ended. It only reads a
+ * cookie, so it costs nothing.
+ */
+export const shouldRevalidate = () => true;
+
 export function Layout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en-CA">
@@ -75,9 +82,7 @@ export function ErrorBoundary({ error }: Route.ErrorBoundaryProps) {
         <h1 className="title-1">{notFound ? 'We couldn’t find that page' : 'Something went wrong'}</h1>
         <div className="title-rule" aria-hidden="true" />
         <p className="muted">
-          {notFound
-            ? 'It may have moved, or the business may no longer be listed.'
-            : 'The page didn’t load. Please try again in a moment.'}
+          {notFound ? 'It may have moved, or the business may no longer be listed.' : 'The page didn’t load. Please try again in a moment.'}
         </p>
         <Link to="/explore" className="button button-primary">
           Back to Explore

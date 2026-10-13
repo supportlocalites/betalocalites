@@ -64,7 +64,7 @@ than from Google, which is faster and sends no visitor data to a third party.
 
 | Role | Phone | Desktop | Notes |
 |---|---|---|---|
-| Welcome name ("Localites.") | 72 / 700 | 64–132, scales with width | Letter-spacing −0.02em |
+| Welcome name ("Localites") | 72 / 700 | 64–132, scales with width | Letter-spacing −0.02em |
 | Title 1 (page title) | 30 / 600 | 44 / 600 | Playfair |
 | Title 2 | 26 / 600 | 30 / 600 | Playfair |
 | Title 3 (business names) | 18 / 600 | 19 / 600 | Playfair |
@@ -176,7 +176,7 @@ Mockups: phone `G-00` to `G-14`; desktop `G-D1` to `G-D6`.
   pages and empty results (D-25). **Plan an event** is **live** on Welcome (2A, 13 October
   2026), as a secondary button under **Browse local** (side by side on a computer, stacked
   full width on a phone), and as **My events** in the header when signed in. The event's
-  kind is asked as "What kind of event? (optional)" with **None** chosen (D-39). Welcome reads "Localites." /
+  kind is asked as "What kind of event? (optional)" with **None** chosen (D-39). Welcome reads "Localites" (no full stop, product owner, 13 October 2026) /
   "Love where you live" ("Welcome to" removed; changed by the product owner, 12 October 2026).
 - Language rules in [A §6](./A-product-blueprint.md#6-language-rules) apply throughout.
 

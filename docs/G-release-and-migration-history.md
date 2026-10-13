@@ -31,6 +31,34 @@ Every release and every database migration, in order. Appended before each deplo
 
 ## Releases
 
+### 2026-10-13 — Sign-in: a 60-second countdown, honest replies, header always right (Stage 1, not public)
+
+**Stage:** 1 (ADR-028; reported by the product owner: a code that didn't arrive, and the
+site looking signed out and then signed in)
+**What changed (plain English):**
+- **"Send a new code" is greyed out and counts down from 60 seconds** after a code is
+  sent, the same wait Supabase keeps between codes to one address. Asking sooner is refused
+  with how long to wait, and isn't counted against the 3 codes an hour.
+- **No more "we've emailed a code" when nothing was sent.** If Supabase refuses a code
+  because one was sent moments before, the page now says to use that one.
+- **The header is checked on every page**, so it never shows "Sign in" to someone signed in,
+  or "My events" and "Account" after a session has ended (it could before, until a full page
+  reload; that is the likely cause of "logged out, then not").
+- **Team two-step page:** a renewed sign-in is now always saved in the browser, even when the
+  code typed is wrong (before, the browser could keep an old key, which could later end the
+  session).
+- **Welcome:** "Localites" without the full stop.
+**Not found:** why the first code didn't arrive. Nothing in this week's changes touched how
+codes are sent; the runbook now lists where to look (spam, then Resend's Emails log, then
+Supabase's Authentication logs).
+**Migrations applied:** none.
+**Destructive?** No.
+**Tests run:** checks passed; unit 136/136; end-to-end 363/363 (sign-in and claiming now
+74, with the countdown and the honest "wait" reply); in a real browser at phone width the
+button reads "Send a new code (60)", greyed out, then counts down.
+**How to roll back:** Cloudflare → localites → Deployments → previous version → Deploy.
+**Approved by:** Product owner (13 October 2026: "make the supabase and our timers match").
+
 ### 2026-10-13 — Plan an event (Stage 2, slice 2A; not public)
 
 **Stage:** 2 (D-13, D-18, D-39 to D-43; ADR-031)

@@ -1,16 +1,16 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { data, Form, Link, redirect, useNavigation } from 'react-router';
 import { cloudflareContext } from '@/app/context';
 import { HumanCheckField, useHumanCheck } from '@/components/HumanCheck';
 import { NameFields, ProfileFields } from '@/components/ProfileFields';
 import { SiteHeader } from '@/components/SiteHeader';
 import { pageMeta } from '@/lib/meta';
-import { addressHash, claimCodeGuess, claimCodeSend, guessWasRight } from '@/server/auth/code-limits.server';
+import { addressHash, claimCodeGuess, claimCodeSend, guessWasRight, uncountCodeSend } from '@/server/auth/code-limits.server';
 import { AuthError, authConfigured, authSettings, sendSignInCode, verifySignInCode } from '@/server/auth/gotrue.server';
 import { createPerson, findPerson } from '@/server/auth/member.server';
 import { CODE_FAILED, explainCodeError, NEUTRAL_SEND_CODES } from '@/server/auth/messages.server';
 import { loadSession, safeNext, sessionCookies, withCookies } from '@/server/auth/session.server';
-import { CODE_MINUTES } from '@/lib/claim-terms';
+import { CODE_MINUTES, RESEND_WAIT_SECONDS } from '@/lib/claim-terms';
 import { codeInput, emailInput, NAMES_NEEDED, namesInput, profileInput } from '@/server/member-input';
 import { isUniqueViolation } from '@/server/db.server';
 import type { ServerEnv } from '@/server/env';
@@ -59,9 +59,21 @@ export async function loader({ request, context }: Route.LoaderArgs) {
 
 export const headers: Route.HeadersFunction = ({ loaderHeaders }) => loaderHeaders;
 
-type Reply = { step: Step; email: string; error: string | null; notice: string | null; errors: Record<string, string> };
+/**
+ * `wait`: when a code was just asked for, a fresh id and how many seconds until "Send a new
+ * code" may be used again (the button counts down; the server refuses sooner requests).
+ */
+type Reply = {
+  step: Step;
+  email: string;
+  error: string | null;
+  notice: string | null;
+  errors: Record<string, string>;
+  wait: { id: string; seconds: number } | null;
+};
 const reply = (r: Partial<Reply> & { step: Step }, status = 200, cookies: string[] = []) =>
-  data<Reply>({ email: '', error: null, notice: null, errors: {}, ...r }, withCookies({ status }, cookies));
+  data<Reply>({ email: '', error: null, notice: null, errors: {}, wait: null, ...r }, withCookies({ status }, cookies));
+const waitFor = (seconds: number) => ({ id: crypto.randomUUID(), seconds: Math.max(1, Math.ceil(seconds)) });
 
 export async function action({ request, context }: Route.ActionArgs) {
   const { env } = context.get(cloudflareContext);
@@ -124,9 +136,14 @@ export async function action({ request, context }: Route.ActionArgs) {
  * so nobody can learn whether an address has an account (ADR-028).
  */
 async function sendCode(env: ServerEnv, email: string, hash: string) {
-  const { check, recentlyAsked } = await claimCodeSend(env, hash);
+  const { check, recentlyAsked, sinceLast } = await claimCodeSend(env, hash);
   if (check === 'daily_limit') {
     return reply({ step: 'email', email, error: 'We’ve sent a lot of sign-in codes today. Please try again tomorrow.' }, 429);
+  }
+  if (check === 'too_soon') {
+    const left = RESEND_WAIT_SECONDS - (sinceLast ?? 0);
+    const notice = `We sent a code a moment ago. Use that one, or ask for a new one in ${Math.max(1, left)} seconds.`;
+    return reply({ step: 'code', email, notice, wait: waitFor(left) }, 429);
   }
   if (check === 'address_limit') {
     const notice =
@@ -152,9 +169,17 @@ async function sendCode(env: ServerEnv, email: string, hash: string) {
     if (neutral && signUpOpen && err.code === 'over_email_send_rate_limit' && !recentlyAsked) {
       return reply({ step: 'email', email, error: 'We’re sending a lot of codes right now. Please try again in a few minutes.' }, 429);
     }
+    // Supabase waits a while between codes to one address and refused this one: say so,
+    // rather than "we've emailed a code" (nothing was sent), and don't count it.
+    if (neutral && signUpOpen && err.code === 'over_email_send_rate_limit' && recentlyAsked) {
+      await uncountCodeSend(env, hash);
+      const notice =
+        'We sent a code to this address less than a minute ago. Use that one; if it hasn’t arrived, ask for a new one in a minute.';
+      return reply({ step: 'code', email, notice, wait: waitFor(60 - (sinceLast ?? 0)) }, 429);
+    }
     if (!neutral) return reply({ step: 'email', email, error: explainCodeError(err) }, 400);
   }
-  return reply({ step: 'code', email });
+  return reply({ step: 'code', email, wait: waitFor(RESEND_WAIT_SECONDS) });
 }
 
 async function checkCode(env: ServerEnv, email: string, hash: string, raw: FormDataEntryValue | null, next: string) {
@@ -180,9 +205,36 @@ async function checkCode(env: ServerEnv, email: string, hash: string, raw: FormD
   }
 }
 
+/**
+ * "Send a new code", greyed out and counting down until another code may be asked for
+ * (RESEND_WAIT_SECONDS). Starts afresh (a new key) each time a code is asked for. Without
+ * JavaScript the button stays usable and the server says how long to wait.
+ */
+function ResendButton({ seconds, disabled }: { seconds: number; disabled: boolean }) {
+  const [left, setLeft] = useState(seconds);
+  useEffect(() => {
+    if (seconds <= 0) return;
+    const started = Date.now();
+    const timer = setInterval(() => {
+      const remaining = Math.max(0, seconds - Math.floor((Date.now() - started) / 1000));
+      setLeft(remaining);
+      if (remaining === 0) clearInterval(timer);
+    }, 250);
+    return () => clearInterval(timer);
+  }, [seconds]);
+  return (
+    <button type="submit" className="button button-secondary" disabled={disabled || left > 0} aria-live="polite">
+      {left > 0 ? `Send a new code (${left})` : 'Send a new code'}
+    </button>
+  );
+}
+
 export default function Join({ loaderData, actionData }: Route.ComponentProps) {
   const busy = useNavigation().state !== 'idle';
   const step = actionData?.step ?? loaderData.step;
+  // The latest "wait before asking again", kept while other replies (a wrong code) come and go.
+  const [wait, setWait] = useState<Reply['wait']>(actionData?.wait ?? null);
+  if (actionData?.wait && actionData.wait.id !== wait?.id) setWait(actionData.wait);
   const email = actionData?.email || loaderData.email;
   const { next, configured, signUpOpen, humanCheck } = loaderData;
   // One check per screen; a fresh one after every reply (an answer works once).
@@ -288,9 +340,7 @@ export default function Join({ loaderData, actionData }: Route.ComponentProps) {
               <input type="hidden" name="next" value={next} />
               <input type="hidden" name="email" value={email} />
               <HumanCheckField answer={answer} on={checkOn} />
-              <button type="submit" className="button button-secondary" disabled={busy || waiting}>
-                Send a new code
-              </button>
+              <ResendButton key={wait?.id ?? 'none'} seconds={wait?.seconds ?? 0} disabled={busy || waiting} />
             </Form>
             <p className="section-gap">
               <Link to={restart} className="text-link">

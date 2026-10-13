@@ -68,12 +68,14 @@ let before = Date.now();
 r = await site('/join', { method: 'POST', form: { intent: 'send', email: alice, next: '/account' }, ip: from });
 const sentReply = r.body.includes('We’ve emailed a 6-digit code to');
 check('a new address is told a code is on its way', r.status === 200 && sentReply, String(r.status));
+check('“Send a new code” is greyed out, counting down from 60 seconds (Supabase’s wait between codes)',
+  /<button[^>]*disabled=""[^>]*>Send a new code \(60\)<\/button>/.test(r.body), r.body.match(/<button[^>]*>Send a new code[^<]*<\/button>/)?.[0]);
 const [mail] = (await mailFor(alice)).filter((m) => m.at >= before - 1);
 check('the email holds only a 6-digit code, no link', /Your Localites code: \d{6}/.test(mail?.subject ?? '') && !/href=|https?:\/\//.test(mail?.body ?? ''), mail?.subject);
 check('the email warns never to share the code', (mail?.body ?? '').includes('Never share this code'));
 r = await site('/join', { method: 'POST', form: { intent: 'send', email: alice, next: '/account' }, ip: from });
 const mailsNow = (await mailFor(alice)).filter((m) => m.at >= before - 1).length;
-check('asking again straight away: the same reply, and no second email yet', r.status === 200 && r.body.includes('We’ve emailed a 6-digit code to') && mailsNow === 1, `${r.status} ${mailsNow}`);
+check('asking again straight away: told honestly to wait, and no second email', r.status === 429 && r.body.includes('We sent a code a moment ago. Use that one, or ask for a new one in') && mailsNow === 1, `${r.status} ${mailsNow}`);
 r = await site('/join', { method: 'POST', form: { intent: 'send', email: 'not-an-address', next: '/account' }, ip: from });
 check('a mistyped address is pointed out', r.status === 400 && r.body.includes('Please check the email address'));
 
@@ -88,7 +90,9 @@ for (let i = 0; i < 5; i++) {
 check('a wrong code is refused, with no cookies', wrongReplies === 5, `${wrongReplies} of 5`);
 r = await site('/join', { method: 'POST', form: { intent: 'verify', email: alice, code, next: '/account' }, ip: ip() });
 check('after 5 wrong tries even the right code is refused (same words)', r.status === 400 && r.body.includes(CODE_FAILED) && !cookiesFrom(r).includes('lc_at'), String(r.status));
-await wait(5500); // the local server's wait between codes (60 seconds on the real one)
+// Our wait (60 seconds, as Supabase's on the real site): move the last request back a minute.
+await sql`update sign_in_code_event set created_at = created_at - interval '61 seconds' where email_hash = ${hashOf(alice)} and kind = 'sent'`;
+await wait(5500); // the local sign-in server's own wait between codes (5 seconds here)
 before = Date.now();
 r = await site('/join', { method: 'POST', form: { intent: 'send', email: alice, next: '/account' }, ip: from });
 const fresh = await latestCode(alice, before - 1);
