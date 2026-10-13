@@ -6,6 +6,8 @@ name: CI
 
 on:
   push:
+    # Asking for a look at the site watch (watch-check.yml) isn't a change to the site.
+    paths-ignore: ['.github/watch-check.txt']
   pull_request:
 
 permissions:

@@ -32,6 +32,27 @@ jobs:
       - run: npm ci
       - name: Its versions (adding a secret makes a new one)
         run: npx wrangler deployments list --name localites-watch 2>&1 | tail -20 || true
+      - name: The schedules Cloudflare has, and its record of past scheduled runs
+        run: |
+          api=https://api.cloudflare.com/client/v4/accounts/$CLOUDFLARE_ACCOUNT_ID
+          for w in localites-watch localites; do
+            echo "== $w schedules:"
+            curl -s -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" "$api/workers/scripts/$w/schedules" |
+              node -e 'let d="";process.stdin.on("data",c=>d+=c).on("end",()=>{const j=JSON.parse(d);console.log(j.success?JSON.stringify(j.result):"refused: "+JSON.stringify(j.errors))})'
+          done
+          since=$(date -u -d '-3 hours' +%FT%TZ)
+          query='query($a:String!,$since:Time!){viewer{accounts(filter:{accountTag:$a}){workersInvocationsScheduled(limit:50,filter:{datetime_geq:$since},orderBy:[datetime_DESC]){scriptName cron status datetime}}}}'
+          echo "== scheduled runs since $since (newest first):"
+          curl -s -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" -H 'Content-Type: application/json' https://api.cloudflare.com/client/v4/graphql \
+            -d "$(node -e 'console.log(JSON.stringify({query:process.argv[1],variables:{a:process.argv[2],since:process.argv[3]}}))' "$query" "$CLOUDFLARE_ACCOUNT_ID" "$since")" |
+            node -e 'let d="";process.stdin.on("data",c=>d+=c).on("end",()=>{const j=JSON.parse(d);if(j.errors&&j.errors.length){console.log("refused: "+j.errors.map(e=>e.message).join("; "));return}const r=j.data.viewer.accounts[0].workersInvocationsScheduled;console.log(r.length+" runs");for(const x of r)console.log(`${x.datetime} ${x.scriptName} ${x.cron} ${x.status}`)})'
+      - name: Listening works (a quick check on the site itself)
+        run: |
+          (timeout 25 npx wrangler tail localites --format json > site-tail.jsonl 2> site-tail.err || true) &
+          sleep 12
+          curl -s -o /dev/null "https://localites.supportlocalites.workers.dev/api/health"
+          wait
+          echo "Events heard from the site: $(grep -c . site-tail.jsonl || true)"; grep -v '^\s*$' site-tail.err | tail -5 || true
       - name: Listen
         run: |
           timeout 390 npx wrangler tail localites-watch --format json > tail.jsonl 2> tail.err || true
