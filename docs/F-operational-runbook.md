@@ -174,6 +174,10 @@ guide this live (PO-03 part 3). Changing the password later is the same two step
   templates from `emails/sign-in-code.html`, sign-ups on, "Confirm email" on, codes of 6
   digits lasting 900 seconds. If codes stop arriving, check Resend's **Emails** log first,
   then Supabase **Authentication** → **Emails** → **SMTP Settings**.
+- **Deleted accounts (E §8):** when someone deletes their account, **Admin → Deleted accounts**
+  shows its id with "to finish". Within 30 days: in Supabase open **Authentication → Users**,
+  search for that id, delete the user, then click **Done** (recorded in the audit log). Until
+  then, that email address signing in again only sees "This account has been closed".
 - **"I never got my code":** (1) ask them to check spam, junk and the "Promotions" tab;
   (2) in **Resend → Emails**, look for an email to their address at that time: *delivered*
   means it reached their mail provider, *bounced* or *failed* gives the reason; (3) if there

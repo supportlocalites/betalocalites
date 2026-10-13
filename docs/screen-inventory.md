@@ -36,7 +36,7 @@ added; quotes, bookings and the concierge queue removed.
 | A1 | Sign in or create an account: one screen for both (D-27). **Built** (`/join`): email, a 6-digit emailed code (with a reminder to check spam), then, for new people, their name and, if they wish, gender, date of birth and address (D-32, D-36) | 1 |
 | A2 | "We've emailed you a code" (part of A1; codes, not links, D-32) | 1 |
 | A3 | ~~Reset password~~: not needed, no passwords for the public (D-32). The team's password reset is in the runbook | — |
-| A4 | Account settings, delete my account. **First version built** (`/account`): name, email, personal details (D-36), your businesses and claims, a "Planning" section and, for owners, **Bookings marked**, sign out; deleting an account comes before launch | 1 |
+| A4 | Account settings, delete my account. **Built** (`/account`; **Delete your account** at `/account/delete`, 13 October 2026, E §8): name, email, personal details (D-36), your businesses and claims, a "Planning" section and, for owners, **Bookings marked**, sign out; deleting an account comes before launch | 1 |
 | A5 | Switch: "My events" ⇄ "My business" (only shown to people on a vendor team). **Built** (2A) on My events, Saved businesses and My business | 2 |
 
 ## Consumer

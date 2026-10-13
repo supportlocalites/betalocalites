@@ -13,9 +13,11 @@ export default [
   route('sign-in', 'routes/sign-in.tsx'),
   route('two-step', 'routes/two-step.tsx'),
   route('sign-out', 'routes/sign-out.ts'),
+  route('goodbye', 'routes/goodbye.tsx'),
   // Needs an account: every request passes the gate in routes/member/layout.tsx (D-27).
   layout('routes/member/layout.tsx', [
     route('account', 'routes/member/account.tsx'),
+    route('account/delete', 'routes/member/account-delete.tsx'),
     route('vendors/:slug/claim', 'routes/member/claim.tsx'),
     route('vendors/:slug/edit', 'routes/member/listing-edit.tsx'),
     route('vendors/:slug/analytics', 'routes/member/analytics.tsx'),
@@ -46,5 +48,6 @@ export default [
     route('suggestions', 'routes/admin/suggestions.tsx'),
     route('event-types', 'routes/admin/event-types.tsx'),
     route('booking-flags', 'routes/admin/booking-flags.tsx'),
+    route('account-deletions', 'routes/admin/account-deletions.tsx'),
   ]),
 ] satisfies RouteConfig;

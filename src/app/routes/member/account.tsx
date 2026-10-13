@@ -116,9 +116,7 @@ export default function Account({ loaderData, actionData }: Route.ComponentProps
             Your businesses
           </h2>
           {businesses.length === 0 ? (
-            <p className="muted">
-              None yet. If your business is on Localites, open its page and choose “Claim this business”.
-            </p>
+            <p className="muted">None yet. If your business is on Localites, open its page and choose “Claim this business”.</p>
           ) : (
             <>
               <ul className={styles.list}>
@@ -175,6 +173,11 @@ export default function Account({ loaderData, actionData }: Route.ComponentProps
           </section>
         )}
 
+        <p className={styles.section}>
+          <Link to="/account/delete" className="text-link">
+            Delete your account
+          </Link>
+        </p>
         <Form method="post" action="/sign-out" className={styles.section}>
           <button type="submit" className="button button-secondary">
             Sign out

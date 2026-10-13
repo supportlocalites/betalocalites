@@ -31,6 +31,26 @@ Every release and every database migration, in order. Appended before each deplo
 
 ## Releases
 
+### 2026-10-13 — Delete your account (Stage 1, before launch; E §8)
+
+**Stage:** 1 (a launch requirement; D-10)
+**What changed (plain English):** **Your account → Delete your account.** The page says
+plainly what goes and what stays, and asks the person to type their email address. Then,
+at once: their events, plans and saved businesses are deleted; their name, email and
+personal details are erased; they leave any business's team (a business with no owner left
+goes back to unclaimed); open claims are withdrawn; they're unlinked from activity and
+suggestions; they're signed out and shown "Your account is deleted". Team members can't
+delete their account here. One step stays manual: the team removes the person's Supabase
+sign-in record within 30 days, from **Admin → Deleted accounts** (runbook).
+**Migrations applied:** `0014_account_deletion.sql` (one table for the team's list; one
+function that does the deletion, run as the person themselves).
+**Destructive?** Only for the person who asks, by design; nobody else's data changes.
+**Tests run:** database 0014 20/20 (new) and every earlier file; unit 136/136; end-to-end
+account deletion 22/22 (new) plus every earlier suite.
+**How to roll back:** Cloudflare → Deployments → previous version (the page disappears;
+deleted accounts stay deleted).
+**Approved by:** Product owner (13 October 2026: "Delete my account").
+
 ### 2026-10-13 — Bookings marked before a business joined (Stage 2, not public)
 
 **Stage:** 2 (D-44, ADR-031)

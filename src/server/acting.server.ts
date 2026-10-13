@@ -58,7 +58,7 @@ export class PlanCapped extends Error {
 export type PlanFailure = PlanNotFound | PlanRefused | PlanCapped;
 
 /** The Postgres error code (SQLSTATE), however the driver wraps it (as isUniqueViolation). */
-function errorCode(err: unknown): string | null {
+export function errorCode(err: unknown): string | null {
   for (let e = err; e && typeof e === 'object'; e = (e as { cause?: unknown }).cause) {
     const code = (e as { code?: unknown }).code;
     if (typeof code === 'string' && /^[0-9A-Z]{5}$/.test(code)) return code;

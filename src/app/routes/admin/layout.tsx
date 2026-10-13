@@ -2,6 +2,7 @@ import { Form, Link, NavLink, Outlet } from 'react-router';
 import { adminContext, cloudflareContext } from '@/app/context';
 import { Wordmark } from '@/components/Wordmark';
 import { countOpenFlags } from '@/server/admin/booking-flags.server';
+import { countPendingDeletions } from '@/server/account-deletion.server';
 import { adminGate } from '@/server/auth/admin.server';
 import { countOpenClaims } from '@/server/claims.server';
 import { countNewSuggestions } from '@/server/suggestions.server';
@@ -28,12 +29,13 @@ export const middleware: Route.MiddlewareFunction[] = [
 export async function loader({ context }: Route.LoaderArgs) {
   const admin = context.get(adminContext);
   const { env } = context.get(cloudflareContext);
-  const [newSuggestions, openClaims, openFlags] = await Promise.all([
+  const [newSuggestions, openClaims, openFlags, deletions] = await Promise.all([
     countNewSuggestions(env),
     countOpenClaims(env),
     countOpenFlags(env, admin),
+    countPendingDeletions(env, admin),
   ]);
-  return { name: admin.name, email: admin.email, newSuggestions, openClaims, openFlags };
+  return { name: admin.name, email: admin.email, newSuggestions, openClaims, openFlags, deletions };
 }
 
 export default function AdminLayout({ loaderData }: Route.ComponentProps) {
@@ -62,6 +64,9 @@ export default function AdminLayout({ loaderData }: Route.ComponentProps) {
           </NavLink>
           <NavLink to="/admin/booking-flags" className="text-link">
             Booking flags ({loaderData.openFlags})
+          </NavLink>
+          <NavLink to="/admin/account-deletions" className="text-link">
+            Deleted accounts{loaderData.deletions > 0 ? ` (${loaderData.deletions} to finish)` : ''}
           </NavLink>
           <Link to="/explore" className="text-link">
             Public site
