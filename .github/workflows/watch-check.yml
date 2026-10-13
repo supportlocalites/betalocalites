@@ -40,7 +40,7 @@ jobs:
             curl -s -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" "$api/workers/scripts/$w/schedules" |
               node -e 'let d="";process.stdin.on("data",c=>d+=c).on("end",()=>{const j=JSON.parse(d);console.log(j.success?JSON.stringify(j.result):"refused: "+JSON.stringify(j.errors))})'
           done
-          since=$(date -u -d '-3 hours' +%FT%TZ)
+          since=$(date -u -d '-26 hours' +%FT%TZ)
           query='query($a:String!,$since:Time!){viewer{accounts(filter:{accountTag:$a}){workersInvocationsScheduled(limit:50,filter:{datetime_geq:$since},orderBy:[datetime_DESC]){scriptName cron status datetime}}}}'
           echo "== scheduled runs since $since (newest first):"
           curl -s -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" -H 'Content-Type: application/json' https://api.cloudflare.com/client/v4/graphql \

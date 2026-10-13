@@ -10,8 +10,9 @@
   // otherwise reach another Worker's workers.dev address).
   "compatibility_flags": ["nodejs_compat", "global_fetch_strictly_public"],
   "observability": { "enabled": true },
-  // No address of its own: it only works on its schedule.
-  "workers_dev": false,
+  // A workers.dev address that only answers "Not found": with no address at all, Cloudflare
+  // never ran its schedule (13 October 2026: zero runs in 25 quiet minutes).
+  "workers_dev": true,
   "preview_urls": false,
   // Every 5 minutes (free plan: one of the account's 5 scheduled triggers).
   "triggers": { "crons": ["*/5 * * * *"] },
