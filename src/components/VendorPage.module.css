@@ -38,11 +38,13 @@
   background: var(--color-photo-1);
 }
 
+/* The gold frame is only drawn: taps and clicks go through it to what's underneath. */
 .photo::after {
   content: '';
   position: absolute;
   inset: var(--frame-inset-photo);
   border: var(--hairline) solid var(--color-gold);
+  pointer-events: none;
 }
 
 .details {
