@@ -31,6 +31,29 @@ Every release and every database migration, in order. Appended before each deplo
 
 ## Releases
 
+### 2026-10-13 — Fixes from the hosting review of planning and sign-in
+
+**Stage:** 2 (not public)
+**What changed (plain English):** a review of "Plan an event" and sign-in against the real
+hosting's limits found 9 problems; all are fixed.
+- Emails when an event is cancelled or moved now go one after another, paced for Resend,
+  with one more try if Resend says "slow down", and at most 15 from one change (the rest are
+  recorded for the team to follow up). Before, several businesses could miss the email.
+- An email cut off mid-send no longer blocks later emails about that booking, and the nightly
+  run records it honestly. A business is told "no longer booked" even when the "booked" email
+  is still on its way.
+- Sign in: when a code couldn't be sent, trying again is no longer told "we sent a code a
+  moment ago". The countdown isn't read aloud every second by screen readers (only "You can
+  ask for a new code now"); after a code is sent the cursor goes to the code box, which reads
+  out the message; without JavaScript, "Send a new code" stays usable; a "too many tries" or
+  server problem no longer marks the email box as wrong. On the team's two-step page a wrong
+  code is linked to the box and the cursor goes back to it.
+**Migrations applied:** none.
+**Tests run:** unit 147/147; end-to-end 497/497; database tests unchanged; the countdown,
+focus and announcements checked in a real browser.
+**How to roll back:** Cloudflare → Deployments → previous version.
+**Approved by:** Product owner's standing request for this review (check-in of 13 October 2026).
+
 ### 2026-10-13 — Categories and towns for the team (Stage 1 leftover; screens X6, X8)
 
 **Stage:** 1

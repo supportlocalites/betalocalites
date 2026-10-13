@@ -1,3 +1,4 @@
+import { useEffect, useRef } from 'react';
 import { data, Form, redirect, useNavigation } from 'react-router';
 import { cloudflareContext } from '@/app/context';
 import { SiteHeader } from '@/components/SiteHeader';
@@ -77,6 +78,11 @@ export async function action({ request, context }: Route.ActionArgs) {
 export default function TwoStep({ loaderData, actionData }: Route.ComponentProps) {
   const busy = useNavigation().state !== 'idle';
   const { mode, qrCode, secret } = loaderData;
+  // After a refused code, the cursor goes back to the box (marked, and pointing at the message).
+  const codeBox = useRef<HTMLInputElement>(null);
+  useEffect(() => {
+    if (actionData?.error) codeBox.current?.focus();
+  }, [actionData]);
   return (
     <>
       <SiteHeader />
@@ -116,10 +122,13 @@ export default function TwoStep({ loaderData, actionData }: Route.ComponentProps
               maxLength={7}
               required
               className="input"
+              ref={codeBox}
+              aria-invalid={actionData?.error ? true : undefined}
+              aria-describedby={actionData?.error ? 'two-step-error' : undefined}
             />
           </div>
           {actionData?.error && (
-            <p className="notice" role="alert">
+            <p className="notice" role="alert" id="two-step-error">
               {actionData.error}
             </p>
           )}

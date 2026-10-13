@@ -1,6 +1,14 @@
 import { guestsWords, longDateWithYear } from '@/lib/plan-terms';
 import type { Flagged } from './bookings.server';
-import { emailPersonUnlessRepeat, emailTeam, renderEmail, type RepeatRule, type TemplateName } from './email-templates.server';
+import { withDb } from './db.server';
+import {
+  emailPersonUnlessRepeat,
+  emailTeam,
+  recordNotSent,
+  renderEmail,
+  type RepeatRule,
+  type TemplateName,
+} from './email-templates.server';
 import type { ServerEnv } from './env';
 import type { BookingNotice } from './events.server';
 
@@ -31,6 +39,47 @@ export function bookingNoticeValues(n: BookingNotice, recipientName: string, sit
     was: n.was ? `${longDateWithYear(n.was.date)} in ${n.was.town}` : '',
     link: `${siteUrl}/vendors/${n.vendorSlug}/bookings`,
   };
+}
+
+/**
+ * Emails one run may send for one change (cancelling or re-dating an event tells every
+ * business on it): inside Cloudflare's 50 outside requests per run, even if each needs a
+ * second try. The rest are recorded as not sent, for the team to follow up by hand.
+ */
+export const SENDS_PER_RUN = 15;
+/** Between sends: Resend's free plan takes about 2 a second. */
+const PAUSE_MS = 550;
+
+/**
+ * Several booking notices from one change, one after another on one database connection,
+ * paced for Resend and capped per run (each still under its kind's repeat rule).
+ */
+export async function sendBookingNotices(env: ServerEnv, siteUrl: string, notices: BookingNotice[]): Promise<void> {
+  if (notices.length === 0) return;
+  await withDb(env, async (db) => {
+    let attempted = 0;
+    for (const notice of notices) {
+      const { template, rule } = SENT[notice.kind];
+      const subject = { type: 'event_vendor' as const, id: notice.eventVendorId };
+      for (const r of notice.recipients) {
+        if (attempted >= SENDS_PER_RUN) {
+          await recordNotSent(db, r, notice.kind, subject, 'Not sent: too many emails from one change. Tell them by hand.');
+          continue;
+        }
+        if (attempted > 0) await new Promise((done) => setTimeout(done, PAUSE_MS));
+        const result = await emailPersonUnlessRepeat(
+          env,
+          r,
+          notice.kind,
+          subject,
+          renderEmail(template, bookingNoticeValues(notice, r.name, siteUrl)),
+          rule,
+          db,
+        );
+        if (result !== 'suppressed') attempted += 1;
+      }
+    }
+  });
 }
 
 /** Tells each owner or manager of the business, under the kind's repeat rule. */

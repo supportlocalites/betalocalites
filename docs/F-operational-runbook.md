@@ -254,6 +254,12 @@ guide this live (PO-03 part 3). Changing the password later is the same two step
 - **Planning emails are sent once.** A failed one (for example on a day Resend's free limit
   is used up) is recorded as `failed` and is not retried automatically in 2A; nothing yet
   gives sign-in codes priority. Follow up by hand if it matters.
+- **Cancelling or re-dating an event** tells every business on it, one email after another
+  (about two a second, as Resend allows; if Resend says "slow down", one more try after a
+  pause). At most 15 emails go from one change; any more are recorded as `failed` with
+  "Not sent: too many emails from one change. Tell them by hand."
+- **Interrupted sends:** an email still marked `queued` an hour later (the run was cut short,
+  so it isn't known whether it went) is marked `failed` by the nightly run, with that reason.
 - **Emails to businesses and people** (marked booked, no longer booked, event cancelled,
   event changed, "a business says it isn't booked") count toward Resend's free 100 a day,
   shared with sign-in codes and team emails. Each is recorded in `notification`: `sent`,

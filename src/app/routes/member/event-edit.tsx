@@ -7,7 +7,7 @@ import { pageMeta } from '@/lib/meta';
 import { tellWords, TOO_FAST } from '@/lib/plan-terms';
 import { dateWindow, parseEventForm } from '@/server/event-input';
 import { eventForEdit, eventFormOptions, updateEvent } from '@/server/events.server';
-import { sendBookingNotice } from '@/server/plan-emails.server';
+import { sendBookingNotices } from '@/server/plan-emails.server';
 import { afterwards, formFields, found, refusal, siteUrl, todayIso, tooFast } from '@/server/plan-pages.server';
 import type { Route } from './+types/event-edit';
 
@@ -54,7 +54,7 @@ export async function action({ request, params, context }: Route.ActionArgs) {
   try {
     const notices = await updateEvent(env, member.userId, params.id, parsed.values);
     const site = siteUrl(env, request);
-    for (const notice of notices) afterwards(ctx, sendBookingNotice(env, site, notice), 'event change email');
+    afterwards(ctx, sendBookingNotices(env, site, notices), 'event change emails');
   } catch (err) {
     const { error, status } = refusal(err);
     return data({ error, errors: {} as EventFormErrors, fields }, { status });

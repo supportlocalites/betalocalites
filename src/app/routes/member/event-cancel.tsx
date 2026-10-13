@@ -5,7 +5,7 @@ import { isUuid } from '@/lib/ids.mjs';
 import { pageMeta } from '@/lib/meta';
 import { tellWords, TOO_FAST } from '@/lib/plan-terms';
 import { cancelEvent, eventForEdit } from '@/server/events.server';
-import { sendBookingNotice } from '@/server/plan-emails.server';
+import { sendBookingNotices } from '@/server/plan-emails.server';
 import { afterwards, found, refusal, siteUrl, tooFast } from '@/server/plan-pages.server';
 import type { Route } from './+types/event-cancel';
 import styles from './plan.module.css';
@@ -35,7 +35,7 @@ export async function action({ request, params, context }: Route.ActionArgs) {
   try {
     const notices = await cancelEvent(env, member.userId, params.id);
     const site = siteUrl(env, request);
-    for (const notice of notices) afterwards(ctx, sendBookingNotice(env, site, notice), 'event cancelled email');
+    afterwards(ctx, sendBookingNotices(env, site, notices), 'event cancelled emails');
   } catch (err) {
     const { error, status } = refusal(err);
     return data({ error }, { status });

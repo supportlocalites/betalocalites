@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, useSyncExternalStore } from 'react';
 import { data, Form, Link, redirect, useNavigation } from 'react-router';
 import { cloudflareContext } from '@/app/context';
 import { HumanCheckField, useHumanCheck } from '@/components/HumanCheck';
@@ -70,9 +70,11 @@ type Reply = {
   notice: string | null;
   errors: Record<string, string>;
   wait: { id: string; seconds: number } | null;
+  /** The error is about what was typed (the address or the code), so that box is marked. */
+  onField: boolean;
 };
 const reply = (r: Partial<Reply> & { step: Step }, status = 200, cookies: string[] = []) =>
-  data<Reply>({ email: '', error: null, notice: null, errors: {}, wait: null, ...r }, withCookies({ status }, cookies));
+  data<Reply>({ email: '', error: null, notice: null, errors: {}, wait: null, onField: false, ...r }, withCookies({ status }, cookies));
 const waitFor = (seconds: number) => ({ id: crypto.randomUUID(), seconds: Math.max(1, Math.ceil(seconds)) });
 
 export async function action({ request, context }: Route.ActionArgs) {
@@ -108,7 +110,7 @@ export async function action({ request, context }: Route.ActionArgs) {
 
   if (intent !== 'send' && intent !== 'verify') throw data(null, { status: 400 });
   const email = emailInput.safeParse(form.get('email') ?? '');
-  if (!email.success) return reply({ step: 'email', error: 'Please check the email address.' }, 400);
+  if (!email.success) return reply({ step: 'email', error: 'Please check the email address.', onField: true }, 400);
 
   // A few tries a minute from one internet address (kept by Cloudflare, never stored).
   if (env.SIGN_IN_LIMIT && !(await env.SIGN_IN_LIMIT.limit({ key: addressKey(request) })).success) {
@@ -155,6 +157,7 @@ async function sendCode(env: ServerEnv, email: string, hash: string) {
   } catch (err) {
     if (!(err instanceof AuthError) || err.status >= 500 || err.code === 'unknown') {
       console.error('sign-in code not sent', err instanceof AuthError ? err.code : err);
+      await uncountCodeSend(env, hash); // nothing was sent, so trying again isn't "too soon"
       return reply({ step: 'email', email, error: explainCodeError(err) }, 503);
     }
     // While new accounts are closed, Supabase answers differently for addresses with and
@@ -167,6 +170,7 @@ async function sendCode(env: ServerEnv, email: string, hash: string) {
     // With accounts open, every address takes the same path, so this can be said plainly:
     // Supabase's "too many emails" means the whole site, unless this address asked a moment ago.
     if (neutral && signUpOpen && err.code === 'over_email_send_rate_limit' && !recentlyAsked) {
+      await uncountCodeSend(env, hash);
       return reply({ step: 'email', email, error: 'We’re sending a lot of codes right now. Please try again in a few minutes.' }, 429);
     }
     // Supabase waits a while between codes to one address and refused this one: say so,
@@ -177,18 +181,21 @@ async function sendCode(env: ServerEnv, email: string, hash: string) {
         'We sent a code to this address less than a minute ago. Use that one; if it hasn’t arrived, ask for a new one in a minute.';
       return reply({ step: 'code', email, notice, wait: waitFor(60 - (sinceLast ?? 0)) }, 429);
     }
-    if (!neutral) return reply({ step: 'email', email, error: explainCodeError(err) }, 400);
+    if (!neutral) {
+      await uncountCodeSend(env, hash);
+      return reply({ step: 'email', email, error: explainCodeError(err), onField: true }, 400);
+    }
   }
   return reply({ step: 'code', email, wait: waitFor(RESEND_WAIT_SECONDS) });
 }
 
 async function checkCode(env: ServerEnv, email: string, hash: string, raw: FormDataEntryValue | null, next: string) {
   const code = codeInput.safeParse(raw ?? '');
-  if (!code.success) return reply({ step: 'code', email, error: 'Enter the 6-digit code from the email.' }, 400);
+  if (!code.success) return reply({ step: 'code', email, error: 'Enter the 6-digit code from the email.', onField: true }, 400);
   // Our limit on guesses (Supabase has none per code), counted before Supabase is asked.
   // Same words as a wrong code.
   const guess = await claimCodeGuess(env, hash);
-  if (guess === null) return reply({ step: 'code', email, error: CODE_FAILED }, 400);
+  if (guess === null) return reply({ step: 'code', email, error: CODE_FAILED, onField: true }, 400);
   try {
     const session = await verifySignInCode(env, email, code.data);
     await guessWasRight(env, guess);
@@ -198,19 +205,26 @@ async function checkCode(env: ServerEnv, email: string, hash: string, raw: FormD
     if (!person) return redirect(`/join?next=${encodeURIComponent(next)}`, withCookies(undefined, cookies));
     return redirect(next, withCookies(undefined, cookies));
   } catch (err) {
-    if (err instanceof AuthError && err.code === 'otp_expired') return reply({ step: 'code', email, error: CODE_FAILED }, 400);
+    if (err instanceof AuthError && err.code === 'otp_expired')
+      return reply({ step: 'code', email, error: CODE_FAILED, onField: true }, 400);
     const expected = err instanceof AuthError && err.status < 500 && err.code !== 'unknown';
     if (!expected) console.error('sign-in code not checked', err instanceof AuthError ? err.code : err);
-    return reply({ step: 'code', email, error: explainCodeError(err) }, expected ? 400 : 503);
+    return reply({ step: 'code', email, error: explainCodeError(err), onField: expected }, expected ? 400 : 503);
   }
 }
 
 /**
  * "Send a new code", greyed out and counting down until another code may be asked for
  * (RESEND_WAIT_SECONDS). Starts afresh (a new key) each time a code is asked for. Without
- * JavaScript the button stays usable and the server says how long to wait.
+ * JavaScript the button stays usable and the server says how long to wait. Screen readers
+ * hear once when it can be used, not every second.
  */
 function ResendButton({ seconds, disabled }: { seconds: number; disabled: boolean }) {
+  const hydrated = useSyncExternalStore(
+    () => () => {},
+    () => true,
+    () => false,
+  );
   const [left, setLeft] = useState(seconds);
   useEffect(() => {
     if (seconds <= 0) return;
@@ -223,9 +237,14 @@ function ResendButton({ seconds, disabled }: { seconds: number; disabled: boolea
     return () => clearInterval(timer);
   }, [seconds]);
   return (
-    <button type="submit" className="button button-secondary" disabled={disabled || left > 0} aria-live="polite">
-      {left > 0 ? `Send a new code (${left})` : 'Send a new code'}
-    </button>
+    <>
+      <button type="submit" className="button button-secondary" disabled={disabled || (hydrated && left > 0)}>
+        {hydrated && left > 0 ? `Send a new code (${left})` : 'Send a new code'}
+      </button>
+      <span className="visually-hidden" role="status">
+        {hydrated && seconds > 0 && left === 0 ? 'You can ask for a new code now.' : ''}
+      </span>
+    </>
   );
 }
 
@@ -247,11 +266,14 @@ export default function Join({ loaderData, actionData }: Route.ComponentProps) {
   // A refused entry: point screen readers at the message and put the cursor back in the box.
   const field = useRef<HTMLInputElement>(null);
   useEffect(() => {
-    if (!error) return;
+    if (!actionData) return;
+    // After a code is sent (or refused), the cursor goes to the box to type in; the box
+    // points at the messages, so a screen reader reads them with it.
     const firstWrong = document.querySelector<HTMLElement>('main [aria-invalid="true"]');
     (firstWrong ?? field.current)?.focus();
-  }, [error, actionData]);
-  const invalid = error ? { 'aria-invalid': true, 'aria-errormessage': 'join-error' } : {};
+  }, [actionData]);
+  const invalid = error && actionData?.onField ? { 'aria-invalid': true, 'aria-errormessage': 'join-error' } : {};
+  const describedBy = [error ? 'join-error' : null, actionData?.notice ? 'join-notice' : null].filter(Boolean).join(' ') || undefined;
 
   return (
     <>
@@ -265,7 +287,7 @@ export default function Join({ loaderData, actionData }: Route.ComponentProps) {
           </p>
         )}
         {actionData?.notice && (
-          <p className="notice" role="status">
+          <p className="notice" role="status" id="join-notice">
             {actionData.notice}
           </p>
         )}
@@ -294,7 +316,7 @@ export default function Join({ loaderData, actionData }: Route.ComponentProps) {
           </Form>
         ) : step === 'code' ? (
           <>
-            <p role="status">
+            <p role="status" id="code-sent">
               {signUpOpen ? (
                 <>We’ve emailed a 6-digit code to {email}.</>
               ) : (
@@ -325,7 +347,7 @@ export default function Join({ loaderData, actionData }: Route.ComponentProps) {
                   pattern="[0-9 ]*"
                   maxLength={8}
                   required
-                  aria-describedby={error ? 'join-error' : undefined}
+                  aria-describedby={[describedBy, 'code-sent'].filter(Boolean).join(' ')}
                   {...invalid}
                 />
               </div>
@@ -372,7 +394,7 @@ export default function Join({ loaderData, actionData }: Route.ComponentProps) {
                   className="input"
                   maxLength={254}
                   defaultValue={email}
-                  aria-describedby={error ? 'join-error' : undefined}
+                  aria-describedby={describedBy}
                   {...invalid}
                 />
               </div>

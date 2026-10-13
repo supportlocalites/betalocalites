@@ -68,8 +68,10 @@ let before = Date.now();
 r = await site('/join', { method: 'POST', form: { intent: 'send', email: alice, next: '/account' }, ip: from });
 const sentReply = r.body.includes('We’ve emailed a 6-digit code to');
 check('a new address is told a code is on its way', r.status === 200 && sentReply, String(r.status));
-check('“Send a new code” is greyed out, counting down from 60 seconds (Supabase’s wait between codes)',
-  /<button[^>]*disabled=""[^>]*>Send a new code \(60\)<\/button>/.test(r.body), r.body.match(/<button[^>]*>Send a new code[^<]*<\/button>/)?.[0]);
+// The countdown itself runs in the browser (tests/e2e: checked by hand in a real browser);
+// the page as sent has the button, and the 60-second wait (Supabase's wait between codes) for it.
+check('“Send a new code” is there, with a 60-second wait for its countdown',
+  /<button[^>]*>Send a new code<\/button>/.test(r.body) && /\\"seconds\\",60/.test(r.body), r.body.match(/<button[^>]*>Send a new code[^<]*<\/button>/)?.[0]);
 const [mail] = (await mailFor(alice)).filter((m) => m.at >= before - 1);
 check('the email holds only a 6-digit code, no link', /Your Localites code: \d{6}/.test(mail?.subject ?? '') && !/href=|https?:\/\//.test(mail?.body ?? ''), mail?.subject);
 check('the email warns never to share the code', (mail?.body ?? '').includes('Never share this code'));

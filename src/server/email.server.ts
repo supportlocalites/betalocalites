@@ -18,6 +18,20 @@ export function emailApiUrl(env: ServerEnv): string {
   }
 }
 
+function post(env: ServerEnv, email: { to: string; subject: string; text: string; replyTo?: string }): Promise<Response> {
+  return fetch(emailApiUrl(env), {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${env.RESEND_API_KEY}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      from: FROM_ADDRESS,
+      to: [email.to],
+      subject: email.subject,
+      text: email.text,
+      ...(email.replyTo ? { reply_to: email.replyTo } : {}),
+    }),
+  });
+}
+
 export type EmailResult = { sent: true } | { sent: false; reason: string };
 
 /**
@@ -31,22 +45,29 @@ export async function sendEmail(
 ): Promise<EmailResult> {
   if (!env.RESEND_API_KEY) return { sent: false, reason: 'Email isn’t set up yet (PO-12).' };
   try {
-    const response = await fetch(emailApiUrl(env), {
-      method: 'POST',
-      headers: { Authorization: `Bearer ${env.RESEND_API_KEY}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        from: FROM_ADDRESS,
-        to: [email.to],
-        subject: email.subject,
-        text: email.text,
-        ...(email.replyTo ? { reply_to: email.replyTo } : {}),
-      }),
-    });
-    if (response.ok) return { sent: true };
+    let response = await post(env, email);
+    // Resend allows a few sends a second: told to slow down, wait as asked (at most 2 s) and try once more.
+    if (response.status === 429) {
+      await response.body?.cancel();
+      const wait = Math.min(2000, Math.max(500, Number(response.headers.get('retry-after') ?? 1) * 1000 || 1000));
+      await new Promise((r) => setTimeout(r, wait));
+      response = await post(env, email);
+    }
+    if (response.ok) {
+      await response.body?.cancel();
+      return { sent: true };
+    }
     const body = (await response.json().catch(() => null)) as { name?: string; message?: string } | null;
     // Resend's own explanation (e.g. "The localites.ca domain is not verified"), on one
     // line, shortened, and with anything that looks like a key removed.
-    const why = typeof body?.message === 'string' ? body.message.replace(/\s+/g, ' ').replace(/re_[A-Za-z0-9_]+/g, '[key]').slice(0, 200).trim() : '';
+    const why =
+      typeof body?.message === 'string'
+        ? body.message
+            .replace(/\s+/g, ' ')
+            .replace(/re_[A-Za-z0-9_]+/g, '[key]')
+            .slice(0, 200)
+            .trim()
+        : '';
     return {
       sent: false,
       reason: `The email service answered ${response.status}${body?.name ? ` (${body.name})` : ''}${why ? `: ${why.replace(/\.$/, '')}` : ''}.`,
