@@ -160,3 +160,45 @@ jobs:
       - name: Load the 28 researched test businesses as drafts (once)
         if: env.DATABASE_ADMIN_URL != ''
         run: npm run db:import:test-businesses -- --supabase-test-project
+
+  # Puts the website live on Cloudflare, last: only after every check and test above has
+  # passed and the test database has its changes, so the new website never looks for a
+  # database change that isn't there yet. Uses two encrypted repository secrets the
+  # product owner enters (PO-17): CLOUDFLARE_API_TOKEN (allowed to deploy Workers only)
+  # and CLOUDFLARE_ACCOUNT_ID. Until they're set, this says so and changes nothing.
+  deploy:
+    name: Put the website live
+    needs: [checks, admin-access, test-database]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/claude/event-discovery-architecture-dz0qgf'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    concurrency:
+      group: deploy
+      cancel-in-progress: false
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Build and deploy to Cloudflare
+        run: |
+          if [ -z "$CLOUDFLARE_API_TOKEN" ] || [ -z "$CLOUDFLARE_ACCOUNT_ID" ]; then
+            echo "::notice::CLOUDFLARE_API_TOKEN or CLOUDFLARE_ACCOUNT_ID isn't set yet (PO-17), so this run didn't deploy."
+            exit 0
+          fi
+          npm run deploy
+      - name: Check the live site answers
+        if: env.CLOUDFLARE_API_TOKEN != '' && env.CLOUDFLARE_ACCOUNT_ID != ''
+        run: |
+          site=$(node -e "const fs=require('fs');const t=fs.readFileSync('wrangler.jsonc','utf8');console.log(t.match(/\"SITE_URL\":\s*\"([^\"]+)\"/)[1])")
+          for i in 1 2 3 4 5 6; do
+            code=$(curl -s -o health.json -w '%{http_code}' "$site/api/health" || true)
+            if [ "$code" = "200" ]; then echo "Live site is healthy:"; cat health.json; exit 0; fi
+            sleep 10
+          done
+          echo "::error::The live site's health check answered $code after deploying."; cat health.json || true; exit 1

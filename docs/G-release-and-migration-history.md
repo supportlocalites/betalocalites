@@ -31,6 +31,22 @@ Every release and every database migration, in order. Appended before each deplo
 
 ## Releases
 
+### 2026-10-13 — The test site goes live only after tests and the database update
+
+**Stage:** operations
+**What changed (plain English):** GitHub now puts the test site live itself, as the very
+last step, after every check, every end-to-end test and the test database update have
+passed, then checks the live site answers. A page can no longer fail because the database
+change hasn't arrived yet, and an update that fails a test never goes live. Switched on by
+PO-17 (a Cloudflare deploy key in GitHub, then Cloudflare's own builds turned off); until
+then the step does nothing and says so.
+**Migrations applied:** none.
+**Tests run:** the deploy command checked locally without deploying (dry run: the build,
+bindings and settings are as expected).
+**How to roll back:** Cloudflare → Deployments → previous version; reconnect Cloudflare's
+Git builds if GitHub deploys must stop.
+**Approved by:** Product owner (13 October 2026: "set up the deploy wait for database changes").
+
 ### 2026-10-13 — Photos: one frame shape, and the owner chooses what stays in view
 
 **Stage:** 1 (photos)

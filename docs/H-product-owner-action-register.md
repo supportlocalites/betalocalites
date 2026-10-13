@@ -82,6 +82,7 @@ Recorded from your messages of 9 and 10 October 2026. These now shape every docu
 | **PO-14** | Switch on activity counting: add one secret in Cloudflare (steps below) | Any numbers on the team's Activity pages and the owners' Analytics pages | 3 min |
 | **PO-15** | Once "Plan an event" reaches the test site: plan a test event and look at it (steps below) | Knowing that planning works on the real hosting, not only on our computers | 5 min |
 | **PO-16** | Switch on business photos: one storage folder in Supabase, three secrets in Cloudflare (steps below) | Businesses adding photos | 10 min |
+| **PO-17** | Let GitHub put the site live, after tests and database changes: one Cloudflare key into GitHub, then turn off Cloudflare's own automatic builds (steps below) | Updates never break pages while a database change catches up | 10 min |
 | **PO-11** | Check the 28 test businesses (drafts) and publish the ones that are right (steps below) | Real listings on the test site | At your pace, ~5 min each |
 | **D-12** | Mailing address for the privacy policy and terms | Public launch | 1 min, later |
 
@@ -1101,6 +1102,43 @@ with every request).
 
 **Done when:** all of that works. Reply *"PO-15 done"*, or tell us exactly what you saw if a
 step didn't work (a screenshot is fine; never include a code from your email).
+
+---
+
+### PO-17 — Put the site live only after the tests and the database update
+**When:** any time. **Cost:** $0. **Time:** about 10 minutes, in two sittings.
+**Why:** today Cloudflare puts each update live the moment it's pushed, while GitHub updates
+the database a couple of minutes later. In between, a page that needs the new database change
+can fail (it happened with the photo frames). From now on GitHub does it in order: every test,
+then the database, then the website. An update that fails a test never goes live.
+
+**Part 1: a deploy key from Cloudflare**
+1. In Cloudflare, click the person icon (top right) → **My Profile** → **API Tokens** →
+   **Create Token**.
+2. Next to **Edit Cloudflare Workers**, click **Use template**.
+3. Under **Account Resources**, choose your account. Leave the rest as it is. Click
+   **Continue to summary**, then **Create Token**.
+4. Cloudflare shows the key once. Keep that page open.
+5. Also note your **Account ID**: open **Workers & Pages**; it's on the right-hand side.
+
+**Part 2: put them in GitHub**
+6. On GitHub, open the repository **supportlocalites/localites** → **Settings** →
+   **Secrets and variables** → **Actions** → **New repository secret**.
+7. **Name:** `CLOUDFLARE_API_TOKEN`. **Secret:** paste the key from step 4. **Add secret**.
+8. **New repository secret** again. **Name:** `CLOUDFLARE_ACCOUNT_ID`. **Secret:** the
+   Account ID from step 5. **Add secret**. You can close the Cloudflare page now.
+9. Tell us "PO-17 secrets added". We'll send a small update and check that GitHub's
+   **Put the website live** step works.
+
+**Part 3: only after we confirm it worked**
+10. In Cloudflare: **Workers & Pages** → **localites** → **Settings** → **Build** (Git
+    repository) → **Disconnect**. From then on only GitHub puts the site live.
+
+**Never send us** the key. If you think it's been seen, delete it in Cloudflare (My Profile
+→ API Tokens) and make a new one, then replace the GitHub secret.
+
+**Done when:** GitHub's run shows **Put the website live** ticked green and Cloudflare's own
+builds are disconnected. Reply *"PO-17 done"*.
 
 ---
 

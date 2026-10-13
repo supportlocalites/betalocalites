@@ -94,6 +94,12 @@ very unlikely, and recoverable when it happens.
   database" job migrates `localites-test` and reloads the fake test businesses, using
   the secret `SUPABASE_TEST_ADMIN_URL`. The loader refuses to run on any database that
   holds a real listing.
+- **The test site goes live last (PO-17):** GitHub's "Put the website live" job runs only
+  after every check, every end-to-end test and the database update have passed. It builds,
+  deploys with the secrets `CLOUDFLARE_API_TOKEN` (Workers only) and `CLOUDFLARE_ACCOUNT_ID`,
+  then checks `/api/health` answers. Until those secrets exist it does nothing and says so.
+  Once it works, Cloudflare's own Git builds are disconnected, so nothing goes live out of
+  order. A red run means nothing new went live; fix and push again.
 - **Production** will have its own manual step, with the product owner's approval and
   a fresh backup first (rule 4), set up before launch.
 - Hosted databases are always reached over an encrypted (TLS) connection.
