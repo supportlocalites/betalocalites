@@ -7,6 +7,7 @@ import { runActivityRollup } from '@/server/activity-rollup.server';
 import { runDailyNote } from '@/server/daily-note.server';
 import { closeInterruptedPlanEmails } from '@/server/email-templates.server';
 import { cleanUpRemovedPhotos } from '@/server/photos.server';
+import { discardBody } from '@/server/discard-body';
 import { refuseCrossSiteForm, withSecurityHeaders } from '@/server/security-headers';
 
 // Loaded when the Worker starts, not during a visitor's request: Cloudflare's free plan
@@ -18,7 +19,7 @@ export default {
   async fetch(request: Request, env: ServerEnv, ctx: ExecutionContext): Promise<Response> {
     const refused = refuseCrossSiteForm(request);
     if (refused) {
-      await request.body?.cancel().catch(() => undefined); // not read: let it go
+      await discardBody(request); // not read, but let it arrive before answering
       return withSecurityHeaders(refused);
     }
     const context = new RouterContextProvider();

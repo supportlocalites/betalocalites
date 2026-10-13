@@ -9,6 +9,7 @@ import { pageMeta } from '@/lib/meta';
 import { readFrame } from '@/lib/photo-frame';
 import { preparePhoto } from '@/lib/photo-prepare';
 import { DESCRIPTION_MAX, PHOTO_LIMIT } from '@/lib/photo-terms';
+import { discardBody } from '@/server/discard-body';
 import { afterwards } from '@/server/plan-pages.server';
 import {
   addPhoto,
@@ -56,11 +57,11 @@ export async function action({ request, params, context }: Route.ActionArgs) {
   // Browsers always say how big a form is; anything that doesn't, or is too big, isn't read.
   const size = request.headers.get('Content-Length');
   if (size === null || !/^\d{1,9}$/.test(size) || Number(size) > MAX_UPLOAD_BYTES) {
-    await request.body?.cancel().catch(() => undefined);
+    await discardBody(request);
     return data({ error: 'That photo is too large. Please choose a smaller one.' }, { status: 413 });
   }
   if (env.PHOTO_EDIT_LIMIT && !(await env.PHOTO_EDIT_LIMIT.limit({ key: member.userId })).success) {
-    await request.body?.cancel().catch(() => undefined);
+    await discardBody(request);
     return data({ error: 'That’s a lot of changes in a minute. Please wait a moment, then try again.' }, { status: 429 });
   }
   let form: FormData;
