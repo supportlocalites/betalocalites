@@ -1,5 +1,6 @@
 import { AwsClient } from 'aws4fetch';
 import { sql } from 'drizzle-orm';
+import type { Frame } from '@/lib/photo-frame';
 import type { Db } from './db.server';
 import type { ServerEnv } from './env';
 
@@ -12,8 +13,11 @@ import type { ServerEnv } from './env';
 
 export const BUCKET = 'vendor-photos';
 
-/** A business photo as pages show it. */
-/** focusX, focusY: the spot (0 to 1 across and down) that frames keep in view (migration 0018). */
+/**
+ * A business photo as pages show it. frame: how the owner framed it in its square (the
+ * profile photo, migration 0019), or null for the smart default. Page photos are always shown
+ * whole, so the spot chosen under migration 0018 (focus_x, focus_y) is no longer read.
+ */
 export type Photo = {
   id: string;
   url: string;
@@ -21,8 +25,7 @@ export type Photo = {
   alt: string;
   width: number | null;
   height: number | null;
-  focusX: number;
-  focusY: number;
+  frame: Frame | null;
 };
 
 const isLocal = (url: string) => {
@@ -50,14 +53,44 @@ function publicUrl(env: ServerEnv, path: string): string | null {
   return base ? `${base}/object/public/${BUCKET}/${path}` : null;
 }
 
-type PhotoRow = { id: string; path: string; alt: string; width: number | null; height: number | null; focusX: number; focusY: number };
+/** Numbers may arrive as text (the connection doesn't look types up). */
+type PhotoRow = {
+  id: string;
+  path: string;
+  alt: string;
+  width: number | null;
+  height: number | null;
+  cropX?: number | string | null;
+  cropY?: number | string | null;
+  cropW?: number | string | null;
+  cropH?: number | string | null;
+};
+
+const PHOTO_COLUMNS = sql`a.id, a.storage_path as path, a.alt_text as alt, a.width, a.height,
+  a.crop_x as "cropX", a.crop_y as "cropY", a.crop_w as "cropW", a.crop_h as "cropH"`;
+
+const frameFrom = (r: PhotoRow): Frame | null =>
+  r.cropX == null || r.cropY == null || r.cropW == null || r.cropH == null
+    ? null
+    : { x: Number(r.cropX), y: Number(r.cropY), w: Number(r.cropW), h: Number(r.cropH) };
 
 export function toPhotos(env: ServerEnv, rows: PhotoRow[]): Photo[] {
   return rows.flatMap((r) => {
     const url = publicUrl(env, r.path);
     const smallUrl = publicUrl(env, smallPath(r.path));
+    const size = (n: number | null) => (n == null ? null : Number(n));
     return url && smallUrl
-      ? [{ id: r.id, url, smallUrl, alt: r.alt, width: r.width, height: r.height, focusX: Number(r.focusX), focusY: Number(r.focusY) }]
+      ? [
+          {
+            id: r.id,
+            url,
+            smallUrl,
+            alt: r.alt,
+            width: size(r.width),
+            height: size(r.height),
+            frame: frameFrom(r),
+          },
+        ]
       : [];
   });
 }
@@ -65,15 +98,61 @@ export function toPhotos(env: ServerEnv, rows: PhotoRow[]): Photo[] {
 /** The small version of a stored photo, for lists (search results). */
 export const smallPhotoUrl = (env: ServerEnv, path: string | null) => (path ? publicUrl(env, smallPath(path)) : null);
 
-/** A business's photos in order: the first is its main photo. */
+/** A business's page photos in order: the first leads its page. */
 export async function readPhotos(db: Db, vendorId: string): Promise<PhotoRow[]> {
   return [
     ...(await db.execute<PhotoRow>(sql`
-      select a.id, a.storage_path as path, a.alt_text as alt, a.width, a.height, a.focus_x as "focusX", a.focus_y as "focusY"
+      select ${PHOTO_COLUMNS}
       from vendor_media vm join media_asset a on a.id = vm.media_asset_id
-      where vm.vendor_id = ${vendorId} and a.deleted_at is null
+      where vm.vendor_id = ${vendorId} and vm.role = 'gallery' and a.deleted_at is null
       order by vm.sort_order, a.created_at`)),
   ];
+}
+
+/** A business's square profile photo (its logo or a photo it likes), if it has one. */
+export async function readProfilePhoto(db: Db, vendorId: string): Promise<PhotoRow[]> {
+  return [
+    ...(await db.execute<PhotoRow>(sql`
+      select ${PHOTO_COLUMNS}
+      from vendor_media vm join media_asset a on a.id = vm.media_asset_id
+      where vm.vendor_id = ${vendorId} and vm.role = 'logo' and a.deleted_at is null`)),
+  ];
+}
+
+/**
+ * The photo beside a business in lists: its profile photo, or else its first page photo
+ * (shown with the smart default). As columns for a lateral join on vendor v.
+ */
+export const LIST_PHOTO = sql`left join lateral (
+    select a.storage_path as path, a.width, a.height, a.crop_x, a.crop_y, a.crop_w, a.crop_h
+    from vendor_media vm join media_asset a on a.id = vm.media_asset_id
+    where vm.vendor_id = v.id and vm.role in ('logo', 'gallery') and a.deleted_at is null
+    order by vm.role = 'logo' desc, vm.sort_order, a.created_at limit 1) lp on true`;
+
+export type ListPhotoColumns = {
+  photoPath: string | null;
+  photoWidth: number | string | null;
+  photoHeight: number | string | null;
+  cropX: number | string | null;
+  cropY: number | string | null;
+  cropW: number | string | null;
+  cropH: number | string | null;
+};
+export const LIST_PHOTO_COLUMNS = sql`lp.path as "photoPath", lp.width as "photoWidth", lp.height as "photoHeight",
+  lp.crop_x as "cropX", lp.crop_y as "cropY", lp.crop_w as "cropW", lp.crop_h as "cropH"`;
+
+/** The list photo, ready for a page: its small version and its framing. */
+export type ListPhoto = { url: string; width: number | null; height: number | null; frame: Frame | null };
+export function toListPhoto(env: ServerEnv, c: ListPhotoColumns): ListPhoto | null {
+  if (!c.photoPath) return null;
+  const url = publicUrl(env, smallPath(c.photoPath));
+  if (!url) return null;
+  const num = (v: number | string | null) => (v == null ? null : Number(v));
+  const frame =
+    c.cropX == null || c.cropY == null || c.cropW == null || c.cropH == null
+      ? null
+      : { x: Number(c.cropX), y: Number(c.cropY), w: Number(c.cropW), h: Number(c.cropH) };
+  return { url, width: num(c.photoWidth), height: num(c.photoHeight), frame };
 }
 
 function client(env: ServerEnv): { s3: AwsClient; base: string } | null {

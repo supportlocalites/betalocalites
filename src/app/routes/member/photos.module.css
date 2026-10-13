@@ -1,8 +1,67 @@
-/* A business's photos (V2): each photo with its description and buttons; phone first. */
+/* A business's photos (V2): the square profile photo first, then the page photos; phone first. */
+
+.section {
+  display: grid;
+  gap: var(--space-3);
+  margin-top: var(--space-8);
+  padding-top: var(--space-6);
+  border-top: var(--hairline) solid var(--color-line-soft);
+}
+
+.heading {
+  font-family: var(--font-display);
+  font-size: var(--text-title-2);
+  font-weight: 600;
+  margin: 0;
+}
+
+/* The profile photo large, and how it looks in a list beside it (under it on phones). */
+.profile {
+  display: grid;
+  gap: var(--space-5);
+  align-items: start;
+}
+
+.profileSide {
+  display: grid;
+  gap: var(--space-4);
+  min-width: 0;
+}
+
+.listRow {
+  display: grid;
+  grid-template-columns: var(--size-thumb) minmax(0, 1fr);
+  gap: var(--space-4);
+  align-items: center;
+  padding-block: var(--space-3);
+  border-block: var(--hairline) solid var(--color-line-soft);
+  margin-top: var(--space-2);
+}
+
+.listName {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: var(--text-title-3);
+}
+
+.replace {
+  display: grid;
+  gap: var(--space-3);
+}
+
+.addForm {
+  display: grid;
+  gap: var(--space-1);
+  justify-items: start;
+}
+
+.addForm :global(.field) {
+  width: 100%;
+}
 
 .photos {
   list-style: none;
-  margin: var(--space-6) 0 0;
+  margin: 0;
   padding: 0;
   border-top: var(--hairline) solid var(--color-line-soft);
 }
@@ -15,20 +74,19 @@
   border-bottom: var(--hairline) solid var(--color-line-soft);
 }
 
+/* Each page photo whole, in its own shape, as it shows on the page. */
 .preview {
-  margin: 0;
-  display: grid;
-  gap: var(--space-1);
-  align-content: start;
-  font-size: var(--text-small);
+  display: block;
+  justify-self: start;
+  background: var(--color-photo-1);
 }
 
 .image {
-  width: var(--size-thumb);
-  aspect-ratio: var(--photo-ratio);
-  object-fit: cover; /* the chosen spot stays in view */
-  background: var(--color-photo-1);
   display: block;
+  width: auto;
+  height: auto;
+  max-width: 100%;
+  max-height: var(--size-tile-min);
 }
 
 .details {
@@ -50,54 +108,20 @@
 .actions {
   display: flex;
   flex-wrap: wrap;
+  align-items: center;
   gap: var(--space-4);
 }
 
-.add {
-  margin-top: var(--space-8);
-}
-
-.add > h2 {
-  margin-bottom: var(--space-3);
-}
-
-/* "Choose what stays in view": the whole photo, drawn PICKER_WIDTH wide, with a dot where it was tapped. */
-.focus {
-  display: grid;
-  gap: var(--space-2);
-}
-
-.picker {
-  margin-top: var(--space-2);
-}
-
-.pickerFrame {
-  position: relative;
-  display: inline-block;
-  line-height: 0;
-}
-
-.pickerImage {
-  display: block;
-  width: var(--size-photo-picker);
-  height: auto;
-  cursor: crosshair;
-}
-
-.spot {
-  position: absolute;
-  width: var(--space-4);
-  height: var(--space-4);
-  border: var(--hairline) solid var(--color-surface);
-  border-radius: 50%;
-  background: var(--color-gold);
-  transform: translate(-50%, -50%);
-  pointer-events: none;
-}
-
-/* Wider screens: the preview beside the details. Phones: above them, so the photo to tap fits. */
 @media (min-width: 600px) {
+  .profile {
+    grid-template-columns: var(--size-profile-photo-large) minmax(0, 1fr);
+  }
+
   .photo {
-    grid-template-columns: var(--size-thumb) minmax(0, 1fr);
+    grid-template-columns: var(--size-tile-min) minmax(0, 1fr);
+  }
+
+  .preview {
+    justify-self: center;
   }
 }

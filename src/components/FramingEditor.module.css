@@ -1,0 +1,233 @@
+/* "Frame your profile photo": full screen on phones, a large centred panel on computers.
+   The crop library's own styles are off; these replace them using tokens only. */
+.dialog {
+  border: none;
+  padding: var(--space-4);
+  width: 100%;
+  max-width: var(--size-form-wide);
+  height: 100%;
+  max-height: none;
+  margin: 0 auto;
+  background: var(--color-surface);
+  color: var(--color-ink);
+  overflow-y: auto;
+}
+
+.dialog::backdrop {
+  background: var(--color-crop-shade);
+}
+
+
+.top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.title {
+  font-family: var(--font-display);
+  font-size: var(--text-title-3);
+  margin: 0;
+}
+
+.close {
+  width: var(--size-icon-button);
+  height: var(--size-icon-button);
+  border: none;
+  background: transparent;
+  font-size: var(--text-title-2);
+  color: var(--color-ink);
+  cursor: pointer;
+}
+
+.hint {
+  margin: var(--space-2) 0 var(--space-3);
+  color: var(--color-ink-soft);
+}
+
+/* The stage: square, as wide as the screen allows; the photo moves inside it. */
+.stage {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 1;
+  background: var(--color-ink);
+  overflow: hidden;
+}
+
+/* The library's own class names stay on its elements; these rules give them their layout. */
+.container {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  user-select: none;
+  touch-action: none;
+  cursor: move;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.media {
+  will-change: transform;
+  max-width: unset;
+}
+
+.container .wide {
+  width: 100%;
+  height: auto;
+}
+
+.container .tall {
+  width: auto;
+  height: 100%;
+}
+
+.container :global(.reactEasyCrop_Contain) {
+  max-width: 100%;
+  max-height: 100%;
+  margin: auto;
+  position: absolute;
+  inset: 0;
+}
+
+/* The square: a thin light line, and everything around it dimmed. */
+.cropArea {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  border: var(--hairline) solid var(--color-surface);
+  box-sizing: border-box;
+  box-shadow: 0 0 0 var(--size-crop-shade-spread) var(--color-crop-shade);
+  overflow: hidden;
+}
+
+.cropArea:global(.reactEasyCrop_CropAreaGrid)::before,
+.cropArea:global(.reactEasyCrop_CropAreaGrid)::after {
+  content: ' ';
+  box-sizing: border-box;
+  position: absolute;
+  border: var(--hairline) solid var(--color-crop-grid);
+}
+
+.cropArea:global(.reactEasyCrop_CropAreaGrid)::before {
+  top: 0;
+  bottom: 0;
+  left: 33.33%;
+  right: 33.33%;
+  border-top: 0;
+  border-bottom: 0;
+}
+
+.cropArea:global(.reactEasyCrop_CropAreaGrid)::after {
+  top: 33.33%;
+  bottom: 33.33%;
+  left: 0;
+  right: 0;
+  border-left: 0;
+  border-right: 0;
+}
+
+.controls {
+  display: grid;
+  gap: var(--space-4);
+  margin-top: var(--space-4);
+}
+
+.zoomRow {
+  display: grid;
+  grid-template-columns: var(--size-icon-button) minmax(0, 1fr) var(--size-icon-button);
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.round {
+  width: var(--size-icon-button);
+  height: var(--size-icon-button);
+  border: var(--hairline) solid var(--color-gold);
+  border-radius: 50%;
+  background: transparent;
+  font-size: var(--text-title-3);
+  color: var(--color-ink);
+  cursor: pointer;
+}
+
+.slider {
+  width: 100%;
+  height: var(--size-icon-button);
+  accent-color: var(--color-gold);
+}
+
+.choices {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-3);
+}
+
+.preview {
+  display: grid;
+  gap: var(--space-2);
+  padding-top: var(--space-3);
+  border-top: var(--hairline) solid var(--color-line-soft);
+}
+
+.previewRow {
+  display: grid;
+  grid-template-columns: var(--size-thumb) minmax(0, 1fr);
+  gap: var(--space-4);
+  align-items: center;
+}
+
+.previewName {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: var(--text-title-3);
+}
+
+.finish {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-5);
+  padding-bottom: var(--space-4);
+}
+
+/* Computers: the square on the left, everything else beside it, so all of it fits on screen. */
+@media (min-width: 760px) {
+  .dialog {
+    height: fit-content;
+    max-height: calc(100% - 2 * var(--space-8));
+    margin-block: auto;
+  }
+
+  .dialog[open] {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) var(--size-profile-photo-large);
+    grid-template-areas: 'top top' 'hint hint' 'stage controls';
+    column-gap: var(--space-6);
+    align-items: start;
+    align-content: start;
+  }
+
+  .top {
+    grid-area: top;
+  }
+
+  .hint {
+    grid-area: hint;
+  }
+
+  .stage {
+    grid-area: stage;
+  }
+
+  .controls {
+    grid-area: controls;
+    margin-top: 0;
+  }
+
+  .choices {
+    grid-template-columns: 1fr;
+  }
+}

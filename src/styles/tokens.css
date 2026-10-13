@@ -19,6 +19,12 @@
   --color-photo-2: #ddd6cb;
   --color-photo-3: #e9e4dc;
   --color-photo-4: #d3ccc1;
+  /* The framing screen: what's outside the square is dimmed; its guide lines are faint. */
+  --color-crop-shade: rgba(20, 20, 20, 0.62);
+  --color-crop-grid: rgba(251, 250, 248, 0.5);
+  /* The photo viewer's background, and its buttons on top of photos. */
+  --color-viewer: rgba(20, 20, 20, 0.94);
+  --color-viewer-button: rgba(20, 20, 20, 0.45);
 
   /* Type (§3): served with the site from @fontsource, no third party */
   --font-display: 'Playfair Display', Georgia, 'Times New Roman', serif;
@@ -77,10 +83,18 @@
   --size-tile-height: 96px;
   --size-search-max: 640px;
   --size-photo-max: 560px;
-  /* Every photo frame's shape (product owner, 13 October 2026). */
-  --photo-ratio: 4 / 3;
-  /* The photo an owner taps to choose what stays in view (the server reads the tap at this width). */
-  --size-photo-picker: 280px;
+  /* The photo band at the top of a business's page: one shape for all, the photo whole inside. */
+  --hero-ratio: 4 / 3;
+  --size-hero-max: 520px;
+  /* The height a row of a business's photos aims for (each photo whole, in its own shape). */
+  --size-gallery-row: 120px;
+  /* The square profile photo beside a business's name, and on the owner's Photos page. */
+  --size-profile-photo: 88px;
+  --size-profile-photo-large: 240px;
+  /* The framing screen: the dimmed area around the square, and its guide lines. */
+  --size-crop-shade-spread: 9999em;
+  /* How soft the blurred copy behind a photo is. */
+  --blur-photo-backdrop: 18px;
   --size-form-narrow: 440px;
   --size-form-wide: 760px;
   --size-qr: 200px;
@@ -90,6 +104,8 @@
 @media (min-width: 768px) {
   :root {
     --gutter: 32px;
+    --hero-ratio: 16 / 9;
+    --size-gallery-row: 180px;
   }
 }
 

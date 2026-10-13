@@ -1,11 +1,14 @@
-import { useRef, useState } from 'react';
-import { data, Form, Link, redirect, useLocation, useNavigation, useSearchParams, useSubmit } from 'react-router';
+import { useState, useSyncExternalStore } from 'react';
+import { data, Form, Link, redirect, useFetcher, useLocation, useNavigation, useSearchParams, useSubmit } from 'react-router';
 import { cloudflareContext, memberContext } from '@/app/context';
+import { FramingEditor } from '@/components/FramingEditor';
 import { SiteHeader } from '@/components/SiteHeader';
+import { SquarePhoto } from '@/components/SquarePhoto';
 import { isUuid } from '@/lib/ids.mjs';
 import { pageMeta } from '@/lib/meta';
+import { readFrame } from '@/lib/photo-frame';
 import { preparePhoto } from '@/lib/photo-prepare';
-import { DESCRIPTION_MAX, framePosition, PHOTO_LIMIT, PICKER_WIDTH } from '@/lib/photo-terms';
+import { DESCRIPTION_MAX, PHOTO_LIMIT } from '@/lib/photo-terms';
 import { afterwards } from '@/server/plan-pages.server';
 import {
   addPhoto,
@@ -19,15 +22,16 @@ import {
   photosFor,
   readUpload,
   removePhoto,
-  setPhotoFocus,
+  setProfileFrame,
 } from '@/server/photos.server';
 import type { Route } from './+types/photos';
 import styles from './photos.module.css';
 
 /**
- * A business's photos (screen V2, E §9; migration 0016): its owner or a manager adds up to
- * 8, describes each, picks the main one and removes them. Checked in the database on every
- * request; anyone else gets "not found". Photos go live at once.
+ * A business's photos (screen V2, E §9; migrations 0016 and 0019): its owner or a manager
+ * chooses its square profile photo (shown beside its name in lists and on its page) and frames
+ * it, and adds up to 8 photos for its page, shown whole in their own shape. Checked in the
+ * database on every request; anyone else gets "not found". Photos go live at once.
  */
 export const meta: Route.MetaFunction = ({ loaderData }) => [
   ...pageMeta(loaderData && 'vendor' in loaderData ? `Photos · ${loaderData.vendor.name}` : 'Photos'),
@@ -69,35 +73,37 @@ export async function action({ request, params, context }: Route.ActionArgs) {
   const back = (notice: string) => redirect(`/vendors/${params.slug}/photos?${notice}=1`);
   try {
     if (intent === 'add') {
+      const role = form.get('role') === 'logo' ? 'logo' : 'gallery';
       const description = checkDescription(String(form.get('description') ?? ''));
-      if (!description.ok) return data({ error: description.error }, { status: 400 });
+      if (!description.ok) return data({ error: description.error, role }, { status: 400 });
       const upload = await readUpload(form);
-      if (!upload.ok) return data({ error: upload.error }, { status: 400 });
-      const id = await addPhoto(env, member.userId, params.slug, {
+      if (!upload.ok) return data({ error: upload.error, role }, { status: 400 });
+      const { id, replaced } = await addPhoto(env, member.userId, params.slug, {
         large: upload.large,
         small: upload.small,
         description: description.text,
+        role,
       });
-      // The new photo's id in the address gives the next "Add a photo" form a fresh start.
-      return redirect(`/vendors/${params.slug}/photos?added=${id}#photo-${id}`);
+      if (replaced) afterwards(ctx, deleteRemoved(env, replaced), 'replaced profile photo files');
+      // The new photo's id in the address gives the next "Add" form a fresh start, and opens
+      // the framing screen for a new profile photo.
+      return role === 'logo'
+        ? redirect(`/vendors/${params.slug}/photos?profile=${id}#profile`)
+        : redirect(`/vendors/${params.slug}/photos?added=${id}#photo-${id}`);
     }
     const id = String(form.get('id') ?? '');
     if (!isUuid(id)) throw data(null, { status: 400 });
+    if (intent === 'frame') {
+      const frame = readFrame({ x: form.get('x'), y: form.get('y'), w: form.get('w'), h: form.get('h') });
+      if (!frame) return data({ error: 'That framing didn’t come through. Please try again.' }, { status: 400 });
+      await setProfileFrame(env, member.userId, params.slug, id, frame);
+      return { framed: true };
+    }
     if (intent === 'describe') {
       const description = checkDescription(String(form.get('description') ?? ''));
       if (!description.ok) return data({ error: description.error, id }, { status: 400 });
       await describePhoto(env, member.userId, params.slug, id, description.text);
       return back('described');
-    }
-    if (intent === 'focus' || intent === 'middle') {
-      // The browser sends where the photo was tapped as spot.x and spot.y (its own image button).
-      const x = Number(form.get('spot.x'));
-      const y = Number(form.get('spot.y'));
-      if (intent === 'focus' && !(Number.isFinite(x) && Number.isFinite(y) && x >= 0 && y >= 0 && x <= 10000 && y <= 10000)) {
-        throw data(null, { status: 400 });
-      }
-      await setPhotoFocus(env, member.userId, params.slug, id, intent === 'middle' ? 'middle' : { x, y });
-      return redirect(`/vendors/${params.slug}/photos?focused=${id}#photo-${id}`);
     }
     if (intent === 'main') {
       await makeMainPhoto(env, member.userId, params.slug, id);
@@ -117,38 +123,73 @@ export async function action({ request, params, context }: Route.ActionArgs) {
 }
 
 const NOTICES: Record<string, string> = {
-  added:
-    'Photo added. It’s on your business page now. If something important is near its edge, tap that part of the photo below so it always stays in view.',
-  focused: 'Saved. That part of the photo now stays in view.',
+  profile: 'Profile photo added. It shows beside your business’s name now.',
+  added: 'Photo added. It’s on your business page now.',
   described: 'Description saved.',
-  main: 'That’s your main photo now. It shows first on your page and in search results.',
+  main: 'That photo leads your page now.',
   removed: 'Photo removed.',
 };
 
 export default function Photos({ loaderData, actionData }: Route.ComponentProps) {
-  const { vendor, photos, uploadsOn } = loaderData;
+  const { vendor, photos, profile, uploadsOn } = loaderData;
   const busy = useNavigation().state !== 'idle';
   const [params] = useSearchParams();
   const notice = Object.keys(NOTICES).find((k) => params.has(k));
   const submit = useSubmit();
-  const fileRef = useRef<HTMLInputElement>(null);
-  const [preparing, setPreparing] = useState(false);
+  // Each opening of the framing screen saves through a fresh fetcher, so an answer from an
+  // earlier attempt (say, "too many changes") never shows on a new one.
+  const [opening, setOpening] = useState(0);
+  const framer = useFetcher<typeof action>({ key: `framing-${opening}` });
+  const [opened, setOpened] = useState(false);
+  const [preparing, setPreparing] = useState<'logo' | 'gallery' | null>(null);
   const [problem, setProblem] = useState<{ after: string; text: string } | null>(null);
+  // True once the page's script is running (the framing screen needs it).
+  const hydrated = useSyncExternalStore(
+    () => () => {},
+    () => true,
+    () => false,
+  );
   // A problem preparing a photo shows until the page moves on (a new address or a new answer).
   const here = `${useLocation().key}:${JSON.stringify(actionData ?? null)}`;
-  const error = problem && problem.after === here ? problem.text : actionData?.error;
+  const error = problem && problem.after === here ? problem.text : actionData && 'error' in actionData ? actionData.error : undefined;
+  const errorFor = actionData && 'role' in actionData ? actionData.role : null;
   const room = PHOTO_LIMIT - photos.length;
+  const frameError = framer.state === 'idle' && framer.data && 'error' in framer.data ? framer.data.error : null;
+
+  // The framing screen: opened with its button, or straight after adding a new profile photo
+  // (until the owner closes it).
+  const added = params.get('profile');
+  const [closedFor, setClosedFor] = useState<string | null>(null);
+  const editing = opened || (added !== null && profile?.id === added && closedFor !== added);
+  const closeEditor = () => {
+    setOpened(false);
+    setClosedFor(added);
+  };
+  // Saved: the screen closes and the page says so, until it moves on.
+  const at = useLocation().key;
+  const [framedAt, setFramedAt] = useState<string | null>(null);
+  const [answered, setAnswered] = useState(framer.data);
+  if (framer.state === 'idle' && framer.data !== answered) {
+    setAnswered(framer.data);
+    if (framer.data && 'framed' in framer.data) {
+      closeEditor();
+      setFramedAt(at);
+    }
+  }
+  const savedFrame = framedAt === at;
 
   // With the page's script running, the photo is made smaller here first; without it, the
   // form sends the file as chosen and the server takes it only if it's already small enough.
   async function addWithScript(event: React.FormEvent<HTMLFormElement>) {
-    const file = fileRef.current?.files?.[0];
+    const input = event.currentTarget.elements.namedItem('file');
+    const file = input instanceof HTMLInputElement ? input.files?.[0] : undefined;
     if (!file) return;
     event.preventDefault();
     const form = new FormData(event.currentTarget);
-    setPreparing(true);
+    const role = form.get('role') === 'logo' ? 'logo' : 'gallery';
+    setPreparing(role);
     const prepared = await preparePhoto(file);
-    setPreparing(false);
+    setPreparing(null);
     if (!prepared) {
       setProblem({ after: here, text: 'This browser couldn’t open that file as a photo. Please choose a JPEG, PNG or WebP photo.' });
       return;
@@ -159,6 +200,56 @@ export default function Photos({ loaderData, actionData }: Route.ComponentProps)
     form.set('small', prepared.small);
     await submit(form, { method: 'post', encType: 'multipart/form-data' });
   }
+
+  // A plain function, not a component: the form keeps what's typed when the page redraws.
+  function addForm(role: 'logo' | 'gallery') {
+    const p = role === 'logo' ? 'profile-' : '';
+    return (
+      <Form
+        key={params.get(role === 'logo' ? 'profile' : 'added') ?? ''}
+        method="post"
+        encType="multipart/form-data"
+        onSubmit={addWithScript}
+        className={styles.addForm}
+      >
+        <input type="hidden" name="intent" value="add" />
+        <input type="hidden" name="role" value={role} />
+        <div className="field">
+          <label htmlFor={`${p}file`} className="field-label">
+            {role === 'logo' ? 'Your logo or a photo' : 'Photo'}
+          </label>
+          <input id={`${p}file`} name="file" type="file" accept="image/*" required />
+        </div>
+        <div className="field">
+          <label htmlFor={`${p}description`} className="field-label">
+            Describe it in a few words
+          </label>
+          <span id={`${p}description-hint`} className="field-hint">
+            {role === 'logo'
+              ? `For people who can’t see it, for example “${vendor.name} logo”.`
+              : 'For people who can’t see the photo, for example “Three-tier birthday cake with fresh flowers”.'}
+          </span>
+          <input
+            id={`${p}description`}
+            name="description"
+            className="input"
+            maxLength={DESCRIPTION_MAX}
+            aria-describedby={`${p}description-hint`}
+            required
+          />
+        </div>
+        <button type="submit" className="button button-primary" disabled={busy || preparing !== null}>
+          {preparing === role ? 'Preparing the photo…' : busy ? 'Adding…' : role === 'logo' ? 'Use this photo' : 'Add photo'}
+        </button>
+        <noscript>
+          <p className="muted">Without JavaScript, photos must already be small: a JPEG or WebP under 1 MB.</p>
+        </noscript>
+      </Form>
+    );
+  }
+
+  // Until the business chooses one, lists show its first page photo, framed by the smart default.
+  const listPhoto = profile ?? photos[0] ?? null;
 
   return (
     <>
@@ -171,14 +262,18 @@ export default function Photos({ loaderData, actionData }: Route.ComponentProps)
             {error}
           </p>
         )}
-        {notice && !error && (
+        {savedFrame && !error && (
+          <p className="notice" role="status">
+            Saved. Your profile photo shows like this everywhere now.
+          </p>
+        )}
+        {notice && !error && !savedFrame && (
           <p className="notice" role="status">
             {NOTICES[notice]}
           </p>
         )}
         <p className="muted">
-          Up to {PHOTO_LIMIT} photos of your own work: your business, your products, events you’ve done. Only use photos you took or have
-          permission to use. The first one is your main photo. Our team may remove a photo that isn’t right for Localites.
+          Only use photos you took or have permission to use. Our team may remove a photo that isn’t right for Localites.
         </p>
         <p>
           <Link to={`/vendors/${vendor.slug}/edit`} className="text-link">
@@ -194,132 +289,169 @@ export default function Photos({ loaderData, actionData }: Route.ComponentProps)
           )}
         </p>
 
-        {photos.length > 0 && (
-          <ul className={styles.photos}>
-            {photos.map((p, i) => (
-              <li key={p.id} className={styles.photo} id={`photo-${p.id}`}>
-                <figure className={styles.preview}>
-                  <img src={p.smallUrl} alt={p.alt} className={styles.image} style={{ objectPosition: framePosition(p) }} />
-                  <figcaption className="muted">How it shows</figcaption>
-                </figure>
-                <div className={styles.details}>
-                  {i === 0 && <span className="label">Main photo</span>}
-                  <details className={styles.focus} open={params.get('added') === p.id || params.get('focused') === p.id}>
-                    <summary className="text-link">Choose what stays in view</summary>
-                    <p className="muted">Tap the most important part of your photo. Every frame on Localites keeps it in view.</p>
-                    <Form method="post" className={styles.picker}>
-                      <input type="hidden" name="intent" value="focus" />
-                      <input type="hidden" name="id" value={p.id} />
-                      <span className={styles.pickerFrame}>
-                        <input
-                          type="image"
-                          name="spot"
-                          src={p.smallUrl}
-                          alt={`${p.alt}: tap the most important part`}
-                          width={PICKER_WIDTH}
-                          className={styles.pickerImage}
-                          disabled={busy}
-                        />
-                        <span
-                          className={styles.spot}
-                          aria-hidden="true"
-                          style={{ left: `${p.focusX * 100}%`, top: `${p.focusY * 100}%` }}
-                        />
-                      </span>
-                    </Form>
-                    <Form method="post">
-                      <input type="hidden" name="intent" value="middle" />
-                      <input type="hidden" name="id" value={p.id} />
-                      <button type="submit" className="text-link" disabled={busy}>
-                        Keep the middle in view
-                      </button>
-                    </Form>
-                  </details>
-                  <Form method="post" className={styles.describe}>
-                    <input type="hidden" name="intent" value="describe" />
-                    <input type="hidden" name="id" value={p.id} />
-                    <label htmlFor={`d-${p.id}`} className="field-label">
-                      Description
-                    </label>
-                    <input
-                      id={`d-${p.id}`}
-                      name="description"
-                      className="input"
-                      defaultValue={p.alt}
-                      maxLength={DESCRIPTION_MAX}
-                      required
-                    />
+        <section id="profile" className={styles.section} aria-labelledby="profile-title">
+          <h2 id="profile-title" className={styles.heading} tabIndex={-1}>
+            Profile photo
+          </h2>
+          <p className="muted">
+            Your logo, or a photo you like. It sits in a square beside your business’s name: in search results and at the top of your page.
+          </p>
+          <div className={styles.profile}>
+            <SquarePhoto photo={listPhoto} alt={listPhoto?.alt ?? ''} size="large" />
+            <div className={styles.profileSide}>
+              <div>
+                <span className="label">In search results</span>
+                <div className={styles.listRow}>
+                  <SquarePhoto photo={listPhoto} alt="" />
+                  <span>
+                    <span className={styles.listName}>{vendor.name}</span>
+                    <br />
+                    <span className="muted">
+                      {vendor.town}
+                      {vendor.tagline ? ` · ${vendor.tagline}` : ''}
+                    </span>
+                  </span>
+                </div>
+              </div>
+              {profile ? (
+                <div className={styles.actions}>
+                  {hydrated && (
+                    <button
+                      type="button"
+                      className="button button-secondary"
+                      onClick={() => {
+                        setOpening((n) => n + 1);
+                        setOpened(true);
+                      }}
+                      disabled={busy}
+                    >
+                      Adjust the framing
+                    </button>
+                  )}
+                  <Form method="post">
+                    <input type="hidden" name="intent" value="remove" />
+                    <input type="hidden" name="id" value={profile.id} />
                     <button type="submit" className="text-link" disabled={busy}>
-                      Save description
+                      Remove profile photo
                     </button>
                   </Form>
-                  <div className={styles.actions}>
-                    {i > 0 && (
-                      <Form method="post">
-                        <input type="hidden" name="intent" value="main" />
-                        <input type="hidden" name="id" value={p.id} />
-                        <button type="submit" className="text-link" disabled={busy}>
-                          Make this the main photo
-                        </button>
-                      </Form>
-                    )}
-                    <Form method="post">
-                      <input type="hidden" name="intent" value="remove" />
+                </div>
+              ) : (
+                <p className="muted">
+                  {photos[0]
+                    ? 'You haven’t chosen one yet, so your first page photo is used. Choose one to make your business easy to spot.'
+                    : 'You haven’t chosen one yet. Choose one to make your business easy to spot.'}
+                </p>
+              )}
+            </div>
+          </div>
+          {uploadsOn &&
+            (profile ? (
+              <details className={styles.replace} open={errorFor === 'logo'}>
+                <summary className="text-link">Use a different photo</summary>
+                {addForm('logo')}
+              </details>
+            ) : (
+              addForm('logo')
+            ))}
+        </section>
+
+        <section className={styles.section} aria-labelledby="page-title">
+          <h2 id="page-title" className={styles.heading}>
+            Photos on your page
+          </h2>
+          <p className="muted">
+            Up to {PHOTO_LIMIT} photos of your own work: your business, your products, events you’ve done. Wide or tall, each shows whole,
+            nothing cut off. The first leads your page.
+          </p>
+          {photos.length > 0 && (
+            <ul className={styles.photos}>
+              {photos.map((p, i) => (
+                <li key={p.id} className={styles.photo} id={`photo-${p.id}`}>
+                  <a href={p.url} target="_blank" rel="noopener" className={styles.preview}>
+                    <img
+                      src={p.smallUrl}
+                      alt={p.alt}
+                      width={p.width ?? undefined}
+                      height={p.height ?? undefined}
+                      className={styles.image}
+                    />
+                  </a>
+                  <div className={styles.details}>
+                    {i === 0 && <span className="label">Leads your page</span>}
+                    <Form method="post" className={styles.describe}>
+                      <input type="hidden" name="intent" value="describe" />
                       <input type="hidden" name="id" value={p.id} />
+                      <label htmlFor={`d-${p.id}`} className="field-label">
+                        Description
+                      </label>
+                      <input
+                        id={`d-${p.id}`}
+                        name="description"
+                        className="input"
+                        defaultValue={p.alt}
+                        maxLength={DESCRIPTION_MAX}
+                        required
+                      />
                       <button type="submit" className="text-link" disabled={busy}>
-                        Remove this photo
+                        Save description
                       </button>
                     </Form>
+                    <div className={styles.actions}>
+                      {i > 0 && (
+                        <Form method="post">
+                          <input type="hidden" name="intent" value="main" />
+                          <input type="hidden" name="id" value={p.id} />
+                          <button type="submit" className="text-link" disabled={busy}>
+                            Show this one first
+                          </button>
+                        </Form>
+                      )}
+                      <Form method="post">
+                        <input type="hidden" name="intent" value="remove" />
+                        <input type="hidden" name="id" value={p.id} />
+                        <button type="submit" className="text-link" disabled={busy}>
+                          Remove this photo
+                        </button>
+                      </Form>
+                    </div>
                   </div>
-                </div>
-              </li>
-            ))}
-          </ul>
-        )}
+                </li>
+              ))}
+            </ul>
+          )}
 
-        <section className={styles.add} aria-labelledby="add">
-          <h2 id="add" className="label">
-            Add a photo
-          </h2>
+          <h3 className="label">Add a photo to your page</h3>
           {!uploadsOn ? (
             <p className="muted">Adding photos isn’t switched on yet. It will be soon.</p>
           ) : room <= 0 ? (
-            <p className="muted">Your business shows {PHOTO_LIMIT} photos, the most it can. Remove one to add another.</p>
+            <p className="muted">Your page shows {PHOTO_LIMIT} photos, the most it can. Remove one to add another.</p>
           ) : (
-            <Form key={params.get('added') ?? ''} method="post" encType="multipart/form-data" onSubmit={addWithScript}>
-              <input type="hidden" name="intent" value="add" />
-              <div className="field">
-                <label htmlFor="file" className="field-label">
-                  Photo
-                </label>
-                <input ref={fileRef} id="file" name="file" type="file" accept="image/*" required />
-              </div>
-              <div className="field">
-                <label htmlFor="description" className="field-label">
-                  Describe it in a few words
-                </label>
-                <span id="description-hint" className="field-hint">
-                  For people who can’t see the photo, for example “Three-tier birthday cake with fresh flowers”.
-                </span>
-                <input
-                  id="description"
-                  name="description"
-                  className="input"
-                  maxLength={DESCRIPTION_MAX}
-                  aria-describedby="description-hint"
-                  required
-                />
-              </div>
-              <button type="submit" className="button button-primary" disabled={busy || preparing}>
-                {preparing ? 'Preparing the photo…' : busy ? 'Adding…' : 'Add photo'}
-              </button>
-              <noscript>
-                <p className="muted">Without JavaScript, photos must already be small: a JPEG or WebP under 1 MB.</p>
-              </noscript>
-            </Form>
+            addForm('gallery')
           )}
         </section>
       </main>
+
+      {editing && profile && (
+        <FramingEditor
+          src={profile.url}
+          width={profile.width}
+          height={profile.height}
+          frame={profile.frame}
+          alt={profile.alt}
+          name={vendor.name}
+          town={vendor.town}
+          busy={framer.state !== 'idle'}
+          error={frameError}
+          onSave={(f) =>
+            framer.submit(
+              { intent: 'frame', id: profile.id, x: String(f.x), y: String(f.y), w: String(f.w), h: String(f.h) },
+              { method: 'post' },
+            )
+          }
+          onClose={closeEditor}
+        />
+      )}
     </>
   );
 }

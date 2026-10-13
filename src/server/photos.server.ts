@@ -1,14 +1,15 @@
 import { sql } from 'drizzle-orm';
 import { checkImage, IMAGE_EXTENSION, type CheckedImage } from '@/lib/image-file';
 import { addressProblem, tidyLine } from '@/lib/owner-text';
-import { DESCRIPTION_MAX, PHOTO_LIMIT, PICKER_WIDTH } from '@/lib/photo-terms';
+import type { Frame } from '@/lib/photo-frame';
+import { DESCRIPTION_MAX, PHOTO_LIMIT } from '@/lib/photo-terms';
 import { errorCode } from './acting.server';
 import { audit } from './admin/audit.server';
 import type { Admin } from './auth/admin.server';
 import { type Db, withDb } from './db.server';
 import type { ServerEnv } from './env';
 import { findOwnedBySlug } from './owner-listing.server';
-import { deleteFiles, type Photo, readPhotos, smallPath, storeFile, toPhotos, uploadsOn } from './photo-store.server';
+import { deleteFiles, type Photo, readPhotos, readProfilePhoto, smallPath, storeFile, toPhotos, uploadsOn } from './photo-store.server';
 
 /**
  * Business photos (screen V2, E §9; migration 0016). The business's owner or a manager adds,
@@ -75,8 +76,11 @@ export async function readUpload(
 }
 
 export type OwnerPhotos = {
-  vendor: { id: string; slug: string; name: string; published: boolean };
+  vendor: { id: string; slug: string; name: string; town: string; tagline: string | null; published: boolean };
+  /** The page photos, in order (the first leads the page). */
   photos: Photo[];
+  /** The square profile photo beside the business in lists, if it has one. */
+  profile: Photo | null;
   uploadsOn: boolean;
 };
 
@@ -85,9 +89,16 @@ export async function photosFor(env: ServerEnv, userId: string, slug: string): P
     const v = await findOwnedBySlug(db, userId, slug);
     if (!v) return null;
     if (v.slug !== slug) return { renamedTo: v.slug };
+    const [[where], photos, profile] = await Promise.all([
+      db.execute<{ town: string }>(sql`
+        select m.name as town from vendor v join municipality m on m.id = v.primary_municipality_id where v.id = ${v.id}`),
+      readPhotos(db, v.id),
+      readProfilePhoto(db, v.id),
+    ]);
     return {
-      vendor: { id: v.id, slug: v.slug, name: v.name, published: v.status === 'published' },
-      photos: toPhotos(env, await readPhotos(db, v.id)),
+      vendor: { id: v.id, slug: v.slug, name: v.name, town: where?.town ?? '', tagline: v.tagline, published: v.status === 'published' },
+      photos: toPhotos(env, photos),
+      profile: toPhotos(env, profile)[0] ?? null,
       uploadsOn: uploadsOn(env),
     };
   });
@@ -95,7 +106,7 @@ export async function photosFor(env: ServerEnv, userId: string, slug: string): P
 
 async function countsFor(db: Db, vendorId: string): Promise<{ shown: number; today: number }> {
   const [c] = await db.execute<{ shown: number; today: number }>(sql`
-    select (select count(*)::int from vendor_media where vendor_id = ${vendorId}) as shown,
+    select (select count(*)::int from vendor_media where vendor_id = ${vendorId} and role = 'gallery') as shown,
            (select count(*)::int from media_asset where owner_kind = 'vendor' and owner_id = ${vendorId}
               and created_at > now() - interval '1 day') as today`);
   return c ?? { shown: 0, today: 0 };
@@ -104,21 +115,25 @@ async function countsFor(db: Db, vendorId: string): Promise<{ shown: number; tod
 const FULL = `Your business already shows ${PHOTO_LIMIT} photos, the most it can. Remove one first.`;
 
 /**
- * Stores a checked photo (both sizes) and adds it to the business, last in order. The files
- * are stored first and the photo recorded after; if recording fails, the files are deleted.
+ * Stores a checked photo (both sizes) and adds it to the business: a page photo (last in
+ * order) or the square profile photo (replacing the one before, whose files are returned to
+ * be deleted). The files are stored first and the photo recorded after; if recording fails,
+ * the files are deleted.
  */
 export async function addPhoto(
   env: ServerEnv,
   userId: string,
   slug: string,
-  photo: { large: CheckedImage; small: CheckedImage; description: string },
-): Promise<string> {
+  photo: { large: CheckedImage; small: CheckedImage; description: string; role?: 'gallery' | 'logo' },
+): Promise<{ id: string; replaced: { id: string; path: string } | null }> {
+  const role = photo.role ?? 'gallery';
+  let replaced: { id: string; path: string; alt: string } | null = null;
   if (!uploadsOn(env)) throw new PhotoRefused('Adding photos isn’t switched on yet. Please try again later.');
   const vendor = await withDb(env, async (db) => {
     const v = await findOwnedBySlug(db, userId, slug);
     if (!v) throw new NotOnTeam();
     const c = await countsFor(db, v.id);
-    if (c.shown >= PHOTO_LIMIT) throw new PhotoRefused(FULL);
+    if (role === 'gallery' && c.shown >= PHOTO_LIMIT) throw new PhotoRefused(FULL);
     if (c.today >= UPLOADS_PER_DAY) throw new PhotoRefused('That’s a lot of photos for one day. Please add more tomorrow.');
     return v;
   });
@@ -154,15 +169,29 @@ export async function addPhoto(
           insert into media_asset (id, owner_kind, owner_id, bucket, storage_path, mime_type, byte_size, width, height, alt_text, uploaded_by)
           values (${id}, 'vendor', ${v.id}, 'public', ${path}, ${photo.large.type}, ${photo.large.bytes.length},
                   ${photo.large.width}, ${photo.large.height}, ${photo.description}, ${userId})`);
+        if (role === 'logo') {
+          // One profile photo: the one before comes off (its files are deleted afterwards).
+          // (Not one the team removed at this same moment: that one is already off.)
+          const [old] = await tx.execute<{ id: string; path: string; alt: string }>(sql`
+            select a.id, a.storage_path as path, a.alt_text as alt from vendor_media vm join media_asset a on a.id = vm.media_asset_id
+            where vm.vendor_id = ${v.id} and vm.role = 'logo' and a.deleted_at is null for update of a`);
+          if (old) {
+            await takeOff(tx, old.id);
+            replaced = old;
+          }
+        }
         await tx.execute(sql`
           insert into vendor_media (vendor_id, media_asset_id, role, sort_order)
-          values (${v.id}, ${id}, 'gallery', (select coalesce(max(sort_order) + 1, 0) from vendor_media where vendor_id = ${v.id}))`);
+          values (${v.id}, ${id}, ${role},
+                  (select coalesce(max(sort_order) + 1, 0) from vendor_media where vendor_id = ${v.id} and role = 'gallery'))`);
         await audit(tx, {
           actor: userId,
-          action: 'vendor_photo.add',
+          action: role === 'logo' ? 'vendor_photo.profile' : 'vendor_photo.add',
           subjectType: 'vendor',
           subjectId: v.id,
-          changes: { photo: { from: null, to: { id, description: photo.description } } },
+          changes: {
+            photo: { from: replaced && { id: replaced.id, description: replaced.alt }, to: { id, description: photo.description } },
+          },
         });
       }),
     );
@@ -171,7 +200,7 @@ export async function addPhoto(
     if (errorCode(err) === 'LP122') throw new PhotoRefused(FULL);
     throw err;
   }
-  return id;
+  return { id, replaced };
 }
 
 /** Runs a change to one of this business's photos, as its owner or a manager. */
@@ -180,14 +209,14 @@ async function changePhoto(
   userId: string,
   slug: string,
   photoId: string,
-  work: (tx: Db, vendorId: string, current: { alt: string; path: string }) => Promise<void>,
+  work: (tx: Db, vendorId: string, current: { alt: string; path: string; role: string }) => Promise<void>,
 ): Promise<void> {
   await withDb(env, (db) =>
     db.transaction(async (tx) => {
       const v = await findOwnedBySlug(tx, userId, slug, true);
       if (!v) throw new NotOnTeam();
-      const [p] = await tx.execute<{ alt: string; path: string }>(sql`
-        select a.alt_text as alt, a.storage_path as path from vendor_media vm join media_asset a on a.id = vm.media_asset_id
+      const [p] = await tx.execute<{ alt: string; path: string; role: string }>(sql`
+        select a.alt_text as alt, a.storage_path as path, vm.role from vendor_media vm join media_asset a on a.id = vm.media_asset_id
         where vm.vendor_id = ${v.id} and a.id = ${photoId} and a.deleted_at is null
         for update of a`); // waits for the team removing the same photo, then finds it gone
       if (!p) throw new PhotoRefused('That photo isn’t on your business any more.');
@@ -210,40 +239,34 @@ export async function describePhoto(env: ServerEnv, userId: string, slug: string
   });
 }
 
-/**
- * The spot of a photo its frames keep in view, from where the owner tapped the photo drawn
- * PICKER_WIDTH pixels wide (the tap's position, in pixels, is all the browser sends).
- */
-export async function setPhotoFocus(
-  env: ServerEnv,
-  userId: string,
-  slug: string,
-  photoId: string,
-  tap: { x: number; y: number } | 'middle',
-) {
-  await changePhoto(env, userId, slug, photoId, async (tx, vendorId) => {
-    const [p] = await tx.execute<{ width: number | null; height: number | null }>(
-      sql`select width, height from media_asset where id = ${photoId}`,
+/** How the square profile photo is framed: a rectangle on the photo, in percentages (the owner's framing screen). */
+export async function setProfileFrame(env: ServerEnv, userId: string, slug: string, photoId: string, frame: Frame) {
+  await changePhoto(env, userId, slug, photoId, async (tx, vendorId, p) => {
+    if (p.role !== 'logo') throw new PhotoRefused('That photo isn’t your profile photo any more.');
+    const [was] = await tx.execute<{ x: number | string | null; y: number | string | null; w: number | string | null; h: number | string | null }>(
+      sql`select crop_x as x, crop_y as y, crop_w as w, crop_h as h from media_asset where id = ${photoId}`,
     );
-    const shown = { w: PICKER_WIDTH, h: p?.width && p.height ? (PICKER_WIDTH * p.height) / p.width : PICKER_WIDTH };
-    const clamp = (n: number) => Math.min(1, Math.max(0, Math.round(n * 1000) / 1000));
-    const focus = tap === 'middle' ? { x: 0.5, y: 0.5 } : { x: clamp(tap.x / shown.w), y: clamp(tap.y / shown.h) };
-    await tx.execute(sql`update media_asset set focus_x = ${focus.x}, focus_y = ${focus.y} where id = ${photoId}`);
+    const before = was && was.x != null ? { x: Number(was.x), y: Number(was.y), w: Number(was.w), h: Number(was.h) } : null;
+    // Saved again unchanged: nothing to write or record.
+    if (before && before.x === frame.x && before.y === frame.y && before.w === frame.w && before.h === frame.h) return;
+    await tx.execute(sql`
+      update media_asset set crop_x = ${frame.x}, crop_y = ${frame.y}, crop_w = ${frame.w}, crop_h = ${frame.h} where id = ${photoId}`);
     await audit(tx, {
       actor: userId,
-      action: 'vendor_photo.focus',
+      action: 'vendor_photo.frame',
       subjectType: 'vendor',
       subjectId: vendorId,
-      changes: { [`photo.${photoId}.focus`]: { from: null, to: focus } },
+      changes: { [`photo.${photoId}.frame`]: { from: before, to: frame } },
     });
   });
 }
 
-/** Puts a photo first: it becomes the business's main photo, on its page and in lists. */
+/** Puts a page photo first: it leads the business's page. */
 export async function makeMainPhoto(env: ServerEnv, userId: string, slug: string, photoId: string) {
-  await changePhoto(env, userId, slug, photoId, async (tx, vendorId) => {
+  await changePhoto(env, userId, slug, photoId, async (tx, vendorId, p) => {
+    if (p.role !== 'gallery') return;
     await tx.execute(sql`
-      update vendor_media set sort_order = (select min(sort_order) - 1 from vendor_media where vendor_id = ${vendorId})
+      update vendor_media set sort_order = (select min(sort_order) - 1 from vendor_media where vendor_id = ${vendorId} and role = 'gallery')
       where vendor_id = ${vendorId} and media_asset_id = ${photoId}`);
     await audit(tx, {
       actor: userId,
@@ -309,6 +332,8 @@ export async function cleanUpRemovedPhotos(env: ServerEnv): Promise<{ deleted: n
 // ---------------------------------------------------------------- the team (Admin → Photos)
 
 export type TeamPhoto = Photo & {
+  /** The square profile photo (shown in lists), not a page photo. */
+  isProfile: boolean;
   vendorId: string;
   vendorName: string;
   slug: string;
@@ -325,15 +350,20 @@ export async function recentPhotos(env: ServerEnv, vendorId: string | null): Pro
       alt: string;
       width: number | null;
       height: number | null;
-      focusX: number;
-      focusY: number;
+      cropX: number | null;
+      cropY: number | null;
+      cropW: number | null;
+      cropH: number | null;
+      isProfile: boolean;
       vendorId: string;
       vendorName: string;
       slug: string;
       addedBy: string | null;
       addedAt: string;
     }>(sql`
-      select a.id, a.storage_path as path, a.alt_text as alt, a.width, a.height, a.focus_x as "focusX", a.focus_y as "focusY", v.id as "vendorId", v.display_name as "vendorName",
+      select a.id, a.storage_path as path, a.alt_text as alt, a.width, a.height,
+             a.crop_x as "cropX", a.crop_y as "cropY", a.crop_w as "cropW", a.crop_h as "cropH", vm.role = 'logo' as "isProfile",
+             v.id as "vendorId", v.display_name as "vendorName",
              v.slug::text as slug, u.display_name as "addedBy", a.created_at::text as "addedAt"
       from vendor_media vm join media_asset a on a.id = vm.media_asset_id join vendor v on v.id = vm.vendor_id
       left join app_user u on u.id = a.uploaded_by
@@ -343,7 +373,19 @@ export async function recentPhotos(env: ServerEnv, vendorId: string | null): Pro
   const shown = new Map(toPhotos(env, [...rows]).map((p) => [p.id, p]));
   return rows.flatMap((r) => {
     const p = shown.get(r.id);
-    return p ? [{ ...p, vendorId: r.vendorId, vendorName: r.vendorName, slug: r.slug, addedBy: r.addedBy, addedAt: r.addedAt }] : [];
+    return p
+      ? [
+          {
+            ...p,
+            isProfile: Boolean(r.isProfile),
+            vendorId: r.vendorId,
+            vendorName: r.vendorName,
+            slug: r.slug,
+            addedBy: r.addedBy,
+            addedAt: r.addedAt,
+          },
+        ]
+      : [];
   });
 }
 

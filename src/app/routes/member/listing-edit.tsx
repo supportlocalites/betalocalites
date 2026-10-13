@@ -2,10 +2,10 @@ import { useEffect, useRef, useState, useSyncExternalStore } from 'react';
 import { data, Form, isRouteErrorResponse, Link, redirect, useBlocker, useNavigation, useRouteError, useSearchParams } from 'react-router';
 import { cloudflareContext, memberContext } from '@/app/context';
 import { SiteHeader } from '@/components/SiteHeader';
-import { VendorPage, type VendorView } from '@/components/VendorPage';
+import { BusinessName, PhotoHero, VendorPage, type VendorView } from '@/components/VendorPage';
+import { SquarePhoto } from '@/components/SquarePhoto';
 import page from '@/components/VendorPage.module.css';
 import { pageMeta } from '@/lib/meta';
-import { framePosition } from '@/lib/photo-terms';
 import { tidyLine, tidyParagraphs } from '@/lib/owner-text';
 import { describePrice, type PricingModel } from '@/lib/price';
 import { alertTeam, NotOwner, OwnerRefused, ownedListing, readBase, saveOwnerEdits } from '@/server/owner-listing.server';
@@ -109,7 +109,7 @@ const blankRow = (): Row => ({ id: '', name: '', description: '', pricingModel: 
 /** What a visitor would see, from what's typed in the form right now, tidied as the save will. */
 function previewOf(
   form: HTMLFormElement,
-  view: { name: string; town: string; categories: string[]; photos: VendorView['photos'] },
+  view: { name: string; town: string; categories: string[]; photos: VendorView['photos']; profile: VendorView['profile'] },
 ): VendorView {
   const f = Object.fromEntries([...new FormData(form).entries()].map(([k, v]) => [k, String(v)]));
   const line = (s: string | undefined) => tidyLine(s ?? '') || null;
@@ -336,213 +336,220 @@ function Editor({
             }}
           >
             <input type="hidden" name="base" value={base} />
-            <div className={page.layout}>
-              <div className={`${page.photo} ${styles.photo}`}>
-                {view.photos[0] && (
-                  <img
-                    src={view.photos[0].url}
-                    alt={view.photos[0].alt}
-                    className={page.photoImage}
-                    style={{ objectPosition: framePosition(view.photos[0]) }}
-                  />
-                )}
+            <div className={page.page}>
+              <PhotoHero photo={view.photos?.[0]}>
                 <Link to={`/vendors/${slug}/photos`} className={`button button-secondary ${styles.photoNote}`}>
-                  {view.photos.length > 0 ? `Photos (${view.photos.length})` : 'Add photos'}
+                  {view.photos?.length ? `Photos (${view.photos.length})` : 'Add photos'}
                 </Link>
-              </div>
-              <div className={page.details}>
-                <span className="label">{[...view.categories, view.town].filter(Boolean).join(' · ')}</span>
-                <h1 className="title-1">{view.name}</h1>
-                <div className="title-rule" aria-hidden="true" />
-                <p className={`muted ${styles.teamOnly}`}>
-                  Your business name, town and type of business are set by our team.{' '}
-                  <a href={`mailto:supportlocalites@gmail.com?subject=${encodeURIComponent(`Change to ${view.name}`)}`}>
-                    Email us to change them
-                  </a>
-                  .
-                </p>
+              </PhotoHero>
+              <div className={page.body}>
+                <div className={page.details}>
+                  <BusinessName
+                    vendor={view}
+                    overPhoto={Boolean(view.photos?.length)}
+                    profile={
+                      <Link to={`/vendors/${slug}/photos#profile`} className={styles.profileLink}>
+                        <SquarePhoto photo={view.profile ?? null} alt={view.profile?.alt ?? ''} size="profile" className={page.profile} />
+                        <span className={styles.profileNote}>{view.profile ? 'Change' : 'Add profile photo'}</span>
+                      </Link>
+                    }
+                  >
+                    <p className={`muted ${styles.teamOnly}`}>
+                      Your business name, town and type of business are set by our team.{' '}
+                      <a href={`mailto:supportlocalites@gmail.com?subject=${encodeURIComponent(`Change to ${view.name}`)}`}>
+                        Email us to change them
+                      </a>
+                      .
+                    </p>
+                  </BusinessName>
 
-                <div className={styles.spot}>
-                  <label htmlFor="tagline" className={styles.spotLabel}>
-                    Short description
-                  </label>
-                  <input
-                    id="tagline"
-                    name="tagline"
-                    className={styles.box}
-                    defaultValue={value('tagline')}
-                    maxLength={160}
-                    placeholder="One line about what you do, like “Custom cakes for birthdays and weddings”"
-                    aria-invalid={errors.tagline ? true : undefined}
-                    aria-describedby={described('tagline')}
-                  />
-                  {errorFor('tagline')}
-                  {clashNote('tagline')}
-                </div>
+                  <div className={styles.spot}>
+                    <label htmlFor="tagline" className={styles.spotLabel}>
+                      Short description
+                    </label>
+                    <input
+                      id="tagline"
+                      name="tagline"
+                      className={styles.box}
+                      defaultValue={value('tagline')}
+                      maxLength={160}
+                      placeholder="One line about what you do, like “Custom cakes for birthdays and weddings”"
+                      aria-invalid={errors.tagline ? true : undefined}
+                      aria-describedby={described('tagline')}
+                    />
+                    {errorFor('tagline')}
+                    {clashNote('tagline')}
+                  </div>
 
-                <div className={styles.spot}>
-                  <label htmlFor="description" className={styles.spotLabel}>
-                    About your business
-                  </label>
-                  <textarea
-                    id="description"
-                    name="description"
-                    className={`${styles.box} ${styles.about} muted`}
-                    defaultValue={value('description')}
-                    maxLength={5000}
-                    rows={6}
-                    placeholder="Tell people what you offer, how long you’ve done it and where you go"
-                    aria-invalid={errors.description ? true : undefined}
-                    aria-describedby={described('description')}
-                  />
-                  {errorFor('description')}
-                  {clashNote('description')}
-                </div>
+                  <div className={styles.spot}>
+                    <label htmlFor="description" className={styles.spotLabel}>
+                      About your business
+                    </label>
+                    <textarea
+                      id="description"
+                      name="description"
+                      className={`${styles.box} ${styles.about} muted`}
+                      defaultValue={value('description')}
+                      maxLength={5000}
+                      rows={6}
+                      placeholder="Tell people what you offer, how long you’ve done it and where you go"
+                      aria-invalid={errors.description ? true : undefined}
+                      aria-describedby={described('description')}
+                    />
+                    {errorFor('description')}
+                    {clashNote('description')}
+                  </div>
 
-                <section aria-labelledby="services">
-                  <h2 id="services" className="label">
-                    Services
-                  </h2>
-                  <ul className={page.services}>
-                    {rows.map((r, i) => {
-                      const k = (f: string) => `service.${i}.${f}`;
-                      const id = (f: string) => `service-${i}-${f}`;
-                      const rowClashes = r.id ? Object.keys(clash).filter((c) => c.startsWith(`service:${r.id}:`)) : [];
-                      return (
-                        <li key={i} className={`${styles.serviceRow} ${r.shown || !r.id ? '' : styles.hiddenRow}`}>
-                          <input type="hidden" name={k('id')} value={r.id} />
-                          <div className={styles.serviceTop}>
+                  <section aria-labelledby="services">
+                    <h2 id="services" className="label">
+                      Services
+                    </h2>
+                    <ul className={page.services}>
+                      {rows.map((r, i) => {
+                        const k = (f: string) => `service.${i}.${f}`;
+                        const id = (f: string) => `service-${i}-${f}`;
+                        const rowClashes = r.id ? Object.keys(clash).filter((c) => c.startsWith(`service:${r.id}:`)) : [];
+                        return (
+                          <li key={i} className={`${styles.serviceRow} ${r.shown || !r.id ? '' : styles.hiddenRow}`}>
+                            <input type="hidden" name={k('id')} value={r.id} />
+                            <div className={styles.serviceTop}>
+                              <div className={styles.spot}>
+                                <label htmlFor={id('name')} className={styles.spotLabel}>
+                                  {r.id ? 'Service name' : 'Add a service'}
+                                </label>
+                                <input
+                                  id={id('name')}
+                                  name={k('name')}
+                                  className={styles.box}
+                                  defaultValue={r.name}
+                                  maxLength={120}
+                                  placeholder="Service name, like Wedding cake"
+                                  aria-invalid={errors[k('name')] ? true : undefined}
+                                  aria-describedby={described(k('name'))}
+                                />
+                                {errorFor(k('name'))}
+                              </div>
+                              <div className={`${styles.spot} ${styles.price}`}>
+                                <label htmlFor={id('pricingModel')} className={styles.spotLabel}>
+                                  Price
+                                </label>
+                                <select
+                                  id={id('pricingModel')}
+                                  name={k('pricingModel')}
+                                  className={styles.box}
+                                  defaultValue={r.pricingModel}
+                                >
+                                  {PRICE_CHOICES.map(([model, words]) => (
+                                    <option key={model} value={model}>
+                                      {words}
+                                    </option>
+                                  ))}
+                                </select>
+                                <label htmlFor={id('price')} className={`${styles.spotLabel} ${styles.amount}`}>
+                                  Price in dollars
+                                </label>
+                                <input
+                                  id={id('price')}
+                                  name={k('price')}
+                                  className={`${styles.box} ${styles.amount}`}
+                                  defaultValue={r.price}
+                                  inputMode="decimal"
+                                  placeholder="150"
+                                  maxLength={12}
+                                  aria-invalid={errors[k('price')] ? true : undefined}
+                                  aria-describedby={described(k('price'))}
+                                />
+                                {errorFor(k('price'))}
+                              </div>
+                            </div>
                             <div className={styles.spot}>
-                              <label htmlFor={id('name')} className={styles.spotLabel}>
-                                {r.id ? 'Service name' : 'Add a service'}
+                              <label htmlFor={id('description')} className={styles.spotLabel}>
+                                Details (optional)
                               </label>
-                              <input
-                                id={id('name')}
-                                name={k('name')}
-                                className={styles.box}
-                                defaultValue={r.name}
-                                maxLength={120}
-                                placeholder="Service name, like Wedding cake"
-                                aria-invalid={errors[k('name')] ? true : undefined}
-                                aria-describedby={described(k('name'))}
+                              <textarea
+                                id={id('description')}
+                                name={k('description')}
+                                className={`${styles.box} muted`}
+                                defaultValue={r.description}
+                                maxLength={2000}
+                                rows={2}
+                                placeholder="Like Serves up to 100"
+                                aria-invalid={errors[k('description')] ? true : undefined}
+                                aria-describedby={described(k('description'))}
                               />
-                              {errorFor(k('name'))}
+                              {errorFor(k('description'))}
                             </div>
-                            <div className={`${styles.spot} ${styles.price}`}>
-                              <label htmlFor={id('pricingModel')} className={styles.spotLabel}>
-                                Price
-                              </label>
-                              <select id={id('pricingModel')} name={k('pricingModel')} className={styles.box} defaultValue={r.pricingModel}>
-                                {PRICE_CHOICES.map(([model, words]) => (
-                                  <option key={model} value={model}>
-                                    {words}
-                                  </option>
-                                ))}
-                              </select>
-                              <label htmlFor={id('price')} className={`${styles.spotLabel} ${styles.amount}`}>
-                                Price in dollars
-                              </label>
-                              <input
-                                id={id('price')}
-                                name={k('price')}
-                                className={`${styles.box} ${styles.amount}`}
-                                defaultValue={r.price}
-                                inputMode="decimal"
-                                placeholder="150"
-                                maxLength={12}
-                                aria-invalid={errors[k('price')] ? true : undefined}
-                                aria-describedby={described(k('price'))}
-                              />
-                              {errorFor(k('price'))}
-                            </div>
-                          </div>
-                          <div className={styles.spot}>
-                            <label htmlFor={id('description')} className={styles.spotLabel}>
-                              Details (optional)
+                            <label className={styles.check}>
+                              <input type="checkbox" name={k('shown')} value="yes" defaultChecked={r.shown} />
+                              Show on my page
                             </label>
-                            <textarea
-                              id={id('description')}
-                              name={k('description')}
-                              className={`${styles.box} muted`}
-                              defaultValue={r.description}
-                              maxLength={2000}
-                              rows={2}
-                              placeholder="Like Serves up to 100"
-                              aria-invalid={errors[k('description')] ? true : undefined}
-                              aria-describedby={described(k('description'))}
-                            />
-                            {errorFor(k('description'))}
-                          </div>
-                          <label className={styles.check}>
-                            <input type="checkbox" name={k('shown')} value="yes" defaultChecked={r.shown} />
-                            Show on my page
-                          </label>
-                          {r.id && !r.shown && <p className="muted">Hidden from visitors.</p>}
-                          {rowClashes.length > 0 && (
-                            <p className={styles.clash}>
-                              Our team changed this service while you were editing. It now has{' '}
-                              {rowClashes.map((c) => SERVICE_FIELD[c.split(':')[2]!]?.(clash[c]) ?? '').join(', ')}. Save again to use yours
-                              instead.
-                            </p>
-                          )}
-                        </li>
-                      );
-                    })}
-                  </ul>
-                  {hydrated && (
-                    <button
-                      type="button"
-                      className={`text-link ${styles.linkButton}`}
-                      onClick={() => setExtraRows({ after: problem, n: extra + 1 })}
-                    >
-                      + Add another service
-                    </button>
-                  )}
-                </section>
+                            {r.id && !r.shown && <p className="muted">Hidden from visitors.</p>}
+                            {rowClashes.length > 0 && (
+                              <p className={styles.clash}>
+                                Our team changed this service while you were editing. It now has{' '}
+                                {rowClashes.map((c) => SERVICE_FIELD[c.split(':')[2]!]?.(clash[c]) ?? '').join(', ')}. Save again to use
+                                yours instead.
+                              </p>
+                            )}
+                          </li>
+                        );
+                      })}
+                    </ul>
+                    {hydrated && (
+                      <button
+                        type="button"
+                        className={`text-link ${styles.linkButton}`}
+                        onClick={() => setExtraRows({ after: problem, n: extra + 1 })}
+                      >
+                        + Add another service
+                      </button>
+                    )}
+                  </section>
 
-                <section aria-labelledby="contact">
-                  <h2 id="contact" className="label">
-                    Contact
-                  </h2>
-                  <div className={styles.spot}>
-                    <label htmlFor="websiteUrl" className={styles.spotLabel}>
-                      Website (your Visit website button)
-                    </label>
-                    <input
-                      id="websiteUrl"
-                      name="websiteUrl"
-                      className={styles.box}
-                      defaultValue={value('websiteUrl')}
-                      inputMode="url"
-                      autoComplete="url"
-                      maxLength={500}
-                      placeholder="yourbusiness.ca"
-                      aria-invalid={errors.websiteUrl ? true : undefined}
-                      aria-describedby={described('websiteUrl')}
-                    />
-                    {errorFor('websiteUrl')}
-                    {clashNote('websiteUrl')}
-                  </div>
-                  <div className={styles.spot}>
-                    <label htmlFor="publicPhone" className={styles.spotLabel}>
-                      Phone (your Call button)
-                    </label>
-                    <input
-                      id="publicPhone"
-                      name="publicPhone"
-                      className={styles.box}
-                      defaultValue={value('publicPhone')}
-                      inputMode="tel"
-                      autoComplete="tel"
-                      maxLength={20}
-                      placeholder="705-555-0123"
-                      aria-invalid={errors.publicPhone ? true : undefined}
-                      aria-describedby={described('publicPhone')}
-                    />
-                    {errorFor('publicPhone')}
-                    {clashNote('publicPhone')}
-                  </div>
-                </section>
+                  <section aria-labelledby="contact">
+                    <h2 id="contact" className="label">
+                      Contact
+                    </h2>
+                    <div className={styles.spot}>
+                      <label htmlFor="websiteUrl" className={styles.spotLabel}>
+                        Website (your Visit website button)
+                      </label>
+                      <input
+                        id="websiteUrl"
+                        name="websiteUrl"
+                        className={styles.box}
+                        defaultValue={value('websiteUrl')}
+                        inputMode="url"
+                        autoComplete="url"
+                        maxLength={500}
+                        placeholder="yourbusiness.ca"
+                        aria-invalid={errors.websiteUrl ? true : undefined}
+                        aria-describedby={described('websiteUrl')}
+                      />
+                      {errorFor('websiteUrl')}
+                      {clashNote('websiteUrl')}
+                    </div>
+                    <div className={styles.spot}>
+                      <label htmlFor="publicPhone" className={styles.spotLabel}>
+                        Phone (your Call button)
+                      </label>
+                      <input
+                        id="publicPhone"
+                        name="publicPhone"
+                        className={styles.box}
+                        defaultValue={value('publicPhone')}
+                        inputMode="tel"
+                        autoComplete="tel"
+                        maxLength={20}
+                        placeholder="705-555-0123"
+                        aria-invalid={errors.publicPhone ? true : undefined}
+                        aria-describedby={described('publicPhone')}
+                      />
+                      {errorFor('publicPhone')}
+                      {clashNote('publicPhone')}
+                    </div>
+                  </section>
+                </div>
               </div>
             </div>
 

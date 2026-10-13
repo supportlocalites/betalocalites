@@ -247,12 +247,12 @@
   flex: 0 0 var(--size-thumb);
 }
 
-/* Photos (team): a small square of each photo, and the remove form under it. */
+/* Photos (team): each photo whole in a small square, and the remove form under it. */
 .photoThumb {
   display: block;
   width: var(--size-thumb);
-  aspect-ratio: var(--photo-ratio);
-  object-fit: cover; /* the chosen spot stays in view */
+  aspect-ratio: 1;
+  object-fit: contain;
   background: var(--color-photo-1);
 }
 

@@ -1,5 +1,6 @@
-// Business photos (V2, P4, E §9; migration 0016). Covers: only the business's owner or a
-// manager adds, describes, orders and removes photos; staff, other owners and strangers get
+// Business photos (V2, P4, E §9; migrations 0016 and 0019). Covers: only the business's owner
+// or a manager adds, describes, orders and removes photos, and chooses and frames the square
+// profile photo; staff, other owners and strangers get
 // "not found"; files are checked from their contents and lose their location details; at
 // most 8; the photo shows on the business page and in search; removing deletes the files
 // (and retries nightly when storage was down); the team sees every photo and can remove any.
@@ -21,12 +22,12 @@ const V = await listing('v');
 const W = await listing('w');
 const email = (who) => `e2e-photo-${who}-${run}@example.test`;
 const ids = {};
-for (const who of ['o', 'mgr', 'stf', 'o2', 'other', 'team']) ids[who] = await account(email(who));
+for (const who of ['o', 'mgr', 'mgr2', 'stf', 'o2', 'other', 'team']) ids[who] = await account(email(who));
 await sql`insert into vendor_member (vendor_id, user_id, role) values
-  (${V.id}, ${ids.o}, 'owner'), (${V.id}, ${ids.mgr}, 'manager'), (${V.id}, ${ids.stf}, 'staff'), (${W.id}, ${ids.o2}, 'owner')`;
+  (${V.id}, ${ids.o}, 'owner'), (${V.id}, ${ids.mgr}, 'manager'), (${V.id}, ${ids.mgr2}, 'manager'), (${V.id}, ${ids.stf}, 'staff'), (${W.id}, ${ids.o2}, 'owner')`;
 await sql`insert into platform_role (user_id, role) values (${ids.team}, 'admin')`;
 const cookie = {};
-for (const who of ['o', 'mgr', 'stf', 'o2', 'other']) cookie[who] = cookieFor(await passwordSession(email(who)));
+for (const who of ['o', 'mgr', 'mgr2', 'stf', 'o2', 'other']) cookie[who] = cookieFor(await passwordSession(email(who)));
 cookie.team = cookieFor(await twoStepSession(email('team')));
 const PAGE = (v = V) => `/vendors/${v.slug}/photos`;
 
@@ -68,7 +69,7 @@ const add = (who, { large, small, description = `Our cakes ${run}`, v = V, ...re
   });
 const stored = async () => (await (await fetch(`${MAIL}/storage/files`)).json()).filter((f) => f.key.includes(V.id) || f.key.includes(W.id));
 const photosOf = (v) => sql`
-  select a.id, a.storage_path as path, a.alt_text as alt, a.width, a.height, a.deleted_at, a.storage_removed_at, vm.sort_order
+  select a.id, a.storage_path as path, a.alt_text as alt, a.width, a.height, a.deleted_at, a.storage_removed_at, vm.sort_order, vm.role
   from media_asset a left join vendor_media vm on vm.media_asset_id = a.id
   where a.owner_kind = 'vendor' and a.owner_id = ${v.id} order by a.created_at`;
 const live = async (v = V) => (await photosOf(v)).filter((p) => !p.deleted_at);
@@ -149,8 +150,9 @@ check('a manager can add a photo', r.status === 302, String(r.status));
 const mgrPhoto = (await live()).find((p) => p.alt === `Manager’s photo ${run}`);
 r = await post(PAGE(), 'o', { intent: 'main', id: mgrPhoto.id });
 r = await site(`/vendors/${V.slug}`);
-const firstImg = r.body.match(/<img src="[^"]*vendor-photos\/([^"]+)"/)?.[1];
-check('“Make this the main photo” puts it first on the business page', firstImg === mgrPhoto.path, firstImg);
+// The page's first described photo (the soft copy behind it has no description).
+const firstImg = r.body.match(/<img src="[^"]*vendor-photos\/([^"]+)" alt="[^"]+"/)?.[1];
+check('“Show this one first” puts it first on the business page', firstImg === mgrPhoto.path, firstImg);
 r = await post(PAGE(), 'o', { intent: 'describe', id: mgrPhoto.id, description: `Our shop front ${run}` });
 check('the description can be changed (recorded)', r.status === 302 && (await live()).some((p) => p.alt === `Our shop front ${run}`)
   && (await sql`select count(*)::int as n from audit_log where action = 'vendor_photo.describe' and subject_id = ${V.id}`)[0].n === 1, String(r.status));
@@ -161,28 +163,76 @@ check('…nor through V’s page', r.status === 404 && (await live()).some((p) =
 r = await post(PAGE(), 'stf', { intent: 'describe', id: mgrPhoto.id, description: 'Staff were here' });
 check('staff can’t change a description', r.status === 404 && !(await live()).some((p) => p.alt === 'Staff were here'), String(r.status));
 
-console.log('\nWhat stays in view');
-const focusOf = async (id) => (await sql`select focus_x, focus_y from media_asset where id = ${id}`)[0];
-check('a new photo keeps its middle in view', JSON.stringify(await focusOf(mgrPhoto.id)) === JSON.stringify({ focus_x: 0.5, focus_y: 0.5 }));
-// The photo is 900 x 900, drawn 280 wide: a tap at (252, 28) is 90% across, 10% down.
-r = await post(PAGE(), 'mgr', { intent: 'focus', id: mgrPhoto.id, 'spot.x': '252', 'spot.y': '28' });
-const tapped = await focusOf(mgrPhoto.id);
-check('tapping the photo saves that spot (recorded)', r.status === 302 && Math.abs(tapped.focus_x - 0.9) < 0.001 && Math.abs(tapped.focus_y - 0.1) < 0.001
-  && (await sql`select count(*)::int as n from audit_log where action = 'vendor_photo.focus' and subject_id = ${V.id}`)[0].n === 1, JSON.stringify(tapped));
+console.log('\nThe profile photo (square, beside the name and in lists; migration 0019)');
+const logoOf = async () => (await live()).filter((p) => p.role === 'logo');
+r = await site(`/search?q=${encodeURIComponent(V.name)}`);
+check('without one, search shows the first page photo', r.body.includes(mgrPhoto.path.replace('.jpg', '-small.jpg')));
+r = await add('o', { large: jpeg(1200, 500), small: jpeg(600, 250), description: `Our logo ${run}`, role: 'logo' });
+let [logo] = await logoOf();
+check('the owner adds a profile photo, and the page opens its framing screen (recorded)', r.status === 302 && r.location.includes(`profile=${logo?.id}`)
+  && (await sql`select count(*)::int as n from audit_log where action = 'vendor_photo.profile' and subject_id = ${V.id}`)[0].n === 1, `${r.status} ${r.location}`);
+r = await site(`/search?q=${encodeURIComponent(V.name)}`);
+check('search now shows the profile photo, not the first page photo',
+  r.body.includes(logo.path.replace('.jpg', '-small.jpg')) && !r.body.includes(mgrPhoto.path.replace('.jpg', '-small.jpg')));
+// 1200 x 500 is 2.4 times wider than tall: whole, it fills the square's width and 41.667% of its height, centred.
+check('…shown whole by default (a wide logo), on a soft copy of itself',
+  r.body.includes('top:29.167%') && r.body.includes('height:41.667%') && r.body.includes('aria-hidden="true"'));
 r = await site(`/vendors/${V.slug}`);
-check('the business page keeps that spot in view', r.body.includes('object-position:90% 10%'));
-r = await post(PAGE(), 'mgr', { intent: 'focus', id: mgrPhoto.id, 'spot.x': '9999', 'spot.y': '-5' });
-check('a tap outside the photo is refused', r.status === 400, String(r.status));
-r = await post(PAGE(), 'stf', { intent: 'focus', id: mgrPhoto.id, 'spot.x': '1', 'spot.y': '1' });
-check('staff can’t change it', r.status === 404 && Math.abs((await focusOf(mgrPhoto.id)).focus_x - 0.9) < 0.001, String(r.status));
-r = await post(PAGE(W), 'o2', { intent: 'middle', id: mgrPhoto.id });
-check('another business’s owner can’t change it', r.status === 409 && Math.abs((await focusOf(mgrPhoto.id)).focus_x - 0.9) < 0.001, String(r.status));
-r = await post(PAGE(), 'o', { intent: 'middle', id: mgrPhoto.id });
-check('“Keep the middle in view” puts it back', r.status === 302 && JSON.stringify(await focusOf(mgrPhoto.id)) === JSON.stringify({ focus_x: 0.5, focus_y: 0.5 }));
+const heroImg = r.body.match(/<img src="[^"]*vendor-photos\/([^"]+)" alt="[^"]+"/)?.[1];
+check('the business page shows it beside the name, and still leads with the first page photo',
+  r.body.includes(`alt="Our logo ${run}"`) && heroImg === mgrPhoto.path, heroImg);
+const frame = { x: '10', y: '0', w: '50', h: '100' };
+// A second manager sends the refused framings, so no one person passes the 20-changes-a-minute limit.
+r = await post(PAGE(), 'mgr', { intent: 'frame', id: logo.id, ...frame });
+const cropOf = async (id) => (await sql`select crop_x, crop_y, crop_w, crop_h from media_asset where id = ${id}`)[0];
+check('a manager frames it (recorded)', r.status === 200 && JSON.stringify(await cropOf(logo.id)) === JSON.stringify({ crop_x: 10, crop_y: 0, crop_w: 50, crop_h: 100 })
+  && (await sql`select count(*)::int as n from audit_log where action = 'vendor_photo.frame' and subject_id = ${V.id}`)[0].n === 1, String(r.status));
+r = await post(PAGE(), 'mgr', { intent: 'frame', id: logo.id, ...frame, x: '20' });
+const reframed = (await sql`select changes from audit_log where action = 'vendor_photo.frame' and subject_id = ${V.id} order by created_at desc limit 1`)[0]?.changes;
+check('framing it again records what it was before', r.status === 200 && reframed?.[`photo.${logo.id}.frame`]?.from?.x === 10, JSON.stringify(reframed));
+r = await post(PAGE(), 'mgr', { intent: 'frame', id: logo.id, ...frame });
+r = await site(`/search?q=${encodeURIComponent(V.name)}`);
+check('lists draw it as framed', r.body.includes('left:-20%') && r.body.includes('width:200%'));
+for (const [what, bad] of [
+  ['an empty size', { ...frame, w: '0' }],
+  ['a missing side', { x: '1', y: '1', w: '50' }],
+  ['not a number', { ...frame, x: 'NaN' }],
+  ['far outside the photo', { ...frame, x: '-900' }],
+  ['far too zoomed out', { ...frame, h: '900' }],
+]) {
+  r = await post(PAGE(), 'mgr2', { intent: 'frame', id: logo.id, ...bad });
+  check(`a framing with ${what}: refused, nothing changed`, r.status === 400 && (await cropOf(logo.id)).crop_x === 10, String(r.status));
+}
+r = await post(PAGE(), 'mgr2', { intent: 'frame', id: mgrPhoto.id, ...frame });
+check('a page photo can’t be framed as a profile photo', r.status === 409 && (await cropOf(mgrPhoto.id)).crop_x === null, String(r.status));
+r = await post(PAGE(), 'stf', { intent: 'frame', id: logo.id, ...frame, x: '30' });
+check('staff can’t frame it', r.status === 404 && (await cropOf(logo.id)).crop_x === 10, String(r.status));
+r = await post(PAGE(W), 'o2', { intent: 'frame', id: logo.id, ...frame, x: '30' });
+check('another business’s owner can’t frame it through their own page', r.status === 409 && (await cropOf(logo.id)).crop_x === 10, String(r.status));
+r = await post(PAGE(), 'o2', { intent: 'frame', id: logo.id, ...frame, x: '30' });
+check('…nor through this business’s page', r.status === 404 && (await cropOf(logo.id)).crop_x === 10, String(r.status));
+r = await add('stf', { large: jpeg(500, 500), small: jpeg(200, 200), description: 'Staff logo', role: 'logo' });
+check('staff can’t add or replace it', r.status === 404 && (await logoOf())[0]?.id === logo.id, String(r.status));
+r = await post(PAGE(), 'mgr', { intent: 'main', id: logo.id });
+check('“Show this one first” doesn’t touch the profile photo', r.status === 302 && (await logoOf())[0]?.id === logo.id);
+const oldLogo = logo;
+r = await add('o', { large: jpeg(600, 600), small: jpeg(300, 300), description: `New logo ${run}`, role: 'logo' });
+[logo] = await logoOf();
+check('a new profile photo replaces the old one: only one, the new one, with no framing yet',
+  r.status === 302 && (await logoOf()).length === 1 && logo.alt === `New logo ${run}` && (await cropOf(logo.id)).crop_x === null, String(r.status));
+check('…and the history says which photo it replaced',
+  (await sql`select changes from audit_log where action = 'vendor_photo.profile' and subject_id = ${V.id} order by created_at desc limit 1`)[0]
+    ?.changes?.photo?.from?.id === oldLogo.id);
+check('…and the old one’s files are deleted',
+  await until(async () => !(await stored()).some((f) => f.key.includes(oldLogo.path.replace('.jpg', '')))
+    && (await photosOf(V)).find((p) => p.id === oldLogo.id)?.storage_removed_at !== null));
+r = await site(PAGE(), { cookie: cookie.o });
+check('the photo page shows it, with how it looks in lists', r.status === 200 && r.body.includes(`alt="New logo ${run}"`) && r.body.includes('In search results'));
 
-console.log('\nAt most 8');
-for (let n = (await live()).length; n < 8; n++) await add('o', { large: jpeg(500, 500), small: jpeg(200, 200), description: `Filler ${n}` });
-check('eight photos on the business', (await live()).length === 8, String((await live()).length));
+console.log('\nAt most 8 on the page (the profile photo is one more)');
+const pagePhotos = async () => (await live()).filter((p) => p.role === 'gallery');
+for (let n = (await pagePhotos()).length; n < 8; n++) await add('o', { large: jpeg(500, 500), small: jpeg(200, 200), description: `Filler ${n}` });
+check('eight page photos on the business, and its profile photo', (await pagePhotos()).length === 8 && (await logoOf()).length === 1, String((await live()).length));
 const before = (await stored()).length;
 r = await add('o', { large: jpeg(500, 500), small: jpeg(200, 200), description: 'Ninth' });
 check('a ninth is refused plainly, and nothing is stored', r.status === 409 && r.body.includes('the most it can') && (await stored()).length === before, String(r.status));

@@ -1,0 +1,95 @@
+/* The photo viewer: the whole screen, dark, the photo as large as fits, never cut. */
+.viewer {
+  border: none;
+  padding: 0;
+  margin: 0;
+  width: 100%;
+  max-width: none;
+  height: 100%;
+  max-height: none;
+  background: var(--color-viewer);
+  color: var(--color-on-ink);
+  overflow: hidden;
+  /* Sideways swipes reach the page (to move between photos); up and down, and pinching, stay the browser's. */
+  touch-action: pan-y pinch-zoom;
+}
+
+.viewer[open] {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+}
+
+.viewer::backdrop {
+  background: var(--color-viewer);
+}
+
+.top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-3) var(--space-4);
+}
+
+.count {
+  font-size: var(--text-small);
+  letter-spacing: var(--tracking-label);
+}
+
+.figure {
+  margin: 0;
+  min-height: 0;
+  display: grid;
+  grid-template-rows: minmax(0, 1fr) auto;
+  justify-items: center;
+  gap: var(--space-3);
+  padding: 0 var(--space-4) var(--space-6);
+}
+
+.photo {
+  display: block;
+  width: auto;
+  height: auto;
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+  align-self: center;
+  user-select: none;
+}
+
+.caption {
+  max-width: var(--size-form-wide);
+  text-align: center;
+  font-size: var(--text-small);
+}
+
+.button {
+  width: var(--size-icon-button);
+  height: var(--size-icon-button);
+  border: none;
+  border-radius: 50%;
+  background: var(--color-viewer-button);
+  color: var(--color-on-ink);
+  font-size: var(--text-title-2);
+  line-height: 1;
+  cursor: pointer;
+}
+
+.button:focus-visible {
+  outline: var(--focus-ring) solid var(--color-gold);
+  outline-offset: var(--focus-ring);
+}
+
+.previous,
+.next {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+.previous {
+  left: var(--space-3);
+}
+
+.next {
+  right: var(--space-3);
+}

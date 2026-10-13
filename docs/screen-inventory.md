@@ -20,7 +20,7 @@ added; quotes, bookings and the concierge queue removed.
 | P1 ★ | Home | What Localites is, for consumers and for vendors; categories; collections; search | 1 |
 | P2 | Category page | Vendors in a category, with filters | 1 |
 | P3 ★ | Search results | Keyword + filters; honest empty state | 1 |
-| P4 ★ | Vendor profile | Services, published prices, photos (**built**: main photo on top, the rest under **Photos**; search results show the main photo small), area, verification; **Message** (claimed) or the business's own contact + **Inquire** (unclaimed or unverified, D-04); **Add to event**; reviews from Stage 3. **Planning an event?** section built (2A): **Add to event**, **Save**, and a line saying the business isn't told | 1 |
+| P4 ★ | Vendor profile | Services, published prices, photos (**built**: the first photo whole in a band on top, the square profile photo beside the name, every photo whole in rows, opening in a full-screen viewer; search results show the square profile photo), area, verification; **Message** (claimed) or the business's own contact + **Inquire** (unclaimed or unverified, D-04); **Add to event**; reviews from Stage 3. **Planning an event?** section built (2A): **Add to event**, **Save**, and a line saying the business isn't told | 1 |
 | P5 | Collection page | A curated list | 1 |
 | P6 | How it works | For consumers and for vendors. States plainly that Localites doesn't handle payments. | 1 |
 | P7 | For vendors | Why join, how claiming works, that it's free | 1 |

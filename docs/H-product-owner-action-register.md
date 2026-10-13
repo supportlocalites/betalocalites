@@ -1,6 +1,9 @@
 # H — Product Owner Action Register
 
-**Last updated:** 2026-10-13 (revision 19: business photos built, PO-16 to switch them on; revision 18: D-44, bookings marked before a business joined; revision 17: D-39 revised to D-43, "Plan an event" built)
+**Last updated:** 2026-10-13 (revision 20: D-45, square profile photo and whole page photos; revision 19: business photos built, PO-16 to switch them on; revision 18: D-44, bookings marked before a business joined; revision 17: D-39 revised to D-43, "Plan an event" built)
+
+**Revision 20 changes:** D-45, your profile photo and page photo design, is recorded and built.
+Nothing for you to do; once PO-16 is done you can try it on your test business.
 
 **Revision 19 changes:** businesses can add photos (you chose this on 13 October 2026). To
 switch it on, PO-16: make one storage folder in Supabase and copy two keys into Cloudflare.
@@ -70,6 +73,7 @@ Recorded from your messages of 9 and 10 October 2026. These now shape every docu
 | ✅ D-42 | **Count saves, adds to event plans and "marked booked" now, seen only by the Localites team** (12 October 2026). Not on a business's own Analytics page. | Built: "Planning (team only)" on the team's **Activity** pages, with totals by kind of event. Totals only: never who, never which event. |
 | ✅ D-43 | **Tailored ideas per kind of event, and featured businesses per kind, run by the team** (12 October 2026). | Built: on a person's plan, "Ideas for your …" with up to 3 businesses labelled **Featured** ("Featured businesses are promoted by the Localites team.") and the kinds of business people often need. The team chooses both at **Admin → Event types**. No money is recorded; any arrangement with a business happens outside Localites (D-24). Brought forward from Stage 5. |
 | ✅ D-44 | **A business that joins Localites later sees bookings marked before it joined only if the event is still to come** (13 October 2026). | The owner: "The only scenario where I see it is important is if they add them to Localites and their party hasn't technically yet happened. If it's in the past I wouldn't worry about it. Don't want them to see how popular/unpopular the business is on the app." Built (migration 0013): past bookings from before it joined stay hidden, and can't be flagged. |
+| ✅ D-45 | **Each business has a square profile photo; the photos on its page are never cut** (13 October 2026). | The owner: "I want the business to have almost a logo photo - the photo that will be beside their business when in list views (this can be their logo a photo they like but I think this one should be square) then when you enter the business profile there can be additional photos and those can be landscape/potrait but we need to do a heck of a job at making it look clean and inviting." Chose the smart default (a nearly square photo fills the square; any other shape shows whole). Built (migration 0019): a full-screen framing screen for the profile photo; page photos whole in a band and in even rows, with a full-screen viewer. Replaces the earlier same-day 4:3 frames. |
 | ✅ D-35 | **Two claims for one business: the first approved wins.** Any other waiting claims are declined automatically with a polite email; a claimed business shows "This business manages its own listing" with a way to contact us. | ADR-028; the database allows only one owner per business. |
 
 ---

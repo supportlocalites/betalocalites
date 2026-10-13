@@ -3,7 +3,15 @@ import { category, municipality, vendor, vendorCategory, vendorService } from '@
 import { describePrice, type PricingModel } from '@/lib/price';
 import { type Db, withDb } from './db.server';
 import type { ServerEnv } from './env';
-import { type Photo, readPhotos, toPhotos } from './photo-store.server';
+import {
+  LIST_PHOTO,
+  LIST_PHOTO_COLUMNS,
+  type ListPhotoColumns,
+  type Photo,
+  readPhotos,
+  readProfilePhoto,
+  toPhotos,
+} from './photo-store.server';
 
 export type CategorySummary = { slug: string; name: string; vendorCount: number };
 
@@ -36,21 +44,8 @@ export async function categoryName(db: Db, slug: string): Promise<string | null>
   return c?.name ?? null;
 }
 
-/**
- * photoPath: where the main photo is stored (pages turn it into an address with smallPhotoUrl);
- * photoFocusX/Y: the spot its frame keeps in view.
- */
-export type VendorResult = {
-  id: string;
-  slug: string;
-  name: string;
-  tagline: string | null;
-  town: string;
-  photoPath: string | null;
-  /** May arrive as text (the connection doesn't look up types): read with Number(). */
-  photoFocusX: number | string | null;
-  photoFocusY: number | string | null;
-};
+/** The list photo's columns (LIST_PHOTO): pages turn them into a picture with toListPhoto. */
+export type VendorResult = { id: string; slug: string; name: string; tagline: string | null; town: string } & ListPhotoColumns;
 
 /**
  * Published listings matching the words typed, ordered only by how well they match
@@ -60,13 +55,10 @@ export async function searchVendors(db: Db, query: string, categorySlug?: string
   const q = query.trim().slice(0, 100);
   const rows = await db.execute<VendorResult>(sql`
     select v.id, v.slug, v.display_name as name, v.tagline, m.name as town,
-           ph.path as "photoPath",
-           ph.focus_x as "photoFocusX", ph.focus_y as "photoFocusY"
+           ${LIST_PHOTO_COLUMNS}
     from vendor v
     join municipality m on m.id = v.primary_municipality_id
-    left join lateral (
-      select a.storage_path as path, a.focus_x, a.focus_y from vendor_media vm join media_asset a on a.id = vm.media_asset_id
-      where vm.vendor_id = v.id and a.deleted_at is null order by vm.sort_order, a.created_at limit 1) ph on true
+    ${LIST_PHOTO}
     where v.listing_status = 'published'
       and (${q} = ''
            or v.search_document @@ websearch_to_tsquery('english', ${q})
@@ -104,6 +96,8 @@ export type VendorProfile = {
   categories: string[];
   services: { name: string; description: string | null; price: string | null }[];
   photos: Photo[];
+  /** The square profile photo, if the business has one. */
+  profile: Photo | null;
 };
 
 /** One published listing by its web address, or null if there's no such public listing. */
@@ -126,7 +120,7 @@ export async function getVendor(env: ServerEnv, slug: string): Promise<VendorPro
       .limit(1);
     if (!v) return null;
 
-    const [cats, services, photos] = await Promise.all([
+    const [cats, services, photos, profile] = await Promise.all([
       db
         .select({ name: category.name })
         .from(vendorCategory)
@@ -145,6 +139,7 @@ export async function getVendor(env: ServerEnv, slug: string): Promise<VendorPro
         .where(and(eq(vendorService.vendorId, v.id), eq(vendorService.isActive, true)))
         .orderBy(asc(vendorService.sortOrder), asc(vendorService.name)),
       readPhotos(db, v.id),
+      readProfilePhoto(db, v.id),
     ]);
 
     return {
@@ -163,6 +158,7 @@ export async function getVendor(env: ServerEnv, slug: string): Promise<VendorPro
         price: describePrice(s.pricingModel as PricingModel, s.priceCents, s.currency),
       })),
       photos: toPhotos(env, photos),
+      profile: toPhotos(env, profile)[0] ?? null,
     };
   });
 }

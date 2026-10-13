@@ -4,23 +4,34 @@
   margin-bottom: var(--space-6);
 }
 
-.photo {
-  display: grid;
-  place-items: center;
-  text-align: center;
-  padding: var(--space-6);
-}
-
-/* The main photo fills the box; the Photos button sits over it. */
-.photo > img {
-  position: absolute;
-  inset: 0;
-}
-
+/* The Photos button sits over the photo band, at its corner. */
 .photoNote {
-  position: relative;
+  position: absolute;
+  right: var(--space-4);
+  bottom: var(--space-4);
   z-index: 1;
   background: var(--color-surface);
+}
+
+/* The profile photo square, with what tapping it does written across its foot. */
+.profileLink {
+  position: relative;
+  display: block;
+  flex: none;
+  text-decoration: none;
+  color: var(--color-ink);
+}
+
+.profileNote {
+  position: absolute;
+  left: var(--frame-inset-photo);
+  right: var(--frame-inset-photo);
+  bottom: var(--frame-inset-photo);
+  padding: var(--space-1);
+  background: var(--color-surface);
+  font-size: var(--text-small);
+  text-align: center;
+  line-height: 1.2;
 }
 
 .teamOnly {

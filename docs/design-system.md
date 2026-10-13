@@ -83,7 +83,7 @@ with 32px margins.
 
 | Thing | Shape |
 |---|---|
-| Photos | **Square corners**, always. **One frame shape everywhere: 4:3** (product owner, 13 October 2026: uniform, and easy for owners). The photo fills the frame; the part the owner tapped ("Choose what stays in view", migration 0018) stays in view, the middle until they choose. Tapping a photo on a business page opens it whole. Owners never need to take photos in a special shape |
+| Photos | **Square corners**, always. **A photo is never cut on a business page** (product owner, 13 October 2026): page photos keep their own shape. The first leads the page in one calm band (4:3 on phones, 16:9 wider, at most 520px tall), whole, on a soft blurred copy of itself; all of them follow in rows of even height where each photo's share of the row is its shape (`PhotoRows`), and open whole in the viewer (`PhotoViewer`). **The profile photo is always a square** (`SquarePhoto`): beside the name in lists (72px) and over the band's edge on the page (88px, with a light edge). Its owner frames it (`FramingEditor`); with no framing, a nearly square photo fills the square and any other shows whole on its blurred copy. Owners never need to take photos in a special shape |
 | Featured photos | 1px gold frame set inside the edge (6px in on phone, 8px on desktop) |
 | Buttons | 12px rounded corners, 52–58px tall |
 | Icon buttons | Circles, 44px, thin border |

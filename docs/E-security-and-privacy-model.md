@@ -363,6 +363,12 @@ if storage is down, the nightly run retries. The server checks the whole file, n
 start: hidden details between parts of the picture, a second picture or anything after the
 end are removed, and in WebP only the picture, transparency and colour profile are kept. Every addition, description change,
 main-photo choice and removal is in `audit_log`.
+The **profile photo** (migration 0019: the business's one `vendor_media` row with role
+`logo`, not counted in the 8) follows the same rules and checks. Choosing a new one takes the
+old one off at once and deletes its files. Its framing is four numbers (where the square sits
+on the photo, in percentages), checked on the server and again by the database (all four or
+none, within set ranges); only the owner or a manager of that business can set it, only on
+its profile photo, and each change is in `audit_log`. The photo file itself is never altered.
 
 ## 10. Secrets and credentials
 

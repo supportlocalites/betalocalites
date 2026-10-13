@@ -117,6 +117,22 @@ img {
   text-underline-offset: var(--underline-offset);
 }
 
+/* A button that does something small reads as a link, not a box. */
+button.text-link {
+  background: none;
+  border: none;
+  padding: 0;
+  color: var(--color-ink);
+  font-family: var(--font-body);
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+button.text-link:disabled {
+  color: var(--color-muted);
+  cursor: default;
+}
+
 .visually-hidden {
   position: absolute;
   width: var(--hairline);

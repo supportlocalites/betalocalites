@@ -31,6 +31,45 @@ Every release and every database migration, in order. Appended before each deplo
 
 ## Releases
 
+### 2026-10-13 — A square profile photo, and every page photo shown whole
+
+**Stage:** 1 (photos)
+**What changed (plain English):** replaces the one-shape (4:3) frames and "Choose what stays
+in view" from earlier the same day, at the product owner's request. Each business now has a
+**profile photo**: its logo or a photo it likes, always a square, beside its name in search
+results and at the top of its page. Owners frame it on a full-screen **Frame your profile
+photo** screen (opens by itself after choosing one): drag to move, pinch or the slider to zoom,
+**Fill the square** or **Show whole photo** in one tap, what's left out dimmed rather than
+hidden, and a live preview of the search result; **Start again** goes back to the automatic
+framing. Nothing is cut away for good: only the framing is saved. Until a business picks one,
+lists use its first page photo, framed automatically (a nearly square photo fills the square;
+any other shape shows whole on a soft, blurred copy of itself). The up to 8 **page photos**
+are never cut: the first leads the page in a calm band (whole, on a blurred copy of itself),
+the profile photo sits over the band's edge beside the name, and all the photos follow in
+tidy rows where each keeps its own shape. Tapping any opens a full-screen viewer (swipe,
+arrows or keyboard; Escape or × closes). On computers, contact details sit in a column beside
+the rest. Small text buttons across the site now look like links instead of grey boxes.
+**Migrations applied:** `0019_profile_photo.sql` (four columns for the framing; the 8-photo
+limit counts page photos only). Adds only; the spot columns from 0018 stay but are unused.
+**Destructive?** No.
+**Tests run:** database 0019 11/11 (new; each refusal checked for its exact reason) and every
+earlier file; unit 155 (photo framing 8, new); end-to-end business photos 67/67 (the 7 "what
+stays in view" checks replaced by 23 profile-photo checks) plus every earlier suite; checked in
+a real browser at phone and computer sizes with wide, tall, square and very wide photos, a wide
+logo, a small (120-pixel) logo and a 6:1 banner: framing screen (drag, Fill, Show whole, Save,
+focus back afterwards), the business page, the viewer (swipe, arrows, Escape, focus back to the
+photo), search results and the edit page. An independent review's findings were checked and
+fixed (small logos framed wrongly, banners off-centre, a replaced profile photo and the previous
+framing missing from the audit log, a rare clash with a team removal, a stale error message,
+focus on closing).
+**Security tests:** staff, another business's owner (through either page) and strangers can't
+add, replace or frame the profile photo; a page photo can't be framed as one; framings out of
+range, missing a side or not numbers are refused, in the page and again in the database.
+**How to roll back:** Cloudflare → Deployments → previous version (profile photos then show
+nowhere; nothing is lost).
+**Approved by:** Product owner, D-45 (13 October 2026: "I want the business to have almost a logo
+photo ... square ... additional photos ... landscape/portrait ... clean and inviting").
+
 ### 2026-10-13 — The test site goes live only after tests and the database update
 
 **Stage:** operations

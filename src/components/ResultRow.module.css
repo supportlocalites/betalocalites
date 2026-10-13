@@ -17,14 +17,6 @@
   text-decoration: none;
 }
 
-.thumb {
-  width: var(--size-thumb);
-  aspect-ratio: var(--photo-ratio);
-  background: var(--color-photo-1);
-  object-fit: cover; /* the chosen spot stays in view */
-  display: block;
-}
-
 .name {
   font-family: var(--font-display);
   font-weight: 600;

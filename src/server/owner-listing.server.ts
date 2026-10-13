@@ -10,7 +10,7 @@ import { sendEmail, TEAM_ADDRESS } from './email.server';
 import type { ServerEnv } from './env';
 import { type ChangeSet, describeChanges, findClashes, flatten, ownerDiff, riskFlags, serviceIdOf } from './owner-changes';
 import { MAX_SHOWN_SERVICES, type OwnerValues } from './owner-input';
-import { type Photo, readPhotos, toPhotos } from './photo-store.server';
+import { type Photo, readPhotos, readProfilePhoto, toPhotos } from './photo-store.server';
 
 /**
  * An owner editing their own listing (D-34, ADR-029). Every request checks, in the
@@ -122,7 +122,7 @@ export type OwnedListing = {
   vendorId: string;
   slug: string;
   hidden: boolean;
-  view: { name: string; town: string; categories: string[]; photos: Photo[] };
+  view: { name: string; town: string; categories: string[]; photos: Photo[]; profile: Photo | null };
   values: OwnerValues;
   undone: UndoNotice[];
 };
@@ -146,7 +146,7 @@ export async function ownedListing(
       return archived ? { archived: true } : null;
     }
     if (v.slug !== slug) return { renamedTo: v.slug };
-    const [services, [where], undos, photos] = await Promise.all([
+    const [services, [where], undos, photos, profile] = await Promise.all([
       readServices(db, v.id),
       db.execute<{ town: string; categories: string[] }>(sql`
         select m.name as town,
@@ -161,13 +161,20 @@ export async function ownedListing(
         where oc.vendor_id = ${v.id} and a.actor_user_id = ${userId} and oc.undone_at > now() - interval '14 days'
         order by oc.undone_at desc limit 5`),
       readPhotos(db, v.id),
+      readProfilePhoto(db, v.id),
     ]);
     const names = new Map(services.map((s) => [s.id, s.name]));
     return {
       vendorId: v.id,
       slug: v.slug,
       hidden: v.status !== 'published',
-      view: { name: v.name, town: where?.town ?? '', categories: where?.categories ?? [], photos: toPhotos(env, photos) },
+      view: {
+        name: v.name,
+        town: where?.town ?? '',
+        categories: where?.categories ?? [],
+        photos: toPhotos(env, photos),
+        profile: toPhotos(env, profile)[0] ?? null,
+      },
       values: toValues(v, services),
       undone: undos.map((u) => ({
         at: u.at,

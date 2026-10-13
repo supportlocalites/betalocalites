@@ -1,49 +1,59 @@
-.layout {
+/* A business's page: its first photo in a calm band, then its name (with its square profile
+   photo), what it does, every photo whole, its services and how to reach it. */
+.page {
   display: grid;
-  gap: var(--space-8);
+  gap: var(--space-6);
 }
 
-.photo {
-  aspect-ratio: var(--photo-ratio);
-  background: var(--color-photo-2);
+/* ------------------------------------------------------------------ the photo band */
+
+/* One shape for every business; the photo inside keeps its own (product owner, 13 October 2026). */
+.hero {
   position: relative;
-  max-width: var(--size-photo-max);
-}
-
-.photo {
   display: block;
+  aspect-ratio: var(--hero-ratio);
+  max-height: var(--size-hero-max);
+  width: 100%;
   overflow: hidden;
+  background: var(--color-photo-2);
 }
 
-/* Every frame has one shape (4:3); the photo fills it, keeping the spot its owner chose in
-   view (set on the page); square corners always (design-system.md). Tapping opens it whole. */
-.photoImage {
+.heroEmpty {
+  display: grid;
+  place-items: center;
+  padding: var(--space-6);
+}
+
+.heroOpen {
+  position: absolute;
+  inset: 0;
   display: block;
+  cursor: zoom-in;
+}
+
+/* The same photo, enlarged and softened, fills the band behind it. */
+.heroBackdrop {
+  position: absolute;
+  inset: 0;
   width: 100%;
   height: 100%;
   object-fit: cover;
+  filter: blur(var(--blur-photo-backdrop)) saturate(1.1);
+  transform: scale(1.15);
+  opacity: 0.85;
 }
 
-.galleryLink .photoImage {
-  aspect-ratio: var(--photo-ratio);
-}
-
-.gallery {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(var(--size-thumb), 1fr));
-  gap: var(--space-2);
-}
-
-.galleryLink {
-  display: block;
-  background: var(--color-photo-1);
+/* The photo itself: whole, as large as the band allows, centred. */
+.heroPhoto {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
 }
 
 /* The gold frame is only drawn: taps and clicks go through it to what's underneath. */
-.photo::after {
+.hero::after {
   content: '';
   position: absolute;
   inset: var(--frame-inset-photo);
@@ -51,12 +61,129 @@
   pointer-events: none;
 }
 
-.details {
+/* ------------------------------------------------------------------ name and details */
+
+.body {
+  display: grid;
+  gap: var(--space-8);
+}
+
+.details,
+.side {
   display: grid;
   gap: var(--space-4);
   align-content: start;
   min-width: 0;
 }
+
+/* Computers: how to reach the business in a column beside the rest, staying in view. */
+@media (min-width: 1000px) {
+  .body {
+    grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
+    gap: var(--space-14);
+  }
+
+  .side {
+    position: sticky;
+    top: var(--space-6);
+    padding-top: var(--space-6);
+  }
+}
+
+/* Phones: the profile photo, then the name under it. Wider: side by side. */
+.identity {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-3);
+  min-width: 0;
+}
+
+@media (min-width: 600px) {
+  .identity {
+    flex-direction: row;
+    gap: var(--space-5);
+  }
+}
+
+.nameBlock {
+  display: grid;
+  gap: var(--space-2);
+  min-width: 0;
+}
+
+/* The profile photo, with a light edge so it reads against any photo. */
+.profile {
+  border: var(--frame-inset-photo) solid var(--color-surface);
+  box-sizing: content-box;
+}
+
+/* Under a photo band, the profile photo rises halfway into it, like a name card. */
+.identityOver > :first-child {
+  margin-top: calc(var(--size-profile-photo) / -2 - var(--space-6));
+  margin-left: var(--space-4);
+  position: relative;
+}
+
+@media (min-width: 600px) {
+  .identityOver .nameBlock {
+    padding-top: var(--space-2);
+  }
+}
+
+.tagline {
+  font-size: var(--text-title-3);
+  margin: 0;
+}
+
+/* Line breaks the business typed are kept (owners write in paragraphs). */
+.about {
+  white-space: pre-line;
+  margin: 0;
+}
+
+/* ------------------------------------------------------------------ every photo, whole */
+
+/* Rows of even height; each photo's share of its row is its shape, so none is cut. */
+.rows {
+  list-style: none;
+  margin: var(--space-2) 0 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.rowItem {
+  flex: var(--shape) 1 calc(var(--shape) * var(--size-gallery-row));
+  /* A photo left alone on a row grows only so far, rather than filling the width. */
+  max-width: calc(var(--shape) * var(--size-gallery-row) * 1.75);
+  aspect-ratio: var(--shape);
+  min-width: 0;
+}
+
+/* The last row keeps its photos at their natural size instead of stretching them. */
+.rows::after {
+  content: '';
+  flex: 1000 1 0;
+}
+
+.rowLink {
+  display: block;
+  width: 100%;
+  height: 100%;
+  background: var(--color-photo-1);
+  cursor: zoom-in;
+}
+
+.rowPhoto {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover; /* the box already has the photo's own shape: nothing is lost */
+}
+
+/* ------------------------------------------------------------------ services and contact */
 
 .services {
   list-style: none;
@@ -72,29 +199,6 @@
   border-bottom: var(--hairline) solid var(--color-line-soft);
 }
 
-.contact {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-3);
-}
-
-@media (min-width: 1200px) {
-  .layout {
-    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-  }
-}
-
-.owner {
-  margin-top: var(--space-6);
-  padding-top: var(--space-4);
-  border-top: var(--hairline) solid var(--color-line-soft);
-}
-
-/* Line breaks the business typed are kept (owners write in paragraphs). */
-.about {
-  white-space: pre-line;
-}
-
 .serviceName {
   display: grid;
   gap: var(--space-1);
@@ -104,4 +208,16 @@
 .serviceDetails {
   font-size: var(--text-small);
   white-space: pre-line;
+}
+
+.contact {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+}
+
+.owner {
+  margin-top: var(--space-6);
+  padding-top: var(--space-4);
+  border-top: var(--hairline) solid var(--color-line-soft);
 }

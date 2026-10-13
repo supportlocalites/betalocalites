@@ -344,9 +344,14 @@ guide this live (PO-03 part 3). Changing the password later is the same two step
   (`ca-central-1`, a public setting in `wrangler.jsonc`). Without
   all three, the Photos page says adding isn't switched on; photos already stored still show.
 - **Who adds them:** the business's owner or a manager, at **Your account → Photos** (or
-  `/vendors/<name>/photos`): up to 8, each with a short description; the first is the main
-  photo. They go live at once. 20 photo changes a minute per person and 30 new photos a day
-  per business.
+  `/vendors/<name>/photos`): up to 8 page photos, each with a short description (the first
+  leads the page; all are shown whole), plus one square **profile photo** (migration 0019),
+  shown beside the name in lists and framed by the owner. They go live at once. 20 photo
+  changes a minute per person and 30 new photos a day per business. Team pages → Photos marks
+  a profile photo as such.
+- **"My logo looks cut off in search results":** the owner opens Photos → **Adjust the
+  framing** and taps **Show whole photo**, then Save. Nothing was lost: only the framing is
+  stored.
 - **Reviewing (weekly, or when told of a problem):** team pages → **Photos** lists the newest
   60, with the business and who added it; **This business's photos** shows one business's.
   Remove anything that isn't the business's own work or isn't suitable: write why in the box

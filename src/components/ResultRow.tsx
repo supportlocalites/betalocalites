@@ -1,5 +1,6 @@
 import { Link } from 'react-router';
 import type { VendorResult } from '@/server/catalog.server';
+import { SquarePhoto, type SquarePhotoData } from './SquarePhoto';
 import styles from './ResultRow.module.css';
 
 /** Results in order. Each place is numbered (data-pos) for counting what's seen (ADR-030). */
@@ -7,7 +8,7 @@ export function ResultList({
   vendors,
   listId = null,
 }: {
-  vendors: (Pick<VendorResult, 'slug' | 'name' | 'tagline' | 'town'> & { photo?: string | null; photoAt?: string | null })[];
+  vendors: (Pick<VendorResult, 'slug' | 'name' | 'tagline' | 'town'> & { photo?: SquarePhotoData | null })[];
   listId?: string | null;
 }) {
   return (
@@ -15,11 +16,7 @@ export function ResultList({
       {vendors.map((v, i) => (
         <li key={v.slug} className={styles.row} data-pos={i + 1}>
           <Link to={`/vendors/${v.slug}`} state={listId ? { pos: i + 1, list: listId } : undefined} className={styles.link}>
-            {v.photo ? (
-              <img src={v.photo} alt="" loading="lazy" className={styles.thumb} style={{ objectPosition: v.photoAt ?? undefined }} />
-            ) : (
-              <span className={styles.thumb} aria-hidden="true" />
-            )}
+            <SquarePhoto photo={v.photo ?? null} alt="" />
             <span>
               <span className={styles.name}>{v.name}</span>
               <br />
