@@ -31,6 +31,29 @@ Every release and every database migration, in order. Appended before each deplo
 
 ## Releases
 
+### 2026-10-13 — Photos: one frame shape, and the owner chooses what stays in view
+
+**Stage:** 1 (photos)
+**What changed (plain English):** every photo frame on Localites now has the same shape, 4:3
+(a little wider than tall), so pages look uniform whatever photos businesses add. A photo
+fills its frame, centred. On **Your account → Photos**, under each photo, **Choose what stays
+in view**: the owner taps the most important part of the photo once, and every frame keeps
+it in view (a small preview shows how it looks). **Keep the middle in view** undoes it. Just
+after adding a photo, this opens by itself. Tapping a photo on the business page opens the
+whole photo. Works without JavaScript too (the browser's own image button sends the tap).
+**Migrations applied:** `0018_photo_focus.sql` (two columns, the spot to keep in view; the
+middle by default). Adds only.
+**Destructive?** No.
+**Tests run:** database 0018 4/4 (new); end-to-end business photos 51/51 (7 new) plus every
+earlier suite; checked in a real browser at phone size: a wide photo added, its right edge
+tapped, the business page keeps that edge in view; nothing wider than the screen.
+**Security tests:** staff and another business's owner can't change what stays in view; a
+tap outside the photo is refused.
+**How to roll back:** Cloudflare → Deployments → previous version (frames go back to showing
+the whole photo; the chosen spots stay stored).
+**Approved by:** Product owner (13 October 2026: "keep things uniform but make sure the
+approach for users is easy and seamless").
+
 ### 2026-10-13 — Fixes from the hosting review of planning and sign-in
 
 **Stage:** 2 (not public)

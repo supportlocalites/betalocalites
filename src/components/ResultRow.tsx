@@ -7,7 +7,7 @@ export function ResultList({
   vendors,
   listId = null,
 }: {
-  vendors: (Omit<VendorResult, 'id' | 'photoPath'> & { photo?: string | null })[];
+  vendors: (Pick<VendorResult, 'slug' | 'name' | 'tagline' | 'town'> & { photo?: string | null; photoAt?: string | null })[];
   listId?: string | null;
 }) {
   return (
@@ -16,7 +16,7 @@ export function ResultList({
         <li key={v.slug} className={styles.row} data-pos={i + 1}>
           <Link to={`/vendors/${v.slug}`} state={listId ? { pos: i + 1, list: listId } : undefined} className={styles.link}>
             {v.photo ? (
-              <img src={v.photo} alt="" loading="lazy" className={styles.thumb} />
+              <img src={v.photo} alt="" loading="lazy" className={styles.thumb} style={{ objectPosition: v.photoAt ?? undefined }} />
             ) : (
               <span className={styles.thumb} aria-hidden="true" />
             )}

@@ -9,6 +9,7 @@ import { pageMeta } from '@/lib/meta';
 import { cookieHeaders, listTrack } from '@/server/activity.server';
 import { categoryName as nameOfCategory, searchVendors } from '@/server/catalog.server';
 import { withDb } from '@/server/db.server';
+import { framePosition } from '@/lib/photo-terms';
 import { smallPhotoUrl } from '@/server/photo-store.server';
 import type { Route } from './+types/search';
 
@@ -34,6 +35,7 @@ export async function loader({ request, context }: Route.LoaderArgs) {
     tagline: v.tagline,
     town: v.town,
     photo: smallPhotoUrl(env, v.photoPath),
+    photoAt: v.photoPath ? framePosition({ focusX: Number(v.photoFocusX ?? 0.5), focusY: Number(v.photoFocusY ?? 0.5) }) : null,
   }));
   return data(
     { q, category: categorySlug ?? '', vendors, track, heading: categoryName ?? (q ? `Results for “${q}”` : 'All local businesses') },

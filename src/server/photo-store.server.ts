@@ -13,7 +13,17 @@ import type { ServerEnv } from './env';
 export const BUCKET = 'vendor-photos';
 
 /** A business photo as pages show it. */
-export type Photo = { id: string; url: string; smallUrl: string; alt: string; width: number | null; height: number | null };
+/** focusX, focusY: the spot (0 to 1 across and down) that frames keep in view (migration 0018). */
+export type Photo = {
+  id: string;
+  url: string;
+  smallUrl: string;
+  alt: string;
+  width: number | null;
+  height: number | null;
+  focusX: number;
+  focusY: number;
+};
 
 const isLocal = (url: string) => {
   try {
@@ -40,13 +50,15 @@ function publicUrl(env: ServerEnv, path: string): string | null {
   return base ? `${base}/object/public/${BUCKET}/${path}` : null;
 }
 
-type PhotoRow = { id: string; path: string; alt: string; width: number | null; height: number | null };
+type PhotoRow = { id: string; path: string; alt: string; width: number | null; height: number | null; focusX: number; focusY: number };
 
 export function toPhotos(env: ServerEnv, rows: PhotoRow[]): Photo[] {
   return rows.flatMap((r) => {
     const url = publicUrl(env, r.path);
     const smallUrl = publicUrl(env, smallPath(r.path));
-    return url && smallUrl ? [{ id: r.id, url, smallUrl, alt: r.alt, width: r.width, height: r.height }] : [];
+    return url && smallUrl
+      ? [{ id: r.id, url, smallUrl, alt: r.alt, width: r.width, height: r.height, focusX: Number(r.focusX), focusY: Number(r.focusY) }]
+      : [];
   });
 }
 
@@ -57,7 +69,7 @@ export const smallPhotoUrl = (env: ServerEnv, path: string | null) => (path ? pu
 export async function readPhotos(db: Db, vendorId: string): Promise<PhotoRow[]> {
   return [
     ...(await db.execute<PhotoRow>(sql`
-      select a.id, a.storage_path as path, a.alt_text as alt, a.width, a.height
+      select a.id, a.storage_path as path, a.alt_text as alt, a.width, a.height, a.focus_x as "focusX", a.focus_y as "focusY"
       from vendor_media vm join media_asset a on a.id = vm.media_asset_id
       where vm.vendor_id = ${vendorId} and a.deleted_at is null
       order by vm.sort_order, a.created_at`)),

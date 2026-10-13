@@ -77,8 +77,10 @@
   --size-tile-height: 96px;
   --size-search-max: 640px;
   --size-photo-max: 560px;
-  /* A tall (portrait) main photo is shown whole, at most this high. */
-  --size-photo-max-height: 80vh;
+  /* Every photo frame's shape (product owner, 13 October 2026). */
+  --photo-ratio: 4 / 3;
+  /* The photo an owner taps to choose what stays in view (the server reads the tap at this width). */
+  --size-photo-picker: 280px;
   --size-form-narrow: 440px;
   --size-form-wide: 760px;
   --size-qr: 200px;

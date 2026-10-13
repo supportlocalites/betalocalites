@@ -5,6 +5,7 @@ import { SiteHeader } from '@/components/SiteHeader';
 import { VendorPage, type VendorView } from '@/components/VendorPage';
 import page from '@/components/VendorPage.module.css';
 import { pageMeta } from '@/lib/meta';
+import { framePosition } from '@/lib/photo-terms';
 import { tidyLine, tidyParagraphs } from '@/lib/owner-text';
 import { describePrice, type PricingModel } from '@/lib/price';
 import { alertTeam, NotOwner, OwnerRefused, ownedListing, readBase, saveOwnerEdits } from '@/server/owner-listing.server';
@@ -337,7 +338,14 @@ function Editor({
             <input type="hidden" name="base" value={base} />
             <div className={page.layout}>
               <div className={`${page.photo} ${styles.photo}`}>
-                {view.photos[0] && <img src={view.photos[0].url} alt={view.photos[0].alt} className={page.photoImage} />}
+                {view.photos[0] && (
+                  <img
+                    src={view.photos[0].url}
+                    alt={view.photos[0].alt}
+                    className={page.photoImage}
+                    style={{ objectPosition: framePosition(view.photos[0]) }}
+                  />
+                )}
                 <Link to={`/vendors/${slug}/photos`} className={`button button-secondary ${styles.photoNote}`}>
                   {view.photos.length > 0 ? `Photos (${view.photos.length})` : 'Add photos'}
                 </Link>

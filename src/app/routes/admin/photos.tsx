@@ -2,6 +2,7 @@ import { data, Form, Link, useNavigation } from 'react-router';
 import { adminContext, cloudflareContext } from '@/app/context';
 import { isUuid } from '@/lib/ids.mjs';
 import { pageMeta } from '@/lib/meta';
+import { framePosition } from '@/lib/photo-terms';
 import { afterwards } from '@/server/plan-pages.server';
 import { deleteRemoved, recentPhotos, removePhotoAsTeam } from '@/server/photos.server';
 import type { Route } from './+types/photos';
@@ -72,10 +73,15 @@ export default function TeamPhotos({ loaderData: { photos, one }, actionData }: 
           {photos.map((p) => (
             <li key={p.id} className={styles.row}>
               <a href={p.url} target="_blank" rel="noopener">
-                <img src={p.url} alt={p.alt} className={styles.photoThumb} />
+                <img src={p.url} alt={p.alt} className={styles.photoThumb} style={{ objectPosition: framePosition(p) }} />
               </a>{' '}
               <a href={p.smallUrl} target="_blank" rel="noopener">
-                <img src={p.smallUrl} alt={`${p.alt} (small version, used in lists)`} className={styles.photoThumb} />
+                <img
+                  src={p.smallUrl}
+                  alt={`${p.alt} (small version, used in lists)`}
+                  className={styles.photoThumb}
+                  style={{ objectPosition: framePosition(p) }}
+                />
               </a>
               <span className={styles.rowName}>
                 <Link to={`/admin/listings/${p.vendorId}`}>{p.vendorName}</Link>

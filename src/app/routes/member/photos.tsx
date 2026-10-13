@@ -5,7 +5,7 @@ import { SiteHeader } from '@/components/SiteHeader';
 import { isUuid } from '@/lib/ids.mjs';
 import { pageMeta } from '@/lib/meta';
 import { preparePhoto } from '@/lib/photo-prepare';
-import { DESCRIPTION_MAX, PHOTO_LIMIT } from '@/lib/photo-terms';
+import { DESCRIPTION_MAX, framePosition, PHOTO_LIMIT, PICKER_WIDTH } from '@/lib/photo-terms';
 import { afterwards } from '@/server/plan-pages.server';
 import {
   addPhoto,
@@ -19,6 +19,7 @@ import {
   photosFor,
   readUpload,
   removePhoto,
+  setPhotoFocus,
 } from '@/server/photos.server';
 import type { Route } from './+types/photos';
 import styles from './photos.module.css';
@@ -78,7 +79,7 @@ export async function action({ request, params, context }: Route.ActionArgs) {
         description: description.text,
       });
       // The new photo's id in the address gives the next "Add a photo" form a fresh start.
-      return redirect(`/vendors/${params.slug}/photos?added=${id}`);
+      return redirect(`/vendors/${params.slug}/photos?added=${id}#photo-${id}`);
     }
     const id = String(form.get('id') ?? '');
     if (!isUuid(id)) throw data(null, { status: 400 });
@@ -87,6 +88,16 @@ export async function action({ request, params, context }: Route.ActionArgs) {
       if (!description.ok) return data({ error: description.error, id }, { status: 400 });
       await describePhoto(env, member.userId, params.slug, id, description.text);
       return back('described');
+    }
+    if (intent === 'focus' || intent === 'middle') {
+      // The browser sends where the photo was tapped as spot.x and spot.y (its own image button).
+      const x = Number(form.get('spot.x'));
+      const y = Number(form.get('spot.y'));
+      if (intent === 'focus' && !(Number.isFinite(x) && Number.isFinite(y) && x >= 0 && y >= 0 && x <= 10000 && y <= 10000)) {
+        throw data(null, { status: 400 });
+      }
+      await setPhotoFocus(env, member.userId, params.slug, id, intent === 'middle' ? 'middle' : { x, y });
+      return redirect(`/vendors/${params.slug}/photos?focused=${id}#photo-${id}`);
     }
     if (intent === 'main') {
       await makeMainPhoto(env, member.userId, params.slug, id);
@@ -106,7 +117,9 @@ export async function action({ request, params, context }: Route.ActionArgs) {
 }
 
 const NOTICES: Record<string, string> = {
-  added: 'Photo added. It’s on your business page now.',
+  added:
+    'Photo added. It’s on your business page now. If something important is near its edge, tap that part of the photo below so it always stays in view.',
+  focused: 'Saved. That part of the photo now stays in view.',
   described: 'Description saved.',
   main: 'That’s your main photo now. It shows first on your page and in search results.',
   removed: 'Photo removed.',
@@ -184,10 +197,44 @@ export default function Photos({ loaderData, actionData }: Route.ComponentProps)
         {photos.length > 0 && (
           <ul className={styles.photos}>
             {photos.map((p, i) => (
-              <li key={p.id} className={styles.photo}>
-                <img src={p.smallUrl} alt={p.alt} className={styles.image} />
+              <li key={p.id} className={styles.photo} id={`photo-${p.id}`}>
+                <figure className={styles.preview}>
+                  <img src={p.smallUrl} alt={p.alt} className={styles.image} style={{ objectPosition: framePosition(p) }} />
+                  <figcaption className="muted">How it shows</figcaption>
+                </figure>
                 <div className={styles.details}>
                   {i === 0 && <span className="label">Main photo</span>}
+                  <details className={styles.focus} open={params.get('added') === p.id || params.get('focused') === p.id}>
+                    <summary className="text-link">Choose what stays in view</summary>
+                    <p className="muted">Tap the most important part of your photo. Every frame on Localites keeps it in view.</p>
+                    <Form method="post" className={styles.picker}>
+                      <input type="hidden" name="intent" value="focus" />
+                      <input type="hidden" name="id" value={p.id} />
+                      <span className={styles.pickerFrame}>
+                        <input
+                          type="image"
+                          name="spot"
+                          src={p.smallUrl}
+                          alt={`${p.alt}: tap the most important part`}
+                          width={PICKER_WIDTH}
+                          className={styles.pickerImage}
+                          disabled={busy}
+                        />
+                        <span
+                          className={styles.spot}
+                          aria-hidden="true"
+                          style={{ left: `${p.focusX * 100}%`, top: `${p.focusY * 100}%` }}
+                        />
+                      </span>
+                    </Form>
+                    <Form method="post">
+                      <input type="hidden" name="intent" value="middle" />
+                      <input type="hidden" name="id" value={p.id} />
+                      <button type="submit" className="text-link" disabled={busy}>
+                        Keep the middle in view
+                      </button>
+                    </Form>
+                  </details>
                   <Form method="post" className={styles.describe}>
                     <input type="hidden" name="intent" value="describe" />
                     <input type="hidden" name="id" value={p.id} />

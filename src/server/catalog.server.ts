@@ -36,8 +36,21 @@ export async function categoryName(db: Db, slug: string): Promise<string | null>
   return c?.name ?? null;
 }
 
-/** photoPath: where the main photo is stored (pages turn it into an address with smallPhotoUrl). */
-export type VendorResult = { id: string; slug: string; name: string; tagline: string | null; town: string; photoPath: string | null };
+/**
+ * photoPath: where the main photo is stored (pages turn it into an address with smallPhotoUrl);
+ * photoFocusX/Y: the spot its frame keeps in view.
+ */
+export type VendorResult = {
+  id: string;
+  slug: string;
+  name: string;
+  tagline: string | null;
+  town: string;
+  photoPath: string | null;
+  /** May arrive as text (the connection doesn't look up types): read with Number(). */
+  photoFocusX: number | string | null;
+  photoFocusY: number | string | null;
+};
 
 /**
  * Published listings matching the words typed, ordered only by how well they match
@@ -47,10 +60,13 @@ export async function searchVendors(db: Db, query: string, categorySlug?: string
   const q = query.trim().slice(0, 100);
   const rows = await db.execute<VendorResult>(sql`
     select v.id, v.slug, v.display_name as name, v.tagline, m.name as town,
-           (select a.storage_path from vendor_media vm join media_asset a on a.id = vm.media_asset_id
-            where vm.vendor_id = v.id and a.deleted_at is null order by vm.sort_order, a.created_at limit 1) as "photoPath"
+           ph.path as "photoPath",
+           ph.focus_x as "photoFocusX", ph.focus_y as "photoFocusY"
     from vendor v
     join municipality m on m.id = v.primary_municipality_id
+    left join lateral (
+      select a.storage_path as path, a.focus_x, a.focus_y from vendor_media vm join media_asset a on a.id = vm.media_asset_id
+      where vm.vendor_id = v.id and a.deleted_at is null order by vm.sort_order, a.created_at limit 1) ph on true
     where v.listing_status = 'published'
       and (${q} = ''
            or v.search_document @@ websearch_to_tsquery('english', ${q})

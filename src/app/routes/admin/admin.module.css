@@ -251,8 +251,8 @@
 .photoThumb {
   display: block;
   width: var(--size-thumb);
-  aspect-ratio: 1;
-  object-fit: contain; /* whole photo, never cropped */
+  aspect-ratio: var(--photo-ratio);
+  object-fit: cover; /* the chosen spot stays in view */
   background: var(--color-photo-1);
 }
 

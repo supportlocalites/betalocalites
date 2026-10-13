@@ -1,7 +1,7 @@
 import { sql } from 'drizzle-orm';
 import { checkImage, IMAGE_EXTENSION, type CheckedImage } from '@/lib/image-file';
 import { addressProblem, tidyLine } from '@/lib/owner-text';
-import { DESCRIPTION_MAX, PHOTO_LIMIT } from '@/lib/photo-terms';
+import { DESCRIPTION_MAX, PHOTO_LIMIT, PICKER_WIDTH } from '@/lib/photo-terms';
 import { errorCode } from './acting.server';
 import { audit } from './admin/audit.server';
 import type { Admin } from './auth/admin.server';
@@ -210,6 +210,35 @@ export async function describePhoto(env: ServerEnv, userId: string, slug: string
   });
 }
 
+/**
+ * The spot of a photo its frames keep in view, from where the owner tapped the photo drawn
+ * PICKER_WIDTH pixels wide (the tap's position, in pixels, is all the browser sends).
+ */
+export async function setPhotoFocus(
+  env: ServerEnv,
+  userId: string,
+  slug: string,
+  photoId: string,
+  tap: { x: number; y: number } | 'middle',
+) {
+  await changePhoto(env, userId, slug, photoId, async (tx, vendorId) => {
+    const [p] = await tx.execute<{ width: number | null; height: number | null }>(
+      sql`select width, height from media_asset where id = ${photoId}`,
+    );
+    const shown = { w: PICKER_WIDTH, h: p?.width && p.height ? (PICKER_WIDTH * p.height) / p.width : PICKER_WIDTH };
+    const clamp = (n: number) => Math.min(1, Math.max(0, Math.round(n * 1000) / 1000));
+    const focus = tap === 'middle' ? { x: 0.5, y: 0.5 } : { x: clamp(tap.x / shown.w), y: clamp(tap.y / shown.h) };
+    await tx.execute(sql`update media_asset set focus_x = ${focus.x}, focus_y = ${focus.y} where id = ${photoId}`);
+    await audit(tx, {
+      actor: userId,
+      action: 'vendor_photo.focus',
+      subjectType: 'vendor',
+      subjectId: vendorId,
+      changes: { [`photo.${photoId}.focus`]: { from: null, to: focus } },
+    });
+  });
+}
+
 /** Puts a photo first: it becomes the business's main photo, on its page and in lists. */
 export async function makeMainPhoto(env: ServerEnv, userId: string, slug: string, photoId: string) {
   await changePhoto(env, userId, slug, photoId, async (tx, vendorId) => {
@@ -296,13 +325,15 @@ export async function recentPhotos(env: ServerEnv, vendorId: string | null): Pro
       alt: string;
       width: number | null;
       height: number | null;
+      focusX: number;
+      focusY: number;
       vendorId: string;
       vendorName: string;
       slug: string;
       addedBy: string | null;
       addedAt: string;
     }>(sql`
-      select a.id, a.storage_path as path, a.alt_text as alt, a.width, a.height, v.id as "vendorId", v.display_name as "vendorName",
+      select a.id, a.storage_path as path, a.alt_text as alt, a.width, a.height, a.focus_x as "focusX", a.focus_y as "focusY", v.id as "vendorId", v.display_name as "vendorName",
              v.slug::text as slug, u.display_name as "addedBy", a.created_at::text as "addedAt"
       from vendor_media vm join media_asset a on a.id = vm.media_asset_id join vendor v on v.id = vm.vendor_id
       left join app_user u on u.id = a.uploaded_by

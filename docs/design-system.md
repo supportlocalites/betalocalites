@@ -83,7 +83,7 @@ with 32px margins.
 
 | Thing | Shape |
 |---|---|
-| Photos | **Square corners**, always. **Shown whole, never cropped** (product owner, 13 October 2026): the main photo on a business page takes the photo's own shape (wide or tall, at most 80% of the screen's height); small squares fit the whole photo inside, on the placeholder colour |
+| Photos | **Square corners**, always. **One frame shape everywhere: 4:3** (product owner, 13 October 2026: uniform, and easy for owners). The photo fills the frame; the part the owner tapped ("Choose what stays in view", migration 0018) stays in view, the middle until they choose. Tapping a photo on a business page opens it whole. Owners never need to take photos in a special shape |
 | Featured photos | 1px gold frame set inside the edge (6px in on phone, 8px on desktop) |
 | Buttons | 12px rounded corners, 52–58px tall |
 | Icon buttons | Circles, 44px, thin border |

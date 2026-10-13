@@ -4,7 +4,7 @@
 }
 
 .photo {
-  aspect-ratio: 1;
+  aspect-ratio: var(--photo-ratio);
   background: var(--color-photo-2);
   position: relative;
   max-width: var(--size-photo-max);
@@ -15,24 +15,17 @@
   overflow: hidden;
 }
 
-/* Photos are shown whole, never cropped: wide and tall photos fit inside their box, on the
-   placeholder colour; square corners always (design-system.md). */
+/* Every frame has one shape (4:3); the photo fills it, keeping the spot its owner chose in
+   view (set on the page); square corners always (design-system.md). Tapping opens it whole. */
 .photoImage {
   display: block;
   width: 100%;
   height: 100%;
-  object-fit: contain;
-}
-
-/* The main photo's box takes the photo's own shape (set on the page), up to a height. */
-.photoShaped {
-  aspect-ratio: auto;
-  max-height: var(--size-photo-max-height);
-  background: var(--color-photo-1);
+  object-fit: cover;
 }
 
 .galleryLink .photoImage {
-  aspect-ratio: 1;
+  aspect-ratio: var(--photo-ratio);
 }
 
 .gallery {

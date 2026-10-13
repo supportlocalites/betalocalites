@@ -161,6 +161,25 @@ check('…nor through V’s page', r.status === 404 && (await live()).some((p) =
 r = await post(PAGE(), 'stf', { intent: 'describe', id: mgrPhoto.id, description: 'Staff were here' });
 check('staff can’t change a description', r.status === 404 && !(await live()).some((p) => p.alt === 'Staff were here'), String(r.status));
 
+console.log('\nWhat stays in view');
+const focusOf = async (id) => (await sql`select focus_x, focus_y from media_asset where id = ${id}`)[0];
+check('a new photo keeps its middle in view', JSON.stringify(await focusOf(mgrPhoto.id)) === JSON.stringify({ focus_x: 0.5, focus_y: 0.5 }));
+// The photo is 900 x 900, drawn 280 wide: a tap at (252, 28) is 90% across, 10% down.
+r = await post(PAGE(), 'mgr', { intent: 'focus', id: mgrPhoto.id, 'spot.x': '252', 'spot.y': '28' });
+const tapped = await focusOf(mgrPhoto.id);
+check('tapping the photo saves that spot (recorded)', r.status === 302 && Math.abs(tapped.focus_x - 0.9) < 0.001 && Math.abs(tapped.focus_y - 0.1) < 0.001
+  && (await sql`select count(*)::int as n from audit_log where action = 'vendor_photo.focus' and subject_id = ${V.id}`)[0].n === 1, JSON.stringify(tapped));
+r = await site(`/vendors/${V.slug}`);
+check('the business page keeps that spot in view', r.body.includes('object-position:90% 10%'));
+r = await post(PAGE(), 'mgr', { intent: 'focus', id: mgrPhoto.id, 'spot.x': '9999', 'spot.y': '-5' });
+check('a tap outside the photo is refused', r.status === 400, String(r.status));
+r = await post(PAGE(), 'stf', { intent: 'focus', id: mgrPhoto.id, 'spot.x': '1', 'spot.y': '1' });
+check('staff can’t change it', r.status === 404 && Math.abs((await focusOf(mgrPhoto.id)).focus_x - 0.9) < 0.001, String(r.status));
+r = await post(PAGE(W), 'o2', { intent: 'middle', id: mgrPhoto.id });
+check('another business’s owner can’t change it', r.status === 409 && Math.abs((await focusOf(mgrPhoto.id)).focus_x - 0.9) < 0.001, String(r.status));
+r = await post(PAGE(), 'o', { intent: 'middle', id: mgrPhoto.id });
+check('“Keep the middle in view” puts it back', r.status === 302 && JSON.stringify(await focusOf(mgrPhoto.id)) === JSON.stringify({ focus_x: 0.5, focus_y: 0.5 }));
+
 console.log('\nAt most 8');
 for (let n = (await live()).length; n < 8; n++) await add('o', { large: jpeg(500, 500), small: jpeg(200, 200), description: `Filler ${n}` });
 check('eight photos on the business', (await live()).length === 8, String((await live()).length));

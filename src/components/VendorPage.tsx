@@ -1,7 +1,17 @@
 import type { ReactNode } from 'react';
+import { framePosition } from '@/lib/photo-terms';
 import styles from './VendorPage.module.css';
 
-export type VendorPhoto = { id: string; url: string; smallUrl: string; alt: string; width: number | null; height: number | null };
+export type VendorPhoto = {
+  id: string;
+  url: string;
+  smallUrl: string;
+  alt: string;
+  width: number | null;
+  height: number | null;
+  focusX: number;
+  focusY: number;
+};
 
 export type VendorView = {
   name: string;
@@ -27,20 +37,14 @@ export function VendorPage({ vendor, children }: { vendor: VendorView; children?
   return (
     <div className={styles.layout}>
       {main ? (
-        <a
-          href={main.url}
-          className={`${styles.photo} ${styles.photoShaped}`}
-          target="_blank"
-          rel="noopener"
-          // The photo's own shape (wide or tall), so none of it is cut off.
-          style={{ aspectRatio: main.width && main.height ? `${main.width} / ${main.height}` : '1' }}
-        >
+        <a href={main.url} className={styles.photo} target="_blank" rel="noopener" title="See the whole photo">
           <img
             src={main.url}
             alt={main.alt}
             width={main.width ?? undefined}
             height={main.height ?? undefined}
             className={styles.photoImage}
+            style={{ objectPosition: framePosition(main) }}
           />
         </a>
       ) : (
@@ -81,7 +85,13 @@ export function VendorPage({ vendor, children }: { vendor: VendorView; children?
               {more.map((p) => (
                 <li key={p.id}>
                   <a href={p.url} target="_blank" rel="noopener" className={styles.galleryLink}>
-                    <img src={p.smallUrl} alt={p.alt} loading="lazy" className={styles.photoImage} />
+                    <img
+                      src={p.smallUrl}
+                      alt={p.alt}
+                      loading="lazy"
+                      className={styles.photoImage}
+                      style={{ objectPosition: framePosition(p) }}
+                    />
                   </a>
                 </li>
               ))}

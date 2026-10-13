@@ -19,9 +19,9 @@
 
 .thumb {
   width: var(--size-thumb);
-  aspect-ratio: 1;
+  aspect-ratio: var(--photo-ratio);
   background: var(--color-photo-1);
-  object-fit: contain; /* whole photo, never cropped */
+  object-fit: cover; /* the chosen spot stays in view */
   display: block;
 }
 
