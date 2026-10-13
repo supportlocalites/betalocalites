@@ -67,7 +67,7 @@ added; quotes, bookings and the concierge queue removed.
 | V1 | My business | Listing status; from Stage 2, unread conversations and bookings marked. **V1-lite built** (2A, `/business`): each business the person owns or manages, with bookings marked coming up and links to edit, Analytics and Bookings marked | 1 |
 | V2 | Edit listing | Profile, services, pricing information, areas, attributes, photos. **Built** (`/vendors/<name>/edit`, D-34, ADR-029): laid out like the public page, with "View as a visitor"; descriptions, services and prices, website and phone; photos later | 1 |
 | V3 | Submit for review / status | | 1 |
-| V4 | Team | Invite, change role, remove | 1 |
+| V4 | Team | Invite, change role, remove. **Built** (`/vendors/<name>/team`, owner only): invite a manager or staff by email (link works 7 days, once, for that address only), cancel an invitation, remove someone. To change someone's role, remove them and invite them again. The invited person accepts at `/team-invite/<link>` | 1 |
 | V5 | Claim status | **Built** as part of A4: waiting, approved, or not approved with the reason | 1 |
 | V6 | Inbox | Conversations with consumers | 2 |
 | V7 ★ | Conversation (vendor view) | Messages and files; event summary panel (type, date, town, guest estimate) when shared | 2 |

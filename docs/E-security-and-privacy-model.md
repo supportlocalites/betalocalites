@@ -81,8 +81,8 @@ Two users, one platform team. See [roles-and-relationships.md](./roles-and-relat
 | **Visitor** | Anyone | Public pages |
 | **Consumer** | Any signed-in account | Their own saved vendors, events, conversations, reviews |
 | **Vendor owner** | Approved claim, or assigned by the platform team | Their business: listing, team, conversations, bookings marked, review replies |
-| **Vendor manager** | Added by the owner | As owner, except team and ownership changes |
-| **Vendor staff** | Added by the owner | Read and reply to the business's conversations |
+| **Vendor manager** | Invited by the owner (built, migration 0015) | As owner, except team and ownership changes |
+| **Vendor staff** | Invited by the owner (built, migration 0015) | Read and reply to the business's conversations (Stage 2B; until then staff see only the business's name) |
 | **Guest** (Stage 4) | Holds a valid invitation link | One invitation page and their own RSVP |
 | **Platform admin** | Granted by another admin; logged | Listings, claims, verification, reports, review moderation |
 
@@ -97,6 +97,18 @@ the business (its current owner or manager, not staff, and not for an archived b
 the side at the start of each request, and the database's own rules apply that side's
 permissions. Someone on a business's team switches between **My events** and **My business**
 (screen A5).
+
+**Built (13 October 2026, migration 0015): the owner invites their own team** at
+`/vendors/<name>/team` (screen V4). Only the business's current owner can open the page or
+change the team; managers, staff, other owners and everyone else get "not found". An
+invitation is emailed and is a single-use link that works for 7 days, only for the email
+address it was sent to (someone signed in with another address is told so, without being
+shown which address); the database stores a fingerprint of the link, never the link. The
+owner can't invite themselves or make someone an owner, can cancel an invitation, and can
+remove a manager or staff member; access ends at once. If the last owner leaves (or deletes
+their account), everyone else on that business's team leaves too and open invitations are
+cancelled. Limits: 10 people besides the owner, 20 invitations a day. Joining, removing,
+inviting and cancelling are all in `audit_log`.
 
 There's no "super user" bypass. Admins go through the same checks; their role simply
 grants more, and every admin action is recorded in `audit_log`.
@@ -120,7 +132,7 @@ grants more, and every admin action is recorded in `audit_log`.
 | Categories, attributes, places, event types | R | R | R | R | R C U X (event types: hide, not delete) |
 | Suggested kinds of business per event type (D-43) | — | R (on own plan) | — | — | R C U X |
 | Featured placements (D-43) | — | Which businesses only, for current placements of published businesses, at most 3 per kind of event, on own plan; never the note | — | — | R C; end early (no edit, no delete) |
-| Activity totals (seen in search, visits, taps, saves, inquiries, messages; §7a) | — | — | R (own; the owner only, when the team has switched the Analytics page on; staff wait for D-29) | R (own, same) | R (detail, logged) |
+| Activity totals (seen in search, visits, taps, saves, inquiries, messages; §7a) | — | — | R (own; the owner and managers, when the team has switched the Analytics page on) | R (own, same) | R (detail, logged) |
 | Suggest a business (D-25) | C (rate-limited) | C; R (own, from Stage 2) | — | — | R U |
 
 ### 4.2 Consumer planning (Stage 2)
@@ -271,7 +283,7 @@ to sell featured placements.
 
 | Who | Sees |
 |---|---|
-| A business's owner, on its Analytics page, when the team has switched it on (D-37) | Totals for their own business only: seen in search, profile views, website and phone taps; later inquiries, conversations, messages, reply times. **Never who** viewed them. **Not saves, adds to plans or bookings marked** (D-42: team only). They see the people who message them, as part of the conversation, and the people who marked them booked (D-40). |
+| A business's owner and managers, on its Analytics page, when the team has switched it on (D-37) | Totals for their own business only: seen in search, profile views, website and phone taps; later inquiries, conversations, messages, reply times. **Never who** viewed them. **Not saves, adds to plans or bookings marked** (D-42: team only). They see the people who message them, as part of the conversation, and the people who marked them booked (D-40). |
 | Other vendors and prospective vendors | Category-level figures, or one vendor's own numbers only with that vendor's permission |
 | The Localites team (platform admins) | The detailed records, to run the service, prepare reports and compare year over year. Every look is recorded in the audit log. **Planning (D-42):** totals only of saves, adds to plans and bookings marked, per business and per kind of event; never who, never which event. |
 | Anyone else | Nothing. Tracking data is never sold. |

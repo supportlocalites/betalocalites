@@ -133,6 +133,16 @@ export default function Account({ loaderData, actionData }: Route.ComponentProps
                     )}
                     {b.role === 'owner' && !b.archived && (
                       <span>
+                        <Link to={`/vendors/${b.slug}/team`} className="text-link">
+                          Team
+                        </Link>
+                      </span>
+                    )}
+                    {b.role === 'staff' && !b.archived && (
+                      <span className="muted">You’ll be able to read and reply to customers’ messages here when messaging arrives.</span>
+                    )}
+                    {(b.role === 'owner' || b.role === 'manager') && !b.archived && (
+                      <span>
                         <Link to={`/vendors/${b.slug}/edit`} className="button button-primary">
                           Edit your listing
                         </Link>

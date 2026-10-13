@@ -27,7 +27,14 @@ export class OwnerRefused extends Error {}
 /** Not (or no longer) this business's owner: the page answers "You can't edit this listing". */
 export class NotOwner extends Error {}
 
-type ServiceRow = { id: string; name: string; description: string | null; pricingModel: string; priceCents: number | null; isActive: boolean };
+type ServiceRow = {
+  id: string;
+  name: string;
+  description: string | null;
+  pricingModel: string;
+  priceCents: number | null;
+  isActive: boolean;
+};
 
 async function readServices(db: Db, vendorId: string): Promise<ServiceRow[]> {
   return [
@@ -57,7 +64,12 @@ const toValues = (
 
 /** Today's owner-editable values as flat keys, with service names (for the team's tools). */
 export async function readCurrent(db: Db, vendorId: string): Promise<{ flat: Record<string, unknown>; names: Map<string, string> }> {
-  const [v] = await db.execute<{ tagline: string | null; description: string | null; websiteUrl: string | null; publicPhone: string | null }>(sql`
+  const [v] = await db.execute<{
+    tagline: string | null;
+    description: string | null;
+    websiteUrl: string | null;
+    publicPhone: string | null;
+  }>(sql`
     select tagline, description, website_url as "websiteUrl", public_phone as "publicPhone" from vendor where id = ${vendorId}`);
   const services = await readServices(db, vendorId);
   return {
@@ -78,7 +90,7 @@ type Owned = {
 };
 
 /**
- * The listing, if this person is its current owner and it isn't archived. When asked, it
+ * The listing, if this person is its current owner or a manager (E §3) and it isn’t archived. When asked, it
  * locks the listing and the membership too: a save that waited for "Remove owner" then
  * sees the ended membership, so the team's decision always wins.
  */
@@ -88,7 +100,7 @@ async function findOwned(db: Db, userId: string, by: { slug: string } | { id: st
     select v.id, v.slug::text as slug, v.display_name as name, v.listing_status as status, v.tagline, v.description,
            v.website_url as "websiteUrl", v.public_phone as "publicPhone"
     from vendor v
-    join vendor_member m on m.vendor_id = v.id and m.user_id = ${userId} and m.role = 'owner' and m.ended_at is null
+    join vendor_member m on m.vendor_id = v.id and m.user_id = ${userId} and m.role in ('owner', 'manager') and m.ended_at is null
     where ${where} and v.listing_status <> 'archived'
     ${lock ? sql`for update of v for share of m` : sql``}`);
   return v ?? null;
@@ -129,7 +141,7 @@ export async function ownedListing(
       const [archived] = await db.execute<{ id: string }>(sql`
         select v.id from vendor v join vendor_member m on m.vendor_id = v.id
         where v.slug = ${slug} and v.listing_status = 'archived'
-          and m.user_id = ${userId} and m.role = 'owner' and m.ended_at is null`);
+          and m.user_id = ${userId} and m.role in ('owner', 'manager') and m.ended_at is null`);
       return archived ? { archived: true } : null;
     }
     if (v.slug !== slug) return { renamedTo: v.slug };
@@ -206,7 +218,13 @@ export type SaveResult =
 const VENDOR_COLUMNS = { tagline: 'tagline', description: 'description', websiteUrl: 'website_url', publicPhone: 'public_phone' } as const;
 
 /** Saves an owner's edits, all or nothing. Only what they changed is written. */
-export async function saveOwnerEdits(env: ServerEnv, member: Member, slug: string, base: OwnerValues, submitted: OwnerValues): Promise<SaveResult> {
+export async function saveOwnerEdits(
+  env: ServerEnv,
+  member: Member,
+  slug: string,
+  base: OwnerValues,
+  submitted: OwnerValues,
+): Promise<SaveResult> {
   return withDb(env, (db) =>
     db.transaction(async (tx) => {
       // Still the owner, checked again with the business locked, so a team decision made
@@ -288,7 +306,13 @@ export async function saveOwnerEdits(env: ServerEnv, member: Member, slug: strin
       }
 
       const flags = riskFlags(changes);
-      const auditId = await audit(tx, { actor: member.userId, action: 'vendor.owner_edit', subjectType: 'vendor', subjectId: vendorId, changes });
+      const auditId = await audit(tx, {
+        actor: member.userId,
+        action: 'vendor.owner_edit',
+        subjectType: 'vendor',
+        subjectId: vendorId,
+        changes,
+      });
       await tx.execute(sql`
         insert into owner_change (audit_id, vendor_id, flags) values (${auditId}, ${vendorId}, ${`{${flags.join(',')}}`}::text[])`);
       return { status: 'saved', auditId, flags, slug: v.slug };
@@ -367,7 +391,7 @@ export async function ownedAnalytics(db: Db, userId: string, slug: string): Prom
              v.public_phone is not null as phone,
              exists (select 1 from vendor_service s where s.vendor_id = v.id and s.is_active) as services
       from vendor v
-      join vendor_member m on m.vendor_id = v.id and m.user_id = ${userId} and m.role = 'owner' and m.ended_at is null
+      join vendor_member m on m.vendor_id = v.id and m.user_id = ${userId} and m.role in ('owner', 'manager') and m.ended_at is null
       join vendor_analytics a on a.vendor_id = v.id and a.enabled
       where ${where} and v.listing_status <> 'archived'`);
   let [v] = await find(sql`v.slug = ${slug}`);

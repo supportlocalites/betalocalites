@@ -34,6 +34,9 @@ export default [
     route('vendors/:slug/add', 'routes/member/vendor-add.tsx'),
     route('business', 'routes/member/business.tsx'),
     route('vendors/:slug/bookings', 'routes/member/bookings.tsx'),
+    // A business owner's team (V4, E §3).
+    route('vendors/:slug/team', 'routes/member/team.tsx'),
+    route('team-invite/:token', 'routes/member/team-invite.tsx'),
   ]),
   // Team only: every request under /admin passes the gate in routes/admin/layout.tsx.
   route('admin', 'routes/admin/layout.tsx', [

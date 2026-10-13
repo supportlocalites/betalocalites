@@ -26,10 +26,10 @@ const randomRowId = () => crypto.randomUUID();
 const MAIN_CATEGORY = sql`(select c.name from vendor_category vc join category c on c.id = vc.category_id
                            where vc.vendor_id = v.id order by vc.is_primary desc, c.name limit 1)`;
 
-/** Active owner or manager of a business that isn't archived (who sees "Bookings marked"). */
+/** On the team of a business that isn't archived, in any role (who sees "My business"). */
 const ON_TEAM = (userId: string) => sql`exists (
   select 1 from vendor_member m join vendor v on v.id = m.vendor_id
-  where m.user_id = ${userId} and m.ended_at is null and m.role in ('owner', 'manager') and v.listing_status <> 'archived')`;
+  where m.user_id = ${userId} and m.ended_at is null and v.listing_status <> 'archived')`;
 
 /** A listed business by its web address (vendor is open reference data). */
 const publishedVendor = async (tx: Db, slug: string) => {

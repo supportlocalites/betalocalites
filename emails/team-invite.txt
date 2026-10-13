@@ -1,0 +1,15 @@
+Subject: {{inviter}} invited you to help run {{business}} on Localites
+
+Hi,
+
+{{inviter}} invited you to join {{business}} on Localites as {{role}}.
+
+{{what}}
+
+To accept, open this link and sign in with this email address ({{email}}):
+{{link}}
+
+The link works for 7 days, and only for this email address. If you weren't expecting this,
+you can ignore it: nothing happens unless you accept.
+
+Localites

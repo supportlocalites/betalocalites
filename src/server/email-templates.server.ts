@@ -11,6 +11,7 @@ import bookingFlagTeam from '../../emails/booking-flag-team.txt?raw';
 import bookingFlaggedPerson from '../../emails/booking-flagged-person.txt?raw';
 import bookingUnmarked from '../../emails/booking-unmarked.txt?raw';
 import markedBooked from '../../emails/marked-booked.txt?raw';
+import teamInvite from '../../emails/team-invite.txt?raw';
 import { uuidv7 } from '@/lib/ids.mjs';
 import { withDb } from './db.server';
 import { sendEmail, TEAM_ADDRESS } from './email.server';
@@ -34,6 +35,8 @@ const TEMPLATES = {
   bookedEventChanged,
   bookingFlagTeam,
   bookingFlaggedPerson,
+  // A business owner's team (V4, E §3).
+  teamInvite,
 } as const;
 export type TemplateName = keyof typeof TEMPLATES;
 

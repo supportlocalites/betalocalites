@@ -42,7 +42,8 @@ decisions are in [docs/H-product-owner-action-register.md](docs/H-product-owner-
 - Owners edit at `/vendors/<slug>/edit` (ADR-029): ownership is checked in the database on
   every request; only changed fields are written; every save goes to `audit_log` plus
   `owner_change`. The business page is one component (`src/components/VendorPage.tsx`) used
-  by the public page, the edit page and the preview.
+  by the public page, the edit page and the preview. Managers can do what owners do except
+  the team; only the owner manages the team at `/vendors/<slug>/team` (`src/server/team.server.ts`).
 - Events, plans and saved businesses are read and written only through `actAs`/`actingAs`
   (`src/server/acting.server.ts`); the database refuses them otherwise (ADR-031). Person pages
   live under `/events…`, business pages under `/business` and `/vendors/:slug/bookings`.

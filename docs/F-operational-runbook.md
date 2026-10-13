@@ -299,6 +299,31 @@ guide this live (PO-03 part 3). Changing the password later is the same two step
   plan (only a flagged booking). Ask the person to describe what they see, or to send a
   screenshot.
 
+### Business teams (screen V4, migration 0015)
+
+- **What owners can do on their own:** from **Your account → Team** (or
+  `/vendors/<name>/team`), the business's owner invites a **manager** (edits the listing, sees
+  bookings marked and Analytics) or **staff** (nothing yet; they'll answer messages when
+  messaging arrives) by email, cancels an invitation, or removes someone. Only the owner sees
+  this page. To change someone's role, the owner removes them and invites them again.
+- **Invitations:** the email comes from Localites with the owner's name and the business's
+  name, and replies go to supportlocalites@gmail.com. The link works once, for 7 days, and
+  only when the person is signed in with the address it was sent to. These emails count
+  toward Resend's free 100 a day. If one doesn't go, the team page tells the owner to cancel
+  and invite again; nothing is retried automatically.
+- **Limits:** 10 people besides the owner; 20 invitations a day per business. The page says
+  so in plain words when either is reached.
+- **Changing an owner is still the team's job** (Admin → Claims and Remove owner, D-35). When
+  a business's last owner is removed or deletes their account, everyone else on its team
+  leaves too and its open invitations are cancelled, so nobody keeps access to a business
+  with no owner. A new owner invites their team again.
+- **"Someone on my team can't get in":** check the invitation was sent to the address they
+  sign in with, that it's under 7 days old and not cancelled. If in doubt, the owner cancels
+  it and invites again.
+- Joining, removing, inviting and cancelling are recorded in `audit_log`
+  (`vendor_member.join`, `vendor_member.remove`, `vendor_invite.create`, `vendor_invite.revoke`).
+- **No new secrets and no owner steps** were needed.
+
 ## 5. Backups
 
 | Layer | What | Frequency | Retention | Source |

@@ -22,18 +22,20 @@ export async function myBusinesses(env: ServerEnv, userId: string): Promise<(MyB
              v.listing_status = 'archived' as archived,
              exists (select 1 from vendor_analytics a where a.vendor_id = v.id and a.enabled) as analytics
       from vendor_member m join vendor v on v.id = m.vendor_id
-      where m.user_id = ${userId} and m.ended_at is null and m.role in ('owner', 'manager')
+      where m.user_id = ${userId} and m.ended_at is null
       order by v.display_name`);
     const out: (MyBusiness & { comingUp: number })[] = [];
     for (const b of businesses) {
-      const comingUp = b.archived
-        ? 0
-        : await actAs(db, { side: 'business', userId, vendorId: b.id }, async (tx) => {
-            const [n] = await tx.execute<{ n: number }>(sql`
+      // Staff see no bookings (E §3: owners and managers); they're listed for the messages to come.
+      const comingUp =
+        b.archived || b.role === 'staff'
+          ? 0
+          : await actAs(db, { side: 'business', userId, vendorId: b.id }, async (tx) => {
+              const [n] = await tx.execute<{ n: number }>(sql`
               select count(*)::int as n from bookings_for_business()
               where not cancelled and event_date >= (now() at time zone 'America/Toronto')::date`);
-            return n?.n ?? 0;
-          });
+              return n?.n ?? 0;
+            });
       out.push({ ...b, comingUp });
     }
     return out;

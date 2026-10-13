@@ -36,26 +36,37 @@ export default function MyBusiness({ loaderData: { businesses } }: Route.Compone
                 <span className={styles.meta}>No longer on Localites. Email supportlocalites@gmail.com with questions.</span>
               ) : (
                 <>
-                  <span className={styles.meta}>
-                    {b.comingUp === 0
-                      ? 'No bookings marked coming up'
-                      : `${b.comingUp} ${b.comingUp === 1 ? 'booking' : 'bookings'} marked coming up`}
-                  </span>
-                  <div className={styles.rowActions}>
-                    <Link to={`/vendors/${b.slug}/bookings`} className="text-link">
-                      Bookings marked
-                    </Link>
-                    {b.role === 'owner' && (
+                  {b.role !== 'staff' && (
+                    <span className={styles.meta}>
+                      {b.comingUp === 0
+                        ? 'No bookings marked coming up'
+                        : `${b.comingUp} ${b.comingUp === 1 ? 'booking' : 'bookings'} marked coming up`}
+                    </span>
+                  )}
+                  {b.role === 'staff' ? (
+                    <span className={styles.meta}>
+                      You’ll be able to read and reply to customers’ messages here when messaging arrives.
+                    </span>
+                  ) : (
+                    <div className={styles.rowActions}>
+                      <Link to={`/vendors/${b.slug}/bookings`} className="text-link">
+                        Bookings marked
+                      </Link>
                       <Link to={`/vendors/${b.slug}/edit`} className="text-link">
                         Edit your listing
                       </Link>
-                    )}
-                    {b.role === 'owner' && b.analytics && (
-                      <Link to={`/vendors/${b.slug}/analytics`} className="text-link">
-                        Analytics
-                      </Link>
-                    )}
-                  </div>
+                      {b.analytics && (
+                        <Link to={`/vendors/${b.slug}/analytics`} className="text-link">
+                          Analytics
+                        </Link>
+                      )}
+                      {b.role === 'owner' && (
+                        <Link to={`/vendors/${b.slug}/team`} className="text-link">
+                          Team
+                        </Link>
+                      )}
+                    </div>
+                  )}
                 </>
               )}
             </li>

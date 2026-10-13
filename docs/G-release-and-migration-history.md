@@ -31,6 +31,34 @@ Every release and every database migration, in order. Appended before each deplo
 
 ## Releases
 
+### 2026-10-13 — Owners add their own team (Stage 1 leftover, screen V4)
+
+**Stage:** 1 (E §3 roles; supersedes D-29's "no teammates yet", on the product owner's
+choice of 13 October 2026)
+**What changed (plain English):** a business's owner can now invite a **manager** or
+**staff** by email from **Your account → Team**. The invited person signs in with that
+email address and accepts. Managers can edit the listing, see bookings marked and see
+Analytics (when it's switched on); staff see the business on **My business** with a note
+that they'll answer messages when messaging arrives. Only the owner can invite, cancel an
+invitation or remove someone; removing someone ends their access at once. If a business's
+last owner leaves, everyone else on its team leaves too.
+**Migrations applied:** `0015_business_teams.sql` (one new table for invitations; one
+automatic rule that ends a team when its last owner leaves). Adds only; nothing existing
+changes.
+**Destructive?** No.
+**Tests run:** database 0015 9/9 (new) and every earlier file; unit 136/136; end-to-end
+business teams 38/38 (new) plus every earlier suite (423 in all).
+**Security tests:** another business's owner, a manager, staff and someone not on the team
+can't open or change the team (all "not found"); an invitation can't be accepted by another
+address, twice, after cancelling or after 7 days; it can't make someone an owner; forms
+from another website are refused; a removed manager loses access at once; staff can't edit,
+see bookings or see the team.
+**Existing functionality affected:** managers can now open Edit, Bookings and Analytics for
+their business (before, only owners existed).
+**How to roll back:** Cloudflare → Deployments → previous version (the Team page
+disappears; anyone already on a team stays on it until removed by the team).
+**Approved by:** Product owner (13 October 2026: "Owners add their own staff").
+
 ### 2026-10-13 — Delete your account (Stage 1, before launch; E §8)
 
 **Stage:** 1 (a launch requirement; D-10)
