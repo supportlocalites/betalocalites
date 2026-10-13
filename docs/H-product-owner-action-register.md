@@ -87,6 +87,7 @@ Recorded from your messages of 9 and 10 October 2026. These now shape every docu
 | **PO-15** | Once "Plan an event" reaches the test site: plan a test event and look at it (steps below) | Knowing that planning works on the real hosting, not only on our computers | 5 min |
 | **PO-16** | Switch on business photos: one storage folder in Supabase, three secrets in Cloudflare (steps below) | Businesses adding photos | 10 min |
 | **PO-18** | Switch on nightly backups: a passphrase and a switch in GitHub, and two GitHub settings (steps below) | A copy of everything to restore from if the database is ever damaged | 10 min |
+| **PO-19** | Switch on alerts when the site breaks: one email key, from Resend into Cloudflare (steps below) | Hearing about an outage within minutes, not from a customer | 5 min |
 | **PO-11** | Check the 28 test businesses (drafts) and publish the ones that are right (steps below) | Real listings on the test site | At your pace, ~5 min each |
 | **D-12** | Mailing address for the privacy policy and terms | Public launch | 1 min, later |
 
@@ -829,7 +830,8 @@ us.**
 
 ### PO-06 — Alert email address
 **When:** Just before launch. Alerts go to supportlocalites@gmail.com (D-11); we'll send a
-test alert there and you confirm it arrived.
+test alert there and you confirm it arrived. **Now part of PO-19** (its first email is the
+test alert).
 
 ### PO-07 — Legal review
 **When:** Before public launch. **Start looking now.**
@@ -1188,6 +1190,36 @@ GitHub emails the person who last switched a scheduled job on, so:
 the secret: new backups use it; older ones still need the old one until they expire.
 
 **Done when:** the run you started in step 8 shows the green tick. Reply *"PO-18 done"*.
+
+---
+
+### PO-19 — Switch on alerts when the site breaks
+
+A small separate program (the **site watch**, `localites-watch` in Cloudflare) looks at the
+test site every 5 minutes. If it stops working, supportlocalites@gmail.com gets a plain
+email saying what's wrong and what to paste into a new session to get it fixed; a reminder
+every 6 hours while it stays down; and an email when it's back. Free. It needs its own key
+to send email. (This also does PO-06: the first email is the test alert.)
+
+**Part 1: an email key for the watch (Resend)**
+1. Sign in to **resend.com** → **API Keys** → **Create API Key**.
+2. Name: `localites-watch`. Permission: **Sending access**. Domain: **localites.ca**.
+   Click **Add**. Resend shows the key once: keep that page open.
+
+**Part 2: give it to the watch (Cloudflare)**
+3. In Cloudflare: **Workers & Pages** → **localites-watch** (it appears after our next
+   update goes live) → **Settings** → **Variables and Secrets** → **Add**.
+4. Type: **Secret**. Variable name: `RESEND_API_KEY`. Value: paste the key from step 2.
+   Click **Deploy** (or **Save**). You can close the Resend page now.
+
+**Part 3: the test alert**
+5. Within 5 minutes, supportlocalites@gmail.com gets **"Localites alerts are switched on"**.
+   If it isn't in the inbox, look in spam and mark it **Not spam**, so real alerts arrive.
+
+**Never send us** the key. If you think it's been seen, delete it in Resend and make a new
+one, then replace the secret in Cloudflare (steps 3 to 4).
+
+**Done when:** the "alerts are switched on" email arrived. Reply *"PO-19 done"*.
 
 ---
 

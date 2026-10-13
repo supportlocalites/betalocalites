@@ -105,7 +105,7 @@ on codes (ADR-028).
   when the product owner presses a **Release** button in GitHub, copying exactly what was tried
   on the test site; the current workers.dev site and test database stay as the test site, where
   every change lands first; free plans only; product owner, 13 October 2026); our own nightly backups and the first restore drill (built 13 October
-  2026; switched on by PO-18); alerts when the site breaks (D-11); automated accessibility and
+  2026; switched on by PO-18); alerts when the site breaks (D-11; built 13 October 2026, switched on by PO-19); automated accessibility and
   screen-size checks (built 13 October 2026 at phone and computer sizes; a tablet size and
   screenshot comparison still to come).
 - **Built since (13 October 2026):** deleting your own account (0014); a business's team

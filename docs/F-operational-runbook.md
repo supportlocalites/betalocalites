@@ -511,7 +511,7 @@ address on every service account (Supabase, Cloudflare, Resend, Sentry, backups)
 | What | How | Who's told |
 |---|---|---|
 | Application errors | Sentry (free tier). Personal data scrubbed before sending. | Engineering; daily digest to you if anything new |
-| Site down | A scheduled check every few minutes (free, on Cloudflare) loads the home page and one vendor page and queries the database | Engineering and you, immediately, by email |
+| Site down | **Built (13 October 2026):** the site watch, its own Worker (`localites-watch`: `workers/watch.ts`, rules in `src/lib/watch-rules.ts`, settings `wrangler.watch.jsonc`), every 5 minutes loads `/api/health` (website and database), the home page and Explore (which reads the database); a failure is looked at again 20 seconds later before it counts | supportlocalites@gmail.com, by email: when it goes down (what's wrong, and what to paste into a new session), every 6 hours while down, and when it's back. Needs its own email key (PO-19) |
 | Slow pages | Cloudflare's free built-in analytics (no cookies, no tracking) | Weekly review by engineering |
 | Free-plan limits | Database size, file storage, data transfer, emails per day, requests per day | Engineering weekly; **you at 80% of any limit**, with options |
 | Database health | Supabase dashboard: storage used, connections, slow queries | Weekly review by engineering |
@@ -519,6 +519,23 @@ address on every service account (Supabase, Cloudflare, Resend, Sentry, backups)
 | Reports | New items in the reports queue (messages, conversations, listings, reviews) | Platform team (you, initially), daily |
 | Costs | Confirm every account is still on its free plan with no payment method needed | Monthly one-line confirmation to you |
 | Unusual admin activity | Weekly `audit_log` review | Engineering, flagged to you |
+
+### The site watch
+
+- **Where:** Cloudflare → Workers & Pages → **localites-watch**. Put live by GitHub after the
+  site (CI step **Put the site watch live**). No web address of its own; it only runs on its
+  schedule (every 5 minutes, one of the free plan's 5 scheduled triggers).
+- **What it remembers:** whether there's an outage, since when, and when it last emailed (a
+  small Durable Object, free). So it emails once at the start, every 6 hours while down, and
+  once at the end, never every 5 minutes.
+- **No emails at all?** Cloudflare → localites-watch → **Logs**: "alert not sent" says why (for
+  example the key is missing or was replaced; PO-19 steps 3 to 4). Without a key the watch
+  still runs and logs, and tries the email again on every look.
+- **What it can't see:** a problem inside one page that still loads (a broken button), and a
+  Cloudflare-wide outage (the watch runs on Cloudflare too). The nightly backup run (F §5) is
+  a second, separate signal.
+- **Pausing it** (planned work): Cloudflare → localites-watch → Settings → **Triggers** →
+  delete the schedule; the next update puts it back.
 
 ## 9. Dependency management
 

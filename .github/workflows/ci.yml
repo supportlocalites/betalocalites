@@ -49,6 +49,8 @@ jobs:
         run: npm run test:db
       - name: Cloudflare build
         run: npm run build
+      - name: Site watch build
+        run: npx wrangler deploy --dry-run --config wrangler.watch.jsonc --outdir .watch-build
       - name: Size budget (free plan)
         run: npm run size
 
@@ -213,3 +215,8 @@ jobs:
             sleep 10
           done
           echo "::error::The live site's health check answered $code after deploying."; cat health.json || true; exit 1
+      # The site watch (workers/watch.ts, runbook F §8): its own small Worker, put live after
+      # the site. It emails the team when the site is down (once PO-19 gives it an email key).
+      - name: Put the site watch live
+        if: env.CLOUDFLARE_API_TOKEN != '' && env.CLOUDFLARE_ACCOUNT_ID != ''
+        run: npx wrangler deploy --config wrangler.watch.jsonc

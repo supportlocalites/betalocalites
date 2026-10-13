@@ -31,6 +31,26 @@ Every release and every database migration, in order. Appended before each deplo
 
 ## Releases
 
+### 2026-10-13 — Alerts when the site breaks (the site watch)
+
+**Stage:** 1 (before launch; D-11)
+**What changed (plain English):** a small separate Cloudflare program, the site watch, looks
+at the test site every 5 minutes: its health check (website and database), the home page and
+Explore. If that fails twice, 20 seconds apart, supportlocalites@gmail.com gets a plain email
+saying what's wrong and what to paste into a new session; a reminder every 6 hours while it
+stays down; and an email when it's back, with how long it was down. The first email says
+alerts are switched on (the test alert PO-06 asked for). Switched on by PO-19 (its own email
+key). GitHub puts it live after the site. Small change to the site: its email sender is
+shared with the watch (no change in behaviour).
+**Migrations applied:** none.
+**Destructive?** No.
+**Tests run:** unit 9 (new: when it emails, stays quiet, reminds and says it's back; reading
+the health page's own words); the real watch program run on this machine against the local
+test site, with emails to the pretend email service: switched on, quiet, down (site stopped),
+quiet, back up (site restarted), exactly one email each time; build checked (8 KB).
+**How to roll back:** Cloudflare → localites-watch → delete; and remove the CI step.
+**Approved by:** Product owner (13 October 2026: chose "Alerts when the site breaks").
+
 ### 2026-10-13 — Automatic look and accessibility checks on every update
 
 **Stage:** 1 (before launch)

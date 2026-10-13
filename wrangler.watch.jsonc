@@ -1,0 +1,22 @@
+{
+  // The site watch (runbook F §8, D-11): its own Worker, apart from the site, so a broken
+  // site update can't silence it. Deployed by CI after the site. Its one secret,
+  // RESEND_API_KEY (its own email key), is added in the Cloudflare dashboard (PO-19).
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "localites-watch",
+  "main": "./workers/watch.ts",
+  "compatibility_date": "2026-09-01",
+  // strictly_public: looks at the site from outside, as a visitor would (a Worker can't
+  // otherwise reach another Worker's workers.dev address).
+  "compatibility_flags": ["nodejs_compat", "global_fetch_strictly_public"],
+  "observability": { "enabled": true },
+  // No address of its own: it only works on its schedule.
+  "workers_dev": false,
+  "preview_urls": false,
+  // Every 5 minutes (free plan: one of the account's 5 scheduled triggers).
+  "triggers": { "crons": ["*/5 * * * *"] },
+  "vars": { "SITE_URL": "https://localites.supportlocalites.workers.dev" },
+  // What it remembers between looks (free plan: a SQLite-backed Durable Object).
+  "durable_objects": { "bindings": [{ "name": "STATE", "class_name": "Memory" }] },
+  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["Memory"] }]
+}

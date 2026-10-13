@@ -6,8 +6,11 @@ export const FROM_ADDRESS = 'Localites <notices@localites.ca>';
 
 const RESEND_URL = 'https://api.resend.com/emails';
 
+/** All sending needs: the site passes its whole settings, the site watch (workers/watch.ts) just these. */
+export type EmailEnv = Pick<ServerEnv, 'RESEND_API_KEY' | 'EMAIL_API_URL'>;
+
 /** Local tests only: a pretend email service on this computer. Any other address is ignored. */
-export function emailApiUrl(env: ServerEnv): string {
+export function emailApiUrl(env: EmailEnv): string {
   const local = env.EMAIL_API_URL;
   if (!local) return RESEND_URL;
   try {
@@ -18,7 +21,7 @@ export function emailApiUrl(env: ServerEnv): string {
   }
 }
 
-function post(env: ServerEnv, email: { to: string; subject: string; text: string; replyTo?: string }): Promise<Response> {
+function post(env: EmailEnv, email: { to: string; subject: string; text: string; replyTo?: string }): Promise<Response> {
   return fetch(emailApiUrl(env), {
     method: 'POST',
     headers: { Authorization: `Bearer ${env.RESEND_API_KEY}`, 'Content-Type': 'application/json' },
@@ -40,7 +43,7 @@ export type EmailResult = { sent: true } | { sent: false; reason: string };
  * The reason is short and never includes the key or the email's content.
  */
 export async function sendEmail(
-  env: ServerEnv,
+  env: EmailEnv,
   email: { to: string; subject: string; text: string; replyTo?: string },
 ): Promise<EmailResult> {
   if (!env.RESEND_API_KEY) return { sent: false, reason: 'Email isn’t set up yet (PO-12).' };

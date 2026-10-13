@@ -14,3 +14,4 @@ playwright-report/
 !.env.example
 .DS_Store
 look-shots/
+.watch-build/
