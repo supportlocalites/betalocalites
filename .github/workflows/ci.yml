@@ -7,7 +7,7 @@ name: CI
 on:
   push:
     # Asking for a look at the site watch (watch-check.yml) isn't a change to the site.
-    paths-ignore: ['.github/watch-check.txt', '.github/workflows/watch-check.yml']
+    paths-ignore: ['.github/watch-check.txt', '.github/workflows/watch-check.yml', '.github/cron-test/**']
   pull_request:
 
 permissions:

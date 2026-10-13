@@ -6,7 +6,7 @@ name: Check the site watch
 
 on:
   push:
-    paths: ['.github/watch-check.txt']
+    paths: ['.github/watch-check.txt', '.github/cron-test/**']
   workflow_dispatch:
 
 permissions:
@@ -30,6 +30,9 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
+      - name: The cron test Worker (only while it's in the repository)
+        if: hashFiles('.github/cron-test/wrangler.jsonc') != ''
+        run: npx wrangler deploy --config .github/cron-test/wrangler.jsonc 2>&1 | grep -E 'Uploaded|schedule|Deployed|ERROR|error' || true
       - name: Its versions (adding a secret makes a new one)
         run: npx wrangler deployments list --name localites-watch 2>&1 | tail -20 || true
       - name: The schedules Cloudflare has, and its record of past scheduled runs
