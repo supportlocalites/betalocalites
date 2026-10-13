@@ -1,0 +1,49 @@
+# Listens to the site watch (localites-watch, runbook F §8) for about 6 minutes and prints
+# what it did: each scheduled look, its log lines ("site watch: ...") and any error. Uses the
+# deploy key (PO-17), read-only here. Runs when .github/watch-check.txt changes, or on demand.
+# Prints no secrets: the watch's log lines never contain its key or email text.
+name: Check the site watch
+
+on:
+  push:
+    paths: ['.github/watch-check.txt']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  listen:
+    name: Listen to the site watch for 6 minutes
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Its versions (adding a secret makes a new one)
+        run: npx wrangler deployments list --name localites-watch 2>&1 | tail -20 || true
+      - name: Listen
+        run: |
+          timeout 390 npx wrangler tail localites-watch --format json > tail.jsonl 2> tail.err || true
+          echo "Events heard: $(grep -c . tail.jsonl || true)"
+          node -e '
+            const lines = require("fs").readFileSync("tail.jsonl", "utf8").split("\n").filter(Boolean);
+            for (const l of lines) {
+              let e; try { e = JSON.parse(l); } catch { continue; }
+              const when = new Date(e.eventTimestamp ?? Date.now()).toISOString();
+              const kind = e.event?.cron ? `scheduled (${e.event.cron})` : e.event?.request ? "request" : "event";
+              console.log(`${when} ${kind} outcome=${e.outcome}`);
+              for (const log of e.logs ?? []) console.log(`   ${log.level}: ${[].concat(log.message).join(" ")}`);
+              for (const ex of e.exceptions ?? []) console.log(`   EXCEPTION ${ex.name}: ${ex.message}`);
+            }'
+          echo "--- wrangler said:"; grep -v '^\s*$' tail.err | tail -15 || true
