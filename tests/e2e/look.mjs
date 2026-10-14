@@ -53,6 +53,8 @@ const made = await site('/events/new', {
 });
 const eventId = /^\/events\/([0-9a-f-]{36})/.exec(made.location)?.[1];
 await site(`/vendors/${V.slug}/add`, { cookie: cookieOf(sessions.person), method: 'POST', form: { intent: 'add', eventId } });
+const [planRow] = await sql`select id from event_vendor where event_id = ${eventId} and vendor_id = ${V.id}`;
+await site(`/events/${eventId}/plan/${planRow.id}/book`, { cookie: cookieOf(sessions.person), method: 'POST' });
 
 const browser = await chromium.launch();
 async function contextFor(who, size) {
@@ -163,6 +165,7 @@ const PAGES = [
   { who: 'team', path: '/admin/categories', label: 'Team: categories and towns' },
   { who: 'team', path: '/admin/event-types', label: 'Team: kinds of event' },
   { who: 'team', path: '/admin/activity', label: 'Team: activity' },
+  { who: 'team', path: `/admin/bookings?business=${V.id}`, label: 'Team: bookings' },
 ];
 
 const RULES = ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa'];
@@ -247,9 +250,16 @@ for (const [what, path] of [
 ]) {
   check(`${what} shows the business’s square profile photo`, (await site(path, { cookie: person })).body.includes(small));
 }
+// Taken down (D-46): gone from Saved; on the plan only as the person's own booking, with no
+// photo or empty square; and listed for the team to check in about.
 await sql`update vendor set listing_status = 'unpublished' where id = ${V.id}`;
-check('once it isn’t listed, its photo shows on neither the plan nor Saved',
-  !(await site(`/events/${eventId}`, { cookie: person })).body.includes(small) && !(await site('/saved', { cookie: person })).body.includes(small));
+const takenDown = (await site(`/events/${eventId}`, { cookie: person })).body;
+check('once it isn’t listed, the plan keeps the booking by name, with no photo or empty square',
+  takenDown.includes(V.name) && takenDown.includes('No longer listed on Localites') && !takenDown.includes(small) &&
+    !/<li class="[^"]*withPhoto[^"]*">(?:(?!<\/li>).)*No longer listed/s.test(takenDown));
+check('…and Saved doesn’t show it at all', !(await site('/saved', { cookie: person })).body.includes(V.name));
+const forTeam = (await site(`/admin/bookings?business=${V.id}`, { cookie: cookieOf(sessions.team) })).body;
+check('…and the team sees whom to check in with', forTeam.includes('Check in with these people') && forTeam.includes(email('person')));
 await sql`update vendor set listing_status = 'published' where id = ${V.id}`;
 
 await finish('look');

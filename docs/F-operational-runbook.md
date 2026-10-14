@@ -303,6 +303,15 @@ guide this live (PO-03 part 3). Changing the password later is the same two step
   2A this list is for reading: if something looks wrong (for example a business flagging
   every booking), contact the business or the person directly from
   supportlocalites@gmail.com. Deciding on flags comes in Stage 3.
+- **Bookings (Admin → Bookings; D-46):** every business a person marked booked, listed or
+  not, past events too, with the person's name and email, the date, the town and about how
+  many guests (never the event's name or private details). Every look is recorded. When a
+  business is taken down (a listing's **Hide from the public** or **Archive**), its bookings
+  for events still to come appear first, under **Check in with these people**, and the menu
+  shows "(n to check in)". Email each person from supportlocalites@gmail.com to see if they
+  need help finding another business. The listing's own page says how many bookings are
+  still to come before you take it down. Taking a business down deletes nothing; it stays
+  on those people's plans by name, and they can't newly mark it booked until it's listed again.
 - **Planning counts (D-42):** on **Activity** ("Planning (team only)": the top 20 businesses
   and totals by kind of event) and on each listing's **Activity** page. Whole Toronto days
   up to the end of yesterday. Never show them to a business (they aren't on its Analytics

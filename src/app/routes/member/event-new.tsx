@@ -4,7 +4,7 @@ import { EventForm, type EventFormErrors } from '@/components/EventForm';
 import { SiteHeader } from '@/components/SiteHeader';
 import { SLUG } from '@/lib/ids.mjs';
 import { pageMeta } from '@/lib/meta';
-import { TOO_FAST } from '@/lib/plan-terms';
+import { EVENTS_PRIVATE, TOO_FAST } from '@/lib/plan-terms';
 import { PlanNotFound } from '@/server/acting.server';
 import { dateWindow, parseEventForm } from '@/server/event-input';
 import { addingChoices, createEvent, eventFormOptions } from '@/server/events.server';
@@ -68,7 +68,7 @@ export default function NewEvent({ loaderData, actionData }: Route.ComponentProp
       <main className="page narrow">
         <h1 className="title-1">Plan an event</h1>
         <div className="title-rule" aria-hidden="true" />
-        <p className="muted">Only you can see your events. Add the businesses you’re thinking about as you find them.</p>
+        <p className="muted">{EVENTS_PRIVATE} Add the businesses you’re thinking about as you find them.</p>
         {actionData?.error && (
           <p className="notice" role="alert">
             {actionData.error}

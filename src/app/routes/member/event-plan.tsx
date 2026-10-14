@@ -134,22 +134,26 @@ export default function EventPlan({ loaderData }: Route.ComponentProps) {
             </h2>
             <ul className={styles.list}>
               {booked.map((r) => (
-                <li key={r.rowId} className={styles.withPhoto}>
-                  <SquarePhoto photo={r.photo} alt="" />
+                <li key={r.rowId} className={r.listed ? styles.withPhoto : undefined}>
+                  {r.listed && <SquarePhoto photo={r.photo} alt="" />}
                   <div className={styles.rowBody}>
                     <div className={styles.rowHead}>
                       <BusinessName row={r} />
                       <span className={styles.pill}>{STATUS_WORDS.booked}</span>
                     </div>
                     {r.category && <span className={styles.meta}>{r.category}</span>}
+                    {!r.listed && <span className={styles.meta}>No longer listed on Localites. It stays here as your own record.</span>}
                     {r.flaggedAt && <span className={styles.flagged}>{r.name} says it isn’t booked for this event.</span>}
                     {open && (
                       <details className={styles.change}>
                         <summary>Change this</summary>
                         <div className={styles.rowActions}>
-                          <Link to={`${base}/plan/${r.rowId}/unbook`} className="text-link">
-                            Un-mark as booked
-                          </Link>
+                          {/* Un-marked, one that's no longer listed would vanish and couldn't be marked again. */}
+                          {r.listed && (
+                            <Link to={`${base}/plan/${r.rowId}/unbook`} className="text-link">
+                              Un-mark as booked
+                            </Link>
+                          )}
                           <Link to={`${base}/plan/${r.rowId}/remove`} className="text-link">
                             Remove from this event
                           </Link>
@@ -178,11 +182,7 @@ export default function EventPlan({ loaderData }: Route.ComponentProps) {
                       <span className={styles.pill}>{STATUS_WORDS.considering}</span>
                     </div>
                     {r.category && <span className={styles.meta}>{r.category}</span>}
-                    {!r.listed ? (
-                      <span className={styles.meta}>No longer listed on Localites</span>
-                    ) : (
-                      !r.claimed && <span className={styles.meta}>Not on Localites yet</span>
-                    )}
+                    {!r.claimed && <span className={styles.meta}>Not on Localites yet</span>}
                     {open && (
                       <div className={styles.rowActions}>
                         <Link to={`${base}/plan/${r.rowId}/book`} className="button button-primary">

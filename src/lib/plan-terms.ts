@@ -37,10 +37,20 @@ export const STATUS_WORDS = { considering: 'Considering', booked: 'You marked th
 export const NO_PAYMENTS_PERSON = 'Localites doesn’t process payments. Arrange payment directly with the business.';
 export const NO_PAYMENTS_BUSINESS = 'Localites doesn’t process payments. Arrange payment directly with your customer.';
 
-/** C2's privacy box (D-40): exactly what a business sees once it's marked booked. */
+/** C2's privacy box (D-40, D-46): exactly what a business, and the Localites team, see once it's marked booked. */
 export const BOOKED_SEES =
   'If you mark a business as booked, they’ll see your name, the date, the town and about how many guests. ' +
+  'The Localites team sees the same and your email, to help if anything changes with the business. ' +
   'Never the name you give the event, where it is, the ages, your budget or your notes.';
+
+/** On the confirm page for marking booked (D-46): the team sees every booking. */
+export const TEAM_SEES_BOOKING =
+  'The Localites team can see this booking too (your name and email, the date, the town and about how many guests), ' +
+  'so we can help if anything changes with the business.';
+
+/** Where a page says the person's events are private (D-40, D-46). */
+export const EVENTS_PRIVATE =
+  'Only you can see your events. A business you mark booked, and the Localites team, see a short summary of that booking.';
 
 /** Always shown with featured businesses (D-43), never hidden in a tooltip. */
 export const FEATURED_LINE = 'Featured businesses are promoted by the Localites team.';

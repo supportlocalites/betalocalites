@@ -102,7 +102,8 @@ const CARD_COLUMNS = sql`
   to_char(e.start_time, 'HH24:MI') as "startTime", to_char(e.end_time, 'HH24:MI') as "endTime",
   mu.name as town, e.status, event_ends_at(e) < now() as passed,
   (select count(*) from event_vendor x where x.event_id = e.id and x.host_user_id = e.host_user_id and x.status = 'booked')::int as booked,
-  (select count(*) from event_vendor x where x.event_id = e.id and x.host_user_id = e.host_user_id and x.status = 'considering')::int as considering`;
+  (select count(*) from event_vendor x join vendor xv on xv.id = x.vendor_id
+   where x.event_id = e.id and x.host_user_id = e.host_user_id and x.status = 'considering' and xv.listing_status = 'published')::int as considering`;
 
 /** Still being planned and not over: listed first (soonest first), so the limit never hides them. */
 const UPCOMING = sql`(e.status = 'planning' and event_ends_at(e) >= now())`;
@@ -126,7 +127,8 @@ export async function myEvents(
                  e.start_time nulls first, e.created_at
         limit 200`);
       const [extra] = await tx.execute<{ saved: number; onTeam: boolean }>(sql`
-        select (select count(*) from saved_vendor where user_id = ${userId})::int as saved, ${ON_TEAM(userId)} as "onTeam"`);
+        select (select count(*) from saved_vendor s join vendor v on v.id = s.vendor_id
+                where s.user_id = ${userId} and v.listing_status = 'published')::int as saved, ${ON_TEAM(userId)} as "onTeam"`);
       const all = [...cards];
       return {
         upcoming: all.filter((c) => c.status === 'planning' && !c.passed),
@@ -389,7 +391,10 @@ export async function eventPlan(env: ServerEnv, userId: string, eventId: string)
                  ${LIST_PHOTO_COLUMNS}
           from event_vendor ev join vendor v on v.id = ev.vendor_id
           ${LIST_PHOTO}
+          -- A business that's no longer listed is hidden (D-46), unless the person marked it
+          -- booked: then it stays as their own record, with no photo or link.
           where ev.event_id = ${eventId} and ev.host_user_id = ${userId}
+            and (v.listing_status = 'published' or ev.status = 'booked')
           order by ev.created_at`)
       ).map((r) => withListPhoto(env, r, r.listed));
 
@@ -586,22 +591,22 @@ export async function addToEvent(env: ServerEnv, userId: string, eventId: string
   );
 }
 
-export type SavedVendor = { slug: string; name: string; town: string; category: string | null; listed: boolean; photo: ListPhoto | null };
+export type SavedVendor = { slug: string; name: string; town: string; category: string | null; photo: ListPhoto | null };
 
-/** C6: the person's saved businesses, newest first. */
+/** C6: the person's saved businesses, newest first. One that's no longer listed is hidden (D-46). */
 export async function savedVendors(env: ServerEnv, userId: string): Promise<{ saved: SavedVendor[]; onTeam: boolean }> {
   return planned(
     actingAs(env, asPerson(userId), async (tx) => {
       const saved = (
         await tx.execute<Omit<SavedVendor, 'photo'> & ListPhotoColumns>(sql`
           select v.slug::text as slug, v.display_name as name, mu.name as town, ${MAIN_CATEGORY} as category,
-                 v.listing_status = 'published' as listed, ${LIST_PHOTO_COLUMNS}
+                 ${LIST_PHOTO_COLUMNS}
           from saved_vendor s join vendor v on v.id = s.vendor_id join municipality mu on mu.id = v.primary_municipality_id
           ${LIST_PHOTO}
-          where s.user_id = ${userId}
+          where s.user_id = ${userId} and v.listing_status = 'published'
           order by s.created_at desc
           limit ${PLAN_LIMITS.savedMax}`)
-      ).map((r) => withListPhoto(env, r, r.listed));
+      ).map((r) => withListPhoto(env, r));
       const [t] = await tx.execute<{ onTeam: boolean }>(sql`select ${ON_TEAM(userId)} as "onTeam"`);
       return { saved: [...saved], onTeam: t?.onTeam ?? false };
     }),

@@ -1,7 +1,7 @@
 # E — Security & Privacy Model
 
 **Status:** Approved (D-00, 10 October 2026).
-**Last updated:** 2026-10-13 (§3, §4.2, §7, §7a, §8, §12: planning an event built, ADR-031, D-39 to D-43; earlier, §2: "are you human" check on sign-in codes; §7: sign-up details and anyone may join, D-36; §2: emailed sign-in codes and claims)
+**Last updated:** 2026-10-14 (§4.2: the team sees every booking, a business taken down can't be newly booked, D-46; 2026-10-13: §3, §4.2, §7, §7a, §8, §12: planning an event built, ADR-031, D-39 to D-43; earlier, §2: "are you human" check on sign-in codes; §7: sign-up details and anyone may join, D-36; §2: emailed sign-in codes and claims)
 
 **Revision 2:** rebuilt around the two users, consumer and vendor. Added
 conversations, shared files, consumer-marked bookings, and reviews. Removed the
@@ -140,9 +140,9 @@ grants more, and every admin action is recorded in `audit_log`.
 | Record | Visitor | The consumer | Another consumer | Vendor on the plan | Admin |
 |---|---|---|---|---|---|
 | Saved vendors | — | R C X (own) | — | — (not told) | aggregate counts only (D-42) |
-| Event | — | R C U; cancel (own) | — | **Summary only**¹ | R only when a booking on it is flagged |
+| Event | — | R C U; cancel (own) | — | **Summary only**¹ | The booking summary³ for every event with a business marked booked; the rest only when a booking on it is flagged |
 | Event plan: vendors *considering* | — | R C U X (own) | — | — (not told) | — |
-| Event plan: vendor *booked* | — | R U (own) | — | R (own row)²; can flag once | R when flagged (read-only in 2A); resolves flags in Stage 3 |
+| Event plan: vendor *booked* | — | R U (own); can't newly mark a business that isn't listed (D-46) | — | R (own row)²; can flag once | R³, every booking, logged (D-46); R when flagged (read-only in 2A); resolves flags in Stage 3 |
 | The event's name, where, ages, budget, notes (`event_private`) | — | R U (own) | — | — | — |
 | Flag note | — | — | — | C (own flag) | R |
 | Saves, adds and bookings per business (D-42) | — | — | — | — (not on their Analytics page) | totals only |
@@ -154,6 +154,16 @@ the consumer links the event, and the same summary is expected.
 ² The vendor sees that they were marked booked and the event summary, so they can
 recognise the booking or flag it. When it flags, the team and the person are told; the note
 stays with the team (D-41).
+³ **Built (D-46, migration 0020):** the team's **Bookings** page lists every business marked
+booked, listed or not, past and cancelled events too: the business, the person's name and
+email, the date, the town and about how many guests, so the team always knows who works
+with whom and can check in with people whose business was taken down before their event.
+Never the event's name, kind, times, where, ages, budget or notes, and never what a person
+is only considering or has saved. Every look is written to `audit_log`. Taking a business
+down deletes nothing; a person's bookings leave the team's view only when that person's
+account is deleted (§8). People are told on the **Mark as booked** page and in the event
+form's privacy box. A business that isn't listed disappears from people's Saved and from
+what they're considering; one already marked booked stays on that person's plan by name only.
 
 **How each cell is enforced (ADR-031).**
 - *By the database's per-side rules:* everything the person may not see of another person;
@@ -170,8 +180,11 @@ stays with the team (D-41).
   is in a team-only table. (Review fix, 13 October 2026.)
 - *By the server asking only for named columns, plus end-to-end tests:* the person's email
   on `app_user` (as in Stage 1).
-- *Admin "support, logged" reads of any event:* not built; the team can't open a person's
-  event unless a booking on it is flagged.
+- *By two team-only database functions (D-46):* `bookings_for_team()` returns only the
+  columns in note ³, and `taken_down_booking_count()` only a count; both refuse anyone not
+  acting as the team. The team still has no rule on the planning tables themselves.
+- *Admin "support, logged" reads of any event:* not built; beyond the booking summary
+  (note ³), the team can't open a person's event unless a booking on it is flagged.
 
 ### 4.3 Conversations & files (Stage 2)
 

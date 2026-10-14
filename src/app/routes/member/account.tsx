@@ -3,6 +3,7 @@ import { cloudflareContext, memberContext } from '@/app/context';
 import { NameFields, ProfileFields } from '@/components/ProfileFields';
 import { SiteHeader } from '@/components/SiteHeader';
 import { pageMeta } from '@/lib/meta';
+import { EVENTS_PRIVATE } from '@/lib/plan-terms';
 import { updatePerson } from '@/server/auth/member.server';
 import { NAMES_NEEDED, namesInput, profileInput } from '@/server/member-input';
 import { getProfile } from '@/server/profile.server';
@@ -108,7 +109,7 @@ export default function Account({ loaderData, actionData }: Route.ComponentProps
               Saved businesses
             </Link>
           </p>
-          <p className="muted">Only you can see your events and saved businesses.</p>
+          <p className="muted">Only you can see your saved businesses. {EVENTS_PRIVATE}</p>
         </section>
 
         <section aria-labelledby="businesses" className={styles.section}>

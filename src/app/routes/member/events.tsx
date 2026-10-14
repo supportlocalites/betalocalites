@@ -3,7 +3,7 @@ import { cloudflareContext, memberContext } from '@/app/context';
 import { SideSwitch } from '@/components/SideSwitch';
 import { SiteHeader } from '@/components/SiteHeader';
 import { pageMeta } from '@/lib/meta';
-import { shortDate, timeRange, whenWords } from '@/lib/plan-terms';
+import { EVENTS_PRIVATE, shortDate, timeRange, whenWords } from '@/lib/plan-terms';
 import { type EventCard, myEvents } from '@/server/events.server';
 import { todayIso } from '@/server/plan-pages.server';
 import type { Route } from './+types/events';
@@ -78,7 +78,7 @@ export default function MyEvents({ loaderData }: Route.ComponentProps) {
                 Plan an event
               </Link>
             </div>
-            <p className="muted">Only you can see your events.</p>
+            <p className="muted">{EVENTS_PRIVATE}</p>
 
             {upcoming.length > 0 && (
               <section aria-labelledby="coming-up" className={styles.section}>

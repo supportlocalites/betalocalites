@@ -31,6 +31,29 @@ Every release and every database migration, in order. Appended before each deplo
 
 ## Releases
 
+### 2026-10-14 — A business taken down: hidden from people, and the team sees every booking
+
+**Stage:** 2 (D-46)
+**What changed (plain English):** when the team takes a business down, people no longer see
+it in Saved or among the businesses they're considering, and can't mark it booked. Anyone
+who already marked it booked keeps it on their plan by name only (no photo, no empty
+square, no link), with "No longer listed on Localites. It stays here as your own record."
+The team has a new **Bookings** page: every booking on Localites (which person marked which
+business booked, listed or not, past events too), with the person's email so the team can
+reach out. Bookings still to come of a business that's been taken down are listed first,
+"Check in with these people", and counted in the team menu. Each listing's team page says
+how many bookings are still to come and warns before taking it down. Nothing is deleted when
+a business is taken down. People are told the team sees bookings (Mark as booked page,
+event form, My events). Replaces the empty square from the release below.
+**Migrations applied:** `0020_bookings_for_team.sql` (replaces 0012's rule for plan rows
+with the same rule plus one refusal; adds two team-only functions).
+**Destructive?** No: no table or row changes. To undo, a later migration puts back the 0012
+rule and drops the two functions.
+**Tests run:** see the testing-strategy table for this release.
+**How to roll back:** Cloudflare → Deployments → previous version; the database change is
+undone by a new migration.
+**Approved by:** Product owner (D-46, 13–14 October 2026).
+
 ### 2026-10-13 — Profile photos in a person's lists too
 
 **Stage:** 1 and 2 (D-45)

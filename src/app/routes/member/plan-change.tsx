@@ -3,7 +3,7 @@ import { cloudflareContext, memberContext } from '@/app/context';
 import { SiteHeader } from '@/components/SiteHeader';
 import { isUuid } from '@/lib/ids.mjs';
 import { pageMeta } from '@/lib/meta';
-import { longDate, NO_PAYMENTS_PERSON, TOO_FAST } from '@/lib/plan-terms';
+import { longDate, NO_PAYMENTS_PERSON, TEAM_SEES_BOOKING, TOO_FAST } from '@/lib/plan-terms';
 import { CHANGE_STEPS, changePlan, type PlanChange, PLAN_CHANGES, planChangeTarget } from '@/server/events.server';
 import { sendBookingNotice } from '@/server/plan-emails.server';
 import { afterwards, found, refusal, siteUrl, todayIso, tooFast } from '@/server/plan-pages.server';
@@ -88,6 +88,7 @@ function Explanation({ change, target, today }: { change: PlanChange; target: Ta
             ? `${b} will see your name, the date, the town and about how many guests. Never your event’s name, where it is, the ages, your budget or your notes.`
             : `If ${b} joins Localites before your event, they’ll see that you marked them booked: your name, the date, the town and about how many guests. Never your event’s name, where it is, the ages, your budget or your notes.`}
         </p>
+        <p>{TEAM_SEES_BOOKING}</p>
         <p className="muted">{NO_PAYMENTS_PERSON}</p>
       </>
     );

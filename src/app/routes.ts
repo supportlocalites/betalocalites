@@ -52,6 +52,7 @@ export default [
     route('suggestions', 'routes/admin/suggestions.tsx'),
     route('event-types', 'routes/admin/event-types.tsx'),
     route('booking-flags', 'routes/admin/booking-flags.tsx'),
+    route('bookings', 'routes/admin/bookings.tsx'),
     route('account-deletions', 'routes/admin/account-deletions.tsx'),
     route('photos', 'routes/admin/photos.tsx'),
     route('categories', 'routes/admin/categories.tsx'),

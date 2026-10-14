@@ -2,6 +2,7 @@ import { Form, Link, NavLink, Outlet } from 'react-router';
 import { adminContext, cloudflareContext } from '@/app/context';
 import { Wordmark } from '@/components/Wordmark';
 import { countOpenFlags } from '@/server/admin/booking-flags.server';
+import { upcomingBookingCount } from '@/server/admin/team-bookings.server';
 import { countPendingDeletions } from '@/server/account-deletion.server';
 import { adminGate } from '@/server/auth/admin.server';
 import { countOpenClaims } from '@/server/claims.server';
@@ -29,13 +30,14 @@ export const middleware: Route.MiddlewareFunction[] = [
 export async function loader({ context }: Route.LoaderArgs) {
   const admin = context.get(adminContext);
   const { env } = context.get(cloudflareContext);
-  const [newSuggestions, openClaims, openFlags, deletions] = await Promise.all([
+  const [newSuggestions, openClaims, openFlags, deletions, checkIns] = await Promise.all([
     countNewSuggestions(env),
     countOpenClaims(env),
     countOpenFlags(env, admin),
     countPendingDeletions(env, admin),
+    upcomingBookingCount(env, admin),
   ]);
-  return { name: admin.name, email: admin.email, newSuggestions, openClaims, openFlags, deletions };
+  return { name: admin.name, email: admin.email, newSuggestions, openClaims, openFlags, deletions, checkIns };
 }
 
 export default function AdminLayout({ loaderData }: Route.ComponentProps) {
@@ -64,6 +66,9 @@ export default function AdminLayout({ loaderData }: Route.ComponentProps) {
           </NavLink>
           <NavLink to="/admin/event-types" className="text-link">
             Event types
+          </NavLink>
+          <NavLink to="/admin/bookings" className="text-link">
+            Bookings{loaderData.checkIns > 0 ? ` (${loaderData.checkIns} to check in)` : ''}
           </NavLink>
           <NavLink to="/admin/booking-flags" className="text-link">
             Booking flags ({loaderData.openFlags})

@@ -468,6 +468,61 @@ for (const path of ['/admin/activity', `/admin/listings/${V.id}/activity`]) {
   check(`not on the team: ${path} is refused (403)`, r.status === 403 && !r.body.includes('Planning (team only)'), String(r.status));
 }
 
+// ------------------------------------------------------------------ 16b. A business taken down (D-46)
+// Hidden from people (they can't book it); kept on the plan of anyone who already booked it;
+// the team sees every booking, and whom to check in with.
+const T = await listing('taken');
+const T2 = await listing('taken2');
+const B_TITLE = `SECRET-B-TITLE-${run}`;
+r = await site('/events/new', { cookie: cookie.b, method: 'POST', form: { intent: 'create', title: B_TITLE, typeId: 'none', date: eventDate, townId: orillia.id } });
+const bEvent = /^\/events\/([0-9a-f-]{36})/.exec(r.location ?? '')?.[1];
+for (const v of [T, T2]) await site(`/vendors/${v.slug}/add`, { cookie: cookie.b, method: 'POST', form: { intent: 'add', eventId: bEvent } });
+await site(`/vendors/${T2.slug}/add`, { cookie: cookie.b, method: 'POST', form: { intent: 'save' } });
+const tRow = await rowOf(bEvent, T.id);
+const t2Row = await rowOf(bEvent, T2.id);
+await site(`/events/${bEvent}/plan/${tRow.id}/book`, { cookie: cookie.b, method: 'POST' });
+check('set-up: one business marked booked, one considered and saved',
+  (await rowOf(bEvent, T.id))?.status === 'booked' && t2Row?.status === 'considering', `${tRow?.status} ${t2Row?.status}`);
+r = await site(`/admin/listings/${T.id}`, { cookie: cookie.m });
+check('the team’s listing page says how many bookings are still to come, before taking it down',
+  r.status === 200 && words(r.body).includes('Bookings for events still to come: 1') && words(r.body).includes('There’s 1 booking of this business'), String(r.status));
+for (const v of [T, T2]) {
+  r = await site(`/admin/listings/${v.id}`, { cookie: cookie.m, method: 'POST', form: { intent: 'status', to: 'unpublished', reason: 'E2E: taken down' } });
+}
+check('the team takes both businesses down',
+  (await sql`select count(*)::int as n from vendor where id in (${T.id}, ${T2.id}) and listing_status = 'unpublished'`)[0].n === 2, String(r.status));
+r = await site(`/events/${bEvent}`, { cookie: cookie.b });
+const bPlan = words(r.body);
+check('the person’s plan keeps the business they booked, by name, as their own record, with no link',
+  r.status === 200 && bPlan.includes(T.name) && bPlan.includes('No longer listed on Localites') && !r.body.includes(`/vendors/${T.slug}"`), String(r.status));
+check('…and doesn’t show the one they were only considering', !bPlan.includes(T2.name));
+check('…and offers no un-marking of it (it couldn’t be marked again)', !r.body.includes(`/plan/${tRow.id}/unbook`));
+r = await site(`/events/${bEvent}/plan/${t2Row.id}/book`, { cookie: cookie.b, method: 'POST' });
+check('marking a business that isn’t listed as booked is refused, and nothing changes',
+  r.status >= 400 && r.status < 500 && (await rowOf(bEvent, T2.id))?.status === 'considering', String(r.status));
+r = await site('/saved', { cookie: cookie.b });
+check('Saved businesses doesn’t show a business that isn’t listed', r.status === 200 && !words(r.body).includes(T2.name), String(r.status));
+r = await site('/admin/bookings', { cookie: cookie.m });
+const team = words(r.body);
+check('the team’s menu counts the bookings to check in about', r.status === 200 && /Bookings \(\d+ to check in\)/.test(team), String(r.status));
+check('the team’s Bookings page lists whom to check in with: the business, the person and their email',
+  team.includes('Check in with these people') && team.includes(T.name) && team.includes(email('b')));
+check('…and never the event’s name, or what a person is only considering', !r.body.includes(B_TITLE) && !team.includes(T2.name));
+r = await site(`/admin/bookings?business=${T.id}`, { cookie: cookie.m });
+check('one business’s bookings, recorded in the audit log each time they’re looked at',
+  r.status === 200 && words(r.body).includes(email('b')) && (await audits('event_vendor.bookings_view', T.id)) === 1, String(r.status));
+r = await site(`/admin/bookings?business=${V.id}`, { cookie: cookie.m });
+check('…a listed business’s bookings are there too (who it works with)', r.status === 200 && words(r.body).includes(V.name) && words(r.body).includes(A_NAME), String(r.status));
+r = await site('/admin/bookings?business=nope', { cookie: cookie.m });
+check('a bad address is "not found"', r.status === 404, String(r.status));
+for (const [who, c] of [['a person', cookie.b], ['the business’s owner', cookie.o], ['someone not on the team', cookie.n]]) {
+  r = await site('/admin/bookings', { cookie: c });
+  check(`${who}: the team’s Bookings page is refused (403)`, r.status === 403 && !r.body.includes(email('b')), String(r.status));
+}
+await sql`update vendor set listing_status = 'published' where id = ${T2.id}`;
+r = await site(`/events/${bEvent}/plan/${t2Row.id}/book`, { cookie: cookie.b, method: 'POST' });
+check('listed again, it can be marked booked', (await rowOf(bEvent, T2.id))?.status === 'booked', String(r.status));
+
 // ------------------------------------------------------------------ 17. Wording (D-16, D-24)
 await mail(email('o'));
 await mail(email('a'));

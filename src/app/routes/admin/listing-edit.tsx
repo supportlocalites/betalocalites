@@ -17,6 +17,7 @@ import {
 } from '@/server/admin/listings.server';
 import { readSwitch } from '@/server/admin/activity.server';
 import { listOwnerChanges, OwnerChangeConflict, removeOwner, undoOwnerChange } from '@/server/admin/owner-changes.server';
+import { upcomingBookingCount } from '@/server/admin/team-bookings.server';
 import { withDb } from '@/server/db.server';
 import { emailPerson, renderEmail } from '@/server/email-templates.server';
 import type { Route } from './+types/listing-edit';
@@ -30,15 +31,20 @@ export const meta: Route.MetaFunction = ({ loaderData }) => [
 export async function loader({ params, request, context }: Route.LoaderArgs) {
   if (!isUuid(params.id)) throw data(null, { status: 404 });
   const { env } = context.get(cloudflareContext);
-  // One connection for the page (each one costs time from the request's small CPU budget).
-  const [listing, options, owned, analytics] = await withDb(env, async (db) => {
-    const found = await readListing(db, params.id);
-    const keep = found ? { municipalityId: found.municipalityId, categoryIds: found.categoryIds } : null;
-    return Promise.all([found, readFormOptions(db, keep), listOwnerChanges(db, params.id), readSwitch(db, params.id)]);
-  });
+  // One connection for the page (each one costs time from the request's small CPU budget),
+  // and one acting as the team for the bookings count (D-46: only the team may count them).
+  const [[listing, options, owned, analytics], upcomingBookings] = await Promise.all([
+    withDb(env, async (db) => {
+      const found = await readListing(db, params.id);
+      const keep = found ? { municipalityId: found.municipalityId, categoryIds: found.categoryIds } : null;
+      return Promise.all([found, readFormOptions(db, keep), listOwnerChanges(db, params.id), readSwitch(db, params.id)]);
+    }),
+    upcomingBookingCount(env, context.get(adminContext), params.id),
+  ]);
   if (!listing) throw data(null, { status: 404 });
   return {
     listing,
+    upcomingBookings,
     options,
     owner: owned.owner,
     ownerChanges: owned.cards,
@@ -296,7 +302,7 @@ type ActionResult = {
 
 export default function EditListing({ loaderData, actionData: rawResult }: Route.ComponentProps) {
   const actionData = rawResult as ActionResult | undefined;
-  const { listing, options, owner, ownerChanges, analyticsOn, saved } = loaderData;
+  const { listing, options, owner, ownerChanges, analyticsOn, saved, upcomingBookings } = loaderData;
   const busy = useNavigation().state === 'submitting';
   const archived = listing.status === 'archived';
   const errorsFor = (intent: string, serviceId = '') =>
@@ -340,6 +346,12 @@ export default function EditListing({ loaderData, actionData: rawResult }: Route
           See activity
         </Link>
       </p>
+      <p className="muted">
+        {`Bookings for events still to come: ${upcomingBookings} · `}
+        <Link to={`/admin/bookings?business=${listing.id}`} className="text-link">
+          See who booked them
+        </Link>
+      </p>
       {saved && SAVED[saved] && (
         <p className="notice" role="status">
           {SAVED[saved]}
@@ -354,6 +366,12 @@ export default function EditListing({ loaderData, actionData: rawResult }: Route
       {ADMIN_TRANSITIONS[listing.status].length > 0 && (
         <Form method="post" className={styles.statusPanel}>
           <input type="hidden" name="intent" value="status" />
+          {listing.status === 'published' && upcomingBookings > 0 && (
+            <p className={styles.reasonField}>
+              {upcomingBookings === 1 ? 'There’s 1 booking' : `There are ${upcomingBookings} bookings`} of this business for events still to
+              come. If you take it down, it stays on those people’s plans and they’re listed under Bookings, to check in with.
+            </p>
+          )}
           {ADMIN_TRANSITIONS[listing.status].some((s) => s !== 'published') && (
             <div className={`field ${styles.reasonField}`}>
               <label htmlFor="reason" className="field-label">

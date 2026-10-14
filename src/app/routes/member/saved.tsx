@@ -65,15 +65,14 @@ export default function Saved({ loaderData, actionData }: Route.ComponentProps) 
               <li key={s.slug} className={styles.withPhoto}>
                 <SquarePhoto photo={s.photo} alt="" />
                 <div className={styles.rowBody}>
-                  <span className={styles.name}>{s.listed ? <Link to={`/vendors/${s.slug}`}>{s.name}</Link> : s.name}</span>
+                  <span className={styles.name}>
+                    <Link to={`/vendors/${s.slug}`}>{s.name}</Link>
+                  </span>
                   <span className={styles.meta}>{[s.category, s.town].filter(Boolean).join(' · ')}</span>
-                  {!s.listed && <span className={styles.meta}>No longer listed</span>}
                   <div className={styles.rowActions}>
-                    {s.listed && (
-                      <Link to={`/vendors/${s.slug}/add`} className="text-link">
-                        Add to event
-                      </Link>
-                    )}
+                    <Link to={`/vendors/${s.slug}/add`} className="text-link">
+                      Add to event
+                    </Link>
                     <Form method="post">
                       <input type="hidden" name="intent" value="unsave" />
                       <input type="hidden" name="slug" value={s.slug} />
