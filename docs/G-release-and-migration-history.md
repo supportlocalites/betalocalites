@@ -31,6 +31,26 @@ Every release and every database migration, in order. Appended before each deplo
 
 ## Releases
 
+### 2026-10-14 — Guests and replies, part 1 (Stage 4)
+
+**Stage:** 4 (E §4.6, §5, §8; ADR-032)
+**What changed (plain English):**
+- **Hosts:** each event has **Guests and invitations**: add guests, send each their own link
+  from your phone (text, WhatsApp, email, the phone's share button, or copy), see who opened
+  it and who replied, with totals, and write a message for guests. A new link replaces one sent
+  to the wrong person.
+- **Guests:** no account. Their link shows the invitation and lets them reply yes, maybe or no,
+  with how many and a note, until the event.
+- **Privacy:** only the host sees the list; links show nothing else; links stop 30 days after
+  the event; phone numbers and emails are deleted 90 days after it.
+- **The links' key** is made once by the deploy and kept in Cloudflare; no step for the owner.
+**Migrations applied:** `0033_guests.sql` (the guest table, the guest message, the link and
+reply functions, the 90-day erasing).
+**Destructive?** No: adds a table, a column and functions.
+**Tests run:** database 0033 29/29 (new); end to end guests 38/38 (new), look 408/408, event
+planning 141/141, account deletion 22/22; unit 176/176; checks; size.
+**How to roll back:** Cloudflare → Deployments → previous version; the table can stay.
+
 ### 2026-10-14 — Reviews, part 2: "How was it?" emails and reporting a review
 
 **Stage:** 3 (E §4.4)

@@ -24,7 +24,9 @@
     // Planning an event (slice 2A): 30 changes a minute per person (events, plans, saves, flags).
     { "name": "PLAN_LIMIT", "namespace_id": "1006", "simple": { "limit": 30, "period": 60 } },
     // Business photos (E §9): 20 changes a minute per person (adding 8 photos and describing them fits).
-    { "name": "PHOTO_EDIT_LIMIT", "namespace_id": "1007", "simple": { "limit": 20, "period": 60 } }
+    { "name": "PHOTO_EDIT_LIMIT", "namespace_id": "1007", "simple": { "limit": 20, "period": 60 } },
+    // Guests' replies to invitations: per internet address, per minute (E §5).
+    { "name": "INVITE_LIMIT", "namespace_id": "1008", "simple": { "limit": 20, "period": 60 } }
   ],
   // The team's daily note of owners' changes (ADR-029) and the nightly count of activity
   // (ADR-030), free on Cloudflare: 12:00 UTC is 8 am in Toronto in summer and 7 am in

@@ -19,7 +19,7 @@ export const sessionCookies = (s: Pick<AuthSession, 'accessToken' | 'refreshToke
 
 export const clearedCookies = () => [cookie(ACCESS, '', 0), cookie(REFRESH, '', 0)];
 
-function readCookie(request: Request, name: string): string | undefined {
+export function readCookie(request: Request, name: string): string | undefined {
   for (const part of (request.headers.get('Cookie') ?? '').split(';')) {
     const [k, ...v] = part.trim().split('=');
     if (k === name) return v.join('=') || undefined;

@@ -1181,3 +1181,27 @@ years ahead; cancelling is final (no archive or undo in 2A); owners and managers
 
 **Cost.** $0: our own database and Cloudflare's free limiter. Each page is one transaction
 of one to three queries, well inside the free plan's 10 ms of CPU.
+
+---
+
+## ADR-032 — Guests' links made from a key, never stored (Stage 4)
+
+**Date:** 14 October 2026. **Status:** Accepted (migration 0033).
+
+**Context.** D-08: the host sends each guest a personal link from their own phone, and may
+need to copy it again days later. E §5 says a copy of the database must open no invitation.
+
+**Decision.** A guest's link is `/i/<token>`, where the token is an HMAC-SHA-256 of the
+guest's id and a version number under `INVITE_KEY`, a secret only the site has. The database
+stores only the token's SHA-256, so the host's page can make the link again at any time and a
+copy of the database alone opens nothing. A new link (version + 1) replaces the old one at
+once; the guest's reply is kept. The link is swapped at once for a short-lived cookie
+(`__Host-localites-invite`, a day) and the guest lands on `/invite`, so the address bar and
+history don't keep it. A guest has no account and no side: `invitation_for()` and
+`invitation_reply()` find their row by the hash and return only their own invitation.
+
+**The key.** The deploy makes `INVITE_KEY` once, as a random value nobody sees, and stores it
+in Cloudflare as a Secret; it never replaces it (every link already sent would stop working).
+If it is ever lost, links stop working and the host makes new ones.
+
+**Cost.** $0: Cloudflare's own crypto and rate limiter (`INVITE_LIMIT`, replies per address).

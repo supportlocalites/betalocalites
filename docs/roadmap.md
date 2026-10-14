@@ -329,6 +329,14 @@ text, WhatsApp, social media or email from the host's phone, or as a printable Q
 view showing who has replied and who hasn't · event updates · events kept for as long as
 the host's account exists (D-10).
 
+**Built, part 1 (14 October 2026, migration 0033, ADR-032):** the guest list on each event;
+a personal link per guest, sent from the host's phone (share sheet, text, WhatsApp, email,
+copy); a new link replaces the old; account-free replies (yes, maybe, no, how many, a note),
+changeable until the event; who opened and who replied, with totals; the host's message;
+links stop 30 days after the event; phone numbers and emails erased 90 days after.
+**Part 2:** the group link and matching names, the printable QR code, the host's questions,
+updates to guests.
+
 **Dependencies.** Stage 3 (D-14); D-08 and D-10 decided. **Effort:** 3–4 weeks.
 
 ---

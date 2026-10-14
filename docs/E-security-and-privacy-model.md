@@ -1,7 +1,7 @@
 # E — Security & Privacy Model
 
 **Status:** Approved (D-00, 10 October 2026).
-**Last updated:** 2026-10-14 (§4.4: reviews part 2, reports and "How was it?" emails, migration 0032; §4.4, §4.5, §8, §12: reviews built, part 1, migration 0031, D-48; §4.3, §8, §9: files in conversations, migration 0028; §4.3, §8: messages fixed after a third review, migration 0027; a second, migration 0026; after review, migration 0025; §4.3: messages built, part 1, migration 0023; §4.2: inquiries built, ADR-024, migration 0021; the team sees every booking, a business taken down can't be newly booked, D-46; 2026-10-13: §3, §4.2, §7, §7a, §8, §12: planning an event built, ADR-031, D-39 to D-43; earlier, §2: "are you human" check on sign-in codes; §7: sign-up details and anyone may join, D-36; §2: emailed sign-in codes and claims)
+**Last updated:** 2026-10-14 (§4.6, §5, §8: guests built, part 1, migration 0033; §4.4: reviews part 2, reports and "How was it?" emails, migration 0032; §4.4, §4.5, §8, §12: reviews built, part 1, migration 0031, D-48; §4.3, §8, §9: files in conversations, migration 0028; §4.3, §8: messages fixed after a third review, migration 0027; a second, migration 0026; after review, migration 0025; §4.3: messages built, part 1, migration 0023; §4.2: inquiries built, ADR-024, migration 0021; the team sees every booking, a business taken down can't be newly booked, D-46; 2026-10-13: §3, §4.2, §7, §7a, §8, §12: planning an event built, ADR-031, D-39 to D-43; earlier, §2: "are you human" check on sign-in codes; §7: sign-up details and anyone may join, D-36; §2: emailed sign-in codes and claims)
 
 **Revision 2:** rebuilt around the two users, consumer and vendor. Added
 conversations, shared files, consumer-marked bookings, and reviews. Removed the
@@ -363,14 +363,23 @@ never a one-tap approve link.
 As in revision 1: the host controls guests, invitations and RSVPs. A guest's link opens
 only their invitation and RSVP form. Vendors never see guest lists.
 
+**Built, part 1 (migration 0033, ADR-032, 14 October 2026).** Only the host reads or changes
+their guest list (as the person, ADR-031); another person, a booked business, the Localites
+team and anyone not signed in see nothing. A guest's link opens, through
+`invitation_for()`, only: their own name, the event's name, date, times, town, where, the
+host's first name and message, and their own reply; never the plan, the businesses, the
+budget, notes, other guests or the host's last name. Replies go only through
+`invitation_reply()`, limited per internet address, and close when the event is over; a
+cancelled event says so. Up to 300 guests an event.
+
 ## 5. Invitation-link security
 
 Stage 4. Unchanged from revision 1:
 
 | Threat | Control |
 |---|---|
-| Guessing a link | 256-bit random tokens; rate-limited RSVP |
-| Database copied | Only token hashes stored |
+| Guessing a link | 256-bit tokens (an HMAC of the guest under a site-only key, ADR-032); rate-limited RSVP |
+| Database copied | Only token hashes stored; the key is in Cloudflare, not the database |
 | Link forwarded | Opens only that invitation; host can revoke and reissue |
 | Link used after the event | Expires (default 30 days after) |
 | Link opens host workspace | Impossible: separate minimal view and query |
@@ -480,7 +489,7 @@ account exists, and detailed activity records kept for year-over-year reports (D
 | When a consumer deletes their account | — | **Built (13 October 2026, migration 0014):** from **Your account → Delete your account**, after typing their email address. At once, in one step in the database: their events, plans (and any flag notes on them) and saved businesses are deleted, so businesses they marked booked no longer see the booking; their name, email and personal details are erased (the account row stays as *"Former Localites member"* because history points at it); they leave any business's team, and a business left with no owner goes back to unclaimed; open claims are withdrawn and their notes erased; they're unlinked from activity and suggestions; the session ends. The team then removes their Supabase sign-in record by hand within 30 days (**Admin → Deleted accounts**; the site doesn't hold Supabase's admin key). A team member can't delete their account until their team role is removed. From Stage 2B, in conversations their messages show as *"Former Localites member"* and their files are deleted (built, migration 0028: unless kept for a report made while they were there). |
 | When a vendor leaves Localites | — | The listing is archived. Consumers keep their copies of conversations, shown as *"This business has left Localites"*. Published reviews stay, without the reply option. |
 | Published reviews | While the listing exists | **Built (migration 0031):** the author is shown as *"A Localites member"* if they delete their account, and a review still waiting is withdrawn; a review only shows while the business is listed |
-| Guest phone numbers and emails (Stage 4) | Until 90 days after the event | Erased. Guest names and their replies stay with the event so the host can look back |
+| Guest phone numbers and emails (Stage 4) | Until 90 days after the event | Erased (**built**, the morning job, migration 0033). Guest names and their replies stay with the event so the host can look back; the guest list goes with the host's account |
 | Detailed activity records (§7a) | No deletion date (D-22), for year-over-year reports | Daily totals are also kept. If the database nears its free limit, older detail moves to archive storage. Unlinked from anyone who deletes their account |
 | Suggested businesses (D-25) | Kept | On a declined suggestion, the phone number or email typed in is erased after 1 year; the count stays for reports |
 | Email delivery log | 1 year | Deleted |

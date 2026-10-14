@@ -60,6 +60,14 @@ const made = await site('/events/new', {
 const eventId = /^\/events\/([0-9a-f-]{36})/.exec(made.location)?.[1];
 await site(`/vendors/${V.slug}/add`, { cookie: cookieOf(sessions.person), method: 'POST', form: { intent: 'add', eventId } });
 const [planRow] = await sql`select id from event_vendor where event_id = ${eventId} and vendor_id = ${V.id}`;
+// A guest, for the guest list, the send page and the guest's own invitation (Stage 4).
+const addedGuest = await site(`/events/${eventId}/guests`, {
+  cookie: cookieOf(sessions.person),
+  method: 'POST',
+  form: { intent: 'add', name: 'Grandma Jo', phone: '705-555-0101' },
+});
+const guestId = /\/guests\/([0-9a-f-]{36})/.exec(addedGuest.location)?.[1];
+const guestToken = /\/i\/([A-Za-z0-9_-]{43})/.exec((await site(`/events/${eventId}/guests/${guestId}`, { cookie: cookieOf(sessions.person) })).body)?.[1];
 await site(`/events/${eventId}/plan/${planRow.id}/book`, { cookie: cookieOf(sessions.person), method: 'POST' });
 await site(`/vendors/${W.slug}/add`, { cookie: cookieOf(sessions.person), method: 'POST', form: { intent: 'add', eventId } });
 // A conversation with a reply (Stage 2B), and a business that has joined, for the Message page.
@@ -107,6 +115,12 @@ const browser = await chromium.launch();
 async function contextFor(who, size) {
   const ctx = await browser.newContext({ viewport: { width: size.width, height: size.height } });
   const s = sessions[who];
+  if (who === 'guest') {
+    const host = new URL(BASE).hostname;
+    await ctx.addCookies([
+      { name: '__Host-localites-invite', value: guestToken, domain: host, path: '/', secure: true, httpOnly: true, sameSite: 'Lax' },
+    ]);
+  }
   if (s) {
     const host = new URL(BASE).hostname;
     await ctx.addCookies(
@@ -193,6 +207,9 @@ const PAGES = [
   { who: 'person', path: `/vendors/${V.slug}/add`, label: 'Add to an event' },
   { who: 'person', path: `/vendors/${W.slug}/inquire`, label: 'Inquire' },
   { who: 'person', path: `/events/${pastEvent.id}/review/${pastRow.id}`, label: 'Review a business' },
+  { who: 'person', path: `/events/${eventId}/guests`, label: 'Guests' },
+  { who: 'person', path: `/events/${eventId}/guests/${guestId}`, label: 'Send an invitation' },
+  { who: 'guest', path: '/invite', label: 'A guest’s invitation' },
   { who: 'person', path: '/messages', label: 'Messages' },
   { who: 'person', path: `/messages/${conversationId}`, label: 'A conversation' },
   { who: 'person', path: `/vendors/${Z.slug}/message`, label: 'Message a business' },

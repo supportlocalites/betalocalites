@@ -29,6 +29,14 @@ export type ServerEnv = {
   PLAN_LIMIT?: RateLimit;
   /** Business photos: a per-person limit on changes, kept by Cloudflare. */
   PHOTO_EDIT_LIMIT?: RateLimit;
+  /**
+   * Guests' invitation links (Stage 4): the secret each guest's link is made from. Made once
+   * by the deploy (a random value nobody sees) and kept in Cloudflare as a Secret. Never change
+   * it: every link already sent would stop working.
+   */
+  INVITE_KEY?: string;
+  /** Guests' replies: a per-address limit kept by Cloudflare, never stored. */
+  INVITE_LIMIT?: RateLimit;
   /** The site's address, for links in emails sent on a schedule (wrangler.jsonc vars). */
   SITE_URL?: string;
   /**

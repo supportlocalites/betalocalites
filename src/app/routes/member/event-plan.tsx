@@ -122,13 +122,19 @@ export default function EventPlan({ loaderData }: Route.ComponentProps) {
             .join(' · ')}
         </p>
         <p className="muted">{when}</p>
-        {open && (
-          <p>
-            <Link to={`${base}/edit`} className="text-link">
-              Edit details
-            </Link>
-          </p>
-        )}
+        <p>
+          {open && (
+            <>
+              <Link to={`${base}/edit`} className="text-link">
+                Edit details
+              </Link>
+              {' · '}
+            </>
+          )}
+          <Link to={`${base}/guests`} className="text-link">
+            Guests and invitations
+          </Link>
+        </p>
 
         {booked.length > 0 && (
           <section aria-labelledby="booked" className={styles.section}>

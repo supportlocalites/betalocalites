@@ -119,6 +119,8 @@ jobs:
           printf 'RESEND_API_KEY=e2e-email-key-local-only\nEMAIL_API_URL=http://127.0.0.1:8787/emails\n' >> .env
           # Emails about new messages wait 2 seconds here, not 20, so the tests don't wait long (tests/e2e/messages.mjs).
           printf 'MESSAGE_EMAIL_WAIT_SECONDS=2\n' >> .env
+          # Guests' invitation links (Stage 4): a throwaway key for the test run.
+          printf 'INVITE_KEY=%s\n' "$(openssl rand -hex 32)" >> .env
           # Business photos, stored in the pretend file storage (tests/e2e/photos.mjs).
           printf 'PHOTO_KEY_ID=e2e-photo-key\nPHOTO_SECRET=e2e-photo-secret-local-only\nPHOTO_REGION=local\nPHOTO_STORAGE_URL=http://127.0.0.1:8787/storage/v1\n' >> .env
           npm run build
@@ -202,6 +204,19 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
+      # Guests' invitation links (Stage 4) are made from INVITE_KEY. It's made here once, as a
+      # random value nobody sees, and kept in Cloudflare as a Secret; never replaced (every link
+      # already sent would stop working). If listing the secrets fails, nothing is changed.
+      - name: Make the invitation key, once
+        if: env.CLOUDFLARE_API_TOKEN != '' && env.CLOUDFLARE_ACCOUNT_ID != ''
+        run: |
+          names=$(npx wrangler secret list --format json)
+          if echo "$names" | grep -q '"INVITE_KEY"'; then
+            echo "The invitation key is already set."
+          else
+            openssl rand -hex 32 | tr -d '\n' | npx wrangler secret put INVITE_KEY
+            echo "The invitation key was made."
+          fi
       - name: Build and deploy to Cloudflare
         run: |
           if [ -z "$CLOUDFLARE_API_TOKEN" ] || [ -z "$CLOUDFLARE_ACCOUNT_ID" ]; then

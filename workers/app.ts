@@ -9,6 +9,7 @@ import { closeInterruptedPlanEmails } from '@/server/email-templates.server';
 import { cleanUpConversationFiles, expireConversationFiles } from '@/server/conversation-files.server';
 import { cleanUpRemovedPhotos } from '@/server/photos.server';
 import { sendReviewRequests } from '@/server/review-requests.server';
+import { eraseGuestContacts } from '@/server/guests.server';
 import { discardBody } from '@/server/discard-body';
 import { refuseCrossSiteForm, withSecurityHeaders } from '@/server/security-headers';
 
@@ -77,6 +78,13 @@ export default {
       sendReviewRequests(env).then(
         (outcome) => console.log('review requests:', outcome),
         (err) => console.error('review requests failed', err instanceof Error ? err.message : err),
+      ),
+    );
+    // Guests' phone numbers and emails, 90 days after the event (D-10, guests.server.ts).
+    ctx.waitUntil(
+      eraseGuestContacts(env).then(
+        (n) => console.log('guest contact details erased:', n),
+        (err) => console.error('erasing guest contact details failed', err instanceof Error ? err.message : err),
       ),
     );
     // Removed photos whose files couldn't be deleted at the time (photos.server.ts).

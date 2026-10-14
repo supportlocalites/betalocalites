@@ -1,7 +1,7 @@
 # Screen Inventory
 
 **Status:** Proposed (Stage 0, revision 2).
-**Last updated:** 2026-10-14 (reviews, parts 1 and 2: C11, V9, X15, A4 emails built; 2026-10-13: Plan an event, slice 2A: C1–C6, A5, V1-lite, V8, X12 and X16 (read-only) built; earlier, sign-in with emailed codes and claiming: A1–A4, P8, V5 and X4)
+**Last updated:** 2026-10-14 (guests, Stage 4 part 1: C13, C14, G1–G4 built; reviews, parts 1 and 2: C11, V9, X15, A4 emails built; 2026-10-13: Plan an event, slice 2A: C1–C6, A5, V1-lite, V8, X12 and X16 (read-only) built; earlier, sign-in with emailed codes and claiming: A1–A4, P8, V5 and X4)
 
 Every screen in the intended product, grouped by who uses it. **★** marks the screens
 we'll prototype first (PO-09) so you can judge the experience on your phone. Every
@@ -55,8 +55,8 @@ added; quotes, bookings and the concierge queue removed.
 | C10 | Inquire | For unclaimed or unverified businesses: their own contact details, an optional note and event; says honestly what happens next (D-04). **Built** (ADR-024, `/vendors/<name>/inquire`, from **Interested? → Inquire** on the business page): once per business; the team email sent before the page answers, and a failure said plainly with **Try sending again**; the person is emailed when the business joins | 2 |
 | C11 | How was it? | From the feedback email: stars + comments, one per booked vendor. **Built, part 1** (`/events/<id>/review/<row>`, linked from "Plan an event" once the event has passed): stars and words, editable while the team checks it. **Part 2:** the "How was it?" email the morning after, and one reminder a week later, link here | 3 |
 | C12 | My reviews | Status: checking, published, declined (with reason) | 3 |
-| C13 | Guests | Guest list; who has opened and replied; match names from the group link; "No reply yet" list (D-08) | 4 |
-| C14 | Invitation setup | Wording, questions; personal links per guest and a group link; share by text, WhatsApp, social media or email; printable QR code (D-08) | 4 |
+| C13 | Guests | Guest list; who has opened and replied; match names from the group link; "No reply yet" list (D-08). **Built, part 1** (`/events/<id>/guests`, from the event plan): add a guest (name; phone or email optional, deleted 90 days after), remove, each one's state (no reply yet, opened, coming with how many, maybe, can't come, their note), the totals, the host's message to guests. The group link comes in part 2 | 4 |
+| C14 | Invitation setup | Wording, questions; personal links per guest and a group link; share by text, WhatsApp, social media or email; printable QR code (D-08). **Built, part 1** (`/events/<id>/guests/<guest>`): the guest's own link with ready words, the phone's share sheet, Copy link, Text message, WhatsApp, Email; make a new link (the old one stops at once). Questions, the group link and the QR code come in part 2 | 4 |
 | C15 | RSVP results | | 4 |
 | C16 | Event updates to guests | | 4 |
 
@@ -79,10 +79,10 @@ added; quotes, bookings and the concierge queue removed.
 
 | # | Screen | Stage |
 |---|---|---|
-| G1 | Invitation | 4 |
-| G2 | RSVP form | 4 |
-| G3 | RSVP confirmation | 4 |
-| G4 | Link no longer valid | 4 |
+| G1 | Invitation. **Built** (`/i/<token>` then `/invite`, no account): the event's name, date and times, town, where, the host's first name and message | 4 |
+| G2 | RSVP form. **Built**: yes, maybe or no; how many, including them (1 to 20); a note; changeable until the event | 4 |
+| G3 | RSVP confirmation. **Built**: thanks, and what the host sees | 4 |
+| G4 | Link no longer valid. **Built**: replaced, removed, made up, or 30 days after the event | 4 |
 
 ## Platform team
 

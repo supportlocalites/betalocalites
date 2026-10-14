@@ -14,6 +14,9 @@ export default [
   route('two-step', 'routes/two-step.tsx'),
   route('sign-out', 'routes/sign-out.ts'),
   route('goodbye', 'routes/goodbye.tsx'),
+  // A guest's invitation (Stage 4): no account. /i/<token> swaps the link for a cookie.
+  route('i/:token', 'routes/invite-link.ts'),
+  route('invite', 'routes/invite.tsx'),
   // Needs an account: every request passes the gate in routes/member/layout.tsx (D-27).
   layout('routes/member/layout.tsx', [
     route('account', 'routes/member/account.tsx'),
@@ -33,6 +36,9 @@ export default [
     route('events/:id/plan/:rowId/:change', 'routes/member/plan-change.tsx'),
     // Reviewing a business booked for the event (C11, Stage 3).
     route('events/:id/review/:rowId', 'routes/member/review.tsx'),
+    // Guests (C13, C14, Stage 4): the host's own list, and sending one guest's link.
+    route('events/:id/guests', 'routes/member/guests.tsx'),
+    route('events/:id/guests/:guestId', 'routes/member/guest-share.tsx'),
     // Report a published review (Stage 3, part 2): as the person, or as the business about its own.
     route('reviews/:id/report', 'routes/member/review-report.tsx', { id: 'person-review-report' }),
     route('saved', 'routes/member/saved.tsx'),
