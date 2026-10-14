@@ -3,6 +3,8 @@ import { cloudflareContext, memberContext } from '@/app/context';
 import { SiteHeader } from '@/components/SiteHeader';
 import { pageMeta } from '@/lib/meta';
 import { deleteMyAccount, onLocalitesTeam } from '@/server/account-deletion.server';
+import { cleanUpConversationFiles } from '@/server/conversation-files.server';
+import { afterwards } from '@/server/plan-pages.server';
 import { signOut } from '@/server/auth/gotrue.server';
 import { clearedCookies, withCookies } from '@/server/auth/session.server';
 import type { Route } from './+types/account-delete';
@@ -25,7 +27,7 @@ const TEAM_WORDS = 'You’re on the Localites team, so you can’t delete your a
 
 export async function action({ request, context }: Route.ActionArgs) {
   const member = context.get(memberContext);
-  const { env } = context.get(cloudflareContext);
+  const { env, ctx } = context.get(cloudflareContext);
   const form = await request.formData();
   if (form.get('intent') !== 'delete') throw data(null, { status: 400 });
   const typed = String(form.get('confirm') ?? '')
@@ -36,6 +38,8 @@ export async function action({ request, context }: Route.ActionArgs) {
   }
   const result = await deleteMyAccount(env, member.userId);
   if (result === 'team') return data({ error: TEAM_WORDS }, { status: 409 });
+  // Their conversation files are deleted from storage now (the nightly run catches any left).
+  afterwards(ctx, cleanUpConversationFiles(env), 'file clean-up');
   // Deleted (or already closed): end the session with Supabase and clear the cookies.
   await signOut(env, member.accessToken).catch(() => undefined);
   return redirect('/goodbye', withCookies(undefined, clearedCookies()));

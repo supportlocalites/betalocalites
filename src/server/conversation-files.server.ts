@@ -85,8 +85,8 @@ export async function checkFileRoom(env: ServerEnv, size: number): Promise<void>
 
 /** The sender's files today (inside their acting step, after lockSender). */
 export async function checkFilesToday(tx: Db, userId: string): Promise<void> {
-  const [n] = await tx.execute<{ n: number }>(sql`
-    select count(*)::int as n from conversation_file where uploaded_by = ${userId} and created_at > now() - interval '1 day'`);
+  // Every file they sent, whichever side they sent it from (migration 0029).
+  const [n] = await tx.execute<{ n: number }>(sql`select files_sent_today(${userId}::uuid) as n`);
   if ((n?.n ?? 0) >= FILE_LIMITS.perDay) throw new PlanCapped(MESSAGE_REFUSALS.filesPerDay);
 }
 
@@ -141,7 +141,8 @@ export function fileResponse(body: ReadableStream, file: { type: string; name: s
     headers: {
       'Content-Type': file.type,
       'Content-Disposition': `${photo ? 'inline' : 'attachment'}; filename="${ascii}"; filename*=UTF-8''${encodeURIComponent(file.name)}`,
-      'Cache-Control': 'private, max-age=300',
+      // Checked again each time: a removed or hidden file stops showing at once.
+      'Cache-Control': 'private, no-cache',
       'X-Content-Type-Options': 'nosniff',
       'Content-Security-Policy': "default-src 'none'; img-src 'self'; sandbox",
     },
@@ -152,7 +153,7 @@ export function fileResponse(body: ReadableStream, file: { type: string; name: s
  * Deletes the storage of files that went with their messages (and aren't kept for a report).
  * Run after a removal and by the nightly run. Each deletion is one outside request; a few per run.
  */
-export async function cleanUpConversationFiles(env: ServerEnv, limit = 10): Promise<{ deleted: number; left: number } | 'off'> {
+export async function cleanUpConversationFiles(env: ServerEnv, limit = 20): Promise<{ deleted: number; left: number } | 'off'> {
   if (!filesOn(env)) return 'off';
   const rows = await withDb(env, (db) =>
     db.execute<{ id: string; path: string }>(sql`select id, storage_path as path from conversation_files_to_remove(${limit})`),

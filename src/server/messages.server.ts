@@ -114,8 +114,9 @@ async function writeMessage(
  * it's about, or the business being listed or not. Each in its own place, empty ones too.
  * Read before the messages, so a message arriving in between shows on the next look.
  */
-const VERSION = sql`format('%s|%s|%s|%s|%s|%s|%s|%s', c.status, c.ended_at, c.last_message_at, c.event_id, v.claim_status,
+const VERSION = sql`format('%s|%s|%s|%s|%s|%s|%s|%s|%s', c.status, c.ended_at, c.last_message_at, c.event_id, v.claim_status,
   v.listing_status, (select count(*) from message m where m.conversation_id = c.id),
+  (select count(*) from conversation_file f where f.conversation_id = c.id and f.deleted_at is null),
   (select max(greatest(m.removed_at, m.hidden_by_team_at)) from message m where m.conversation_id = c.id))`;
 
 /** For the person: the business isn't on Localites (its team ended, or it was archived): nobody can write. */

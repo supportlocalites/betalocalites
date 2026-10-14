@@ -129,7 +129,7 @@ export function MessageList({
             {gone ? (
               <p className={styles.body}>{m.hidden ? 'Hidden by Localites' : 'Message removed'}</p>
             ) : (
-              m.body && <p className={styles.body}>{m.body}</p>
+              (m.body || !m.file) && <p className={styles.body}>{m.body || 'File removed'}</p>
             )}
             {!gone && m.file?.isPhoto && (
               <a href={`${filePath}/${m.file.id}`} className={styles.filePhoto} target="_blank" rel="noopener">
@@ -183,6 +183,7 @@ export function ReplyBox({ label, busy, error, canAttach }: { label: string; bus
   const [preparing, setPreparing] = useState(false);
 
   async function send(event: React.FormEvent<HTMLFormElement>) {
+    setProblem(null);
     const input = event.currentTarget.elements.namedItem('file');
     const file = input instanceof HTMLInputElement ? input.files?.[0] : undefined;
     if (!file || isPdf(file)) return; // sent as chosen

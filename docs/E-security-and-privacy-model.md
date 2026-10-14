@@ -306,8 +306,14 @@ conversation's files only through the report, and each look is logged with it. A
 when its message does (removed by its author, hidden by the team) or when its sender deletes
 their account, and its storage is then deleted (straight away, and by the nightly run if
 storage was down), unless the conversation had been reported while the file was there: then
-the team keeps it with the report. Limits: 20 files a day per person, and 700 MB for all
-conversation files together (the free plan's 1 GB is shared with business photos).
+the team keeps it with the report. Limits: 20 files a day per person, counted across every side
+they send from (migration 0029), and 700 MB for all conversation files together (the free
+plan's 1 GB is shared with business photos). The website reaches storage with the same keys as
+business photos (PO-16), which reach every folder in the project; only the site holds them. A
+file is checked again each time it's opened (never kept by the browser for later), so a removed
+one stops showing at once. Known and accepted: if the site is stopped between storing a file and
+saving its message (rare), that file stays in storage unseen by anyone; a check for such files
+isn't built yet.
 
 ### 4.4 Feedback & reviews (Stage 3)
 
@@ -457,6 +463,7 @@ account exists, and detailed activity records kept for year-over-year reports (D
 | Email delivery log | 1 year | Deleted |
 | Audit log | 2 years | Deleted |
 | Words of a message removed after its conversation was reported (migrations 0026, 0027: only messages there when it was reported) | With the report (deleting reports isn't built yet) | Read only by the team, through the report |
+| A file in a conversation reported while it was there, then removed (migration 0028) | With the report (deleting reports isn't built yet) | Opened only by the team, through the report, each look logged |
 | Verification evidence | While verified + 1 year | Deleted; outcome kept |
 | Account deletion request | Within 30 days | As above |
 | Backups | Our own nightly backup, kept 30 days (F §5) | Expire automatically; deleted data is fully gone after 30 days |

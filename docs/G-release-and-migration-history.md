@@ -31,6 +31,26 @@ Every release and every database migration, in order. Appended before each deplo
 
 ## Releases
 
+### 2026-10-14 — Files in conversations, after review (Stage 2B)
+
+**Stage:** 2 (E §4.3, §8)
+**What changed (plain English):**
+- **Daily limit:** 20 files a day now counts everything a person sends, from every side. Before,
+  someone on several business teams could send more.
+- **Empty bubbles:** a message that was only a file, whose sender then deleted their account,
+  now says "File removed" instead of showing empty.
+- **Removed files:** a removed photo stops showing at once; browsers no longer keep it for 5
+  minutes.
+- **Clean-up:** deleting an account deletes its files from storage straight away; the nightly
+  clean-up handles up to 20 at a time.
+- **Errors:** an old error no longer sticks in the reply box.
+**Migrations applied:** `0029_conversation_files_fixes.sql` (one function, `files_sent_today()`).
+**Destructive?** No.
+**Tests run:** database 0029 2/2 (new), every earlier file passing; unit 173/173; checks;
+end-to-end messages and account deletion passing.
+**How to roll back:** Cloudflare → Deployments → previous version.
+**Approved by:** Product owner (files in conversations, 14 October 2026).
+
 ### 2026-10-14 — Files in conversations (Stage 2B, part 3)
 
 **Stage:** 2 (E §4.3, §8, §9; screens C8, V7, X13)
