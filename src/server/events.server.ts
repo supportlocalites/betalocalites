@@ -451,7 +451,15 @@ export async function planChangeTarget(
   userId: string,
   eventId: string,
   rowId: string,
-): Promise<{ eventName: string; date: string; vendorName: string; claimed: boolean; status: PlanStatus; cancelled: boolean }> {
+): Promise<{
+  eventName: string;
+  date: string;
+  vendorName: string;
+  claimed: boolean;
+  listed: boolean;
+  status: PlanStatus;
+  cancelled: boolean;
+}> {
   return planned(
     actingAs(env, asPerson(userId), async (tx) => {
       const [t] = await tx.execute<{
@@ -459,11 +467,13 @@ export async function planChangeTarget(
         date: string;
         vendorName: string;
         claimed: boolean;
+        listed: boolean;
         status: PlanStatus;
         cancelled: boolean;
       }>(sql`
         select p.title as "eventName", e.event_date::text as date, v.display_name as "vendorName",
-               v.claim_status = 'claimed' and v.listing_status <> 'archived' as claimed, ev.status, e.status = 'cancelled' as cancelled
+               v.claim_status = 'claimed' and v.listing_status <> 'archived' as claimed, v.listing_status = 'published' as listed,
+               ev.status, e.status = 'cancelled' as cancelled
         from event_vendor ev join event e on e.id = ev.event_id join event_private p on p.event_id = e.id
         join vendor v on v.id = ev.vendor_id
         where ev.id = ${rowId} and ev.event_id = ${eventId} and ev.host_user_id = ${userId}`);
@@ -498,8 +508,8 @@ export async function changePlan(
 ): Promise<{ vendorName: string; notice: BookingNotice | null }> {
   return planned(
     actingAs(env, asPerson(userId), async (tx) => {
-      const [row] = await tx.execute<{ status: PlanStatus; vendorName: string; eventStatus: string }>(sql`
-        select ev.status, v.display_name as "vendorName", e.status as "eventStatus"
+      const [row] = await tx.execute<{ status: PlanStatus; vendorName: string; eventStatus: string; listed: boolean }>(sql`
+        select ev.status, v.display_name as "vendorName", e.status as "eventStatus", v.listing_status = 'published' as listed
         from event_vendor ev join event e on e.id = ev.event_id join vendor v on v.id = ev.vendor_id
         where ev.id = ${rowId} and ev.event_id = ${eventId} and ev.host_user_id = ${userId}
         for update of ev`);
@@ -507,13 +517,18 @@ export async function changePlan(
       if (row.eventStatus !== 'planning') throw new PlanRefused(PLAN_REFUSALS.LP102);
       const step = CHANGE_STEPS[change];
       if (!step.from.includes(row.status)) throw new PlanRefused(PLAN_REFUSALS.LP109);
+      // Un-marked, a business that's no longer listed would vanish from the plan and couldn't
+      // be marked again (D-46): the person can still remove it.
+      if (change === 'unbook' && !row.listed) throw new PlanRefused(PLAN_REFUSALS.LP107);
 
       if (change === 'readd') {
         // Putting one back counts towards the event's limit, like adding it (the database
         // also checks the business is still listed).
         const [n] = await tx.execute<{ n: number }>(sql`
-          select count(*)::int as n from event_vendor
-          where event_id = ${eventId} and host_user_id = ${userId} and status <> 'removed'`);
+          -- Only what the person can see counts (D-46: a business that isn't listed is hidden).
+          select count(*)::int as n from event_vendor x join vendor xv on xv.id = x.vendor_id
+          where x.event_id = ${eventId} and x.host_user_id = ${userId} and x.status <> 'removed'
+            and (xv.listing_status = 'published' or x.status = 'booked')`);
         if ((n?.n ?? 0) >= PLAN_LIMITS.vendorsPerEvent) throw new PlanCapped(PLAN_REFUSALS.vendorsPerEvent);
       }
       if (change === 'book') {
@@ -577,7 +592,9 @@ export async function addToEvent(env: ServerEnv, userId: string, eventId: string
       if (!v) throw new PlanNotFound();
       const [e] = await tx.execute<{ status: string; onPlan: number }>(sql`
         select e.status,
-               (select count(*) from event_vendor x where x.event_id = e.id and x.host_user_id = e.host_user_id and x.status <> 'removed')::int as "onPlan"
+               (select count(*) from event_vendor x join vendor xv on xv.id = x.vendor_id
+                where x.event_id = e.id and x.host_user_id = e.host_user_id and x.status <> 'removed'
+                  and (xv.listing_status = 'published' or x.status = 'booked'))::int as "onPlan"
         from event e where e.id = ${eventId} and e.host_user_id = ${userId} for update of e`);
       if (!e) throw new PlanNotFound();
       if (e.status !== 'planning') throw new PlanRefused(PLAN_REFUSALS.LP102);
@@ -620,7 +637,9 @@ export async function saveVendor(env: ServerEnv, userId: string, slug: string): 
       await tx.execute(sql`select id from app_user where id = ${userId} for update`);
       const v = await publishedVendor(tx, slug);
       if (!v) throw new PlanNotFound();
-      const [n] = await tx.execute<{ n: number }>(sql`select count(*)::int as n from saved_vendor where user_id = ${userId}`);
+      const [n] = await tx.execute<{ n: number }>(sql`
+        select count(*)::int as n from saved_vendor s join vendor v on v.id = s.vendor_id
+        where s.user_id = ${userId} and v.listing_status = 'published'`);
       if ((n?.n ?? 0) >= PLAN_LIMITS.savedMax) throw new PlanCapped(PLAN_REFUSALS.savedMax);
       const saved = await tx.execute(sql`
         insert into saved_vendor (user_id, vendor_id) values (${userId}, ${v.id}) on conflict do nothing returning vendor_id`);

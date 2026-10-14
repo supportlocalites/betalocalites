@@ -160,8 +160,9 @@ email, the date, the town and about how many guests, so the team always knows wh
 with whom and can check in with people whose business was taken down before their event.
 Never the event's name, kind, times, where, ages, budget or notes, and never what a person
 is only considering or has saved. Every look is written to `audit_log`. Taking a business
-down deletes nothing; a person's bookings leave the team's view only when that person's
-account is deleted (§8). People are told on the **Mark as booked** page and in the event
+down deletes nothing. A booking leaves the team's view only when the person removes it from
+their plan or deletes their account (§8); a booked business that isn't listed can be removed
+but not un-marked, so it never silently drops off the plan. People are told on the **Mark as booked** page and in the event
 form's privacy box. A business that isn't listed disappears from people's Saved and from
 what they're considering; one already marked booked stays on that person's plan by name only.
 

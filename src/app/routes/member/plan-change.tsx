@@ -35,7 +35,10 @@ export async function loader({ params, context }: Route.LoaderArgs) {
   const { env } = context.get(cloudflareContext);
   const target = await found(planChangeTarget(env, member.userId, id, rowId));
   // A change that doesn't fit where the business is now goes back to the plan, which shows the truth.
-  if (target.cancelled || !CHANGE_STEPS[change].from.includes(target.status)) throw redirect(`/events/${id}`);
+  // Un-marking a business that's no longer listed isn't offered (D-46): it would vanish from the plan.
+  if (target.cancelled || !CHANGE_STEPS[change].from.includes(target.status) || (change === 'unbook' && !target.listed)) {
+    throw redirect(`/events/${id}`);
+  }
   return { id, change, target, today: todayIso() };
 }
 

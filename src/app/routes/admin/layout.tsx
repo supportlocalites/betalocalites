@@ -1,8 +1,7 @@
 import { Form, Link, NavLink, Outlet } from 'react-router';
 import { adminContext, cloudflareContext } from '@/app/context';
 import { Wordmark } from '@/components/Wordmark';
-import { countOpenFlags } from '@/server/admin/booking-flags.server';
-import { upcomingBookingCount } from '@/server/admin/team-bookings.server';
+import { teamMenuCounts } from '@/server/admin/team-bookings.server';
 import { countPendingDeletions } from '@/server/account-deletion.server';
 import { adminGate } from '@/server/auth/admin.server';
 import { countOpenClaims } from '@/server/claims.server';
@@ -30,12 +29,11 @@ export const middleware: Route.MiddlewareFunction[] = [
 export async function loader({ context }: Route.LoaderArgs) {
   const admin = context.get(adminContext);
   const { env } = context.get(cloudflareContext);
-  const [newSuggestions, openClaims, openFlags, deletions, checkIns] = await Promise.all([
+  const [newSuggestions, openClaims, { openFlags, checkIns }, deletions] = await Promise.all([
     countNewSuggestions(env),
     countOpenClaims(env),
-    countOpenFlags(env, admin),
+    teamMenuCounts(env, admin),
     countPendingDeletions(env, admin),
-    upcomingBookingCount(env, admin),
   ]);
   return { name: admin.name, email: admin.email, newSuggestions, openClaims, openFlags, deletions, checkIns };
 }

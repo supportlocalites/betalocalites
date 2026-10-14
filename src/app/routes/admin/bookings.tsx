@@ -103,7 +103,9 @@ export default function Bookings({ loaderData: { bookings, business, max } }: Ro
             {earlier.length === 0 ? <p className="muted">None.</p> : <Rows rows={earlier} label="Past and cancelled bookings" />}
           </section>
           {bookings.length >= max && (
-            <p className="muted">Showing the first {max}. Open a business’s bookings from its listing to see all of its own.</p>
+            <p className="muted">
+              Showing the first {max}, coming up first.{business ? '' : ' Open a business’s bookings from its listing to narrow the list.'}
+            </p>
           )}
         </>
       )}

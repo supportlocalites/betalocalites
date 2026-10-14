@@ -49,7 +49,13 @@ event form, My events). Replaces the empty square from the release below.
 with the same rule plus one refusal; adds two team-only functions).
 **Destructive?** No: no table or row changes. To undo, a later migration puts back the 0012
 rule and drops the two functions.
-**Tests run:** see the testing-strategy table for this release.
+**Tests run:** database 0020 22/22 (new) and every earlier file; unit 167/167; end-to-end
+event planning 141/141 (21 new: hidden from Saved and Considering, booking kept by name,
+marking or un-marking refused, the team's page and count, every outsider refused, listed
+again comes back), look checks 256/256 (the Bookings page; the taken-down plan); every
+other suite unchanged and passing. Independent review: no privacy leak; its six smaller
+points fixed (un-marking refused on the server too, hidden rows no longer count toward a
+person's limits, one database connection per page, stricter tests, wording).
 **How to roll back:** Cloudflare → Deployments → previous version; the database change is
 undone by a new migration.
 **Approved by:** Product owner (D-46, 13–14 October 2026).

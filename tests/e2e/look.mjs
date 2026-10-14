@@ -32,6 +32,12 @@ const [V] = await sql`
           'https://example.test/maple', '705-555-0123')
   returning id, slug::text as slug, display_name as name`;
 await sql`insert into vendor_category (vendor_id, category_id, is_primary) values (${V.id}, ${kind.id}, true)`;
+// A second business, only considered on the plan, so the plan shows both sections.
+const [W] = await sql`
+  insert into vendor (slug, display_name, primary_municipality_id, listing_status, published_at, claim_status, source)
+  values (${`e2e-look-w-${run}`}, ${`Lakeside Balloons ${run}`}, ${town.id}, 'published', now(), 'unclaimed', 'admin_entered')
+  returning id, slug::text as slug, display_name as name`;
+await sql`insert into vendor_category (vendor_id, category_id, is_primary) values (${W.id}, ${kind.id}, true)`;
 await sql`insert into vendor_service (vendor_id, name, description, pricing_model, price_cents, sort_order) values
   (${V.id}, 'Birthday cakes', 'Two tiers, any flavour', 'fixed', 8500, 1), (${V.id}, 'Cupcakes by the dozen', null, 'not_listed', null, 2)`;
 const email = (who) => `e2e-look-${who}-${run}@example.test`;
@@ -55,6 +61,7 @@ const eventId = /^\/events\/([0-9a-f-]{36})/.exec(made.location)?.[1];
 await site(`/vendors/${V.slug}/add`, { cookie: cookieOf(sessions.person), method: 'POST', form: { intent: 'add', eventId } });
 const [planRow] = await sql`select id from event_vendor where event_id = ${eventId} and vendor_id = ${V.id}`;
 await site(`/events/${eventId}/plan/${planRow.id}/book`, { cookie: cookieOf(sessions.person), method: 'POST' });
+await site(`/vendors/${W.slug}/add`, { cookie: cookieOf(sessions.person), method: 'POST', form: { intent: 'add', eventId } });
 
 const browser = await chromium.launch();
 async function contextFor(who, size) {

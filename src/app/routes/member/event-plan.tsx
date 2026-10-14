@@ -52,6 +52,8 @@ function useNotice(rows: PlanRow[]): string | null {
   if (unbooked) return `${unbooked.name} is back to Considering.`;
   const removed = row('removed');
   if (removed) return `Removed ${removed.name} from this event.`;
+  // A business that's no longer listed is hidden once removed (D-46), so its name isn't on the page.
+  if (params.has('removed')) return 'Removed from this event.';
   const back = row('back');
   if (back) return `${back.name} is back on your plan as Considering.`;
   const added = params.get('added') ? rows.find((r) => r.slug === params.get('added')) : undefined;

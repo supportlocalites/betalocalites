@@ -31,16 +31,14 @@ export const meta: Route.MetaFunction = ({ loaderData }) => [
 export async function loader({ params, request, context }: Route.LoaderArgs) {
   if (!isUuid(params.id)) throw data(null, { status: 404 });
   const { env } = context.get(cloudflareContext);
-  // One connection for the page (each one costs time from the request's small CPU budget),
-  // and one acting as the team for the bookings count (D-46: only the team may count them).
-  const [[listing, options, owned, analytics], upcomingBookings] = await Promise.all([
-    withDb(env, async (db) => {
-      const found = await readListing(db, params.id);
-      const keep = found ? { municipalityId: found.municipalityId, categoryIds: found.categoryIds } : null;
-      return Promise.all([found, readFormOptions(db, keep), listOwnerChanges(db, params.id), readSwitch(db, params.id)]);
-    }),
-    upcomingBookingCount(env, context.get(adminContext), params.id),
-  ]);
+  // One connection for the page (each one costs time from the request's small CPU budget).
+  // The bookings count acts as the team (D-46: only the team may count them), after the rest.
+  const [listing, options, owned, analytics, upcomingBookings] = await withDb(env, async (db) => {
+    const found = await readListing(db, params.id);
+    const keep = found ? { municipalityId: found.municipalityId, categoryIds: found.categoryIds } : null;
+    const rest = await Promise.all([readFormOptions(db, keep), listOwnerChanges(db, params.id), readSwitch(db, params.id)]);
+    return [found, ...rest, found ? await upcomingBookingCount(db, context.get(adminContext), params.id) : 0] as const;
+  });
   if (!listing) throw data(null, { status: 404 });
   return {
     listing,

@@ -58,12 +58,3 @@ export async function bookingFlags(env: ServerEnv, admin: Admin): Promise<FlagRo
     return [...rows];
   });
 }
-
-/** Flags not yet decided, for the admin menu ("Booking flags (n)"). A count only: not audited. */
-export async function countOpenFlags(env: ServerEnv, admin: Admin): Promise<number> {
-  return actingAs(env, { side: 'team', userId: admin.userId }, async (tx) => {
-    const [n] = await tx.execute<{ n: number }>(sql`
-      select count(*)::int as n from event_vendor where vendor_flagged_at is not null and flag_resolved_at is null`);
-    return n?.n ?? 0;
-  });
-}

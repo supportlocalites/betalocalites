@@ -1,7 +1,8 @@
 import { sql } from 'drizzle-orm';
 import type { ListingStatus } from '@/lib/listing-status';
-import { actingAs } from '../acting.server';
+import { actAs, actingAs } from '../acting.server';
 import type { Admin } from '../auth/admin.server';
+import type { Db } from '../db.server';
 import type { ServerEnv } from '../env';
 import { audit } from './audit.server';
 
@@ -52,12 +53,26 @@ export async function teamBookings(env: ServerEnv, admin: Admin, vendorId: strin
 }
 
 /**
- * Counts only, never who (not audited): with a business, its bookings for events still to
- * come; without, those of every business that isn't listed (the ones to check in about).
+ * With a business, its bookings for events still to come, as a count only (never who; not
+ * audited), on the page's own connection (one per page: each costs CPU time).
  */
-export async function upcomingBookingCount(env: ServerEnv, admin: Admin, vendorId: string | null = null): Promise<number> {
-  return actingAs(env, { side: 'team', userId: admin.userId }, async (tx) => {
+export async function upcomingBookingCount(db: Db, admin: Admin, vendorId: string): Promise<number> {
+  return actAs(db, { side: 'team', userId: admin.userId }, async (tx) => {
     const [n] = await tx.execute<{ n: number | string }>(sql`select taken_down_booking_count(${vendorId}::uuid) as n`);
     return Number(n?.n ?? 0);
+  });
+}
+
+/**
+ * The team menu's two counts in one connection: booking flags not yet decided (D-41), and
+ * bookings still to come of businesses that aren't listed, to check in about (D-46). Counts
+ * only: not audited.
+ */
+export async function teamMenuCounts(env: ServerEnv, admin: Admin): Promise<{ openFlags: number; checkIns: number }> {
+  return actingAs(env, { side: 'team', userId: admin.userId }, async (tx) => {
+    const [n] = await tx.execute<{ openFlags: number | string; checkIns: number | string }>(sql`
+      select (select count(*) from event_vendor where vendor_flagged_at is not null and flag_resolved_at is null)::int as "openFlags",
+             taken_down_booking_count() as "checkIns"`);
+    return { openFlags: Number(n?.openFlags ?? 0), checkIns: Number(n?.checkIns ?? 0) };
   });
 }

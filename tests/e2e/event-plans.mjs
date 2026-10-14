@@ -498,8 +498,14 @@ check('the person’s plan keeps the business they booked, by name, as their own
 check('…and doesn’t show the one they were only considering', !bPlan.includes(T2.name));
 check('…and offers no un-marking of it (it couldn’t be marked again)', !r.body.includes(`/plan/${tRow.id}/unbook`));
 r = await site(`/events/${bEvent}/plan/${t2Row.id}/book`, { cookie: cookie.b, method: 'POST' });
-check('marking a business that isn’t listed as booked is refused, and nothing changes',
-  r.status >= 400 && r.status < 500 && (await rowOf(bEvent, T2.id))?.status === 'considering', String(r.status));
+check('marking a business that isn’t listed as booked is refused (409, in plain words), and nothing changes',
+  r.status === 409 && words(r.body).includes('That business isn’t listed on Localites right now.') && (await rowOf(bEvent, T2.id))?.status === 'considering',
+  String(r.status));
+r = await site(`/events/${bEvent}/plan/${tRow.id}/unbook`, { cookie: cookie.b });
+check('un-marking it isn’t offered: the page goes back to the plan', [302, 303].includes(r.status) && r.location === `/events/${bEvent}`, `${r.status} ${r.location}`);
+r = await site(`/events/${bEvent}/plan/${tRow.id}/unbook`, { cookie: cookie.b, method: 'POST' });
+check('…and sent anyway, it’s refused (back to the plan) and stays booked',
+  [302, 303].includes(r.status) && r.location === `/events/${bEvent}` && (await rowOf(bEvent, T.id))?.status === 'booked', `${r.status} ${r.location}`);
 r = await site('/saved', { cookie: cookie.b });
 check('Saved businesses doesn’t show a business that isn’t listed', r.status === 200 && !words(r.body).includes(T2.name), String(r.status));
 r = await site('/admin/bookings', { cookie: cookie.m });
@@ -520,6 +526,9 @@ for (const [who, c] of [['a person', cookie.b], ['the business’s owner', cooki
   check(`${who}: the team’s Bookings page is refused (403)`, r.status === 403 && !r.body.includes(email('b')), String(r.status));
 }
 await sql`update vendor set listing_status = 'published' where id = ${T2.id}`;
+r = await site(`/events/${bEvent}`, { cookie: cookie.b });
+check('listed again, it’s back on the plan and in Saved',
+  words(r.body).includes(T2.name) && words((await site('/saved', { cookie: cookie.b })).body).includes(T2.name));
 r = await site(`/events/${bEvent}/plan/${t2Row.id}/book`, { cookie: cookie.b, method: 'POST' });
 check('listed again, it can be marked booked', (await rowOf(bEvent, T2.id))?.status === 'booked', String(r.status));
 
