@@ -53,7 +53,7 @@ create trigger app_user_forget_email_choices after update of deleted_at on app_u
 -- Run by the site's morning job (workers/app.ts), twice a morning: claims the emails due now
 -- (as 'queued' notifications), up to p_limit and the site's 20 a day; the job then sends them
 -- and records each as sent or failed. One that failed is tried again the next run, at most 3
--- times. Only the host's own event, only businesses they could review now (E §4.5).
+-- times; one whose outcome isn't known (a run cut short) never is, so nobody gets it twice. Only the host's own event, only businesses they could review now (E §4.5).
 create function review_requests_due(p_limit int)
 returns table (notification_id uuid, kind text, user_id uuid, email text, name text, event_id uuid,
                event_date date, businesses int, row_id uuid)
@@ -69,7 +69,7 @@ begin
   perform pg_advisory_xact_lock(hashtextextended('localites.review-requests', 0));
   select count(*) into v_sent_today from notification n
   where n.kind in ('review_request', 'review_reminder') and n.created_at >= v_today_start
-    and (n.status = 'sent' or (n.status = 'queued' and n.created_at > now() - interval '10 minutes'));
+    and (n.status in ('sent', 'queued') or n.failure_reason like 'Not known whether it was sent%');
   v_room := least(greatest(p_limit, 0), 20 - v_sent_today);
   if v_room <= 0 then
     return;
@@ -96,7 +96,9 @@ begin
     from open_rows o group by o.eid, o.uid, o.edate
   ),
   told as (
-    select n.subject_id as eid, n.kind as nkind, n.status, n.sent_at, n.created_at
+    -- "told": sent, or maybe sent (still queued, or cut short: never sent twice).
+    select n.subject_id as eid, n.kind as nkind, n.status, n.sent_at, n.created_at,
+           (n.status in ('sent', 'queued') or n.failure_reason like 'Not known whether it was sent%') as told
     from notification n
     where n.subject_type = 'event' and n.kind in ('review_request', 'review_reminder')
       and n.subject_id in (select p.eid from per_event p)
@@ -104,13 +106,11 @@ begin
   due as (
     select p.*,
            case
-             when not exists (select 1 from told t where t.eid = p.eid and t.nkind = 'review_request'
-                                and (t.status = 'sent' or (t.status = 'queued' and t.created_at > now() - interval '10 minutes')))
+             when not exists (select 1 from told t where t.eid = p.eid and t.nkind = 'review_request' and t.told)
                then 'review_request'
              when exists (select 1 from told t where t.eid = p.eid and t.nkind = 'review_request' and t.status = 'sent'
                             and t.sent_at < now() - interval '6 days 20 hours')
-              and not exists (select 1 from told t where t.eid = p.eid and t.nkind = 'review_reminder'
-                                and (t.status = 'sent' or (t.status = 'queued' and t.created_at > now() - interval '10 minutes')))
+              and not exists (select 1 from told t where t.eid = p.eid and t.nkind = 'review_reminder' and t.told)
                then 'review_reminder'
            end as dkind
     from per_event p
@@ -162,15 +162,16 @@ comment on table review_report is
 
 -- What the report's rules need to know about a review: that it's published on a listed
 -- business, which business, whether the reporter wrote it, and whether it already has an open
--- report (the team is then not emailed again), and whether the team has had 20 emails about
+-- report whose team email went or is going (the team is then not emailed again), and whether the team has had 20 emails about
 -- reports today (the Reviews page still lists every report). Nothing about its author.
 create function review_reportable(p_review uuid)
 returns table (vendor_id uuid, own_review boolean, reported boolean, emails_full boolean)
 language sql stable security definer set search_path = public, extensions as $$
   select r.vendor_id, r.author_user_id = acting_user(),
-         exists (select 1 from review_report x where x.review_id = r.id and x.status = 'open'),
+         exists (select 1 from review_report x where x.review_id = r.id and x.status = 'open'
+                   and x.team_email_status in ('sent', 'pending')),
          (select count(*) from review_report x
-          where x.team_email_status = 'sent' and x.created_at > now() - interval '1 day') >= 20
+          where x.team_email_status in ('sent', 'pending') and x.created_at > now() - interval '1 day') >= 20
   from review r join vendor v on v.id = r.vendor_id
   where r.id = p_review and r.status = 'published' and v.listing_status = 'published'
 $$;
@@ -194,6 +195,8 @@ begin
     if new.reporter_user_id is distinct from acting_user() or v_side not in ('person', 'business') then
       raise exception 'only you can report in your own name' using errcode = 'LP101';
     end if;
+    -- One report of a review at a time, so two at once don't both email the team.
+    perform pg_advisory_xact_lock(hashtextextended('localites.review-report:' || new.review_id::text, 0));
     select * into t from review_reportable(new.review_id);
     if not found then
       raise exception 'that review isn''t on Localites' using errcode = 'LP101';
@@ -260,7 +263,7 @@ language plpgsql security definer set search_path = public, extensions as $$
 begin
   if old.status = 'published' and new.status = 'removed' then
     update review_report set status = 'actioned', reviewed_by = new.decided_by, reviewed_at = now(),
-                             decision_note = 'The review was removed: ' || new.decision_reason
+                             decision_note = left('The review was removed: ' || new.decision_reason, 1000)
     where review_id = new.id and status = 'open';
   end if;
   return null;

@@ -113,6 +113,17 @@ set local role app_server;
 select pg_temp.expect_equal('…but not after 3 failures', (select count(*)::text from review_requests_due(50)), '0');
 reset role;
 delete from notification where kind = 'review_request';
+insert into notification (user_id, kind, subject_type, subject_id, status, failure_reason, created_at)
+  values ('00000000-0000-7000-8000-0000000032a1', 'review_request', 'event', '00000000-0000-7000-8000-0000000032f1', 'failed',
+          'Not known whether it was sent: the sending was interrupted.', now() - interval '2 hours');
+set local role app_server;
+select pg_temp.expect_equal('one cut short (maybe sent) is never sent again', (select count(*)::text from review_requests_due(50)), '0');
+reset role;
+update notification set status = 'queued', failure_reason = null where kind = 'review_request';
+set local role app_server;
+select pg_temp.expect_equal('…nor one still queued from an earlier run', (select count(*)::text from review_requests_due(50)), '0');
+reset role;
+delete from notification where kind = 'review_request';
 insert into notification (user_id, kind, subject_type, subject_id, status, sent_at, created_at)
   values ('00000000-0000-7000-8000-0000000032a1', 'review_request', 'event', '00000000-0000-7000-8000-0000000032f1', 'sent',
           now() - interval '3 days', now() - interval '3 days');
@@ -167,6 +178,17 @@ insert into review_report (review_id, reporter_user_id, reporter_side, reason, d
   values ('00000000-0000-7000-8000-000000003291', '00000000-0000-7000-8000-0000000032a1', 'vendor', 'offensive', 'Rude words');
 select pg_temp.expect_equal('anyone signed in reports a published review, as themselves; the team is to be emailed', (
   select reporter_side || ' ' || status || ' ' || team_email_status from review_report), 'consumer open pending');
+update review_report set team_email_status = 'failed';
+select pg_temp.act('person', '00000000-0000-7000-8000-0000000032a3');
+insert into review_report (review_id, reporter_user_id, reporter_side, reason)
+  values ('00000000-0000-7000-8000-000000003291', '00000000-0000-7000-8000-0000000032a3', 'consumer', 'other');
+select pg_temp.expect_equal('the first report''s team email failed: the next report emails the team', (
+  select team_email_status from review_report), 'pending');
+reset role;
+delete from review_report where reporter_user_id = '00000000-0000-7000-8000-0000000032a3';
+update review_report set team_email_status = 'pending';
+set local role app_server;
+select pg_temp.act('person', '00000000-0000-7000-8000-0000000032a1');
 select pg_temp.expect_code('…once while it''s open', $q$
   insert into review_report (review_id, reporter_user_id, reporter_side, reason)
   values ('00000000-0000-7000-8000-000000003291', '00000000-0000-7000-8000-0000000032a1', 'consumer', 'other')$q$, 'LP159');
@@ -199,10 +221,11 @@ where reporter_user_id = '00000000-0000-7000-8000-0000000032a5';
 select pg_temp.expect_equal('the team dismisses one, recorded with who', (
   select status || ' ' || (reviewed_by = '00000000-0000-7000-8000-0000000032a7')::text from review_report
   where reporter_user_id = '00000000-0000-7000-8000-0000000032a5'), 'dismissed true');
-update review set status = 'removed', decision_reason = 'Abusive words' where id = '00000000-0000-7000-8000-000000003291';
-select pg_temp.expect_equal('removing the review closes the open report', (
-  select status || ' | ' || decision_note from review_report where reporter_user_id = '00000000-0000-7000-8000-0000000032a1'),
-  'actioned | The review was removed: Abusive words');
+update review set status = 'removed', decision_reason = 'Abusive words ' || repeat('x', 980) where id = '00000000-0000-7000-8000-000000003291';
+select pg_temp.expect_equal('removing the review closes the open report, even with the longest reason', (
+  select status || ' | ' || left(decision_note, 37) || ' ' || char_length(decision_note)::text
+  from review_report where reporter_user_id = '00000000-0000-7000-8000-0000000032a1'),
+  'actioned | The review was removed: Abusive words 1000');
 select pg_temp.act('person', '00000000-0000-7000-8000-0000000032a3');
 select pg_temp.expect_code('a removed review can''t be reported', $q$
   insert into review_report (review_id, reporter_user_id, reporter_side, reason)

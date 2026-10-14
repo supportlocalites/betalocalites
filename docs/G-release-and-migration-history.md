@@ -47,7 +47,10 @@ Every release and every database migration, in order. Appended before each deplo
 **Migrations applied:** `0032_review_requests_and_reports.sql` (email choices, the morning
 job's function, review reports and their rules).
 **Destructive?** No: adds tables and functions only.
-**Tests run:** database 0032 32/32 (new), every earlier file passing; end-to-end reviews
+**Checked before release** by one independent review: fixed an interrupted run that could
+have emailed a host twice, a long removal reason that blocked removing a reported review,
+a failed team email that silenced later reports, and two reports at once both emailing the team.
+**Tests run:** database 0032 35/35 (new), every earlier file passing; end-to-end reviews
 62/62, look 384/384, every other suite passing; unit 176/176; checks; size.
 **How to roll back:** Cloudflare → Deployments → previous version; the new tables can stay.
 

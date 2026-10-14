@@ -12,7 +12,7 @@ import type { ServerEnv } from './env';
  * (workers/app.ts). The morning after an event, its host is emailed once about the businesses
  * they booked and haven't reviewed; once more a week later if any are still not reviewed;
  * never after the 60 days. review_requests_due() decides who is due and claims them (at most
- * 20 a day across the site, so sign-in codes always have room); here they're sent in one
+ * 20 of the email service's 100 a day, leaving room for sign-in codes and the rest); here they're sent in one
  * request and each is recorded as sent or failed. Never the event's name, only its date.
  */
 
