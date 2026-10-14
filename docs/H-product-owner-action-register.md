@@ -1,10 +1,12 @@
 # H — Product Owner Action Register
 
-**Last updated:** 2026-10-14 (revision 23: messages, part 1; revision 22: Inquire built, D-04 and D-05; revision 21: D-46, the team sees every booking; a business taken down can't be newly booked; revision 20: D-45, square profile photo and whole page photos; revision 19: business photos built, PO-16 to switch them on; revision 18: D-44, bookings marked before a business joined; revision 17: D-39 revised to D-43, "Plan an event" built)
+**Last updated:** 2026-10-14 (revision 23: messages and reports; revision 22: Inquire built, D-04 and D-05; revision 21: D-46, the team sees every booking; a business taken down can't be newly booked; revision 20: D-45, square profile photo and whole page photos; revision 19: business photos built, PO-16 to switch them on; revision 18: D-44, bookings marked before a business joined; revision 17: D-39 revised to D-43, "Plan an event" built)
 
-**Revision 23 changes:** messages, part 1, are built (your D-13 and D-17): people message
-businesses that have joined, and the whole business team replies. Files, Report and the team's
-Reports queue come next. Nothing for you to do.
+**Revision 23 changes:** messages are built (your D-13 and D-17): people message businesses
+that have joined, and the whole business team replies (part 1); either side can report a
+conversation or a message, and the team deals with it under **Reports** (part 2). Files in
+conversations come next, and will need one small step from you (a private storage folder in
+Supabase). Nothing for you to do yet.
 
 **Revision 22 changes:** Inquire is built (your D-04 and D-05): people can tell our team
 they're interested in a business that hasn't joined, and are emailed when it does. Nothing for

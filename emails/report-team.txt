@@ -1,0 +1,8 @@
+Subject: Report: a conversation with {{business}}
+
+{{reporter}} ({{side}}) reported {{what}} in a conversation between {{person}} and {{business}}.
+Reason: {{reason}}
+Their words: {{details}}
+
+Look at it, and decide, on the Reports page (each look is recorded):
+{{reportUrl}}

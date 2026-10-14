@@ -95,20 +95,22 @@ export default function BusinessConversation({ loaderData, actionData }: Route.C
             {actionData.error}
           </p>
         )}
-        <MessageList messages={messages} canRemove />
+        <MessageList messages={messages} canRemove reportPath={`/vendors/${business.slug}/messages/${loaderData.id}/report`} />
         {status === 'open' ? (
           <ReplyBox label={`Reply to ${person}`} busy={busy} />
         ) : (
           <p className="notice" role="status">
-            {status === 'blocked_by_vendor'
-              ? 'Your business blocked this conversation, so neither of you can send messages.'
-              : `${person} has blocked this conversation, so no new messages can be sent.`}
+            {status === 'blocked_by_team'
+              ? 'The Localites team has closed this conversation, so no new messages can be sent.'
+              : status === 'blocked_by_vendor'
+                ? 'Your business blocked this conversation, so neither of you can send messages.'
+                : `${person} has blocked this conversation, so no new messages can be sent.`}
           </p>
         )}
         <div className={styles.footer}>
           <p className="muted">{NO_PAYMENTS_IN_CONVERSATION}</p>
           <p className="muted">{SHARE_CAREFULLY}</p>
-          {canBlock && status !== 'blocked_by_consumer' && (
+          {canBlock && (status === 'open' || status === 'blocked_by_vendor') && (
             <Form method="post">
               <input type="hidden" name="intent" value={status === 'blocked_by_vendor' ? 'unblock' : 'block'} />
               <button type="submit" className={styles.textButton} disabled={busy}>
@@ -116,6 +118,9 @@ export default function BusinessConversation({ loaderData, actionData }: Route.C
               </button>
             </Form>
           )}
+          <Link to={`/vendors/${business.slug}/messages/${loaderData.id}/report`} className={styles.textButton}>
+            Report this conversation
+          </Link>
         </div>
       </main>
     </>

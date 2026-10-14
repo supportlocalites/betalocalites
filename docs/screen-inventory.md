@@ -100,7 +100,7 @@ added; quotes, bookings and the concierge queue removed.
 | X10 | Users & roles | | 1 |
 | X11 | Audit log | | 1 |
 | X12 | Event types | **Built** (`/admin/event-types`, D-39, D-43): add, rename, order, hide (never delete); per type, the kinds of business to suggest (ticks and order) and featured businesses (first and last day, team note, End early; showing now, coming up, earlier; a warning when more than 3 overlap); a business finder. Every change recorded | 2 |
-| X13 | Reports | Reported messages, conversations, listings. Opening a conversation is logged. | 2 |
+| X13 | Reports | Reported messages, conversations, listings. Opening a conversation is logged. **Built for conversations and messages** (part 2, `/admin/reports`, "Reports (n open)" in the team menu): the list shows who reported what and why, never the messages; a report's page shows the whole conversation (each look written to the audit log with the report); hide the reported message, block or unblock the conversation, close as dealt with or dismissed with a note. Listing reports come with Stage 3 | 2 |
 | X14 | Inquiries | Every inquiry, by business, to follow up and invite (D-04). **Built** (`/admin/inquiries`, "Inquiries (n waiting)" in the team menu): business, who (name, email), note, event summary, the team email's status, when they were told it joined; waiting only or all; every look recorded | 2 |
 | X15 | Review moderation | Approve or decline each review against the written policy; opened from the new-review email (D-06, ADR-026) | 3 |
 | X16 | Booking flags | Resolve vendor flags. **Read-only list built** (2A, `/admin/booking-flags`, "Booking flags (n)" in the team menu): business, note, who marked it, when; every look recorded. Resolving stays Stage 3 | 3 |

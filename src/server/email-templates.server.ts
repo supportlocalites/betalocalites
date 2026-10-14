@@ -15,6 +15,7 @@ import teamInvite from '../../emails/team-invite.txt?raw';
 import inquiryTeam from '../../emails/inquiry-team.txt?raw';
 import vendorJoined from '../../emails/vendor-joined.txt?raw';
 import newMessage from '../../emails/new-message.txt?raw';
+import reportTeam from '../../emails/report-team.txt?raw';
 import { uuidv7 } from '@/lib/ids.mjs';
 import { type Db, withDb } from './db.server';
 import { sendEmail, TEAM_ADDRESS } from './email.server';
@@ -45,6 +46,7 @@ const TEMPLATES = {
   vendorJoined,
   // Messages (Stage 2B).
   newMessage,
+  reportTeam,
 } as const;
 export type TemplateName = keyof typeof TEMPLATES;
 

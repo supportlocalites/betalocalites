@@ -69,23 +69,8 @@ create trigger message_attachment_rules
 -- SAFETY & NOTIFICATIONS
 -- =============================================================================
 
-create table moderation_report (
-  id                uuid primary key default gen_random_uuid(),
-  reporter_user_id  uuid not null references app_user(id),
-  subject_type      text not null check (subject_type in ('message', 'conversation', 'review', 'vendor')),
-  subject_id        uuid not null,
-  reason            text not null
-                    check (reason in ('spam', 'harassment', 'scam_or_fraud', 'inappropriate', 'other')),
-  details           text check (char_length(details) <= 2000),
-  status            text not null default 'open' check (status in ('open', 'actioned', 'dismissed')),
-  reviewed_by       uuid references app_user(id),
-  reviewed_at       timestamptz,
-  decision_note     text,
-  created_at        timestamptz not null default now(),
-  check ((status = 'open') = (reviewed_at is null)),
-  check (status = 'open' or reviewed_by is not null)
-);
-create index moderation_report_open on moderation_report (created_at) where status = 'open';
+-- REPORTS: now in db/migrations/0024_reports.sql (moderation_report, for conversations and
+-- messages; listing and review reports come with Stage 3).
 
 -- Every email Localites sends, with an honest status: the `notification` table now
 -- exists from migration 0004 (Stage 1 claim emails), with these Stage 2 and 3 kinds
@@ -266,7 +251,7 @@ declare t text;
 begin
   foreach t in array array[
     'message_attachment',
-    'moderation_report', 'review_request', 'review'
+    'review_request', 'review'
   ] loop
     execute format('alter table %I enable row level security', t);
     execute format('alter table %I force row level security', t);

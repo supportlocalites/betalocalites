@@ -20,6 +20,19 @@ export const SHARE_CAREFULLY = 'Only share what’s needed to plan your event. N
 /** How often an open conversation looks for new messages (D-13: about every 15 seconds). */
 export const REFRESH_SECONDS = 15;
 
+/** Why someone reports a conversation or a message (E §4.3). */
+export const REPORT_REASONS = {
+  spam: 'Spam',
+  harassment: 'Harassment or abuse',
+  scam_or_fraud: 'A scam or fraud',
+  inappropriate: 'Something inappropriate',
+  other: 'Something else',
+} as const;
+export type ReportReason = keyof typeof REPORT_REASONS;
+
+/** After reporting: what happens next, plainly. */
+export const REPORT_SENT = 'Thanks. Our team will look at it. They can read this conversation because you reported it.';
+
 export const MESSAGE_REFUSALS = {
   LP100: 'That can’t be changed.',
   LP108: 'This is your own business.',

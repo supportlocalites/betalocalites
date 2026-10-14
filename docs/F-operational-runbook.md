@@ -304,7 +304,10 @@ guide this live (PO-03 part 3). Changing the password later is the same two step
   every booking), contact the business or the person directly from
   supportlocalites@gmail.com. Deciding on flags comes in Stage 3.
 - **Messages (Stage 2B):** conversations are private to the person and the business's team.
-  The team has no page for them and can't open one (reports, with a logged look, come next).
+  The team can open one only through a report: **Admin → Reports (n open)**. Each look is
+  recorded with the report. Hide the reported message, or close the conversation, when it's a
+  scam, harassment or spam; close the report with a short note either way. Never contact
+  either side about what they wrote except to explain a decision.
   If someone asks for help with a conversation, ask them what happened; never ask for their
   password. Emails about new messages go once per unread stretch and never contain the
   message.

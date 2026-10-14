@@ -74,6 +74,9 @@ await site(`/vendors/${V.slug}/messages/${conversationId}`, {
   method: 'POST',
   form: { intent: 'send', body: 'Yes, we can. Nut-free is no problem. Would vanilla or chocolate suit?' },
 });
+// A report of that conversation, for the team's Reports pages (part 2).
+await site(`/messages/${conversationId}/report`, { cookie: cookieOf(sessions.person), method: 'POST', form: { reason: 'other', details: 'Checking how reports look.' } });
+const [lookReport] = await sql`select id from moderation_report where conversation_id = ${conversationId}`;
 const [Z] = await sql`
   insert into vendor (slug, display_name, primary_municipality_id, listing_status, published_at, claim_status, source)
   values (${`e2e-look-z-${run}`}, ${`Orchard Photo Booth ${run}`}, ${town.id}, 'published', now(), 'claimed', 'admin_entered')
@@ -171,6 +174,7 @@ const PAGES = [
   { who: 'person', path: '/messages', label: 'Messages' },
   { who: 'person', path: `/messages/${conversationId}`, label: 'A conversation' },
   { who: 'person', path: `/vendors/${Z.slug}/message`, label: 'Message a business' },
+  { who: 'person', path: `/messages/${conversationId}/report`, label: 'Report a conversation' },
   { who: 'owner', path: '/business', label: 'Your business' },
   { who: 'owner', path: `/vendors/${V.slug}/edit`, label: 'Editing a listing' },
   { who: 'owner', path: `/vendors/${V.slug}/photos`, label: 'Photos (owner)' },
@@ -196,6 +200,8 @@ const PAGES = [
   { who: 'team', path: '/admin/activity', label: 'Team: activity' },
   { who: 'team', path: `/admin/bookings?business=${V.id}`, label: 'Team: bookings' },
   { who: 'team', path: '/admin/inquiries?show=all', label: 'Team: inquiries' },
+  { who: 'team', path: '/admin/reports?show=all', label: 'Team: reports' },
+  { who: 'team', path: `/admin/reports/${lookReport.id}`, label: 'Team: one report' },
 ];
 
 const RULES = ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa'];

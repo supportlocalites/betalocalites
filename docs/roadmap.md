@@ -201,11 +201,11 @@ ADR-031; not yet on the test site):
 team's **Inquiries** list and an email to each person when the business joins (ADR-024,
 migrations 0021–0022); the team's **Bookings** page (D-46, migration 0020); **messages, part
 1** (text): conversations, replies by the whole team, emails once per unread stretch, each
-person's own new counts, blocking, removing your own message (migration 0023).
+person's own new counts, blocking, removing your own message (migration 0023); **part 2**:
+Report and the team's Reports page (migration 0024).
 
 **Not built yet in Stage 2:**
 - files in conversations (messages themselves are built, part 1);
-- block and report, and the team's Reports queue;
 - batched email digests (each planning email is sent on its own, with repeats held back);
 - counting how often featured businesses are shown (D-43: later);
 - counting saves, inquiries, conversations and messages as activity (the D-30 funnel; D-42

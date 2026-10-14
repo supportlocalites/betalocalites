@@ -1,0 +1,208 @@
+import { sql } from 'drizzle-orm';
+import { uuidv7 } from '@/lib/ids.mjs';
+import { REPORT_REASONS, type ReportReason } from '@/lib/message-terms';
+import { type Acting, actingAs, PlanNotFound } from './acting.server';
+import { audit } from './admin/audit.server';
+import type { Admin } from './auth/admin.server';
+import type { Db } from './db.server';
+import { sendEmail, TEAM_ADDRESS } from './email.server';
+import { renderEmail } from './email-templates.server';
+import type { ServerEnv } from './env';
+import { asTeam, talked } from './messages.server';
+
+/**
+ * Reports (Stage 2B part 2; E §4.3 and §6, migration 0024): either side of a conversation
+ * reports it, or one message in it, to the Localites team, which reads it only through the
+ * report (each look logged) and can hide the message, block the conversation, and close the
+ * report with a note. Nobody else reads reports.
+ */
+
+export type ReportInput = { messageId: string | null; reason: ReportReason; details: string | null };
+
+/** What the report page shows: who it's with, and the message being reported, if one. */
+export type ReportTarget = { withName: string; message: { id: string; body: string } | null };
+
+async function target(tx: Db, conversationId: string, messageId: string | null, side: 'person' | 'business') {
+  const [c] = await tx.execute<{ withName: string }>(sql`
+    select case when ${side} = 'person' then v.display_name else u.display_name end as "withName"
+    from conversation c join vendor v on v.id = c.vendor_id join app_user u on u.id = c.consumer_user_id
+    where c.id = ${conversationId}`);
+  if (!c) throw new PlanNotFound();
+  let message: ReportTarget['message'] = null;
+  if (messageId) {
+    const [m] = await tx.execute<{ id: string; body: string; removed: boolean; hidden: boolean }>(sql`
+      select id, body, removed_at is not null as removed, hidden_by_team_at is not null as hidden
+      from message where id = ${messageId} and conversation_id = ${conversationId}`);
+    if (!m) throw new PlanNotFound();
+    message = { id: m.id, body: m.removed ? 'Message removed' : m.hidden ? 'Hidden by Localites' : m.body };
+  }
+  return { withName: c.withName, message };
+}
+
+/** The person's side: their own conversation (anyone else's is "not found"). */
+export function personReportTarget(
+  env: ServerEnv,
+  userId: string,
+  conversationId: string,
+  messageId: string | null,
+): Promise<ReportTarget> {
+  return talked(actingAs(env, { side: 'person', userId }, (tx) => target(tx, conversationId, messageId, 'person')));
+}
+
+/** The business's side: anyone on its team. */
+export function businessReportTarget(
+  env: ServerEnv,
+  userId: string,
+  slug: string,
+  conversationId: string,
+  messageId: string | null,
+): Promise<ReportTarget & { vendorId: string }> {
+  return asTeam(env, userId, slug, async (tx, b) => ({ ...(await target(tx, conversationId, messageId, 'business')), vendorId: b.id }));
+}
+
+/**
+ * Saves a report, then emails the team (the report is on the team's list either way) and
+ * records whether that email went.
+ */
+export async function sendReport(
+  env: ServerEnv,
+  acting: Acting,
+  conversationId: string,
+  input: ReportInput,
+  siteUrl: string,
+): Promise<string> {
+  const id = uuidv7();
+  const info = await talked(
+    actingAs(env, acting, async (tx) => {
+      await tx.execute(sql`
+        insert into moderation_report (id, reporter_user_id, reporter_side, conversation_id, message_id, reason, details)
+        values (${id}, ${acting.userId}, ${acting.side === 'person' ? 'consumer' : 'vendor'}, ${conversationId}, ${input.messageId},
+                ${input.reason}, ${input.details})`);
+      const [row] = await tx.execute<{ business: string; person: string; reporter: string }>(sql`
+        select v.display_name as business, u.display_name as person, r.display_name as reporter
+        from conversation c join vendor v on v.id = c.vendor_id join app_user u on u.id = c.consumer_user_id
+        join app_user r on r.id = ${acting.userId}
+        where c.id = ${conversationId}`);
+      return row;
+    }),
+  );
+  if (!info) return id;
+  const result = await sendEmail(env, {
+    to: TEAM_ADDRESS,
+    ...renderEmail('reportTeam', {
+      reporter: info.reporter,
+      side: acting.side === 'person' ? 'the customer' : `on ${info.business}'s team`,
+      what: input.messageId ? 'a message' : 'the conversation',
+      person: info.person,
+      business: info.business,
+      reason: REPORT_REASONS[input.reason],
+      details: input.details ?? 'none',
+      reportUrl: `${siteUrl}/admin/reports/${id}`,
+    }),
+  });
+  try {
+    await actingAs(env, acting, (tx) =>
+      tx.execute(sql`update moderation_report set team_email_status = ${result.sent ? 'sent' : 'failed'} where id = ${id}`),
+    );
+  } catch (err) {
+    console.error('report email outcome not recorded', err instanceof Error ? err.message : err);
+  }
+  return id;
+}
+
+// ------------------------------------------------------------------ the team (X13)
+
+export type ReportRow = {
+  id: string;
+  reason: ReportReason;
+  details: string | null;
+  reporter: string;
+  reporterSide: 'consumer' | 'vendor';
+  business: string;
+  person: string;
+  aboutMessage: boolean;
+  status: 'open' | 'actioned' | 'dismissed';
+  createdAt: string;
+  emailStatus: 'pending' | 'sent' | 'failed';
+};
+
+const ROW = sql`
+  select r.id, r.reason, r.details, ru.display_name as reporter, r.reporter_side as "reporterSide", v.display_name as business,
+         pu.display_name as person, r.message_id is not null as "aboutMessage", r.status, r.created_at::text as "createdAt",
+         r.team_email_status as "emailStatus"
+  from moderation_report r
+  join conversation c on c.id = r.conversation_id
+  join vendor v on v.id = c.vendor_id
+  join app_user pu on pu.id = c.consumer_user_id
+  join app_user ru on ru.id = r.reporter_user_id`;
+
+/** The reports list: open ones (oldest first), or all (newest first). Who reported what, never the messages. */
+export async function listReports(env: ServerEnv, admin: Admin, show: 'open' | 'all'): Promise<ReportRow[]> {
+  return actingAs(env, { side: 'team', userId: admin.userId }, async (tx) => {
+    const rows = await tx.execute<ReportRow>(
+      show === 'open'
+        ? sql`${ROW} where r.status = 'open' order by r.created_at limit 300`
+        : sql`${ROW} order by r.created_at desc limit 300`,
+    );
+    return [...rows];
+  });
+}
+
+export type ReportDetail = ReportRow & {
+  conversationStatus: string;
+  decisionNote: string | null;
+  messages: {
+    id: string;
+    side: 'consumer' | 'vendor';
+    author: string;
+    body: string;
+    createdAt: string;
+    removed: boolean;
+    hidden: boolean;
+    reported: boolean;
+  }[];
+};
+
+/** One report and its whole conversation (reading it is logged by the database, with the report). */
+export async function reportDetail(env: ServerEnv, admin: Admin, reportId: string): Promise<ReportDetail> {
+  return actingAs(env, { side: 'team', userId: admin.userId }, async (tx) => {
+    const [row] = await tx.execute<ReportRow & { conversationStatus: string; decisionNote: string | null }>(sql`
+      select x.*, c.status as "conversationStatus", r.decision_note as "decisionNote"
+      from (${ROW}) x join moderation_report r on r.id = x.id join conversation c on c.id = r.conversation_id
+      where x.id = ${reportId}`);
+    if (!row) throw new PlanNotFound();
+    const messages = await tx.execute<ReportDetail['messages'][number]>(sql`
+      select message_id as id, author_side as side, author_name as author, body, created_at::text as "createdAt", removed, hidden, reported
+      from reported_conversation_for_team(${reportId}::uuid)`);
+    return { ...row, messages: [...messages] };
+  });
+}
+
+/** The team's decisions on a report: hide its message, block or unblock, close with a note. */
+export async function decideReport(
+  env: ServerEnv,
+  admin: Admin,
+  reportId: string,
+  decision: { kind: 'hide' } | { kind: 'block' | 'unblock' } | { kind: 'close'; outcome: 'actioned' | 'dismissed'; note: string },
+): Promise<void> {
+  await actingAs(env, { side: 'team', userId: admin.userId }, async (tx) => {
+    if (decision.kind === 'hide') {
+      await tx.execute(sql`select team_hide_reported_message(${reportId}::uuid)`);
+    } else if (decision.kind === 'block' || decision.kind === 'unblock') {
+      await tx.execute(sql`select team_block_reported(${reportId}::uuid, ${decision.kind === 'block'})`);
+    } else if (decision.kind === 'close') {
+      const done = await tx.execute(sql`
+        update moderation_report set status = ${decision.outcome}, decision_note = ${decision.note}
+        where id = ${reportId} and status = 'open' returning id`);
+      if (done.length === 0) throw new PlanNotFound();
+      await audit(tx, {
+        actor: admin.userId,
+        action: `moderation_report.${decision.outcome}`,
+        subjectType: 'moderation_report',
+        subjectId: reportId,
+        reason: decision.note,
+        sessionRef: admin.sessionId,
+      });
+    }
+  });
+}

@@ -123,23 +123,25 @@ export default function Conversation({ loaderData: { thread, today }, actionData
             {actionData.error}
           </p>
         )}
-        <MessageList messages={thread.messages} canRemove />
+        <MessageList messages={thread.messages} canRemove reportPath={`/messages/${thread.id}/report`} />
         {canWrite ? (
           <ReplyBox label={`Message ${vendor.name}`} busy={busy} />
         ) : (
           <p className="notice" role="status">
             {vendor.left
               ? `${vendor.name} isn’t on Localites any more, so no new messages can be sent.`
-              : status === 'blocked_by_consumer'
-                ? 'You blocked this conversation, so neither of you can send messages.'
-                : `${vendor.name} has blocked this conversation, so no new messages can be sent.`}
+              : status === 'blocked_by_team'
+                ? 'The Localites team has closed this conversation, so no new messages can be sent.'
+                : status === 'blocked_by_consumer'
+                  ? 'You blocked this conversation, so neither of you can send messages.'
+                  : `${vendor.name} has blocked this conversation, so no new messages can be sent.`}
           </p>
         )}
 
         <div className={styles.footer}>
           <p className="muted">{NO_PAYMENTS_IN_CONVERSATION}</p>
           <p className="muted">{SHARE_CAREFULLY}</p>
-          {status !== 'blocked_by_vendor' && (
+          {(status === 'open' || status === 'blocked_by_consumer') && (
             <Form method="post">
               <input type="hidden" name="intent" value={status === 'blocked_by_consumer' ? 'unblock' : 'block'} />
               <button type="submit" className={styles.textButton} disabled={busy}>
@@ -147,6 +149,9 @@ export default function Conversation({ loaderData: { thread, today }, actionData
               </button>
             </Form>
           )}
+          <Link to={`/messages/${thread.id}/report`} className={styles.textButton}>
+            Report this conversation
+          </Link>
         </div>
       </main>
     </>

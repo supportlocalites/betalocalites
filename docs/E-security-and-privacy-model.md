@@ -225,8 +225,19 @@ Emails about new messages link to the conversation and never include the message
 person is emailed once per unread stretch, at most 30 a day (`new_message_notices()`). The
 person sees only the business's name on its replies, never which team member wrote. Every
 other side's attempt (another person, another business, a former team member, the team) is
-"not found", tested end to end. **Next (part 2):** files, Report and the team's Reports queue;
-until then the team can't open any conversation.
+"not found", tested end to end.
+
+**Built (part 2, migration 0024): Report.** Either side reports the conversation, or one
+message in it (anyone on the business's team for the business). The page says that, because
+they reported it, the team can read the conversation, and that the other side isn't told who
+reported. The team is emailed a link, never the messages. The team's **Reports** list shows
+who reported what and why; the conversation itself is read only through a report
+(`reported_conversation_for_team()`), and the database writes each look to `audit_log` with
+the report. The team can hide the reported message (both sides then see "Hidden by
+Localites"), block the conversation ("The Localites team has closed this conversation"; only
+the team can reopen it), and close the report with a note; each decision is recorded. The
+team sees which conversations were reported (who, which business, status), never any other.
+**Next:** files in conversations.
 
 ### 4.4 Feedback & reviews (Stage 3)
 

@@ -18,7 +18,7 @@ import { LIST_PHOTO, LIST_PHOTO_COLUMNS, type ListPhoto, type ListPhotoColumns, 
  */
 
 /** Refusals in plain words; someone else's conversation, like a missing one, is "not found". */
-async function talked<T>(work: Promise<T>): Promise<T> {
+export async function talked<T>(work: Promise<T>): Promise<T> {
   try {
     return await work;
   } catch (err) {
@@ -35,8 +35,8 @@ async function talked<T>(work: Promise<T>): Promise<T> {
 }
 
 const asPerson = (userId: string): Acting => ({ side: 'person', userId });
-const snippet = (body: string | null, removed: boolean) =>
-  removed ? 'Message removed' : body ? body.replace(/\s+/g, ' ').slice(0, 120) : null;
+const snippet = (body: string | null, removed: boolean, hidden = false) =>
+  hidden ? 'Message hidden by Localites' : removed ? 'Message removed' : body ? body.replace(/\s+/g, ' ').slice(0, 120) : null;
 
 /** One person's sending limits, checked under a lock on their account row. */
 async function checkSending(tx: Db, userId: string, newConversation: boolean): Promise<void> {
@@ -58,6 +58,8 @@ export type ThreadMessage = {
   body: string;
   createdAt: string;
   removed: boolean;
+  /** Hidden by the Localites team after a report (part 2): neither side sees its words. */
+  hidden: boolean;
 };
 
 /**
@@ -73,9 +75,11 @@ async function readMessages(tx: Db, conversationId: string, userId: string, view
     body: string;
     createdAt: string;
     removed: boolean;
+    hidden: boolean;
   }>(sql`
-    select m.id, m.author_side as side, m.author_user_id as "authorId", u.display_name as "authorName", m.body,
-           m.created_at::text as "createdAt", m.removed_at is not null as removed
+    select m.id, m.author_side as side, m.author_user_id as "authorId", u.display_name as "authorName",
+           case when m.hidden_by_team_at is null then m.body else '' end as body,
+           m.created_at::text as "createdAt", m.removed_at is not null as removed, m.hidden_by_team_at is not null as hidden
     from message m join app_user u on u.id = m.author_user_id
     where m.conversation_id = ${conversationId}
     order by m.created_at desc, m.id desc
@@ -89,6 +93,7 @@ async function readMessages(tx: Db, conversationId: string, userId: string, view
       body: m.body,
       createdAt: m.createdAt,
       removed: m.removed,
+      hidden: m.hidden,
     }),
   );
 }
@@ -119,28 +124,31 @@ export async function myConversations(env: ServerEnv, userId: string): Promise<C
   return talked(
     actingAs(env, asPerson(userId), async (tx) => {
       const rows = await tx.execute<
-        Omit<ConversationCard, 'photo' | 'snippet'> & ListPhotoColumns & { listed: boolean; lastBody: string | null; lastRemoved: boolean }
+        Omit<ConversationCard, 'photo' | 'snippet'> &
+          ListPhotoColumns & { listed: boolean; lastBody: string | null; lastRemoved: boolean; lastHidden: boolean }
       >(sql`
         select c.id, v.slug::text as "vendorSlug", v.display_name as "vendorName", c.last_message_at::text as "lastMessageAt",
                c.status <> 'open' as blocked, (v.claim_status <> 'claimed' or v.listing_status = 'archived') as left,
                v.listing_status = 'published' as listed,
-               lm.body as "lastBody", coalesce(lm.removed, false) as "lastRemoved", coalesce(lm.mine, false) as "lastFromMe",
-               (select count(*) from message m where m.conversation_id = c.id and m.author_side = 'vendor' and m.removed_at is null
+               lm.body as "lastBody", coalesce(lm.removed, false) as "lastRemoved", coalesce(lm.hidden, false) as "lastHidden",
+               coalesce(lm.mine, false) as "lastFromMe",
+               (select count(*) from message m where m.conversation_id = c.id and m.author_side = 'vendor' and m.removed_at is null and m.hidden_by_team_at is null
                   and m.created_at > coalesce(r.last_read_at, '-infinity'))::int as unread,
                ${LIST_PHOTO_COLUMNS}
         from conversation c join vendor v on v.id = c.vendor_id
         left join conversation_read r on r.conversation_id = c.id and r.user_id = ${userId}
         left join lateral (
-          select m.body, m.removed_at is not null as removed, m.author_side = 'consumer' as mine
+          select case when m.hidden_by_team_at is null then m.body end as body, m.removed_at is not null as removed,
+                 m.hidden_by_team_at is not null as hidden, m.author_side = 'consumer' as mine
           from message m where m.conversation_id = c.id order by m.created_at desc limit 1
         ) lm on true
         ${LIST_PHOTO}
         where c.consumer_user_id = ${userId}
         order by c.last_message_at desc nulls last
         limit 200`);
-      return rows.map(({ lastBody, lastRemoved, listed, ...r }) => ({
+      return rows.map(({ lastBody, lastRemoved, lastHidden, listed, ...r }) => ({
         ...withListPhoto(env, r, listed),
-        snippet: snippet(lastBody, lastRemoved),
+        snippet: snippet(lastBody, lastRemoved, lastHidden),
       }));
     }),
   );
@@ -153,7 +161,7 @@ export async function myUnread(env: ServerEnv, userId: string): Promise<number> 
       select count(*)::int as n
       from conversation c join message m on m.conversation_id = c.id
       left join conversation_read r on r.conversation_id = c.id and r.user_id = ${userId}
-      where c.consumer_user_id = ${userId} and m.author_side = 'vendor' and m.removed_at is null
+      where c.consumer_user_id = ${userId} and m.author_side = 'vendor' and m.removed_at is null and m.hidden_by_team_at is null
         and m.created_at > coalesce(r.last_read_at, '-infinity')`);
     return n?.n ?? 0;
   });
@@ -223,7 +231,7 @@ export async function startConversation(
 export type PersonThread = {
   id: string;
   vendor: { slug: string; name: string; photo: ListPhoto | null; left: boolean };
-  status: 'open' | 'blocked_by_consumer' | 'blocked_by_vendor';
+  status: 'open' | 'blocked_by_consumer' | 'blocked_by_vendor' | 'blocked_by_team';
   event: { id: string; name: string; date: string } | null;
   events: { id: string; name: string; date: string }[];
   messages: ThreadMessage[];
@@ -330,7 +338,7 @@ async function findTeam(db: Db, userId: string, slug: string): Promise<Messaging
 }
 
 /** Runs as the business, after checking this person is on its team (otherwise "not found"). */
-function asTeam<T>(env: ServerEnv, userId: string, slug: string, fn: (tx: Db, b: MessagingBusiness) => Promise<T>): Promise<T> {
+export function asTeam<T>(env: ServerEnv, userId: string, slug: string, fn: (tx: Db, b: MessagingBusiness) => Promise<T>): Promise<T> {
   return talked(
     withDb(env, async (db) => {
       const b = await findTeam(db, userId, slug);
@@ -357,15 +365,19 @@ export async function businessInbox(
   slug: string,
 ): Promise<{ business: MessagingBusiness; conversations: BusinessCard[] }> {
   return asTeam(env, userId, slug, async (tx, business) => {
-    const rows = await tx.execute<Omit<BusinessCard, 'snippet'> & { lastBody: string | null; lastRemoved: boolean }>(sql`
+    const rows = await tx.execute<
+      Omit<BusinessCard, 'snippet'> & { lastBody: string | null; lastRemoved: boolean; lastHidden: boolean }
+    >(sql`
       select c.id, u.display_name as person, c.last_message_at::text as "lastMessageAt", c.status <> 'open' as blocked,
-             lm.body as "lastBody", coalesce(lm.removed, false) as "lastRemoved", coalesce(lm.ours, false) as "lastFromUs",
-             (select count(*) from message m where m.conversation_id = c.id and m.author_side = 'consumer' and m.removed_at is null
+             lm.body as "lastBody", coalesce(lm.removed, false) as "lastRemoved", coalesce(lm.hidden, false) as "lastHidden",
+             coalesce(lm.ours, false) as "lastFromUs",
+             (select count(*) from message m where m.conversation_id = c.id and m.author_side = 'consumer' and m.removed_at is null and m.hidden_by_team_at is null
                 and m.created_at > coalesce(r.last_read_at, '-infinity'))::int as unread
       from conversation c join app_user u on u.id = c.consumer_user_id
       left join conversation_read r on r.conversation_id = c.id and r.user_id = ${userId}
       left join lateral (
-        select m.body, m.removed_at is not null as removed, m.author_side = 'vendor' as ours
+        select case when m.hidden_by_team_at is null then m.body end as body, m.removed_at is not null as removed,
+               m.hidden_by_team_at is not null as hidden, m.author_side = 'vendor' as ours
         from message m where m.conversation_id = c.id order by m.created_at desc limit 1
       ) lm on true
       where c.vendor_id = ${business.id} and c.last_message_at is not null
@@ -373,7 +385,10 @@ export async function businessInbox(
       limit 200`);
     return {
       business,
-      conversations: rows.map(({ lastBody, lastRemoved, ...r }) => ({ ...r, snippet: snippet(lastBody, lastRemoved) })),
+      conversations: rows.map(({ lastBody, lastRemoved, lastHidden, ...r }) => ({
+        ...r,
+        snippet: snippet(lastBody, lastRemoved, lastHidden),
+      })),
     };
   });
 }
@@ -385,7 +400,7 @@ export async function businessUnread(db: Db, userId: string, vendorId: string): 
       select count(*)::int as n
       from conversation c join message m on m.conversation_id = c.id
       left join conversation_read r on r.conversation_id = c.id and r.user_id = ${userId}
-      where c.vendor_id = ${vendorId} and m.author_side = 'consumer' and m.removed_at is null
+      where c.vendor_id = ${vendorId} and m.author_side = 'consumer' and m.removed_at is null and m.hidden_by_team_at is null
         and m.created_at > coalesce(r.last_read_at, '-infinity')`);
     return n?.n ?? 0;
   });
@@ -395,7 +410,7 @@ export type BusinessThread = {
   business: MessagingBusiness;
   id: string;
   person: string;
-  status: 'open' | 'blocked_by_consumer' | 'blocked_by_vendor';
+  status: 'open' | 'blocked_by_consumer' | 'blocked_by_vendor' | 'blocked_by_team';
   /** D-40's summary of the event the person mentioned, if any: never its name or private details. */
   event: { date: string; town: string; guests: number | null; cancelled: boolean } | null;
   messages: ThreadMessage[];

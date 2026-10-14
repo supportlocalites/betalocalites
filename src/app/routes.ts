@@ -41,6 +41,9 @@ export default [
     route('vendors/:slug/message', 'routes/member/message-start.tsx'),
     route('vendors/:slug/messages', 'routes/member/business-messages.tsx'),
     route('vendors/:slug/messages/:id', 'routes/member/business-conversation.tsx'),
+    // Report a conversation or a message (part 2): one page, two addresses (person, business).
+    route('messages/:id/report', 'routes/member/report.tsx', { id: 'person-report' }),
+    route('vendors/:slug/messages/:id/report', 'routes/member/report.tsx', { id: 'business-report' }),
     route('business', 'routes/member/business.tsx'),
     route('vendors/:slug/bookings', 'routes/member/bookings.tsx'),
     // A business owner's team (V4, E §3).
@@ -62,6 +65,8 @@ export default [
     route('booking-flags', 'routes/admin/booking-flags.tsx'),
     route('bookings', 'routes/admin/bookings.tsx'),
     route('inquiries', 'routes/admin/inquiries.tsx'),
+    route('reports', 'routes/admin/reports.tsx'),
+    route('reports/:id', 'routes/admin/report.tsx'),
     route('account-deletions', 'routes/admin/account-deletions.tsx'),
     route('photos', 'routes/admin/photos.tsx'),
     route('categories', 'routes/admin/categories.tsx'),

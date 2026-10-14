@@ -31,6 +31,34 @@ Every release and every database migration, in order. Appended before each deplo
 
 ## Releases
 
+### 2026-10-14 — Report a conversation or message; the team's Reports (Stage 2B, part 2)
+
+**Stage:** 2 (E §4.3 and §6; screens C8, V7, X13)
+**What changed (plain English):** every message from the other side has **Report**, and every
+conversation has **Report this conversation**, for the person and for anyone on the business's
+team. The page says plainly that, because they reported it, the Localites team can read the
+conversation, and that the other side isn't told who reported. The team is emailed a link
+(never the messages). The team's new **Reports** page (count in the menu) lists who reported
+what and why; opening a report shows the whole conversation, and each look is written to the
+audit log with the report. The team can hide the reported message (both sides then see
+"Hidden by Localites"), close the conversation ("The Localites team has closed this
+conversation"; only the team can reopen it), and close the report as dealt with or with
+nothing to do, with a note; each decision is recorded. Otherwise the team still can't open
+any conversation.
+**Migrations applied:** `0024_reports.sql` (new table `moderation_report` with its rules; the
+conversation can be closed by the team; a message can be hidden by the team; three team-only
+functions, each one logged).
+**Destructive?** No: one new table and two new, empty columns. To undo, a later migration
+drops them.
+**Tests run:** database 0024 19/19 (new); end-to-end messages 75/75 (20 new: reporting a
+message and a conversation from each side, outsiders refused, the team email, the list without
+messages, a logged look, outsiders refused the team's pages, hiding, closing and reopening,
+closing a report needs a note); look checks 336/336 (3 new pages).
+**How to roll back:** Cloudflare → Deployments → previous version; the database change is
+undone by a new migration.
+**Approved by:** Product owner (Stage 2 plan, E §4.3; chose "Messages with businesses" on 14
+October 2026).
+
 ### 2026-10-14 — Messages between people and businesses (Stage 2B, part 1: text)
 
 **Stage:** 2 (D-13, D-17; screens C7, C8, C9, V6, V7)

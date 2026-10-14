@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { Form, useRevalidator, useSearchParams } from 'react-router';
+import { Form, Link, useRevalidator, useSearchParams } from 'react-router';
 import { MESSAGE_LIMITS, REFRESH_SECONDS } from '@/lib/message-terms';
 import styles from '@/app/routes/member/messages.module.css';
 
@@ -9,7 +9,15 @@ import styles from '@/app/routes/member/messages.module.css';
  * and visible (D-13); no typing indicators or read receipts (E §4.3).
  */
 
-export type ShownMessage = { id: string; mine: boolean; author: string; body: string; createdAt: string; removed: boolean };
+export type ShownMessage = {
+  id: string;
+  mine: boolean;
+  author: string;
+  body: string;
+  createdAt: string;
+  removed: boolean;
+  hidden: boolean;
+};
 
 const when = new Intl.DateTimeFormat('en-CA', { dateStyle: 'medium', timeStyle: 'short', timeZone: 'America/Toronto' });
 
@@ -24,17 +32,23 @@ export function useRefresh() {
   }, [revalidate, state]);
 }
 
-export function MessageList({ messages, canRemove }: { messages: ShownMessage[]; canRemove: boolean }) {
+/** reportPath: this conversation's Report page; each message from the other side links to it. */
+export function MessageList({ messages, canRemove, reportPath }: { messages: ShownMessage[]; canRemove: boolean; reportPath: string }) {
   if (messages.length === 0) return <p className="muted">No messages yet.</p>;
   return (
     <ol className={styles.thread} aria-label="Messages">
       {messages.map((m) => (
-        <li key={m.id} className={`${styles.message} ${m.mine ? styles.mine : ''} ${m.removed ? styles.removed : ''}`}>
+        <li key={m.id} className={`${styles.message} ${m.mine ? styles.mine : ''} ${m.removed || m.hidden ? styles.removed : ''}`}>
           <span className={styles.byline}>
             {m.mine ? 'You' : m.author} · {when.format(new Date(m.createdAt))}
           </span>
-          {m.removed ? <p className={styles.body}>Message removed</p> : <p className={styles.body}>{m.body}</p>}
-          {canRemove && m.mine && !m.removed && (
+          <p className={styles.body}>{m.hidden ? 'Hidden by Localites' : m.removed ? 'Message removed' : m.body}</p>
+          {!m.mine && !m.removed && !m.hidden && (
+            <Link to={`${reportPath}?message=${m.id}`} className={`${styles.messageActions} ${styles.textButton}`}>
+              Report
+            </Link>
+          )}
+          {canRemove && m.mine && !m.removed && !m.hidden && (
             <Form method="post" className={styles.messageActions}>
               <input type="hidden" name="intent" value="remove" />
               <input type="hidden" name="messageId" value={m.id} />

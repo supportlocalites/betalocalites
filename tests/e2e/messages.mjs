@@ -205,12 +205,75 @@ r = await page(THREAD, { cookie: cookie.a, method: 'POST', form: { intent: 'even
 r = await page(BIZ_THREAD, { cookie: cookie.o });
 check('the person takes the event off: the business no longer sees it', !words(r.body).includes('Their event'));
 
+// ------------------------------------------------------------------ 5b. Reporting (part 2)
+const [staffReply] = await sql`select id from message where conversation_id = ${conversationId} and body = ${REPLY}`;
+r = await page(`${THREAD}/report?message=${staffReply.id}`, { cookie: cookie.a });
+check('the person can report a message: the page shows it, and says the team will read the conversation',
+  r.status === 200 && words(r.body).includes(REPLY) && words(r.body).includes('our team can read this conversation'), String(r.status));
+r = await page(`${THREAD}/report`, { cookie: cookie.a, method: 'POST', form: { messageId: staffReply.id, reason: 'nonsense' } });
+check('a report needs a reason', r.status === 400, String(r.status));
+const beforeReport = Date.now();
+r = await page(`${THREAD}/report`, { cookie: cookie.a, method: 'POST', form: { messageId: staffReply.id, reason: 'scam_or_fraud', details: `Asked for gift cards ${run}` } });
+const [report] = await sql`select id, reporter_side, message_id, status from moderation_report where conversation_id = ${conversationId} and reporter_user_id = ${ids.a}`;
+check('reported: saved, about that message, and the person is thanked',
+  r.status === 302 && r.location === `${THREAD}/report?sent=1` && report?.reporter_side === 'consumer' && report.message_id === staffReply.id,
+  `${r.status} ${r.location}`);
+const reportMail = await waitFor(
+  async () => (await mailFor('supportlocalites@gmail.com')).filter((m) => m.at > beforeReport && m.subject === `Report: a conversation with ${V.name}`),
+  (l) => l.length > 0,
+);
+check('the team is emailed, with a link to the report (never the messages)',
+  reportMail.length === 1 && reportMail[0].body.includes(`/admin/reports/${report?.id}`) && !reportMail[0].body.includes(REPLY), JSON.stringify(reportMail).slice(0, 200));
+r = await page(`${THREAD}/report`, { cookie: cookie.b, method: 'POST', form: { reason: 'spam' } });
+check('another person can’t report it', r.status === 404, String(r.status));
+r = await page(`/vendors/${W.slug}/messages/${conversationId}/report`, { cookie: cookie.p, method: 'POST', form: { reason: 'spam' } });
+check('another business can’t report it', r.status === 404, String(r.status));
+r = await page(`${BIZ_THREAD}/report`, { cookie: cookie.o, method: 'POST', form: { reason: 'harassment' } });
+check('the business reports the whole conversation',
+  r.status === 302 && (await sql`select count(*)::int as n from moderation_report where conversation_id = ${conversationId} and reporter_side = 'vendor'`)[0].n === 1,
+  String(r.status));
+
+r = await page('/admin/reports', { cookie: cookie.m });
+text = words(r.body);
+check('the team’s Reports list shows who reported what and why, never the messages',
+  r.status === 200 && text.includes('A scam or fraud') && text.includes(A_NAME) && text.includes(V.name) && !text.includes(REPLY), String(r.status));
+check('…the team menu counts open reports', /Reports \(\d+ open\)/.test(text));
+const looks = async () => (await sql`select count(*)::int as n from audit_log where action = 'conversation.report_view' and subject_id = ${report.id}`)[0].n;
+r = await page(`/admin/reports/${report.id}`, { cookie: cookie.m });
+check('opening a report shows the whole conversation, the reported message marked',
+  r.status === 200 && words(r.body).includes(REPLY) && words(r.body).includes('Reported'), String(r.status));
+check('…and that look is recorded with the report', (await looks()) === 1);
+for (const [who, c] of [['a person', cookie.a], ['a business owner', cookie.o], ['someone not on the team', cookie.n]]) {
+  r = await page(`/admin/reports/${report.id}`, { cookie: c });
+  check(`${who}: a report is refused (403)`, r.status === 403 && !r.body.includes(REPLY), String(r.status));
+}
+r = await page(`/admin/reports/${report.id}`, { cookie: cookie.m, method: 'POST', form: { intent: 'hide' } });
+r = await page(THREAD, { cookie: cookie.a });
+check('the team hides the message: the person sees “Hidden by Localites”, not the words',
+  words(r.body).includes('Hidden by Localites') && !words(r.body).includes(REPLY));
+await page(`/admin/reports/${report.id}`, { cookie: cookie.m, method: 'POST', form: { intent: 'block' } });
+r = await page(THREAD, { cookie: cookie.a });
+check('the team blocks the conversation: the person is told, and has no reply box',
+  words(r.body).includes('The Localites team has closed this conversation') && !r.body.includes('name="body"'));
+r = await page(THREAD, { cookie: cookie.a, method: 'POST', form: { intent: 'unblock' } });
+check('…and can’t undo it', r.status === 409 && (await sql`select status from conversation where id = ${conversationId}`)[0].status === 'blocked_by_team', String(r.status));
+r = await page(`/admin/reports/${report.id}`, { cookie: cookie.m, method: 'POST', form: { intent: 'actioned', note: '' } });
+check('closing a report needs a note', r.status === 400, String(r.status));
+r = await page(`/admin/reports/${report.id}`, { cookie: cookie.m, method: 'POST', form: { intent: 'actioned', note: `Hid the message and closed the conversation ${run}` } });
+check('the team closes it as dealt with, recorded',
+  (await sql`select status from moderation_report where id = ${report.id}`)[0].status === 'actioned' &&
+    (await sql`select count(*)::int as n from audit_log where action = 'moderation_report.actioned' and subject_id = ${report.id}`)[0].n === 1);
+await page(`/admin/reports/${report.id}`, { cookie: cookie.m, method: 'POST', form: { intent: 'unblock' } });
+check('…and can open the conversation again', (await sql`select status from conversation where id = ${conversationId}`)[0].status === 'open');
+
 // ------------------------------------------------------------------ 6. Leaving
 await sql`update vendor_member set ended_at = now() where vendor_id = ${V.id} and user_id = ${ids.s}`;
 r = await page(BIZ_THREAD, { cookie: cookie.s });
 check('someone who leaves the business’s team loses access at once', r.status === 404, String(r.status));
 r = await page(THREAD, { cookie: cookie.a });
-check('…their past replies stay, under the business’s name', words(r.body).includes(REPLY));
+check('…their past replies stay, as the business’s',
+  (await sql`select author_side from message where conversation_id = ${conversationId} and author_user_id = ${ids.s}`).every((m) => m.author_side === 'vendor') &&
+    words(r.body).includes(V.name));
 await sql`update vendor set listing_status = 'archived', archived_at = now() where id = ${V.id}`;
 r = await page(THREAD, { cookie: cookie.a });
 check('a business that leaves Localites: the person keeps the conversation, and is told they can’t send',
