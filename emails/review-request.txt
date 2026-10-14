@@ -1,0 +1,14 @@
+Subject: How was your event on {{date}}?
+
+Hi {{name}},
+
+We hope your event on {{date}} went well. How did {{businesses}} do?
+
+A few words and some stars help others in town choose, and help good local businesses get found:
+{{link}}
+
+You have until {{until}} to leave a review. Our team reads every review before it's published.
+
+Don't want these emails? Turn them off on your account: {{account}}
+
+Localites

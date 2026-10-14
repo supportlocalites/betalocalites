@@ -19,7 +19,7 @@ import { asTeam } from './messages.server';
  */
 
 /** Refusals in plain words; someone else's booking or review, like a missing one, is "not found". */
-async function reviewed<T>(work: Promise<T>): Promise<T> {
+export async function reviewed<T>(work: Promise<T>): Promise<T> {
   try {
     return await work;
   } catch (err) {
@@ -251,18 +251,26 @@ export type TeamReviewRow = {
   createdAt: string;
 };
 
-/** Waiting reviews first (oldest first), then the latest decided ones. */
-export async function listReviews(env: ServerEnv, admin: Admin): Promise<{ waiting: TeamReviewRow[]; recent: TeamReviewRow[] }> {
+/** Waiting reviews first (oldest first), then reported ones (part 2), then the latest decided ones. */
+export async function listReviews(
+  env: ServerEnv,
+  admin: Admin,
+): Promise<{ waiting: TeamReviewRow[]; reported: (TeamReviewRow & { reports: number })[]; recent: TeamReviewRow[] }> {
   return actingAs(env, { side: 'team', userId: admin.userId }, async (tx) => {
     const cols = sql`r.id, v.display_name as business, v.slug::text as slug, u.display_name as author, r.rating, r.status,
                      r.planned_on_localites as "plannedOnLocalites", r.created_at::text as "createdAt"`;
     const waiting = await tx.execute<TeamReviewRow>(sql`
       select ${cols} from review r join vendor v on v.id = r.vendor_id join app_user u on u.id = r.author_user_id
       where r.status = 'pending' order by r.created_at limit 200`);
+    const reported = await tx.execute<TeamReviewRow & { reports: number }>(sql`
+      select ${cols}, x.n as reports
+      from (select review_id, count(*)::int as n, min(created_at) as first from review_report where status = 'open' group by review_id) x
+        join review r on r.id = x.review_id join vendor v on v.id = r.vendor_id join app_user u on u.id = r.author_user_id
+      order by x.first limit 200`);
     const recent = await tx.execute<TeamReviewRow>(sql`
       select ${cols} from review r join vendor v on v.id = r.vendor_id join app_user u on u.id = r.author_user_id
       where r.status <> 'pending' order by coalesce(r.decided_at, r.updated_at) desc limit 50`);
-    return { waiting: [...waiting], recent: [...recent] };
+    return { waiting: [...waiting], reported: [...reported], recent: [...recent] };
   });
 }
 
@@ -278,6 +286,19 @@ export type TeamReview = TeamReviewRow & {
   flagged: boolean;
   /** When the words last changed: the team decides on the words it read. */
   seen: string;
+  /** Reports of it (part 2), newest first: open ones first. */
+  reports: TeamReviewReport[];
+};
+
+export type TeamReviewReport = {
+  id: string;
+  reason: string;
+  details: string | null;
+  reporter: string;
+  side: 'consumer' | 'vendor';
+  status: 'open' | 'actioned' | 'dismissed';
+  note: string | null;
+  createdAt: string;
 };
 
 export async function teamReview(env: ServerEnv, admin: Admin, id: string): Promise<TeamReview> {
@@ -293,7 +314,12 @@ export async function teamReview(env: ServerEnv, admin: Admin, id: string): Prom
         left join event_vendor x on x.id = r.event_vendor_id   -- the team sees flagged bookings only (0012)
       where r.id = ${id}`);
     if (!row) throw new PlanNotFound();
-    return row;
+    const reports = await tx.execute<TeamReviewReport>(sql`
+      select x.id, x.reason, x.details, u.display_name as reporter, x.reporter_side as side, x.status, x.decision_note as note,
+             x.created_at::text as "createdAt"
+      from review_report x join app_user u on u.id = x.reporter_user_id
+      where x.review_id = ${id} order by (x.status = 'open') desc, x.created_at desc limit 100`);
+    return { ...row, reports: [...reports] };
   });
 }
 
@@ -301,7 +327,8 @@ export type ReviewDecision =
   | { kind: 'publish'; seen: string }
   | { kind: 'decline'; reason: string; seen: string }
   | { kind: 'remove'; reason: string }
-  | { kind: 'remove_reply'; reason: string };
+  | { kind: 'remove_reply'; reason: string }
+  | { kind: 'dismiss_reports'; reason: string };
 
 /** The team's decision, recorded in audit_log; the author (and, when published, the business) is emailed after. */
 export async function decideReview(
@@ -321,8 +348,11 @@ export async function decideReview(
                   where id = ${id} and status = 'pending' and updated_at = ${decision.seen}::timestamptz returning id`
             : decision.kind === 'remove'
               ? sql`update review set status = 'removed', decision_reason = ${decision.reason} where id = ${id} and status = 'published' returning id`
-              : sql`update review set reply_removed_at = now(), reply_removed_reason = ${decision.reason}
-                    where id = ${id} and vendor_reply is not null and reply_removed_at is null returning id`;
+              : decision.kind === 'remove_reply'
+                ? sql`update review set reply_removed_at = now(), reply_removed_reason = ${decision.reason}
+                      where id = ${id} and vendor_reply is not null and reply_removed_at is null returning id`
+                : sql`update review_report set status = 'dismissed', decision_note = ${decision.reason}
+                      where review_id = ${id} and status = 'open' returning id`;
       const done = await tx.execute(change);
       if (done.length === 0) throw new PlanRefused('That was already decided, or the review changed. Please look again.');
       await audit(tx, {

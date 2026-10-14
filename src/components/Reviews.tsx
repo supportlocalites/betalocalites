@@ -1,3 +1,4 @@
+import { Link } from 'react-router';
 import { LIVING_LOCAL, LIVING_LOCAL_HINT, PLANNED_ON, PLANNED_OUTSIDE } from '@/lib/review-terms';
 import styles from './Reviews.module.css';
 
@@ -27,6 +28,15 @@ export function Stars({ rating }: { rating: number }) {
       {'★'.repeat(Math.round(rating))}
       <span className={styles.starsOff}>{'★'.repeat(5 - Math.round(rating))}</span>
     </span>
+  );
+}
+
+/** "Report this review": signed-in people, and the business about its own (Stage 3, part 2). */
+export function ReportLink({ to }: { to: string }) {
+  return (
+    <Link to={to} className={`text-link ${styles.report}`} rel="nofollow">
+      Report this review
+    </Link>
   );
 }
 

@@ -31,6 +31,26 @@ Every release and every database migration, in order. Appended before each deplo
 
 ## Releases
 
+### 2026-10-14 — Reviews, part 2: "How was it?" emails and reporting a review
+
+**Stage:** 3 (E §4.4)
+**What changed (plain English):**
+- **"How was it?":** the morning after an event, the host is emailed once to review the
+  businesses they booked; once more a week later if they haven't; never after the 60 days.
+  Events from the last 60 days are asked too. At most 20 of these a day. Anyone can turn
+  them off on **Your account → Emails**.
+- **Reporting:** "Report this review" under each review, for anyone signed in and for the
+  business about its own. The team is emailed and sees it under **Admin → Reviews →
+  Reported**: keep the review and close the reports with a reason, or remove the review.
+- Staff on the account page now see a link to the business's messages (the old wording said
+  messaging hadn't arrived).
+**Migrations applied:** `0032_review_requests_and_reports.sql` (email choices, the morning
+job's function, review reports and their rules).
+**Destructive?** No: adds tables and functions only.
+**Tests run:** database 0032 32/32 (new), every earlier file passing; end-to-end reviews
+62/62, look 384/384, every other suite passing; unit 176/176; checks; size.
+**How to roll back:** Cloudflare → Deployments → previous version; the new tables can stay.
+
 ### 2026-10-14 — Reviews, part 1 (D-06, D-48)
 
 **Stage:** 3 (E §4.4, §4.5)

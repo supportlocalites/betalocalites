@@ -1,7 +1,7 @@
 # E — Security & Privacy Model
 
 **Status:** Approved (D-00, 10 October 2026).
-**Last updated:** 2026-10-14 (§4.4, §4.5, §8, §12: reviews built, part 1, migration 0031, D-48; §4.3, §8, §9: files in conversations, migration 0028; §4.3, §8: messages fixed after a third review, migration 0027; a second, migration 0026; after review, migration 0025; §4.3: messages built, part 1, migration 0023; §4.2: inquiries built, ADR-024, migration 0021; the team sees every booking, a business taken down can't be newly booked, D-46; 2026-10-13: §3, §4.2, §7, §7a, §8, §12: planning an event built, ADR-031, D-39 to D-43; earlier, §2: "are you human" check on sign-in codes; §7: sign-up details and anyone may join, D-36; §2: emailed sign-in codes and claims)
+**Last updated:** 2026-10-14 (§4.4: reviews part 2, reports and "How was it?" emails, migration 0032; §4.4, §4.5, §8, §12: reviews built, part 1, migration 0031, D-48; §4.3, §8, §9: files in conversations, migration 0028; §4.3, §8: messages fixed after a third review, migration 0027; a second, migration 0026; after review, migration 0025; §4.3: messages built, part 1, migration 0023; §4.2: inquiries built, ADR-024, migration 0021; the team sees every booking, a business taken down can't be newly booked, D-46; 2026-10-13: §3, §4.2, §7, §7a, §8, §12: planning an event built, ADR-031, D-39 to D-43; earlier, §2: "are you human" check on sign-in codes; §7: sign-up details and anyone may join, D-36; §2: emailed sign-in codes and claims)
 
 **Revision 2:** rebuilt around the two users, consumer and vendor. Added
 conversations, shared files, consumer-marked bookings, and reviews. Removed the
@@ -324,8 +324,19 @@ staff); the team publishes, declines with a reason, removes with a reason, or re
 reply, each logged. The public sees published reviews only, with the author as "Sarah M."
 (D-48), never their full name or email. A waiting review is withdrawn if the person
 unmarks the booking or cancels the event; the team decides on the words it read (if the
-author changed them meanwhile, the team is asked to look again). Not built yet (part 2): the "How was it?" request
-and reminder emails, and reporting a review.
+author changed them meanwhile, the team is asked to look again).
+
+**Built, part 2 (migration 0032, 14 October 2026).** *Reporting a review:* anyone signed in
+reports a published review in their own name (not their own review), and anyone on a
+business's team reports its own reviews; once per review while the report is open, 10 a
+day. Only the team reads reports (the reporter sees only their own); the author isn't told
+who reported. The team keeps the review and closes the reports with a reason, or removes
+the review, which closes them; each decision is logged. The team is emailed once per
+reported review, at most 20 a day, never the reporter's words. *"How was it?" emails:* the
+morning after an event, the host is emailed once about the businesses they booked and
+haven't reviewed, and once more a week later; never the event's name, only its date; never
+after the 60 days; at most 20 a day across the site. Each person can turn them off on
+**Your account → Emails**; that choice is theirs only and is deleted with the account.
 
 | Record | Visitor | Author | The reviewed vendor | Other vendors | Admin |
 |---|---|---|---|---|---|

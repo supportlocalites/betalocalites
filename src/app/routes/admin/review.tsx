@@ -3,7 +3,14 @@ import { adminContext, cloudflareContext } from '@/app/context';
 import { isUuid } from '@/lib/ids.mjs';
 import { pageMeta } from '@/lib/meta';
 import { longDateWithYear } from '@/lib/plan-terms';
-import { PLANNED_ON, PLANNED_OUTSIDE, REVIEW_LIMITS, REVIEW_STATUS } from '@/lib/review-terms';
+import {
+  PLANNED_ON,
+  PLANNED_OUTSIDE,
+  REVIEW_LIMITS,
+  REVIEW_REPORT_REASONS,
+  REVIEW_STATUS,
+  type ReviewReportReason,
+} from '@/lib/review-terms';
 import { PlanRefused } from '@/server/acting.server';
 import { afterwards, found, siteUrl } from '@/server/plan-pages.server';
 import { decideReview, emailAboutDecision, type ReviewDecision, teamReview } from '@/server/reviews.server';
@@ -13,7 +20,8 @@ import styles from './admin.module.css';
 /**
  * One review (X14): publish or decline it while it waits (a reason for declining, which the
  * author is told); remove a published review, or the business's reply, for breaking the
- * rules (with a reason). Never edit it. Every decision is in audit_log.
+ * rules (with a reason); read its reports and close them, keeping the review (part 2).
+ * Never edit it. Every decision is in audit_log.
  */
 export const meta: Route.MetaFunction = () => [...pageMeta('Review · Team'), { name: 'robots', content: 'noindex' }];
 
@@ -39,7 +47,7 @@ export async function action({ params, request, context }: Route.ActionArgs) {
   if (deciding && !/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}(\.\d+)?[+-]\d{2}(:\d{2})?$/.test(seen)) throw data(null, { status: 400 });
   let decision: ReviewDecision;
   if (intent === 'publish') decision = { kind: 'publish', seen };
-  else if (intent === 'decline' || intent === 'remove' || intent === 'remove_reply') {
+  else if (intent === 'decline' || intent === 'remove' || intent === 'remove_reply' || intent === 'dismiss_reports') {
     if (!reason) return data({ error: 'Say why, in a few words. The author is told when a review is declined.' }, { status: 400 });
     decision = intent === 'decline' ? { kind: intent, reason, seen } : { kind: intent, reason };
   } else throw data(null, { status: 400 });
@@ -52,6 +60,9 @@ export async function action({ params, request, context }: Route.ActionArgs) {
   }
   return redirect(`/admin/reviews/${params.id}`);
 }
+
+const when = new Intl.DateTimeFormat('en-CA', { dateStyle: 'medium', timeStyle: 'short', timeZone: 'America/Toronto' });
+const REPORT_STATUS = { open: 'Open', actioned: 'Review removed', dismissed: 'Closed, review kept' } as const;
 
 export default function TeamReviewPage({ loaderData: { review }, actionData }: Route.ComponentProps) {
   const busy = useNavigation().state === 'submitting';
@@ -111,6 +122,39 @@ export default function TeamReviewPage({ loaderData: { review }, actionData }: R
               Decline
             </button>
           </Form>
+        </section>
+      )}
+      {review.reports.length > 0 && (
+        <section className={styles.section} aria-labelledby="reports">
+          <h2 id="reports">Reports</h2>
+          <ul className={styles.rows}>
+            {review.reports.map((x) => (
+              <li key={x.id} className={styles.row}>
+                <span>
+                  <span className={styles.status}>{REPORT_STATUS[x.status]}</span> ·{' '}
+                  {REVIEW_REPORT_REASONS[x.reason as ReviewReportReason] ?? x.reason}
+                </span>
+                <span className="muted">
+                  By {x.reporter} ({x.side === 'vendor' ? 'the business' : 'a person'}) · {when.format(new Date(x.createdAt))}
+                </span>
+                {x.details && <span style={{ whiteSpace: 'pre-wrap' }}>“{x.details}”</span>}
+                {x.note && <span className="muted">Decided: {x.note}</span>}
+              </li>
+            ))}
+          </ul>
+          {review.status === 'published' && review.reports.some((x) => x.status === 'open') && (
+            <Form method="post" className={styles.statusPanel}>
+              <div className={`field ${styles.reasonField}`}>
+                <label htmlFor="dismiss-reason" className="field-label">
+                  It doesn’t break the rules: why (kept with the reports)
+                </label>
+                <input id="dismiss-reason" name="reason" className="input" maxLength={REVIEW_LIMITS.reason} required />
+              </div>
+              <button type="submit" name="intent" value="dismiss_reports" className="button button-secondary" disabled={busy}>
+                Keep the review, close the reports
+              </button>
+            </Form>
+          )}
         </section>
       )}
       {review.status === 'published' && (

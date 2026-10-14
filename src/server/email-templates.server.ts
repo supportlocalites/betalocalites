@@ -19,6 +19,9 @@ import reportTeam from '../../emails/report-team.txt?raw';
 import reviewDeclined from '../../emails/review-declined.txt?raw';
 import reviewForBusiness from '../../emails/review-for-business.txt?raw';
 import reviewPublished from '../../emails/review-published.txt?raw';
+import reviewReminder from '../../emails/review-reminder.txt?raw';
+import reviewReported from '../../emails/review-reported.txt?raw';
+import reviewRequest from '../../emails/review-request.txt?raw';
 import reviewTeam from '../../emails/review-team.txt?raw';
 import { uuidv7 } from '@/lib/ids.mjs';
 import { type Db, withDb } from './db.server';
@@ -56,6 +59,9 @@ const TEMPLATES = {
   reviewPublished,
   reviewDeclined,
   reviewForBusiness,
+  reviewRequest,
+  reviewReminder,
+  reviewReported,
 } as const;
 export type TemplateName = keyof typeof TEMPLATES;
 
@@ -203,11 +209,11 @@ export async function emailPersonUnlessRepeat(
 /**
  * The nightly run (workers/app.ts): emails left "queued" by a run that was cut short (the
  * email may or may not have gone) are marked failed, so the record stays honest: plan
- * emails, "it joined" emails (ADR-024) and new-message emails; and inquiry emails to the
+ * emails, "it joined" emails (ADR-024), new-message emails and "How was it?" emails; and inquiry emails to the
  * team left "pending" (close_stale_inquiry_emails, migration 0022).
  */
 export async function closeInterruptedPlanEmails(env: ServerEnv): Promise<number> {
-  const kinds = `{${[...PLAN_EMAIL_KINDS, 'vendor_joined', 'new_message'].join(',')}}`;
+  const kinds = `{${[...PLAN_EMAIL_KINDS, 'vendor_joined', 'new_message', 'review_request', 'review_reminder'].join(',')}}`;
   return withDb(env, async (db) => {
     const rows = await db.execute(sql`
       update notification set status = 'failed', failure_reason = 'Not known whether it was sent: the sending was interrupted.'

@@ -1,0 +1,6 @@
+Subject: A review of {{business}} was reported
+
+Someone reported a published review of {{business}} ({{reason}}).
+
+It stays up until you decide. Read the review and the report, then remove the review or dismiss the report:
+{{reviewUrl}}

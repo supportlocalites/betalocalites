@@ -1,6 +1,6 @@
 import { data, Form, Link, redirect, useNavigation, useSearchParams } from 'react-router';
 import { cloudflareContext, memberContext } from '@/app/context';
-import { ReviewList } from '@/components/Reviews';
+import { ReportLink, ReviewList } from '@/components/Reviews';
 import { SiteHeader } from '@/components/SiteHeader';
 import { isUuid, SLUG } from '@/lib/ids.mjs';
 import { pageMeta } from '@/lib/meta';
@@ -77,27 +77,31 @@ export default function BusinessReviews({ loaderData, actionData }: Route.Compon
           reviews={reviews}
           after={(r) => {
             const review = reviews.find((x) => x.id === r.id);
-            if (!review?.canReply) return null;
+            const report = <ReportLink to={`/vendors/${business.slug}/reviews/${r.id}/report`} />;
+            if (!review?.canReply) return report;
             return (
-              <Form method="post">
-                <input type="hidden" name="reviewId" value={r.id} />
-                <div className="field">
-                  <label htmlFor={`reply-${r.id}`} className="field-label">
-                    Reply publicly (once)
-                  </label>
-                  {actionData?.reviewId === r.id && actionData.error && (
-                    <p className="field-error" role="alert">
-                      {actionData.error}
-                    </p>
-                  )}
-                  <textarea id={`reply-${r.id}`} name="reply" className="input" maxLength={REVIEW_LIMITS.reply} required />
-                </div>
-                <p>
-                  <button type="submit" className="button button-secondary" disabled={busy}>
-                    Reply
-                  </button>
-                </p>
-              </Form>
+              <>
+                {report}
+                <Form method="post">
+                  <input type="hidden" name="reviewId" value={r.id} />
+                  <div className="field">
+                    <label htmlFor={`reply-${r.id}`} className="field-label">
+                      Reply publicly (once)
+                    </label>
+                    {actionData?.reviewId === r.id && actionData.error && (
+                      <p className="field-error" role="alert">
+                        {actionData.error}
+                      </p>
+                    )}
+                    <textarea id={`reply-${r.id}`} name="reply" className="input" maxLength={REVIEW_LIMITS.reply} required />
+                  </div>
+                  <p>
+                    <button type="submit" className="button button-secondary" disabled={busy}>
+                      Reply
+                    </button>
+                  </p>
+                </Form>
+              </>
             );
           }}
         />

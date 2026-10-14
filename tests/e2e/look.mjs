@@ -91,6 +91,13 @@ await site(`/events/${pastEvent.id}/review/${pastRow.id}`, {
   form: { rating: '5', body: 'Checking how a review looks: friendly, on time, and the cake was lovely.' },
 });
 const [lookReview] = await sql`select id from review where event_vendor_id = ${pastRow.id}`;
+// Published, and reported by the business, for the report pages and the team's view (part 2).
+await sql`update review set status = 'published', decided_by = ${ids.team}, decided_at = now(), published_at = now() where id = ${lookReview.id}`;
+await site(`/vendors/${V.slug}/reviews/${lookReview.id}/report`, {
+  cookie: cookieOf(sessions.owner),
+  method: 'POST',
+  form: { reason: 'other', details: 'Checking how a review report looks.' },
+});
 const [Z] = await sql`
   insert into vendor (slug, display_name, primary_municipality_id, listing_status, published_at, claim_status, source)
   values (${`e2e-look-z-${run}`}, ${`Orchard Photo Booth ${run}`}, ${town.id}, 'published', now(), 'claimed', 'admin_entered')
@@ -203,6 +210,8 @@ const PAGES = [
   { who: 'owner', path: `/vendors/${V.slug}/team`, label: 'The business team' },
   { who: 'owner', path: `/vendors/${V.slug}/bookings`, label: 'Bookings marked' },
   { who: 'owner', path: `/vendors/${V.slug}/reviews`, label: 'Business reviews' },
+  { who: 'owner', path: `/vendors/${V.slug}/reviews/${lookReview.id}/report`, label: 'Business: report a review' },
+  { who: 'person', path: `/reviews/${lookReview.id}/report`, label: 'Report a review' },
   { who: 'owner', path: `/vendors/${V.slug}/messages`, label: 'Business messages' },
   { who: 'owner', path: `/vendors/${V.slug}/messages/${conversationId}`, label: 'A conversation (business)' },
   { who: 'team', path: '/admin', label: 'Team: listings' },

@@ -8,6 +8,7 @@ import { runDailyNote } from '@/server/daily-note.server';
 import { closeInterruptedPlanEmails } from '@/server/email-templates.server';
 import { cleanUpConversationFiles, expireConversationFiles } from '@/server/conversation-files.server';
 import { cleanUpRemovedPhotos } from '@/server/photos.server';
+import { sendReviewRequests } from '@/server/review-requests.server';
 import { discardBody } from '@/server/discard-body';
 import { refuseCrossSiteForm, withSecurityHeaders } from '@/server/security-headers';
 
@@ -34,8 +35,9 @@ export default {
   },
 
   /**
-   * Cloudflare's scheduler (wrangler.jsonc triggers): the team's daily note of owners'
-   * changes, and the nightly count of activity (ADR-030). Each is claimed per day, so the
+   * Cloudflare's scheduler (wrangler.jsonc triggers, 8 and 10 in the morning in Orillia in
+   * summer): the team's daily note of owners' changes, the nightly count of activity
+   * (ADR-030), "How was it?" emails, and tidying. Each is claimed per day, so the
    * second run of the day only retries what failed.
    */
   async scheduled(_controller: ScheduledController, env: ServerEnv, ctx: ExecutionContext): Promise<void> {
@@ -68,6 +70,14 @@ export default {
           (outcome) => console.log('removed conversation files:', outcome),
           (err) => console.error('conversation files clean-up failed', err instanceof Error ? err.message : err),
         ),
+    );
+    // "How was it?" emails the morning after events (review-requests.server.ts); the second
+    // run of the morning sends what the first couldn't.
+    ctx.waitUntil(
+      sendReviewRequests(env).then(
+        (outcome) => console.log('review requests:', outcome),
+        (err) => console.error('review requests failed', err instanceof Error ? err.message : err),
+      ),
     );
     // Removed photos whose files couldn't be deleted at the time (photos.server.ts).
     ctx.waitUntil(

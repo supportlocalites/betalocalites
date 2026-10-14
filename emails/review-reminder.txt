@@ -1,0 +1,12 @@
+Subject: A reminder: how was your event on {{date}}?
+
+Hi {{name}},
+
+You haven't reviewed {{businesses}} from your event on {{date}} yet. It only takes a minute:
+{{link}}
+
+You have until {{until}}. This is the only reminder we'll send about this event.
+
+Don't want these emails? Turn them off on your account: {{account}}
+
+Localites

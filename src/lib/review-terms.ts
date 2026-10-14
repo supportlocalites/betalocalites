@@ -47,6 +47,9 @@ export const REVIEW_REFUSALS = {
   LP155: 'Your review can’t be changed now that our team has looked at it.',
   LP156: 'You’ve already replied to this review.',
   LP157: 'Say why, in a few words.',
+  LP158: 'You can’t report your own review.',
+  LP159: 'You’ve already reported this review. Our team will look at it.',
+  LP160: 'That’s a lot of reports for one day. Please try again tomorrow.',
   '23505': 'You’ve already reviewed this booking.',
   rating: 'Choose from 1 to 5 stars.',
   body: 'Write a few words about how it went.',
@@ -61,5 +64,23 @@ export const REVIEW_STATUS = {
   published: 'Published',
   declined: 'Declined',
   removed: 'Removed',
-  withdrawn: 'Withdrawn (account deleted)',
+  withdrawn: 'Withdrawn (account deleted, booking unmarked or event cancelled)',
+} as const;
+
+/** Reporting a published review (Stage 3, part 2): why, in the reporter's words. */
+export const REVIEW_REPORT_REASONS = {
+  not_genuine: 'It isn’t a real customer’s review',
+  conflict: 'It’s from a competitor, or someone too close to the business',
+  personal_details: 'It shares someone’s personal details',
+  offensive: 'It’s abusive or offensive',
+  other: 'Something else',
+} as const;
+export type ReviewReportReason = keyof typeof REVIEW_REPORT_REASONS;
+
+export const REVIEW_REPORT_SENT = 'Thanks. Our team will look at it. The review stays up unless they decide it breaks our rules.';
+
+/** The "How was it?" emails (Stage 3, part 2), as the account page describes them. */
+export const REVIEW_REQUESTS = {
+  label: 'Email me after my events to ask how the businesses I booked did',
+  hint: 'The morning after an event, and once more a week later if you haven’t reviewed them yet.',
 } as const;

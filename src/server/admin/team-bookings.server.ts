@@ -79,7 +79,8 @@ export async function teamMenuCounts(
              (select count(*) from vendor_interest vi join vendor v on v.id = vi.vendor_id
               where v.claim_status <> 'claimed' and v.listing_status = 'published')::int as inquiries,
              (select count(*) from moderation_report where status = 'open')::int as "openReports",
-             (select count(*) from review where status = 'pending')::int as "waitingReviews"`);
+             ((select count(*) from review where status = 'pending')
+               + (select count(distinct review_id) from review_report where status = 'open'))::int as "waitingReviews"`);
     return {
       openFlags: Number(n?.openFlags ?? 0),
       checkIns: Number(n?.checkIns ?? 0),

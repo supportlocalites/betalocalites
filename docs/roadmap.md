@@ -301,9 +301,11 @@ profiles · vendor reply (once) · rating summary (from 3 reviews).
 **Admin → Reviews** (publish, decline with a reason, remove, remove a reply); the person
 emailed when it is published or declined, the business when it is published; reviews on
 the business page with "Sarah M." and Living Local (D-48); one reply from the owner or a
-manager; the average from 3 reviews. **Still to build (part 2):** the morning-after
-request and its reminder, retroactive requests, reporting a review, the written review
-policy (lawyer).
+manager; the average from 3 reviews. **Built, part 2 (migration 0032):** the morning-after
+"How was it?" email and one reminder a week later (events from the previous 60 days asked
+too), turned off on **Your account**; reporting a review (people, and the business about
+its own), with the team's Reported list. **Still to do:** the written review policy
+(lawyer, PO-07).
 
 **Dependencies.** Stage 2 (D-06 and D-14 decided); review policy reviewed by the lawyer.
 

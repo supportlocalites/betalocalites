@@ -3,7 +3,7 @@ import { data, Form, Link, redirect, useLocation, useSearchParams } from 'react-
 import { cloudflareContext } from '@/app/context';
 import { useVendorActivity } from '@/components/ActivityTracker';
 import { SiteHeader } from '@/components/SiteHeader';
-import { ReviewList } from '@/components/Reviews';
+import { ReportLink, ReviewList } from '@/components/Reviews';
 import { VendorPage } from '@/components/VendorPage';
 import { cookieHeaders, viewTrack } from '@/server/activity.server';
 import { hasSessionCookie } from '@/server/auth/session.server';
@@ -132,7 +132,13 @@ export default function VendorProfile({ loaderData: { vendor, reviews, slug, sig
             <h2 id="reviews" className="label">
               Reviews
             </h2>
-            <ReviewList businessName={vendor.name} count={reviews.count} average={reviews.average} reviews={reviews.reviews} />
+            <ReviewList
+              businessName={vendor.name}
+              count={reviews.count}
+              average={reviews.average}
+              reviews={reviews.reviews}
+              after={(r) => <ReportLink to={`/reviews/${r.id}/report`} />}
+            />
             <p className="muted">
               Only people who booked {vendor.name} for an event can review it, after the event. Our team reads every review before it’s
               published.

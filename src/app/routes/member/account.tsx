@@ -8,6 +8,8 @@ import { updatePerson } from '@/server/auth/member.server';
 import { NAMES_NEEDED, namesInput, profileInput } from '@/server/member-input';
 import { getProfile } from '@/server/profile.server';
 import { myAccount } from '@/server/claims.server';
+import { reviewRequestsOn, setReviewRequests } from '@/server/review-requests.server';
+import { REVIEW_REQUESTS } from '@/lib/review-terms';
 import type { Route } from './+types/account';
 import styles from './member.module.css';
 
@@ -21,16 +23,25 @@ export const meta: Route.MetaFunction = () => [...pageMeta('Your account'), { na
 export async function loader({ context }: Route.LoaderArgs) {
   const member = context.get(memberContext);
   const { env } = context.get(cloudflareContext);
-  const [{ businesses, claims }, profile] = await Promise.all([myAccount(env, member.userId), getProfile(env, member.userId)]);
+  const [{ businesses, claims }, profile, reviewRequests] = await Promise.all([
+    myAccount(env, member.userId),
+    getProfile(env, member.userId),
+    reviewRequestsOn(env, member.userId),
+  ]);
   // Accounts made before first and last names were asked (the team's) start with the
   // whole name in the first box.
   const first = member.firstName ?? member.name;
-  return { first, last: member.lastName, email: member.email, profile, businesses, claims };
+  return { first, last: member.lastName, email: member.email, profile, businesses, claims, reviewRequests };
 }
 
 export async function action({ request, context }: Route.ActionArgs) {
   const member = context.get(memberContext);
   const form = await request.formData();
+  if (form.get('intent') === 'emails') {
+    // Only ever this person's own choice: the id comes from the session.
+    await setReviewRequests(context.get(cloudflareContext).env, member.userId, form.get('reviewRequests') === 'on');
+    return redirect('/account?emails=1#emails');
+  }
   if (form.get('intent') !== 'details') throw data(null, { status: 400 });
   const fields = Object.fromEntries(form);
   const names = namesInput.safeParse(fields);
@@ -56,9 +67,10 @@ const CLAIM_STATUS = {
 const ROLE = { owner: 'Owner', manager: 'Manager', staff: 'Staff' } as Record<string, string>;
 
 export default function Account({ loaderData, actionData }: Route.ComponentProps) {
-  const { first, last, email, profile, businesses, claims } = loaderData;
+  const { first, last, email, profile, businesses, claims, reviewRequests } = loaderData;
   const busy = useNavigation().state !== 'idle';
-  const saved = useSearchParams()[0].has('saved') && !actionData;
+  const [params] = useSearchParams();
+  const saved = params.has('saved') && !actionData;
   const errors = actionData?.errors ?? {};
   return (
     <>
@@ -112,6 +124,27 @@ export default function Account({ loaderData, actionData }: Route.ComponentProps
           <p className="muted">Only you can see your saved businesses. {EVENTS_PRIVATE}</p>
         </section>
 
+        <section aria-labelledby="emails-title" className={styles.section} id="emails">
+          <h2 id="emails-title" className="label">
+            Emails
+          </h2>
+          <Form method="post">
+            <input type="hidden" name="intent" value="emails" />
+            <label className={styles.check}>
+              <input type="checkbox" name="reviewRequests" defaultChecked={reviewRequests} /> {REVIEW_REQUESTS.label}
+            </label>
+            <p className="muted">{REVIEW_REQUESTS.hint}</p>
+            <button type="submit" className="button button-secondary" disabled={busy}>
+              Save
+            </button>
+            {params.has('emails') && (
+              <p role="status" className="muted">
+                Saved.
+              </p>
+            )}
+          </Form>
+        </section>
+
         <section aria-labelledby="businesses" className={styles.section}>
           <h2 id="businesses" className="label">
             Your businesses
@@ -140,7 +173,11 @@ export default function Account({ loaderData, actionData }: Route.ComponentProps
                       </span>
                     )}
                     {b.role === 'staff' && !b.archived && (
-                      <span className="muted">You’ll be able to read and reply to customers’ messages here when messaging arrives.</span>
+                      <span>
+                        <Link to={`/vendors/${b.slug}/messages`} className="text-link">
+                          Messages
+                        </Link>
+                      </span>
                     )}
                     {(b.role === 'owner' || b.role === 'manager') && !b.archived && (
                       <span>

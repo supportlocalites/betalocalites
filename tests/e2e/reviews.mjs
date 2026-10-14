@@ -1,7 +1,7 @@
-// Reviews (Stage 3, part 1; D-06, D-48, ADR-026, migration 0031): a person reviews a business they
+// Reviews (Stage 3, parts 1 and 2; D-06, D-48, ADR-026, migrations 0031 and 0032): a person reviews a business they
 // booked, after the event; the team publishes or declines every review; the business replies once;
 // the public sees published reviews only, the author as "Sarah M."; nobody else writes or reads
-// what they shouldn't. The site reaches the database as app_server, so its rules are really tested.
+// what they shouldn't; reports of a review; "How was it?" emails and turning them off. The site reaches the database as app_server, so its rules are really tested.
 //
 // Usage: npm run test:e2e
 import { account, check, cookieFor, finish, mailFor, passwordSession, run, site, sql, twoStepSession } from './helpers.mjs';
@@ -145,6 +145,49 @@ check('…once', r.status === 409, String(r.status));
 r = await page(`/vendors/${V.slug}`);
 check('the reply shows under the review', words(r.body).includes(REPLY));
 
+// ------------------------------------------------------------------ 3b. Reporting a review (part 2)
+check('the public page offers "Report this review"', r.body.includes(`/reviews/${rev.id}/report`));
+r = await page(`/reviews/${rev.id}/report`);
+check('signed out: reporting asks you to sign in', r.status === 302 && /\/join/.test(r.headers.get('location') ?? ''), String(r.status));
+r = await page(`/reviews/${rev.id}/report`, { cookie: cookie.a });
+check('the author can open it…', r.status === 200);
+r = await page(`/reviews/${rev.id}/report`, { cookie: cookie.a, method: 'POST', form: { reason: 'other' } });
+check('…but can’t report their own review', r.status === 409 && words(r.body).includes('can’t report your own review'), String(r.status));
+r = await page(`/reviews/${rev.id}/report`, { cookie: cookie.b, method: 'POST', form: { reason: 'nonsense' } });
+check('a reason is needed', r.status === 400, String(r.status));
+const beforeReport = Date.now();
+r = await page(`/reviews/${rev.id}/report`, { cookie: cookie.b, method: 'POST', form: { reason: 'offensive', details: `Rude ${run}` } });
+check('another person reports it, as themselves',
+  r.status === 302 && (await sql`select reporter_side from review_report where review_id = ${rev.id} and reporter_user_id = ${ids.b}`)[0]?.reporter_side === 'consumer',
+  String(r.status));
+const reportMail = await waitFor(
+  async () => (await mailFor('supportlocalites@gmail.com')).filter((m) => m.at > beforeReport && m.subject === `A review of ${V.name} was reported`),
+  (l) => l.length > 0,
+);
+check('the team is emailed, with a link, never the reporter’s words', reportMail.length === 1 && reportMail[0].body.includes(`/admin/reviews/${rev.id}`) && !reportMail[0].body.includes(`Rude ${run}`));
+r = await page(`/reviews/${rev.id}/report`, { cookie: cookie.b, method: 'POST', form: { reason: 'offensive' } });
+check('…once while it’s open', r.status === 409 && words(r.body).includes('already reported'), String(r.status));
+r = await page(`/vendors/${V.slug}/reviews/${rev.id}/report`, { cookie: cookie.b });
+check('someone not on the business’s team can’t report as the business', r.status === 404, String(r.status));
+r = await page(`/vendors/${V.slug}/reviews`, { cookie: cookie.s });
+check('the business’s page offers "Report this review"', r.body.includes(`/vendors/${V.slug}/reviews/${rev.id}/report`));
+r = await page(`/vendors/${V.slug}/reviews/${rev.id}/report`, { cookie: cookie.s, method: 'POST', form: { reason: 'not_genuine' } });
+check('anyone on its team reports it as the business; the team isn’t emailed twice',
+  r.status === 302 && (await sql`select team_email_status from review_report where review_id = ${rev.id} and reporter_user_id = ${ids.s}`)[0]?.team_email_status === 'not_needed',
+  String(r.status));
+r = await page('/admin/reviews', { cookie: cookie.m });
+const reportedList = /aria-label="Reported reviews"[\s\S]*?<\/ul>/.exec(r.body)?.[0] ?? '';
+check('the team sees it under Reported, with 2 open reports', reportedList.includes(`/admin/reviews/${rev.id}`) && words(reportedList).includes(`${V.name}`) && words(reportedList).includes('2 open reports'));
+r = await page(`/admin/reviews/${rev.id}`, { cookie: cookie.m });
+check('…and each report, its reason, words and who sent it', words(r.body).includes('It’s abusive or offensive') && words(r.body).includes(`Rude ${run}`) && words(r.body).includes('(the business)'));
+r = await page(`/admin/reviews/${rev.id}`, { cookie: cookie.o, method: 'POST', form: { intent: 'dismiss_reports', reason: 'mine' } });
+check('only the team closes reports (403)', r.status === 403, String(r.status));
+r = await page(`/admin/reviews/${rev.id}`, { cookie: cookie.m, method: 'POST', form: { intent: 'dismiss_reports', reason: `Honest review ${run}` } });
+check('the team keeps the review and closes the reports, recorded',
+  r.status === 302 && (await sql`select count(*)::int as n from review_report where review_id = ${rev.id} and status = 'open'`)[0].n === 0 &&
+    (await sql`select count(*)::int as n from audit_log where action = 'review.dismiss_reports' and subject_id = ${rev.id}`)[0].n === 1,
+  String(r.status));
+
 // ------------------------------------------------------------------ 4. The team removes
 r = await page(`/admin/reviews/${rev.id}`, { cookie: cookie.m, method: 'POST', form: { intent: 'remove_reply', reason: `Off topic ${run}` } });
 r = await page(`/vendors/${V.slug}`);
@@ -156,6 +199,45 @@ r = await page(`/vendors/${V.slug}`);
 check('…and the review, with a reason: it’s no longer shown', !r.body.includes(`${BODY}!`) && words(r.body).includes('No reviews yet'));
 r = await page(REVIEW(past), { cookie: cookie.a });
 check('the author is told it was removed, and why', words(r.body).includes('Our team removed your review') && words(r.body).includes(`Personal details ${run}`));
+
+// ------------------------------------------------------------------ 5. "How was it?" emails (part 2)
+// Locally, earlier runs' emails count towards the site's 20 a day: move them to yesterday.
+await sql`update notification set created_at = created_at - interval '1 day'
+          where kind in ('review_request', 'review_reminder') and created_at > now() - interval '1 day'`;
+async function bEvent(daysAgo) {
+  const [e] = await sql`
+    insert into event (host_user_id, event_date, municipality_id) values (${ids.b}, current_date - ${daysAgo}::int, ${town.id}) returning id`;
+  await sql`insert into event_private (event_id, host_user_id, title) values (${e.id}, ${ids.b}, ${`Secret title ${run}`})`;
+  const [row] = await sql`
+    insert into event_vendor (event_id, host_user_id, vendor_id, status, booked_at)
+    values (${e.id}, ${ids.b}, ${V.id}, 'booked', now() - interval '20 days') returning id`;
+  return { id: e.id, row: row.id };
+}
+const bPast = await bEvent(2);
+const beforeAsk = Date.now();
+await site('/cdn-cgi/handler/scheduled?cron=0+12+*+*+*');
+const askMail = await waitFor(async () => (await mailFor(email('b'))).filter((m) => m.at > beforeAsk && m.subject.startsWith('How was your event')), (l) => l.length > 0, 15000);
+check('the morning after: the host is asked how it went, with a link to review the business',
+  askMail.length === 1 && askMail[0].body.includes(`/events/${bPast.id}/review/${bPast.row}`) && askMail[0].body.includes('/account#emails'));
+check('…never the event’s name', askMail.length === 1 && !askMail[0].body.includes(`Secret title ${run}`) && !askMail[0].subject.includes('Secret'));
+await site('/cdn-cgi/handler/scheduled?cron=0+14+*+*+*');
+await new Promise((res) => setTimeout(res, 1500));
+check('…once (the second morning run doesn’t send it again)',
+  (await mailFor(email('b'))).filter((m) => m.at > beforeAsk && m.subject.startsWith('How was your event')).length === 1);
+r = await page('/account', { cookie: cookie.b });
+check('the account page has the choice, on by default', r.status === 200 && /name="reviewRequests"[^>]*checked/.test(r.body));
+r = await page('/account', { cookie: cookie.b, method: 'POST', form: { intent: 'emails' } });
+check('the person turns them off', r.status === 302 && (await sql`select review_requests from email_choice where user_id = ${ids.b}`)[0]?.review_requests === false, String(r.status));
+r = await page('/account', { cookie: cookie.b });
+check('…and the page says so', !/name="reviewRequests"[^>]*checked/.test(r.body));
+await bEvent(3);
+const beforeOff = Date.now();
+await site('/cdn-cgi/handler/scheduled?cron=0+12+*+*+*');
+await new Promise((res) => setTimeout(res, 2000));
+check('turned off: no more "How was it?" emails',
+  (await mailFor(email('b'))).filter((m) => m.at > beforeOff && /How was your event|A reminder/.test(m.subject)).length === 0);
+r = await page('/account', { cookie: cookie.b, method: 'POST', form: { intent: 'emails', reviewRequests: 'on' } });
+check('…and back on', r.status === 302 && (await sql`select review_requests from email_choice where user_id = ${ids.b}`)[0]?.review_requests === true, String(r.status));
 
 // ------------------------------------------------------------------ 5. Wording (D-16, D-24)
 const banned = /book now|booking confirmed|deposit|checkout|pay now|payment received/i;
