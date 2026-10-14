@@ -6,7 +6,7 @@ name: Check the site watch
 
 on:
   push:
-    paths: ['.github/watch-check.txt', '.github/cron-test/**']
+    paths: ['.github/watch-check.txt']
   workflow_dispatch:
 
 permissions:
@@ -30,9 +30,10 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
-      - name: The cron test Worker (only while it's in the repository)
-        if: hashFiles('.github/cron-test/wrangler.jsonc') != ''
-        run: npx wrangler deploy --config .github/cron-test/wrangler.jsonc 2>&1 | grep -E 'Uploaded|schedule|Deployed|ERROR|error' || true
+      # The throwaway cron test Worker (14 October 2026) showed Cloudflare's scheduler, not the
+      # watch, was at fault; it's removed here if it's still there.
+      - name: Remove the cron test Worker
+        run: npx wrangler delete --name localites-cron-test --force 2>&1 | grep -Ei 'deleted|not found|error' || true
       - name: Its versions (adding a secret makes a new one)
         run: npx wrangler deployments list --name localites-watch 2>&1 | tail -20 || true
       - name: The schedules Cloudflare has, and its record of past scheduled runs
@@ -59,11 +60,13 @@ jobs:
       - name: Listen
         run: |
           timeout 390 npx wrangler tail localites-watch --format json > tail.jsonl 2> tail.err || true
-          echo "Events heard: $(grep -c . tail.jsonl || true)"
           node -e '
-            const lines = require("fs").readFileSync("tail.jsonl", "utf8").split("\n").filter(Boolean);
-            for (const l of lines) {
-              let e; try { e = JSON.parse(l); } catch { continue; }
+            // wrangler prints each event as pretty JSON over several lines: read them as one list.
+            const raw = require("fs").readFileSync("tail.jsonl", "utf8").trim();
+            let events = [];
+            try { events = raw ? JSON.parse("[" + raw.replace(/}\s*\n\s*{/g, "},{") + "]") : []; } catch { console.log("could not read the events"); }
+            console.log(`Events heard: ${events.length}`);
+            for (const e of events) {
               const when = new Date(e.eventTimestamp ?? Date.now()).toISOString();
               const kind = e.event?.cron ? `scheduled (${e.event.cron})` : e.event?.request ? "request" : "event";
               console.log(`${when} ${kind} outcome=${e.outcome}`);

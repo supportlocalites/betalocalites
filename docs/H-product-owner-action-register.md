@@ -1235,6 +1235,13 @@ one, then replace the secret in Cloudflare (steps 3 to 4).
 
 **Done when:** the "alerts are switched on" email arrived. Reply *"PO-19 done"*.
 
+**Status (14 October 2026):** your part is done. The email didn't come at first because of a
+Cloudflare fault: on 13 October its scheduler didn't start new every-5-minutes schedules
+(its status page: "Workers - Cron Trigger Activation Issues", fixed 00:09 UTC on 14 October).
+Since then Cloudflare's own record shows the watch looking at the site every 5 minutes, every
+look successful. If the email still isn't in the inbox or spam, tell us and we'll look at
+why that one email didn't go.
+
 ---
 
 ### PO-16 — Switch on business photos (E §9, ADR-003)
