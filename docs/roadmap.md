@@ -214,6 +214,12 @@ conversations, a photo or PDF with a message (migration 0028; switched on by PO-
   gives the team planning totals meanwhile);
 - suggestions from signed-in people linked to their account;
 - linking a conversation to an event.
+- **end dates for files (D-47):** files in a conversation about an event deleted 30 days after
+  the event's date ("This file has expired"), other conversations' files after 30 days (to
+  confirm); kept for a report if reported; and, if built, photos people share from an event,
+  deleted 30 days after it;
+- **storage for growth (D-47):** check Cloudflare's own file storage (R2, about 10 GB free, to
+  confirm) and move business photos and conversation files there before launch.
 
 Also deferred from 2A: archiving or un-cancelling events, the team opening any event for
 support, typing in a business that isn't on Localites, and the team's screens for managers
