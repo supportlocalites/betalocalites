@@ -372,6 +372,16 @@ budget, notes, other guests or the host's last name. Replies go only through
 `invitation_reply()`, limited per internet address, and close when the event is over; a
 cancelled event says so. Up to 300 guests an event.
 
+**The host changes a reply (D-49, migration 0034).** Only through `host_set_reply()`, as the
+host of that guest's event; the reply records that the host set it and the guest's
+invitation says so. **Localites emails the guest** (the one case it does, amending D-08) only
+if the host gave their email and the event isn't over: what changed and the guest's own link,
+never the host's email; at most 10 a day per host, 3 a day per guest and 30 a day across the
+site, the rest recorded as held back (`guest_email`, readable only by the host). **Add to
+calendar:** links for Google, Outlook.com, Microsoft 365 and Yahoo are made on the page and go
+nowhere until the guest taps one; the calendar file needs the guest's link. Neither contains
+the guest's link.
+
 ## 5. Invitation-link security
 
 Stage 4. Unchanged from revision 1:

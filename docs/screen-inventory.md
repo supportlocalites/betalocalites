@@ -56,7 +56,7 @@ added; quotes, bookings and the concierge queue removed.
 | C11 | How was it? | From the feedback email: stars + comments, one per booked vendor. **Built, part 1** (`/events/<id>/review/<row>`, linked from "Plan an event" once the event has passed): stars and words, editable while the team checks it. **Part 2:** the "How was it?" email the morning after, and one reminder a week later, link here | 3 |
 | C12 | My reviews | Status: checking, published, declined (with reason) | 3 |
 | C13 | Guests | Guest list; who has opened and replied; match names from the group link; "No reply yet" list (D-08). **Built, part 1** (`/events/<id>/guests`, from the event plan): add a guest (name; phone or email optional, deleted 90 days after), remove, each one's state (no reply yet, opened, coming with how many, maybe, can't come, their note), the totals, the host's message to guests. The group link comes in part 2 | 4 |
-| C14 | Invitation setup | Wording, questions; personal links per guest and a group link; share by text, WhatsApp, social media or email; printable QR code (D-08). **Built, part 1** (`/events/<id>/guests/<guest>`): the guest's own link with ready words, the phone's share sheet, Copy link, Text message, WhatsApp, Email; make a new link (the old one stops at once). Questions, the group link and the QR code come in part 2 | 4 |
+| C14 | Invitation setup | Wording, questions; personal links per guest and a group link; share by text, WhatsApp, social media or email; printable QR code (D-08). **Built, part 1** (`/events/<id>/guests/<guest>`): the guest's own link with ready words, the phone's share sheet, Copy link, Text message, WhatsApp, Email; make a new link (the old one stops at once); **change their reply** (D-49: the guest is emailed if the host gave their email). Questions, the group link and the QR code come in part 2 | 4 |
 | C15 | RSVP results | | 4 |
 | C16 | Event updates to guests | | 4 |
 
@@ -80,8 +80,8 @@ added; quotes, bookings and the concierge queue removed.
 | # | Screen | Stage |
 |---|---|---|
 | G1 | Invitation. **Built** (`/i/<token>` then `/invite`, no account): the event's name, date and times, town, where, the host's first name and message | 4 |
-| G2 | RSVP form. **Built**: yes, maybe or no; how many, including them (1 to 20); a note; changeable until the event | 4 |
-| G3 | RSVP confirmation. **Built**: thanks, and what the host sees | 4 |
+| G2 | RSVP form. **Built**: yes, maybe or no; how many, including them (1 to 20); a note; changeable until the event; says when the host set the reply (D-49) | 4 |
+| G3 | RSVP confirmation. **Built**: thanks, and what the host sees; coming or maybe: **Add it to your calendar** (Google, Apple, Outlook.com, Microsoft 365, Yahoo, a calendar file; D-49) | 4 |
 | G4 | Link no longer valid. **Built**: replaced, removed, made up, or 30 days after the event | 4 |
 
 ## Platform team

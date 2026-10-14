@@ -17,6 +17,7 @@ export default [
   // A guest's invitation (Stage 4): no account. /i/<token> swaps the link for a cookie.
   route('i/:token', 'routes/invite-link.ts'),
   route('invite', 'routes/invite.tsx'),
+  route('invite/calendar.ics', 'routes/invite-calendar.ts'),
   // Needs an account: every request passes the gate in routes/member/layout.tsx (D-27).
   layout('routes/member/layout.tsx', [
     route('account', 'routes/member/account.tsx'),

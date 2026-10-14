@@ -1,0 +1,13 @@
+Subject: {{host}} updated your reply: {{title}}
+
+Hi {{guest}},
+
+{{host}} updated your reply to {{title}} on {{date}}:
+{{reply}}
+
+If that isn't right, you can change it here until the event:
+{{link}}
+
+Please don't reply to this email. To talk to {{host}}, contact them the way you usually do.
+
+Sent by Localites for {{host}}.

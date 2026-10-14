@@ -31,6 +31,24 @@ Every release and every database migration, in order. Appended before each deplo
 
 ## Releases
 
+### 2026-10-14 — The host changes replies; add to calendar (D-49)
+
+**Stage:** 4 (E §4.6)
+**What changed (plain English):**
+- **The host** can change any guest's reply (coming, maybe, can't come, and how many) on that
+  guest's page. If the host gave the guest's email and the event is still to come, Localites
+  emails the guest what changed, with their own link to change it back. Limits: 10 a day per
+  host, 3 a day per guest, 30 a day across the site.
+- **The guest's invitation** says when the host set their reply.
+- **Add to calendar:** after saying yes or maybe, guests can add the event to Google, Apple
+  (iPhone, Mac), Outlook.com, Microsoft 365, Yahoo, or any calendar with a file.
+**Migrations applied:** `0034_host_changes_reply.sql` (who set a reply, the guest email record,
+the host's reply function).
+**Destructive?** No.
+**Tests run:** database 0034 14/14 (new); end to end guests 47/47, look 408/408; unit 180/180
+(4 new); checks; size.
+**How to roll back:** Cloudflare → Deployments → previous version.
+
 ### 2026-10-14 — Guests and replies, part 1 (Stage 4)
 
 **Stage:** 4 (E §4.6, §5, §8; ADR-032)

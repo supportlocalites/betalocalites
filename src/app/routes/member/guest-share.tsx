@@ -2,11 +2,11 @@ import { useState, useSyncExternalStore } from 'react';
 import { data, Form, Link, redirect, useNavigation, useSearchParams } from 'react-router';
 import { cloudflareContext, memberContext } from '@/app/context';
 import { SiteHeader } from '@/components/SiteHeader';
-import { RESPONSE_WORDS, shareText } from '@/lib/guest-terms';
+import { GUEST_LIMITS, RESPONSE_WORDS, shareText, type GuestResponse } from '@/lib/guest-terms';
 import { isUuid } from '@/lib/ids.mjs';
 import { pageMeta } from '@/lib/meta';
 import { longDateWithYear, TOO_FAST } from '@/lib/plan-terms';
-import { guestShare, newGuestLink } from '@/server/guests.server';
+import { guestShare, hostSetReply, newGuestLink, readReply } from '@/server/guests.server';
 import { found, refusal, siteUrl, tooFast } from '@/server/plan-pages.server';
 import type { Route } from './+types/guest-share';
 import styles from './plan.module.css';
@@ -37,15 +37,22 @@ export async function action({ params, request, context }: Route.ActionArgs) {
   const member = context.get(memberContext);
   const { env } = context.get(cloudflareContext);
   const form = await request.formData();
-  if (form.get('intent') !== 'new-link') throw data(null, { status: 400 });
+  const intent = String(form.get('intent') ?? '');
+  if (intent !== 'new-link' && intent !== 'set-reply') throw data(null, { status: 400 });
   if (await tooFast(env, member.userId)) return data({ error: TOO_FAST }, { status: 429 });
   try {
-    await newGuestLink(env, member.userId, eventId, guestId);
+    if (intent === 'new-link') {
+      await newGuestLink(env, member.userId, eventId, guestId);
+      return redirect(`/events/${eventId}/guests/${guestId}?new=1`);
+    }
+    const reply = readReply(form);
+    if ('error' in reply) return data({ error: reply.error }, { status: 400 });
+    const told = await hostSetReply(env, member.userId, eventId, guestId, reply, siteUrl(env, request));
+    return redirect(`/events/${eventId}/guests/${guestId}?changed=${told}`);
   } catch (err) {
     const { error, status } = refusal(err);
     return data({ error }, { status });
   }
-  return redirect(`/events/${eventId}/guests/${guestId}?new=1`);
 }
 
 const noChanges = () => () => undefined;
@@ -150,6 +157,58 @@ export default function GuestShare({ loaderData, actionData }: Route.ComponentPr
               Email
             </a>
           </p>
+        </section>
+
+        <section className={styles.section} aria-labelledby="change">
+          <h2 id="change" className="label">
+            Change their reply
+          </h2>
+          {params.has('changed') && (
+            <p className="notice" role="status">
+              {params.get('changed') === 'emailed'
+                ? `Changed. We emailed ${guest.name} to let them know.`
+                : params.get('changed') === 'email_failed'
+                  ? `Changed, but the email to ${guest.name} didn’t go. You may want to tell them yourself.`
+                  : `Changed. ${guest.name} sees it on their invitation.`}
+            </p>
+          )}
+          <p className="muted">
+            {guest.email
+              ? `If you change it before the event, we’ll email ${guest.name} at ${guest.email} to let them know, with their link.`
+              : `We have no email for ${guest.name}, so they’ll see the change on their invitation.`}
+          </p>
+          {event.status === 'cancelled' ? (
+            <p className="muted">This event was cancelled.</p>
+          ) : (
+            <Form method="post">
+              <input type="hidden" name="intent" value="set-reply" />
+              <fieldset className={styles.choices}>
+                <legend>Their reply</legend>
+                {(Object.entries(RESPONSE_WORDS) as [GuestResponse, string][]).map(([value, label]) => (
+                  <label key={value} className={styles.choice}>
+                    <input type="radio" name="response" value={value} defaultChecked={guest.response === value} required /> {label}
+                  </label>
+                ))}
+              </fieldset>
+              <div className="field">
+                <label htmlFor="partySize" className="field-label">
+                  How many, including them (if coming or maybe)
+                </label>
+                <input
+                  id="partySize"
+                  name="partySize"
+                  className="input"
+                  type="number"
+                  min={1}
+                  max={GUEST_LIMITS.partySize}
+                  defaultValue={guest.partySize ?? 1}
+                />
+              </div>
+              <button type="submit" className="button button-secondary" disabled={busy}>
+                Save their reply
+              </button>
+            </Form>
+          )}
         </section>
 
         <section className={styles.section} aria-labelledby="replace">

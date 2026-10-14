@@ -4,7 +4,7 @@
 // so its rules are really tested.
 //
 // Usage: npm run test:e2e
-import { account, check, cookieFor, finish, passwordSession, run, site, sql, twoStepSession } from './helpers.mjs';
+import { account, check, cookieFor, finish, mailFor, passwordSession, run, site, sql, twoStepSession } from './helpers.mjs';
 
 const decode = (s) => s.replace(/&quot;/g, '"').replace(/&#x27;|&#39;/g, "'").replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&amp;/g, '&');
 const words = (html) => decode(html.replace(/<!-- -->/g, '').replace(/<[^>]*>/g, ' ')).replace(/\s+/g, ' ');
@@ -104,6 +104,38 @@ check('the host sees the replies: Jo maybe (2 people), Rob no reply yet, and the
 r = await site(GUESTS, { cookie: cookie.a, method: 'POST', form: { intent: 'message', message: `Bring a swimsuit ${run}` } });
 r = await site('/invite', { cookie: jar });
 check('the host’s message shows on the invitation', words(r.body).includes(`Bring a swimsuit ${run}`));
+// The guest adds it to their calendar (coming or maybe).
+r = await site('/invite', { cookie: jar });
+check('coming or maybe: "Add it to your calendar" with Google, Apple, Outlook, Microsoft 365, Yahoo and a file',
+  words(r.body).includes('Add it to your calendar') && r.body.includes('calendar.google.com') && r.body.includes('outlook.live.com') &&
+    r.body.includes('outlook.office.com') && r.body.includes('calendar.yahoo.com') && r.body.includes('/invite/calendar.ics'));
+check('…and the page never shows the guest’s own link (not in any calendar link either)', !r.body.includes(token));
+r = await site('/invite/calendar.ics', { cookie: jar });
+check('the calendar file: the event, in calendar form, with no link in it',
+  r.status === 200 && (r.headers.get('content-type') ?? '').startsWith('text/calendar') && r.body.includes('BEGIN:VEVENT') &&
+    r.body.includes('SUMMARY:Sam’s 8th') && r.body.includes('LOCATION:Our backyard\\, ') && !r.body.includes('/i/'),
+  String(r.status));
+r = await site('/invite/calendar.ics');
+check('…only with the guest’s link', r.status === 404, String(r.status));
+
+// The host changes a guest's reply (D-49): the guest is emailed if the host gave their email.
+const beforeChange = Date.now();
+r = await site(`${GUESTS}/${rob.id}`, { cookie: cookie.a, method: 'POST', form: { intent: 'set-reply', response: 'yes', partySize: '4' } });
+check('the host sets Rob’s reply: coming, 4 people',
+  r.status === 302 && r.location.endsWith('?changed=emailed') && (await sql`select response, party_size, reply_by from guest where id = ${rob.id}`)[0].reply_by === 'host',
+  `${r.status} ${r.location}`);
+const robMail = (await mailFor('rob@example.test')).filter((m) => m.at > beforeChange);
+check('…Rob is emailed: what changed, and his own link to change it back',
+  robMail.length === 1 && robMail[0].subject.includes('Ann updated your reply') && robMail[0].body.includes('Coming (4 people)') && robMail[0].body.includes(`/i/${robToken}`) && !robMail[0].body.includes(email('a')));
+r = await site(`/i/${robToken}`);
+r = await site('/invite', { cookie: cookieValue(r) });
+check('…and his invitation says Ann set it', words(r.body).includes('Ann set your reply to: Yes, I’ll be there (4 people)'));
+r = await site(`${GUESTS}/${jo.id}`, { cookie: cookie.a, method: 'POST', form: { intent: 'set-reply', response: 'no' } });
+check('a guest with no email: changed, not emailed', r.status === 302 && r.location.endsWith('?changed=not_emailed'), r.location);
+r = await site(`${GUESTS}/${rob.id}`, { cookie: cookie.b, method: 'POST', form: { intent: 'set-reply', response: 'no' } });
+check('another person can’t change a reply', r.status === 404 && (await sql`select response from guest where id = ${rob.id}`)[0].response === 'yes', String(r.status));
+r = await site(`${GUESTS}/${jo.id}`, { cookie: cookie.a, method: 'POST', form: { intent: 'set-reply', response: 'maybe', partySize: '2' } });
+
 r = await site(`${GUESTS}/${jo.id}`, { cookie: cookie.a, method: 'POST', form: { intent: 'new-link' } });
 check('the host makes Jo a new link', r.status === 302 && r.location.endsWith('?new=1'), String(r.status));
 r = await site('/invite', { cookie: jar });

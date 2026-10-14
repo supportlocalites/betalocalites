@@ -4,7 +4,9 @@ import { GUEST_LIMITS, RESPONSE_CHOICES, type GuestResponse } from '@/lib/guest-
 import { pageMeta } from '@/lib/meta';
 import { longDateWithYear, timeRange } from '@/lib/plan-terms';
 import { invitationFor, readReply, replyToInvitation } from '@/server/guests.server';
+import { calendarEvent } from '@/server/invite-calendar.server';
 import { inviteToken } from '@/server/invite-cookie.server';
+import { calendarLinks } from '@/lib/calendar';
 import { refusal } from '@/server/plan-pages.server';
 import type { Route } from './+types/invite';
 import styles from './member/plan.module.css';
@@ -28,7 +30,12 @@ export async function loader({ request, context }: Route.LoaderArgs) {
   const token = inviteToken(request);
   const invitation = token ? await invitationFor(env, token) : null;
   if (!invitation) throw data({ invitation: null }, { status: 404 });
-  return { invitation };
+  // Coming or maybe: offer to add it to their calendar (links made here; nothing sent anywhere).
+  const calendar =
+    invitation.status === 'open' && (invitation.response === 'yes' || invitation.response === 'maybe')
+      ? calendarLinks(calendarEvent(invitation))
+      : null;
+  return { invitation, calendar };
 }
 
 export async function action({ request, context }: Route.ActionArgs) {
@@ -50,7 +57,7 @@ export async function action({ request, context }: Route.ActionArgs) {
   return redirect('/invite?replied=1');
 }
 
-export default function Invite({ loaderData: { invitation: i }, actionData }: Route.ComponentProps) {
+export default function Invite({ loaderData: { invitation: i, calendar }, actionData }: Route.ComponentProps) {
   // The host's first name, or plain words when they haven't given one.
   const Host = i.host ?? 'Your host';
   const host = i.host ?? 'your host';
@@ -76,6 +83,41 @@ export default function Invite({ loaderData: { invitation: i }, actionData }: Ro
           {i.response !== 'no' && i.partySize ? ` (${i.partySize} ${i.partySize === 1 ? 'person' : 'people'})` : ''}. You can change it here
           until the event.
         </p>
+      )}
+      {i.replyBy === 'host' && i.response && !params.has('replied') && (
+        <p className="notice">
+          {Host} set your reply to: {RESPONSE_CHOICES[i.response]}
+          {i.response !== 'no' && i.partySize ? ` (${i.partySize} ${i.partySize === 1 ? 'person' : 'people'})` : ''}.
+          {i.status === 'open' ? ' If that isn’t right, change it below.' : ''}
+        </p>
+      )}
+      {calendar && (
+        <section className={styles.section} aria-labelledby="calendar">
+          <h2 id="calendar" className="label">
+            Add it to your calendar
+          </h2>
+          <p className={styles.actions}>
+            <a className="button button-secondary" href={calendar.google} target="_blank" rel="noreferrer">
+              Google Calendar
+            </a>
+            <a className="button button-secondary" href="/invite/calendar.ics" download="invitation.ics">
+              Apple Calendar (iPhone, Mac)
+            </a>
+            <a className="button button-secondary" href={calendar.outlook} target="_blank" rel="noreferrer">
+              Outlook.com
+            </a>
+            <a className="button button-secondary" href={calendar.office365} target="_blank" rel="noreferrer">
+              Microsoft 365
+            </a>
+            <a className="button button-secondary" href={calendar.yahoo} target="_blank" rel="noreferrer">
+              Yahoo
+            </a>
+            <a className="button button-secondary" href="/invite/calendar.ics" download="invitation.ics">
+              Other (calendar file)
+            </a>
+          </p>
+          <p className="muted">Your invitation link isn’t added to your calendar; keep this message to change your reply.</p>
+        </section>
       )}
       {i.status === 'cancelled' && <p className="notice">This event was cancelled.</p>}
       {i.status === 'closed' && (

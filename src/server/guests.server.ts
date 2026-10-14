@@ -1,6 +1,9 @@
 import { sql } from 'drizzle-orm';
-import { GUEST_LIMITS, GUEST_REFUSALS, type GuestResponse } from '@/lib/guest-terms';
+import { GUEST_LIMITS, GUEST_REFUSALS, type GuestResponse, RESPONSE_WORDS } from '@/lib/guest-terms';
+import { longDateWithYear } from '@/lib/plan-terms';
 import { actingAs, errorCode, PlanCapped, PlanNotFound, PlanRefused } from './acting.server';
+import { sendEmail } from './email.server';
+import { renderEmail } from './email-templates.server';
 import { type Db, withDb } from './db.server';
 import type { ServerEnv } from './env';
 
@@ -202,6 +205,57 @@ export async function newGuestLink(env: ServerEnv, userId: string, eventId: stri
   );
 }
 
+/** How a reply reads in words (the host's list, the guest's email). */
+export const replyWords = (response: GuestResponse, partySize: number | null) =>
+  `${RESPONSE_WORDS[response]}${response !== 'no' && partySize ? ` (${partySize} ${partySize === 1 ? 'person' : 'people'})` : ''}`;
+
+/**
+ * The host sets one guest's reply (D-49). If the host gave the guest's email and the event
+ * isn't over, the guest is emailed about it with their link, within the database's limits
+ * (host_set_reply decides; a held-back email is recorded with why). Returns whether an email went.
+ */
+export async function hostSetReply(
+  env: ServerEnv,
+  userId: string,
+  eventId: string,
+  guestId: string,
+  reply: { response: GuestResponse; partySize: number | null },
+  siteUrl: string,
+): Promise<'emailed' | 'not_emailed' | 'email_failed'> {
+  const due = await guarded(
+    actingAs(env, asPerson(userId), async (tx) => {
+      const event = await hostEvent(tx, userId, eventId);
+      const [g] = await tx.execute<{ name: string; version: number }>(sql`
+        select name, link_version as version from guest where id = ${guestId} and event_id = ${eventId} and host_user_id = ${userId}`);
+      if (!g) throw new PlanNotFound();
+      const [email] = await tx.execute<{ emailId: string; email: string }>(sql`
+        select email_id as "emailId", email from host_set_reply(${guestId}::uuid, ${reply.response}, ${reply.partySize}::smallint)`);
+      const [host] = await tx.execute<{ name: string | null }>(sql`select given_name as name from app_user where id = ${userId}`);
+      return email ? { ...email, guest: g, event, host: host?.name ?? 'Your host' } : null;
+    }),
+  );
+  if (!due) return 'not_emailed';
+  const result = await sendEmail(env, {
+    to: due.email,
+    ...renderEmail('guestReplyChanged', {
+      host: due.host,
+      guest: due.guest.name,
+      title: due.event.name,
+      date: longDateWithYear(due.event.date),
+      reply: replyWords(reply.response, reply.partySize),
+      link: inviteUrl(siteUrl, await linkToken(env, guestId, due.guest.version)),
+    }),
+  });
+  await actingAs(env, asPerson(userId), (tx) =>
+    tx.execute(
+      result.sent
+        ? sql`update guest_email set status = 'sent', sent_at = now() where id = ${due.emailId}`
+        : sql`update guest_email set status = 'failed', failure_reason = ${result.reason} where id = ${due.emailId}`,
+    ),
+  ).catch((err: unknown) => console.error('guest email outcome not recorded', err instanceof Error ? err.message : err));
+  return result.sent ? 'emailed' : 'email_failed';
+}
+
 // ======================================================================= the guest (no account)
 
 export type Invitation = {
@@ -219,6 +273,9 @@ export type Invitation = {
   response: GuestResponse | null;
   partySize: number | null;
   note: string | null;
+  /** Who set the reply last: the guest, or the host (D-49). */
+  replyBy: 'guest' | 'host' | null;
+  timezone: string;
 };
 
 /** G1: what the guest's own link opens, or null (a wrong, replaced or expired link). */
@@ -229,7 +286,7 @@ export async function invitationFor(env: ServerEnv, token: string): Promise<Invi
     db.execute<Invitation>(sql`
       select guest_name as "guestName", title, event_date::text as date, to_char(start_time, 'HH24:MI') as "startTime",
              to_char(end_time, 'HH24:MI') as "endTime", town, venue_note as "where", message, host_name as host, status,
-             response, party_size as "partySize", reply_note as note
+             response, party_size as "partySize", reply_note as note, reply_by as "replyBy", timezone
       from invitation_for(decode(${hash}, 'hex'))`),
   );
   return row ?? null;

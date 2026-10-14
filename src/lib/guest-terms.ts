@@ -31,6 +31,7 @@ export const GUEST_REFUSALS: Record<string, string> = {
   LP162: 'An event can have up to 300 guests.',
   LP163: 'Phone numbers and emails aren’t kept after 90 days.',
   LP164: 'Replies are closed: the event is over.',
+  LP165: 'How many are coming? From 1 to 20.',
   name: 'Write the guest’s name.',
   nameTooLong: 'Please keep the name under 80 characters.',
   phone: 'That doesn’t look like a phone number.',

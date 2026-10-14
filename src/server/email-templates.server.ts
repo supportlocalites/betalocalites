@@ -18,6 +18,7 @@ import newMessage from '../../emails/new-message.txt?raw';
 import reportTeam from '../../emails/report-team.txt?raw';
 import reviewDeclined from '../../emails/review-declined.txt?raw';
 import reviewForBusiness from '../../emails/review-for-business.txt?raw';
+import guestReplyChanged from '../../emails/guest-reply-changed.txt?raw';
 import reviewPublished from '../../emails/review-published.txt?raw';
 import reviewReminder from '../../emails/review-reminder.txt?raw';
 import reviewReported from '../../emails/review-reported.txt?raw';
@@ -62,6 +63,8 @@ const TEMPLATES = {
   reviewRequest,
   reviewReminder,
   reviewReported,
+  // Guests (Stage 4, D-49).
+  guestReplyChanged,
 } as const;
 export type TemplateName = keyof typeof TEMPLATES;
 

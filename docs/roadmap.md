@@ -333,7 +333,9 @@ the host's account exists (D-10).
 a personal link per guest, sent from the host's phone (share sheet, text, WhatsApp, email,
 copy); a new link replaces the old; account-free replies (yes, maybe, no, how many, a note),
 changeable until the event; who opened and who replied, with totals; the host's message;
-links stop 30 days after the event; phone numbers and emails erased 90 days after.
+links stop 30 days after the event; phone numbers and emails erased 90 days after. **Then
+(D-49, migration 0034):** the host changes any guest's reply and the guest is emailed;
+guests add the event to Google, Apple, Outlook, Microsoft 365, Yahoo or any calendar.
 **Part 2:** the group link and matching names, the printable QR code, the host's questions,
 updates to guests.
 
