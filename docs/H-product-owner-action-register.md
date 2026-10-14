@@ -1,6 +1,6 @@
 # H — Product Owner Action Register
 
-**Last updated:** 2026-10-14 (revision 29: PO-20, switch on files in conversations; revision 28: PO-11 and D-12 parked by you; revision 27: PO-15 done, planning works on the test site; revision 26: PO-16 done, business photos on; revision 25: PO-18 done, nightly backups on; revision 24: PO-19 and PO-06 done, alerts reach you; messages fixed after two reviews; revision 23: messages and reports; revision 22: Inquire built, D-04 and D-05; revision 21: D-46, the team sees every booking; a business taken down can't be newly booked; revision 20: D-45, square profile photo and whole page photos; revision 19: business photos built, PO-16 to switch them on; revision 18: D-44, bookings marked before a business joined; revision 17: D-39 revised to D-43, "Plan an event" built)
+**Last updated:** 2026-10-14 (revision 30: PO-20 done, files in conversations on; revision 29: PO-20, switch on files in conversations; revision 28: PO-11 and D-12 parked by you; revision 27: PO-15 done, planning works on the test site; revision 26: PO-16 done, business photos on; revision 25: PO-18 done, nightly backups on; revision 24: PO-19 and PO-06 done, alerts reach you; messages fixed after two reviews; revision 23: messages and reports; revision 22: Inquire built, D-04 and D-05; revision 21: D-46, the team sees every booking; a business taken down can't be newly booked; revision 20: D-45, square profile photo and whole page photos; revision 19: business photos built, PO-16 to switch them on; revision 18: D-44, bookings marked before a business joined; revision 17: D-39 revised to D-43, "Plan an event" built)
 
 **Revision 29 changes:** files in conversations are built: a photo or PDF with any message.
 One small step for you, **PO-20**: a private storage folder in Supabase (3 minutes, no keys).
@@ -106,7 +106,6 @@ Recorded from your messages of 9 and 10 October 2026. These now shape every docu
 |---|---|---|---|
 | **ADR-005** | ✅ CPU time 8 ms with React Router (passes). A day after the speed improvements go live, glance at **Metrics** once more: CPU time, and whether any "Exceeded CPU" errors appear | Nothing; a final check | 2 min |
 | **PO-14** | Switch on activity counting: add one secret in Cloudflare (steps below) | Any numbers on the team's Activity pages and the owners' Analytics pages | 3 min |
-| **PO-20** | Switch on files in conversations: one private storage folder in Supabase (steps below) | People and businesses sending photos and PDFs in messages | 3 min |
 
 **How to respond:** reply in the conversation with decision numbers and your choice,
 e.g. *"Median 6 ms, P99 20 ms, no errors."* "I don't understand
@@ -1283,6 +1282,8 @@ other side sees it too. A PDF shows as a link that saves it.
 **Done when:** a photo shows in a conversation. Reply *"PO-20 done"*, or tell us what you saw.
 If the folder name is wrong, sending says "The file couldn't be saved just now".
 
+✅ **Done (14 October 2026):** you confirmed files work in conversations on the test site.
+
 ---
 
 ### PO-16 — Switch on business photos (E §9, ADR-003)
@@ -1352,6 +1353,7 @@ you saw (a screenshot is fine; never include a key).
 | 2026-10-13 | PO-17: GitHub puts the test site live only after every test and the database update (first deploy checked healthy); Cloudflare's own builds disconnected |
 | 2026-10-13 | D-45: a square profile photo for lists; the photos on a business's page shown whole |
 | 2026-10-14 | D-46: a business taken down is hidden from people and can't be newly booked; the team sees every booking |
+| 2026-10-14 | PO-20: files in conversations switched on (private storage folder); a file sent and seen |
 | 2026-10-14 | PO-15: planning an event checked on the test site; it works |
 | 2026-10-14 | PO-16: business photos switched on (storage folder in Supabase, keys in Cloudflare); a photo shows on a business page |
 | 2026-10-14 | PO-18: nightly backups on; the first one restored and checked |
