@@ -214,10 +214,8 @@ conversations, a photo or PDF with a message (migration 0028; switched on by PO-
   gives the team planning totals meanwhile);
 - suggestions from signed-in people linked to their account;
 - linking a conversation to an event.
-- **end dates for files (D-47):** files in a conversation about an event deleted 30 days after
-  the event's date ("This file has expired"), other conversations' files 1 year after
-  they were sent; kept for a report if reported; and, if built, photos people share from an event,
-  deleted 30 days after it;
+- **end dates for photos people share from an event (D-47), when that's built:** 30 days after
+  the event (conversation files' end dates are built: migration 0030);
 - **storage for growth (D-47):** staying on Supabase for now (owner's choice); Cloudflare's own
   storage (R2) to revisit as storage grows (it needs a payment card and bills past its free
   amount).

@@ -18,7 +18,7 @@ export type ShownMessage = {
   createdAt: string;
   removed: boolean;
   hidden: boolean;
-  file: { id: string; name: string; isPhoto: boolean; size: number; width: number | null; height: number | null } | null;
+  file: { id: string; name: string; isPhoto: boolean; size: number; width: number | null; height: number | null; expired: boolean } | null;
 };
 
 const when = new Intl.DateTimeFormat('en-CA', { dateStyle: 'medium', timeStyle: 'short', timeZone: 'America/Toronto' });
@@ -131,7 +131,12 @@ export function MessageList({
             ) : (
               (m.body || !m.file) && <p className={styles.body}>{m.body || 'File removed'}</p>
             )}
-            {!gone && m.file?.isPhoto && (
+            {!gone && m.file?.expired && (
+              <p className={`muted ${styles.fileLink}`}>
+                This file has expired: {m.file.isPhoto ? 'a photo' : 'a PDF'}, “{m.file.name}”. Ask for it again if you still need it.
+              </p>
+            )}
+            {!gone && m.file?.isPhoto && !m.file.expired && (
               <a href={`${filePath}/${m.file.id}`} className={styles.filePhoto} target="_blank" rel="noopener">
                 <img
                   src={`${filePath}/${m.file.id}`}
@@ -142,7 +147,7 @@ export function MessageList({
                 />
               </a>
             )}
-            {!gone && m.file && !m.file.isPhoto && (
+            {!gone && m.file && !m.file.isPhoto && !m.file.expired && (
               <a href={`${filePath}/${m.file.id}`} className={`text-link ${styles.fileLink}`} download={m.file.name}>
                 PDF: {m.file.name} ({sizeWords(m.file.size)})
               </a>
@@ -208,7 +213,8 @@ export function FileField() {
       </label>
       <p className="field-hint" id="file-hint">
         One per message. Photos are made smaller and lose hidden details such as where they were taken. A PDF (a quote, an invoice, a menu)
-        goes as it is, up to 4 MB. Only the two of you can open it.
+        goes as it is, up to 4 MB. Only the two of you can open it. Files are kept until 30 days after the event you’re talking about, or a
+        year if there isn’t one: save anything you want to keep.
       </p>
       <input id="file" name="file" type="file" accept="image/*,application/pdf,.pdf" aria-describedby="file-hint" />
     </div>

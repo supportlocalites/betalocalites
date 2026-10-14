@@ -31,6 +31,26 @@ Every release and every database migration, in order. Appended before each deplo
 
 ## Releases
 
+### 2026-10-14 — Files in conversations end (D-47)
+
+**Stage:** 2 (E §8)
+**What changed (plain English):**
+- **The owner's rule:** a file in a conversation about an event ends 30 days after the event
+  (a file sent after that still gets 30 days); any other conversation's file ends a year after
+  it was sent.
+- **What people see:** both sides see "This file has expired". The file box says how long
+  files are kept.
+- **Nightly run:** ends files at their date, then deletes their storage; a file covered by a
+  report stays with the report.
+**Migrations applied:** `0030_conversation_file_expiry.sql` (a column marking when a file
+expired; the end-date and nightly functions).
+**Destructive?** It deletes files at their end date, by the owner's rule; nothing else.
+**Tests run:** database 0030 8/8 (new), every earlier file passing; end-to-end messages 133/133
+(2 new), look 336/336; unit 173/173; checks.
+**How to roll back:** Cloudflare → Deployments → previous version; a new migration can stop
+the nightly ending.
+**Approved by:** Product owner (D-47, 14 October 2026).
+
 ### 2026-10-14 — Files in conversations, after review (Stage 2B)
 
 **Stage:** 2 (E §4.3, §8)

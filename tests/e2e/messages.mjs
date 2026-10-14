@@ -512,6 +512,14 @@ check('the very first message can be just a file', r.status === 302 && startFile
 got = await getFile(`/vendors/${V.slug}/messages/${firstWithFile}/files/${startFile?.id}`, cookie.o);
 check('…and the business opens it', got.status === 200 && got.bytes.equals(Buffer.from(pdfBytes('floor plan'))), String(got.status));
 
+// D-47: a file in a conversation not about an event ends a year after it was sent.
+await sql`update conversation_file set created_at = now() - interval '13 months' where id = ${startFile?.id}`;
+await sql`select expire_conversation_files(500)`;
+r = await page(`/messages/${firstWithFile}`, { cookie: cookie.p });
+check('a file past its end date: both sides are told it has expired', words(r.body).includes('This file has expired') && !r.body.includes(`/files/${startFile?.id}"`));
+got = await getFile(`/messages/${firstWithFile}/files/${startFile?.id}`, cookie.p);
+check('…and it can no longer be opened', got.status === 404, String(got.status));
+
 // ------------------------------------------------------------------ 6. Leaving
 await sql`update vendor_member set ended_at = now() where vendor_id = ${V.id} and user_id = ${ids.s}`;
 r = await page(BIZ_THREAD, { cookie: cookie.s });

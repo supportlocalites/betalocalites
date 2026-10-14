@@ -24,7 +24,16 @@ export type Attachment = {
 };
 
 /** The file a message shows: never its storage address, which stays on the server. */
-export type ShownFile = { id: string; name: string; isPhoto: boolean; size: number; width: number | null; height: number | null };
+export type ShownFile = {
+  id: string;
+  name: string;
+  isPhoto: boolean;
+  size: number;
+  width: number | null;
+  height: number | null;
+  /** Past its end date (D-47): shown as "This file has expired", no longer opened. */
+  expired: boolean;
+};
 
 /** Sending files is on when photo storage is (the same keys reach the private folder, PO-20). */
 export const filesOn = uploadsOn;
@@ -114,9 +123,10 @@ export async function attachFile(tx: Db, messageId: string, conversationId: stri
 export async function filesByMessage(tx: Db, conversationId: string): Promise<Map<string, ShownFile>> {
   const rows = await tx.execute<ShownFile & { messageId: string }>(sql`
     select f.id, f.message_id as "messageId", f.file_name as name, f.mime_type <> 'application/pdf' as "isPhoto",
-           f.byte_size as size, f.width, f.height
+           f.byte_size as size, f.width, f.height, f.expired_at is not null as expired
     from conversation_file f join message m on m.id = f.message_id
-    where f.conversation_id = ${conversationId} and f.deleted_at is null and m.removed_at is null and m.hidden_by_team_at is null`);
+    where f.conversation_id = ${conversationId} and (f.deleted_at is null or f.expired_at is not null)
+      and m.removed_at is null and m.hidden_by_team_at is null`);
   return new Map(rows.map(({ messageId, ...f }) => [messageId, f]));
 }
 
@@ -165,4 +175,13 @@ export async function cleanUpConversationFiles(env: ServerEnv, limit = 20): Prom
     deleted += 1;
   }
   return { deleted, left: rows.length - deleted };
+}
+
+/**
+ * Nightly (D-47): files past their end date (30 days after the conversation's event, or a year
+ * after they were sent) are taken off; their storage is deleted by cleanUpConversationFiles.
+ */
+export async function expireConversationFiles(env: ServerEnv): Promise<number> {
+  const [n] = await withDb(env, (db) => db.execute<{ n: number }>(sql`select expire_conversation_files(500) as n`));
+  return n?.n ?? 0;
 }

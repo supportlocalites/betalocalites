@@ -6,7 +6,7 @@ import type { ServerEnv } from '@/server/env';
 import { runActivityRollup } from '@/server/activity-rollup.server';
 import { runDailyNote } from '@/server/daily-note.server';
 import { closeInterruptedPlanEmails } from '@/server/email-templates.server';
-import { cleanUpConversationFiles } from '@/server/conversation-files.server';
+import { cleanUpConversationFiles, expireConversationFiles } from '@/server/conversation-files.server';
 import { cleanUpRemovedPhotos } from '@/server/photos.server';
 import { discardBody } from '@/server/discard-body';
 import { refuseCrossSiteForm, withSecurityHeaders } from '@/server/security-headers';
@@ -61,10 +61,13 @@ export default {
     );
     // Files from conversations that went with their messages (conversation-files.server.ts).
     ctx.waitUntil(
-      cleanUpConversationFiles(env).then(
-        (outcome) => console.log('removed conversation files:', outcome),
-        (err) => console.error('conversation files clean-up failed', err instanceof Error ? err.message : err),
-      ),
+      expireConversationFiles(env)
+        .then((n) => console.log('expired conversation files:', n))
+        .then(() => cleanUpConversationFiles(env, 30))
+        .then(
+          (outcome) => console.log('removed conversation files:', outcome),
+          (err) => console.error('conversation files clean-up failed', err instanceof Error ? err.message : err),
+        ),
     );
     // Removed photos whose files couldn't be deleted at the time (photos.server.ts).
     ctx.waitUntil(
