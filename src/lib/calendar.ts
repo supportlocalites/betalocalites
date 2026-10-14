@@ -98,13 +98,30 @@ export function calendarLinks(e: CalendarEvent): { google: string; outlook: stri
 }
 
 /** Text in a calendar file: backslashes, commas, semicolons and line breaks escaped. */
-const text = (s: string) => s.replace(/\\/g, '\\\\').replace(/;/g, '\\;').replace(/,/g, '\\,').replace(/\r?\n/g, '\\n');
+const text = (s: string) =>
+  s
+    .replace(/\\/g, '\\\\')
+    .replace(/;/g, '\\;')
+    .replace(/,/g, '\\,')
+    .replace(/\r\n?|\n/g, '\\n');
 
-/** Lines longer than 75 characters continue on the next line, after a space (RFC 5545). */
+/** Lines longer than 75 bytes continue on the next line, after a space (RFC 5545), never mid-letter. */
 const fold = (line: string) => {
   const out: string[] = [];
-  for (let i = 0; i < line.length; i += 74) out.push((i ? ' ' : '') + line.slice(i, i + 74));
-  return out.join('\r\n');
+  let current = '';
+  let bytes = 0;
+  for (const ch of line) {
+    const size = new TextEncoder().encode(ch).length;
+    if (bytes + size > (out.length ? 74 : 75)) {
+      out.push(current);
+      current = '';
+      bytes = 0;
+    }
+    current += ch;
+    bytes += size;
+  }
+  out.push(current);
+  return out.join('\r\n ');
 };
 
 /** A calendar file with this one event. uid: the same each time for one guest, so adding again updates it. */

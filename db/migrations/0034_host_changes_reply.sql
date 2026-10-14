@@ -5,8 +5,9 @@
 -- reply (yes, maybe or no, and how many). The reply records who set it last, and the guest's
 -- invitation says so. If the host gave the guest's email and the event isn't over, the guest
 -- is emailed about the change with their link, within limits so it can't be used to send mail
--- to strangers: 10 a day per host, 3 a day per guest, 30 a day across the site; the rest are
--- recorded as held back. The email never carries the host's email address.
+-- to strangers: 10 a day per host, 3 a day per guest, 2 a day to one address (however many
+-- guests have it), 30 a day across the site; the rest are recorded as held back, and the host
+-- is told. The email never carries the host's email address.
 --
 -- Not destructive: a new column (existing replies were the guest's own), a new table, functions.
 -- =============================================================================
@@ -87,6 +88,7 @@ create table guest_email (
   guest_id        uuid not null references guest(id) on delete cascade,
   host_user_id    uuid not null references app_user(id),
   kind            text not null default 'reply_changed' check (kind in ('reply_changed')),
+  to_hash         bytea not null check (octet_length(to_hash) = 32),   -- sha256 of the address, lowercased (never the address)
   status          text not null default 'queued' check (status in ('queued', 'sent', 'failed', 'suppressed')),
   failure_reason  text,
   sent_at         timestamptz,
@@ -97,6 +99,7 @@ create table guest_email (
 create index guest_email_host on guest_email (host_user_id, created_at);
 create index guest_email_guest on guest_email (guest_id, created_at);
 create index guest_email_day on guest_email (created_at) where status in ('sent', 'queued');
+create index guest_email_to on guest_email (to_hash, created_at);
 comment on table guest_email is
   'Emails to a guest about a reply their host changed (D-49). The host reads and records its own; nothing else.';
 
@@ -109,15 +112,17 @@ create policy guest_email_host_record on guest_email for update to app_server
   with check (acting_side() = 'person' and host_user_id = acting_user() and status in ('sent', 'failed'));
 grant select, update (status, failure_reason, sent_at) on guest_email to app_server;
 
--- The host sets one guest's reply. Returns the email to send, if one is due (queued here,
--- recorded by the host's request after sending), or nothing.
+-- The host sets one guest's reply. Returns nothing (no change, or no email due: no address,
+-- or the event is over), or one row: the email to send (queued here, recorded by the host's
+-- request after sending), or, when held back by a limit, why (email_id and email null).
 create function host_set_reply(p_guest uuid, p_response text, p_party_size smallint)
-returns table (email_id uuid, email text)
+returns table (email_id uuid, email text, held_back text)
 language plpgsql security definer set search_path = public, extensions as $$
 declare
   g record;
   v_email uuid;
   v_why text;
+  v_to bytea;
 begin
   if acting_side() is distinct from 'person' then
     raise exception 'only the person planning this event can change its guests' using errcode = 'LP101';
@@ -152,6 +157,7 @@ begin
     return;
   end if;
   perform pg_advisory_xact_lock(hashtextextended('localites.guest-email', 0));
+  v_to := sha256(convert_to(lower(g.email), 'UTF8'));
   v_why := case
     when (select count(*) from guest_email x where x.host_user_id = acting_user()
           and x.status in ('sent', 'queued') and x.created_at > now() - interval '1 day') >= 10
@@ -159,15 +165,20 @@ begin
     when (select count(*) from guest_email x where x.guest_id = g.id
           and x.status in ('sent', 'queued') and x.created_at > now() - interval '1 day') >= 3
       then 'the day''s limit of emails to this guest'
+    when (select count(*) from guest_email x where x.to_hash = v_to
+          and x.status in ('sent', 'queued') and x.created_at > now() - interval '1 day') >= 2
+      then 'the day''s limit of emails to this address'
     when (select count(*) from guest_email x
           where x.status in ('sent', 'queued') and x.created_at > now() - interval '1 day') >= 30
       then 'the site''s daily limit of guest emails'
   end;
-  insert into guest_email (guest_id, host_user_id, status, failure_reason)
-  values (g.id, acting_user(), case when v_why is null then 'queued' else 'suppressed' end, v_why)
+  insert into guest_email (guest_id, host_user_id, to_hash, status, failure_reason)
+  values (g.id, acting_user(), v_to, case when v_why is null then 'queued' else 'suppressed' end, v_why)
   returning id into v_email;
   if v_why is null then
-    return query select v_email, g.email;
+    return query select v_email, g.email, null::text;
+  else
+    return query select null::uuid, null::text, v_why;
   end if;
 end $$;
 

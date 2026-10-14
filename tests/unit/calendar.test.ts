@@ -34,6 +34,13 @@ describe('calendar', () => {
     expect(f).toContain('SUMMARY:Sam’s 8th\\, with cake\\; games');
     expect(f).toContain('DESCRIPTION:Bring a swimsuit!\\nFrom Ann');
     expect(f).toContain('UID:abc@localites.ca');
-    expect(f.split('\r\n').every((line) => line.length <= 75)).toBe(true);
+    expect(f.split('\r\n').every((line) => new TextEncoder().encode(line).length <= 75)).toBe(true);
+  });
+  it('long titles with accents and emoji fold by bytes, never mid-letter; a lone line break is escaped', () => {
+    const f = calendarFile({ ...party, title: 'Fête 🎉 '.repeat(20), details: 'a\rb' }, 'abc', 0);
+    expect(f.split('\r\n').every((line) => new TextEncoder().encode(line).length <= 75)).toBe(true);
+    expect(f).not.toContain('\uFFFD');
+    expect(f.replace(/\r\n /g, '')).toContain(`SUMMARY:${'Fête 🎉 '.repeat(20)}`);
+    expect(f).toContain('DESCRIPTION:a\\nb');
   });
 });

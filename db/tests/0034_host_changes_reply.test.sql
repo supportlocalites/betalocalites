@@ -74,16 +74,21 @@ select pg_temp.expect_code('how many must be 1 to 20', $q$
 select pg_temp.expect_code('the host can''t write reply_by directly', $q$
   update guest set reply_by = 'guest' where id = '00000000-0000-7000-8000-0000000034d1'$q$, '42501');
 select host_set_reply('00000000-0000-7000-8000-0000000034d1', 'no', null);
-select host_set_reply('00000000-0000-7000-8000-0000000034d1', 'maybe', 1::smallint);
-select pg_temp.expect_equal('at most 3 emails a day to one guest; the rest held back, with why', (
-  select string_agg(status, ',' order by created_at, status) from guest_email), 'queued,queued,queued');
-select host_set_reply('00000000-0000-7000-8000-0000000034d1', 'yes', 3::smallint);
-select pg_temp.expect_equal('…the fourth is held back', (
-  select status || ': ' || failure_reason from guest_email order by created_at desc, status desc limit 1),
-  'suppressed: the day''s limit of emails to this guest');
+select pg_temp.expect_equal('at most 2 emails a day to one address; the next is held back, and the host is told why', (
+  select held_back from host_set_reply('00000000-0000-7000-8000-0000000034d1', 'maybe', 1::smallint)),
+  'the day''s limit of emails to this address');
+select pg_temp.expect_equal('…recorded with why, never the address itself', (
+  select string_agg(status, ',' order by created_at, status) from guest_email), 'queued,queued,suppressed');
+reset role;
+update guest set email = 'JO@example.com' where id = '00000000-0000-7000-8000-0000000034d2';
+set local role app_server;
+select pg_temp.act('person', '00000000-0000-7000-8000-0000000034a1');
+select pg_temp.expect_equal('…however many guests have that address', (
+  select held_back from host_set_reply('00000000-0000-7000-8000-0000000034d2', 'no', null)),
+  'the day''s limit of emails to this address');
 update guest_email set status = 'sent', sent_at = now() where status = 'queued';
 select pg_temp.expect_equal('the host records how its emails went', (
-  select count(*)::text from guest_email where status = 'sent'), '3');
+  select count(*)::text from guest_email where status = 'sent'), '2');
 
 select pg_temp.act('person', '00000000-0000-7000-8000-0000000034a2');
 select pg_temp.expect_code('another person can''t change a guest''s reply', $q$

@@ -169,7 +169,9 @@ export default function GuestShare({ loaderData, actionData }: Route.ComponentPr
                 ? `Changed. We emailed ${guest.name} to let them know.`
                 : params.get('changed') === 'email_failed'
                   ? `Changed, but the email to ${guest.name} didn’t go. You may want to tell them yourself.`
-                  : `Changed. ${guest.name} sees it on their invitation.`}
+                  : params.get('changed') === 'held_back'
+                    ? `Changed, but we didn’t email ${guest.name}: that’s the most emails for today. Please tell them yourself.`
+                    : `Changed. ${guest.name} sees it on their invitation.`}
             </p>
           )}
           <p className="muted">

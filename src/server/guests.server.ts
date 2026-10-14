@@ -221,20 +221,23 @@ export async function hostSetReply(
   guestId: string,
   reply: { response: GuestResponse; partySize: number | null },
   siteUrl: string,
-): Promise<'emailed' | 'not_emailed' | 'email_failed'> {
+): Promise<'emailed' | 'not_emailed' | 'held_back' | 'email_failed'> {
   const due = await guarded(
     actingAs(env, asPerson(userId), async (tx) => {
       const event = await hostEvent(tx, userId, eventId);
       const [g] = await tx.execute<{ name: string; version: number }>(sql`
         select name, link_version as version from guest where id = ${guestId} and event_id = ${eventId} and host_user_id = ${userId}`);
       if (!g) throw new PlanNotFound();
-      const [email] = await tx.execute<{ emailId: string; email: string }>(sql`
-        select email_id as "emailId", email from host_set_reply(${guestId}::uuid, ${reply.response}, ${reply.partySize}::smallint)`);
+      const [email] = await tx.execute<{ emailId: string | null; email: string | null; heldBack: string | null }>(sql`
+        select email_id as "emailId", email, held_back as "heldBack"
+        from host_set_reply(${guestId}::uuid, ${reply.response}, ${reply.partySize}::smallint)`);
       const [host] = await tx.execute<{ name: string | null }>(sql`select given_name as name from app_user where id = ${userId}`);
       return email ? { ...email, guest: g, event, host: host?.name ?? 'Your host' } : null;
     }),
   );
   if (!due) return 'not_emailed';
+  if (!due.emailId || !due.email) return 'held_back';
+  const emailId = due.emailId;
   const result = await sendEmail(env, {
     to: due.email,
     ...renderEmail('guestReplyChanged', {
@@ -249,8 +252,8 @@ export async function hostSetReply(
   await actingAs(env, asPerson(userId), (tx) =>
     tx.execute(
       result.sent
-        ? sql`update guest_email set status = 'sent', sent_at = now() where id = ${due.emailId}`
-        : sql`update guest_email set status = 'failed', failure_reason = ${result.reason} where id = ${due.emailId}`,
+        ? sql`update guest_email set status = 'sent', sent_at = now() where id = ${emailId}`
+        : sql`update guest_email set status = 'failed', failure_reason = ${result.reason} where id = ${emailId}`,
     ),
   ).catch((err: unknown) => console.error('guest email outcome not recorded', err instanceof Error ? err.message : err));
   return result.sent ? 'emailed' : 'email_failed';
