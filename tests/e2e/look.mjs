@@ -77,6 +77,20 @@ await site(`/vendors/${V.slug}/messages/${conversationId}`, {
 // A report of that conversation, for the team's Reports pages (part 2).
 await site(`/messages/${conversationId}/report`, { cookie: cookieOf(sessions.person), method: 'POST', form: { reason: 'other', details: 'Checking how reports look.' } });
 const [lookReport] = await sql`select id from moderation_report where conversation_id = ${conversationId}`;
+// A past event with V booked, and a published review of it, for the review pages (Stage 3).
+const [pastEvent] = await sql`
+  insert into event (host_user_id, event_date, municipality_id)
+  select ${ids.person}, current_date - 5, primary_municipality_id from vendor where id = ${V.id} returning id`;
+await sql`insert into event_private (event_id, host_user_id, title) values (${pastEvent.id}, ${ids.person}, 'Checking how reviews look')`;
+const [pastRow] = await sql`
+  insert into event_vendor (event_id, host_user_id, vendor_id, status, booked_at)
+  values (${pastEvent.id}, ${ids.person}, ${V.id}, 'booked', now() - interval '20 days') returning id`;
+await site(`/events/${pastEvent.id}/review/${pastRow.id}`, {
+  cookie: cookieOf(sessions.person),
+  method: 'POST',
+  form: { rating: '5', body: 'Checking how a review looks: friendly, on time, and the cake was lovely.' },
+});
+const [lookReview] = await sql`select id from review where event_vendor_id = ${pastRow.id}`;
 const [Z] = await sql`
   insert into vendor (slug, display_name, primary_municipality_id, listing_status, published_at, claim_status, source)
   values (${`e2e-look-z-${run}`}, ${`Orchard Photo Booth ${run}`}, ${town.id}, 'published', now(), 'claimed', 'admin_entered')
@@ -171,6 +185,7 @@ const PAGES = [
   { who: 'person', path: '/saved', label: 'Saved businesses' },
   { who: 'person', path: `/vendors/${V.slug}/add`, label: 'Add to an event' },
   { who: 'person', path: `/vendors/${W.slug}/inquire`, label: 'Inquire' },
+  { who: 'person', path: `/events/${pastEvent.id}/review/${pastRow.id}`, label: 'Review a business' },
   { who: 'person', path: '/messages', label: 'Messages' },
   { who: 'person', path: `/messages/${conversationId}`, label: 'A conversation' },
   { who: 'person', path: `/vendors/${Z.slug}/message`, label: 'Message a business' },
@@ -187,6 +202,7 @@ const PAGES = [
   },
   { who: 'owner', path: `/vendors/${V.slug}/team`, label: 'The business team' },
   { who: 'owner', path: `/vendors/${V.slug}/bookings`, label: 'Bookings marked' },
+  { who: 'owner', path: `/vendors/${V.slug}/reviews`, label: 'Business reviews' },
   { who: 'owner', path: `/vendors/${V.slug}/messages`, label: 'Business messages' },
   { who: 'owner', path: `/vendors/${V.slug}/messages/${conversationId}`, label: 'A conversation (business)' },
   { who: 'team', path: '/admin', label: 'Team: listings' },
@@ -200,6 +216,8 @@ const PAGES = [
   { who: 'team', path: '/admin/activity', label: 'Team: activity' },
   { who: 'team', path: `/admin/bookings?business=${V.id}`, label: 'Team: bookings' },
   { who: 'team', path: '/admin/inquiries?show=all', label: 'Team: inquiries' },
+  { who: 'team', path: '/admin/reviews', label: 'Team: reviews' },
+  { who: 'team', path: `/admin/reviews/${lookReview.id}`, label: 'Team: one review' },
   { who: 'team', path: '/admin/reports?show=all', label: 'Team: reports' },
   { who: 'team', path: `/admin/reports/${lookReport.id}`, label: 'Team: one report' },
 ];

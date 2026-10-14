@@ -1,0 +1,8 @@
+Subject: Your review of {{business}} is on Localites
+
+Hi {{name}},
+
+Thank you. Your review of {{business}} is now on their page, shown as {{shownAs}}:
+{{link}}
+
+Localites

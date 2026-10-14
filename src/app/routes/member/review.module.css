@@ -1,0 +1,43 @@
+/* Reviews (Stage 3): the review form and a review as its author sees it. Tokens only. */
+
+.form {
+  display: grid;
+  gap: var(--space-4);
+  margin-top: var(--space-4);
+}
+
+.starField {
+  border: none;
+  margin: 0;
+  padding: 0;
+}
+
+.starChoices {
+  display: grid;
+  gap: var(--space-2);
+  margin-top: var(--space-2);
+}
+
+.starChoice {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: var(--size-icon-button);
+}
+
+.stars {
+  font-size: var(--text-title-3);
+  letter-spacing: var(--space-1);
+  margin: 0;
+}
+
+.body {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.reply {
+  border-left: var(--hairline) solid var(--color-line);
+  padding-left: var(--space-4);
+  margin-top: var(--space-4);
+}

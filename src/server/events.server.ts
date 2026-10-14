@@ -4,6 +4,7 @@ import { ideasHeading, PLAN_LIMITS, PLAN_REFUSALS, type PlanStatus } from '@/lib
 import { type Acting, actingAs, PlanCapped, planned, PlanNotFound, PlanRefused } from './acting.server';
 import { type Db, withDb } from './db.server';
 import type { ServerEnv } from './env';
+import { CAN_REVIEW, type CanReview, type ReviewStatus } from './reviews.server';
 import type { EventValues } from './event-input';
 import { LIST_PHOTO, LIST_PHOTO_COLUMNS, type ListPhoto, type ListPhotoColumns, withListPhoto } from './photo-store.server';
 
@@ -346,6 +347,10 @@ export type PlanRow = {
   flaggedAt: string | null;
   /** Its square profile photo (none once it's no longer listed). */
   photo: ListPhoto | null;
+  /** Whether it can be reviewed now, and why not (Stage 3, migration 0031). */
+  canReview: CanReview;
+  /** The person's review of this booking, if they wrote one. */
+  review: ReviewStatus | null;
 };
 
 export type Ideas = {
@@ -388,8 +393,10 @@ export async function eventPlan(env: ServerEnv, userId: string, eventId: string)
                  ev.booked_at::text as "bookedAt",
                  -- A flag counts only for the current marking (the person may un-mark and mark again).
                  case when ev.vendor_flagged_at >= ev.booked_at then ev.vendor_flagged_at::text end as "flaggedAt",
+                 ${CAN_REVIEW} as "canReview",
+                 (select r.status from review r where r.event_vendor_id = ev.id and r.author_user_id = ${userId}) as review,
                  ${LIST_PHOTO_COLUMNS}
-          from event_vendor ev join vendor v on v.id = ev.vendor_id
+          from event_vendor ev join vendor v on v.id = ev.vendor_id join event e on e.id = ev.event_id
           ${LIST_PHOTO}
           -- A business that's no longer listed is hidden (D-46), unless the person marked it
           -- booked: then it stays as their own record, with no photo or link.

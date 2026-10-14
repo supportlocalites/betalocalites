@@ -84,128 +84,9 @@ create trigger review_request_booked
   before insert on review_request
   for each row execute function enforce_review_request_booked();
 
-create table review (
-  id                 uuid primary key default gen_random_uuid(),
-  event_vendor_id    uuid not null unique references event_vendor(id),  -- one review per booking
-  author_user_id     uuid not null references app_user(id),
-  rating             smallint not null check (rating between 1 and 5),
-  body               text check (char_length(body) <= 3000),
-  moderation_status  text not null default 'pending'
-                     check (moderation_status in ('pending', 'published', 'rejected', 'removed')),
-  moderation_reason  text,
-  moderated_by       uuid references app_user(id),
-  moderated_at       timestamptz,
-  published_at       timestamptz,
-  vendor_reply       text check (char_length(vendor_reply) <= 1500),
-  vendor_replied_by  uuid references app_user(id),
-  vendor_replied_at  timestamptz,
-  -- Set by the database, never by the app: true if the vendor replied to the host
-  -- in a Localites conversation. False shows the label "Planned outside Localites".
-  planned_on_localites boolean not null default false,
-  created_at         timestamptz not null default now(),
-  check (moderation_status = 'pending' or (moderated_by is not null and moderated_at is not null)),
-  check (moderation_status <> 'published' or published_at is not null),
-  check (moderation_status not in ('rejected', 'removed') or moderation_reason is not null),
-  check ((vendor_reply is null) = (vendor_replied_at is null)),
-  check ((vendor_reply is null) = (vendor_replied_by is null))
-);
-
--- [D-06, option B] Who may review: the host, for a vendor they marked booked,
--- after the event, within 60 days, if the vendor hasn't flagged the booking.
--- A Localites conversation is not required; the database records whether there
--- was one (the vendor replied at least once), so the label can't be faked.
--- Every review starts pending and is published only by the platform team.
-create function enforce_review_eligibility() returns trigger
-language plpgsql as $$
-declare
-  ev event_vendor%rowtype;
-  e  event%rowtype;
-begin
-  select * into strict ev from event_vendor where id = new.event_vendor_id;
-  select * into strict e  from event where id = ev.event_id;
-
-  if new.author_user_id <> e.host_user_id then
-    raise exception 'only the person who planned the event can review a vendor booked for it';
-  end if;
-  if ev.status <> 'booked' then
-    raise exception 'a vendor can only be reviewed after being marked as booked';
-  end if;
-  if e.status = 'cancelled' then
-    raise exception 'vendors cannot be reviewed for a cancelled event';
-  end if;
-  if event_ends_at(e) > now() then
-    raise exception 'a vendor can only be reviewed after the event has taken place';
-  end if;
-  if now() > event_ends_at(e) + interval '60 days' then
-    raise exception 'the 60-day window to review this booking has closed';
-  end if;
-  if ev.vendor_flagged_at is not null and ev.flag_outcome is distinct from 'booking_stands' then
-    raise exception 'the business has said this booking is not real; it can be reviewed only if the platform team confirms it';
-  end if;
-  new.planned_on_localites := exists (
-    select 1 from conversation c
-    join message m on m.conversation_id = c.id
-    where c.consumer_user_id = e.host_user_id
-      and c.vendor_id = ev.vendor_id
-      and m.author_side = 'vendor');
-  if new.moderation_status <> 'pending' then
-    raise exception 'new reviews start as pending until the platform team checks them';
-  end if;
-  return new;
-end $$;
-
-create trigger review_eligibility
-  before insert on review
-  for each row execute function enforce_review_eligibility();
-
--- After the platform team's check, the consumer's words are fixed. Localites never
--- edits a review; it only publishes, rejects, or removes it. The vendor gets one
--- reply, on a published review, written by an owner or manager.
-create function enforce_review_changes() returns trigger
-language plpgsql as $$
-declare
-  vendor_of_review uuid;
-begin
-  if new.event_vendor_id <> old.event_vendor_id or new.author_user_id <> old.author_user_id then
-    raise exception 'a review cannot be moved to another booking or author';
-  end if;
-  if new.planned_on_localites <> old.planned_on_localites then
-    raise exception 'whether a booking was planned on Localites is recorded by the database and cannot be changed';
-  end if;
-  if old.moderation_status <> 'pending'
-     and (new.rating <> old.rating or new.body is distinct from old.body) then
-    raise exception 'a review cannot be changed after it has been checked';
-  end if;
-  if old.vendor_reply is not null and new.vendor_reply is distinct from old.vendor_reply then
-    raise exception 'a business can reply to a review only once';
-  end if;
-  if new.vendor_reply is not null and old.vendor_reply is null then
-    if new.moderation_status <> 'published' then
-      raise exception 'a business can only reply to a published review';
-    end if;
-    select ev.vendor_id into vendor_of_review from event_vendor ev where ev.id = new.event_vendor_id;
-    if not exists (select 1 from vendor_member m
-                   where m.vendor_id = vendor_of_review and m.user_id = new.vendor_replied_by
-                     and m.role in ('owner', 'manager') and m.ended_at is null) then
-      raise exception 'only the business''s owner or a manager can reply to a review';
-    end if;
-  end if;
-  return new;
-end $$;
-
-create trigger review_changes
-  before update on review
-  for each row execute function enforce_review_changes();
-
--- Calculated, never typed in. The average appears only from 3 published reviews.
-create view vendor_rating_summary as
-select ev.vendor_id,
-       count(*)::int as review_count,
-       case when count(*) >= 3 then round(avg(r.rating), 1) end as average_rating
-from review r
-join event_vendor ev on ev.id = r.event_vendor_id
-where r.moderation_status = 'published'
-group by ev.vendor_id;
+-- REVIEWS: now in db/migrations/0031_reviews.sql (review, with per-side rules, the public's
+-- published_reviews() and vendor_rating(), D-06 and D-48). Still proposed here: the
+-- "How was it?" request below (part 2).
 
 -- =============================================================================
 -- ACCESS CONTROL  (second lock — see ADR-004)
@@ -221,7 +102,7 @@ do $$
 declare t text;
 begin
   foreach t in array array[
-    'review_request', 'review'
+    'review_request'
   ] loop
     execute format('alter table %I enable row level security', t);
     execute format('alter table %I force row level security', t);

@@ -16,6 +16,10 @@ import inquiryTeam from '../../emails/inquiry-team.txt?raw';
 import vendorJoined from '../../emails/vendor-joined.txt?raw';
 import newMessage from '../../emails/new-message.txt?raw';
 import reportTeam from '../../emails/report-team.txt?raw';
+import reviewDeclined from '../../emails/review-declined.txt?raw';
+import reviewForBusiness from '../../emails/review-for-business.txt?raw';
+import reviewPublished from '../../emails/review-published.txt?raw';
+import reviewTeam from '../../emails/review-team.txt?raw';
 import { uuidv7 } from '@/lib/ids.mjs';
 import { type Db, withDb } from './db.server';
 import { sendEmail, TEAM_ADDRESS } from './email.server';
@@ -47,6 +51,11 @@ const TEMPLATES = {
   // Messages (Stage 2B).
   newMessage,
   reportTeam,
+  // Reviews (Stage 3).
+  reviewTeam,
+  reviewPublished,
+  reviewDeclined,
+  reviewForBusiness,
 } as const;
 export type TemplateName = keyof typeof TEMPLATES;
 
@@ -75,7 +84,15 @@ export function renderEmail(name: TemplateName, values: Record<string, string | 
 export async function emailPerson(
   env: ServerEnv,
   to: { userId: string; email: string },
-  kind: 'claim_received' | 'claim_decision' | 'listing_change_undone' | 'owner_removed' | 'vendor_joined',
+  kind:
+    | 'claim_received'
+    | 'claim_decision'
+    | 'listing_change_undone'
+    | 'owner_removed'
+    | 'vendor_joined'
+    | 'review_published'
+    | 'review_declined'
+    | 'review_for_business',
   subject: { type: string; id: string },
   content: { subject: string; text: string },
 ): Promise<void> {

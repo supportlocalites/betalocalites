@@ -1,0 +1,8 @@
+Subject: A new review of {{business}} on Localites
+
+Hi {{name}},
+
+A {{stars}}-star review of {{business}} is now on your page. You can read it, and reply once, here:
+{{link}}
+
+Localites

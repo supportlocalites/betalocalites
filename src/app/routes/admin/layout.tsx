@@ -29,13 +29,24 @@ export const middleware: Route.MiddlewareFunction[] = [
 export async function loader({ context }: Route.LoaderArgs) {
   const admin = context.get(adminContext);
   const { env } = context.get(cloudflareContext);
-  const [newSuggestions, openClaims, { openFlags, checkIns, inquiries, openReports }, deletions] = await Promise.all([
+  const [newSuggestions, openClaims, { openFlags, checkIns, inquiries, openReports, waitingReviews }, deletions] = await Promise.all([
     countNewSuggestions(env),
     countOpenClaims(env),
     teamMenuCounts(env, admin),
     countPendingDeletions(env, admin),
   ]);
-  return { name: admin.name, email: admin.email, newSuggestions, openClaims, openFlags, deletions, checkIns, inquiries, openReports };
+  return {
+    name: admin.name,
+    email: admin.email,
+    newSuggestions,
+    openClaims,
+    openFlags,
+    deletions,
+    checkIns,
+    inquiries,
+    openReports,
+    waitingReviews,
+  };
 }
 
 export default function AdminLayout({ loaderData }: Route.ComponentProps) {
@@ -52,6 +63,9 @@ export default function AdminLayout({ loaderData }: Route.ComponentProps) {
           </NavLink>
           <NavLink to="/admin/claims" className="text-link">
             Claims{loaderData.openClaims > 0 ? ` (${loaderData.openClaims} waiting)` : ''}
+          </NavLink>
+          <NavLink to="/admin/reviews" className="text-link">
+            Reviews{loaderData.waitingReviews > 0 ? ` (${loaderData.waitingReviews} waiting)` : ''}
           </NavLink>
           <NavLink to="/admin/reports" className="text-link">
             Reports{loaderData.openReports > 0 ? ` (${loaderData.openReports} open)` : ''}

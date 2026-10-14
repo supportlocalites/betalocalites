@@ -48,6 +48,9 @@ export default function MyBusiness({ loaderData: { businesses } }: Route.Compone
                       <Link to={`/vendors/${b.slug}/messages`} className="text-link">
                         {b.unread > 0 ? `Messages (${b.unread} new)` : 'Messages'}
                       </Link>
+                      <Link to={`/vendors/${b.slug}/reviews`} className="text-link">
+                        Reviews
+                      </Link>
                     </div>
                   ) : (
                     <div className={styles.rowActions}>
@@ -56,6 +59,9 @@ export default function MyBusiness({ loaderData: { businesses } }: Route.Compone
                       </Link>
                       <Link to={`/vendors/${b.slug}/bookings`} className="text-link">
                         Bookings marked
+                      </Link>
+                      <Link to={`/vendors/${b.slug}/reviews`} className="text-link">
+                        Reviews
                       </Link>
                       <Link to={`/vendors/${b.slug}/edit`} className="text-link">
                         Edit your listing

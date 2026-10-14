@@ -3,12 +3,15 @@ import { data, Form, Link, redirect, useLocation, useSearchParams } from 'react-
 import { cloudflareContext } from '@/app/context';
 import { useVendorActivity } from '@/components/ActivityTracker';
 import { SiteHeader } from '@/components/SiteHeader';
+import { ReviewList } from '@/components/Reviews';
 import { VendorPage } from '@/components/VendorPage';
 import { cookieHeaders, viewTrack } from '@/server/activity.server';
 import { hasSessionCookie } from '@/server/auth/session.server';
 import { isUuid } from '@/lib/ids.mjs';
 import { pageMeta } from '@/lib/meta';
 import { findRenamed, getVendor } from '@/server/catalog.server';
+import { withDb } from '@/server/db.server';
+import { publicReviews } from '@/server/reviews.server';
 import type { Route } from './+types/vendor';
 import styles from '@/components/VendorPage.module.css';
 
@@ -25,9 +28,10 @@ export async function loader({ request, params, context }: Route.LoaderArgs) {
     throw data(null, { status: 404 });
   }
   const { id, ...vendor } = found;
+  const reviews = await withDb(env, (db) => publicReviews(db, id));
   // A signed note of this page, for counting real visits and taps (ADR-030).
   const { track, setCookie } = await viewTrack(env, request, id);
-  return data({ vendor, slug: params.slug, signedIn: hasSessionCookie(request), track }, { headers: cookieHeaders(setCookie) });
+  return data({ vendor, reviews, slug: params.slug, signedIn: hasSessionCookie(request), track }, { headers: cookieHeaders(setCookie) });
 }
 
 // The visitor cookie a new browser gets with the page (ADR-030).
@@ -69,7 +73,7 @@ function PlanNotice({ name }: { name: string }) {
   );
 }
 
-export default function VendorProfile({ loaderData: { vendor, slug, signedIn, track } }: Route.ComponentProps) {
+export default function VendorProfile({ loaderData: { vendor, reviews, slug, signedIn, track } }: Route.ComponentProps) {
   const pageRef = useRef<HTMLElement>(null);
   const location = useLocation();
   const onTap = useVendorActivity(track, pageRef, listPlace(location.state), location.key);
@@ -123,6 +127,16 @@ export default function VendorProfile({ loaderData: { vendor, slug, signedIn, tr
               </Form>
             </div>
             <p className="muted">Saving and adding to an event are private. {vendor.name} isn’t told.</p>
+          </section>
+          <section aria-labelledby="reviews" className={styles.owner}>
+            <h2 id="reviews" className="label">
+              Reviews
+            </h2>
+            <ReviewList businessName={vendor.name} count={reviews.count} average={reviews.average} reviews={reviews.reviews} />
+            <p className="muted">
+              Only people who booked {vendor.name} for an event can review it, after the event. Our team reads every review before it’s
+              published.
+            </p>
           </section>
           <section aria-labelledby="owner" className={styles.owner}>
             <h2 id="owner" className="label">

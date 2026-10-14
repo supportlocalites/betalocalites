@@ -31,6 +31,8 @@ export default [
     route('events/:id/edit', 'routes/member/event-edit.tsx'),
     route('events/:id/cancel', 'routes/member/event-cancel.tsx'),
     route('events/:id/plan/:rowId/:change', 'routes/member/plan-change.tsx'),
+    // Reviewing a business booked for the event (C11, Stage 3).
+    route('events/:id/review/:rowId', 'routes/member/review.tsx'),
     route('saved', 'routes/member/saved.tsx'),
     route('vendors/:slug/add', 'routes/member/vendor-add.tsx'),
     // Inquire, for a business not on Localites yet (C10, ADR-024).
@@ -52,6 +54,8 @@ export default [
     route('vendors/:slug/messages/:id/files/:fileId', 'routes/member/message-file.tsx', { id: 'business-file' }),
     route('business', 'routes/member/business.tsx'),
     route('vendors/:slug/bookings', 'routes/member/bookings.tsx'),
+    // A business's reviews, and its one reply to each (V8, Stage 3).
+    route('vendors/:slug/reviews', 'routes/member/business-reviews.tsx'),
     // A business owner's team (V4, E §3).
     route('vendors/:slug/team', 'routes/member/team.tsx'),
     route('team-invite/:token', 'routes/member/team-invite.tsx'),
@@ -74,6 +78,8 @@ export default [
     route('reports', 'routes/admin/reports.tsx'),
     route('reports/:id', 'routes/admin/report.tsx'),
     route('reports/:id/files/:fileId', 'routes/admin/report-file.tsx'),
+    route('reviews', 'routes/admin/reviews.tsx'),
+    route('reviews/:id', 'routes/admin/review.tsx'),
     route('account-deletions', 'routes/admin/account-deletions.tsx'),
     route('photos', 'routes/admin/photos.tsx'),
     route('categories', 'routes/admin/categories.tsx'),

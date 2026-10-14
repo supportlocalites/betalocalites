@@ -3,6 +3,7 @@ import { cloudflareContext, memberContext } from '@/app/context';
 import { SiteHeader } from '@/components/SiteHeader';
 import { isUuid } from '@/lib/ids.mjs';
 import { pageMeta } from '@/lib/meta';
+import { REVIEW_STATUS_WORDS } from '@/lib/review-terms';
 import {
   budgetWords,
   FEATURED_LINE,
@@ -146,6 +147,17 @@ export default function EventPlan({ loaderData }: Route.ComponentProps) {
                     {r.category && <span className={styles.meta}>{r.category}</span>}
                     {!r.listed && <span className={styles.meta}>No longer listed on Localites. It stays here as your own record.</span>}
                     {r.flaggedAt && <span className={styles.flagged}>{r.name} says it isn’t booked for this event.</span>}
+                    {r.review && r.review !== 'withdrawn' ? (
+                      <Link to={`${base}/review/${r.rowId}`} className="text-link">
+                        {REVIEW_STATUS_WORDS[r.review]}
+                      </Link>
+                    ) : (
+                      r.canReview === 'yes' && (
+                        <Link to={`${base}/review/${r.rowId}`} className="text-link">
+                          Review {r.name}
+                        </Link>
+                      )
+                    )}
                     {open && (
                       <details className={styles.change}>
                         <summary>Change this</summary>

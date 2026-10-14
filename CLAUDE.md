@@ -31,6 +31,12 @@ decisions are in [docs/H-product-owner-action-register.md](docs/H-product-owner-
 - The repository is public: no secrets in code, logs or pages.
 
 ## Working
+- Checking work (the owner, 14 October 2026: "streamline our review process to save on tokens but
+  make sure we check the work"): one independent review per feature, **before** pushing (a pushed
+  migration can't be edited), by a cheaper model, given only the diff plus the checklist: who can
+  read or write what (other person, other business, former member, staff, team, signed out), files
+  or rows left behind, timing and races, emails and limits, docs that overstate. Short report.
+  Small fixes: no reviewer, the tests are the check.
 - Branch: `claude/event-discovery-architecture-dz0qgf`; Cloudflare builds and deploys it on push.
 - Before pushing: `npm run check`, `npm test`, `npm run test:db` (needs TEST_DATABASE_ADMIN_URL),
   `npm run build && npm run size`; for sign-in, claims or admin changes also `npm run test:e2e`,
