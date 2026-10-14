@@ -37,9 +37,16 @@ decisions are in [docs/H-product-owner-action-register.md](docs/H-product-owner-
   read or write what (other person, other business, former member, staff, team, signed out), files
   or rows left behind, timing and races, emails and limits, docs that overstate. Short report.
   Small fixes: no reviewer, the tests are the check.
+  Independent review only for changes to the database or to who can see or do what; the
+  owner can ask for a full review at any time.
+- Testing (the owner, 14 October 2026: "only test the edits we made"): locally, run the quick
+  checks, unit tests and all database checks (cheap, and a pushed migration can't be edited),
+  then only the browser suites for the area changed (plus `look.mjs` if pages changed). GitHub
+  runs every suite for free on push and won't update the site if any fail; a red run is fixed
+  at once. Read only the summary lines of test output.
 - Branch: `claude/event-discovery-architecture-dz0qgf`; Cloudflare builds and deploys it on push.
 - Before pushing: `npm run check`, `npm test`, `npm run test:db` (needs TEST_DATABASE_ADMIN_URL),
-  `npm run build && npm run size`; for sign-in, claims or admin changes also `npm run test:e2e`,
+  `npm run build && npm run size`; for sign-in, claims or admin changes also the matching browser suites of `npm run test:e2e`,
   against a local Supabase Auth server built by `scripts/e2e/build-auth-server.sh`, set up by
   `scripts/e2e/env.sh`, with the pretend email service `scripts/e2e/mail-server.mjs` (see the CI job).
 - The public signs in at `/join` with emailed codes (ADR-028); the team at `/sign-in` with a
