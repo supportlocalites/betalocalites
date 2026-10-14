@@ -160,7 +160,11 @@ export function toListPhoto(env: ServerEnv, c: ListPhotoColumns): ListPhoto | nu
  * `photo` (the storage path never leaves the server). `show` false gives no photo, for a
  * business that isn't published (its photos show nowhere until it is, E §9).
  */
-export function withListPhoto<T extends ListPhotoColumns>(env: ServerEnv, row: T, show = true): Omit<T, keyof ListPhotoColumns> & { photo: ListPhoto | null } {
+export function withListPhoto<T extends ListPhotoColumns>(
+  env: ServerEnv,
+  row: T,
+  show = true,
+): Omit<T, keyof ListPhotoColumns> & { photo: ListPhoto | null } {
   const { photoPath, photoWidth, photoHeight, cropX, cropY, cropW, cropH, ...rest } = row;
   const photo = show ? toListPhoto(env, { photoPath, photoWidth, photoHeight, cropX, cropY, cropW, cropH }) : null;
   return { ...rest, photo };
@@ -222,4 +226,59 @@ export async function deleteFiles(env: ServerEnv, path: string): Promise<boolean
     }),
   );
   return results.every(Boolean);
+}
+
+// ---------------------------------------------------------------- files in conversations (private)
+
+/** Files sent in conversations (migration 0028): a private folder, never served at a public address. */
+export const CONVERSATION_BUCKET = 'conversation-files';
+
+const privateUrl = (base: string, path: string) => `${base}/s3/${CONVERSATION_BUCKET}/${path}`;
+
+/** Stores one conversation file. Never throws; false when storage refused or couldn't be reached. */
+export async function storePrivateFile(env: ServerEnv, path: string, bytes: Uint8Array<ArrayBuffer>, type: string): Promise<boolean> {
+  const c = client(env);
+  if (!c) return false;
+  try {
+    const res = await c.s3.fetch(privateUrl(c.base, path), {
+      method: 'PUT',
+      body: bytes,
+      headers: { 'Content-Type': type, 'Cache-Control': 'private, no-store' },
+    });
+    await res.body?.cancel();
+    if (!res.ok) console.error('conversation file storage refused a file', res.status);
+    return res.ok;
+  } catch (err) {
+    console.error('conversation file storage unreachable', err instanceof Error ? err.message : err);
+    return false;
+  }
+}
+
+/** One conversation file's contents, for the site to hand over itself; null when it can't be read. */
+export async function readPrivateFile(env: ServerEnv, path: string): Promise<ReadableStream | null> {
+  const c = client(env);
+  if (!c) return null;
+  try {
+    const res = await c.s3.fetch(privateUrl(c.base, path), { method: 'GET' });
+    if (!res.ok || !res.body) {
+      await res.body?.cancel();
+      return null;
+    }
+    return res.body;
+  } catch {
+    return null;
+  }
+}
+
+/** Deletes one conversation file. Never throws; true when it's gone (or was never there). */
+export async function deletePrivateFile(env: ServerEnv, path: string): Promise<boolean> {
+  const c = client(env);
+  if (!c) return false;
+  try {
+    const res = await c.s3.fetch(privateUrl(c.base, path), { method: 'DELETE' });
+    await res.body?.cancel();
+    return res.ok || res.status === 404;
+  } catch {
+    return false;
+  }
 }

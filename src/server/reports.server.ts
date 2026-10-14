@@ -7,6 +7,7 @@ import type { Admin } from './auth/admin.server';
 import type { Db } from './db.server';
 import { sendEmail, TEAM_ADDRESS } from './email.server';
 import { renderEmail } from './email-templates.server';
+import { readPrivateFile } from './photo-store.server';
 import type { ServerEnv } from './env';
 import { asTeam, talked } from './messages.server';
 
@@ -160,6 +161,8 @@ export type ReportDetail = ReportRow & {
     removed: boolean;
     hidden: boolean;
     reported: boolean;
+    /** The photo or PDF sent with it (migration 0028); gone: deleted, not kept for the report. */
+    file: { id: string; name: string; isPhoto: boolean; size: number; gone: boolean } | null;
   }[];
 };
 
@@ -171,10 +174,16 @@ export async function reportDetail(env: ServerEnv, admin: Admin, reportId: strin
       from (${ROW}) x join moderation_report r on r.id = x.id join conversation c on c.id = r.conversation_id
       where x.id = ${reportId}`);
     if (!row) throw new PlanNotFound();
-    const messages = await tx.execute<ReportDetail['messages'][number]>(sql`
+    const messages = await tx.execute<Omit<ReportDetail['messages'][number], 'file'>>(sql`
       select message_id as id, author_side as side, author_name as author, body, created_at::text as "createdAt", removed, hidden, reported
       from reported_conversation_for_team(${reportId}::uuid)`);
-    return { ...row, messages: [...messages] };
+    const files = await tx.execute<{ id: string; messageId: string; name: string; type: string; size: number; gone: boolean }>(sql`
+      select file_id as id, message_id as "messageId", file_name as name, mime_type as type, byte_size as size, gone
+      from reported_conversation_files_for_team(${reportId}::uuid)`);
+    const byMessage = new Map(
+      files.map((f) => [f.messageId, { id: f.id, name: f.name, isPhoto: f.type !== 'application/pdf', size: f.size, gone: f.gone }]),
+    );
+    return { ...row, messages: messages.map((m) => ({ ...m, file: byMessage.get(m.id) ?? null })) };
   });
 }
 
@@ -211,4 +220,19 @@ export async function decideReport(
       });
     }
   });
+}
+
+/** One file of a reported conversation, for the team (each look logged by the database, with the report). */
+export async function reportFile(env: ServerEnv, admin: Admin, reportId: string, fileId: string) {
+  const [f] = await actingAs(env, { side: 'team', userId: admin.userId }, (tx) =>
+    tx.execute<{ path: string; type: string; name: string }>(sql`
+      select storage_path as path, mime_type as type, file_name as name from team_reported_file(${reportId}::uuid, ${fileId}::uuid)`),
+  ).catch((err: unknown) => {
+    if (errorCode(err) === 'LP101') return [];
+    throw err;
+  });
+  if (!f) throw new PlanNotFound();
+  const body = await readPrivateFile(env, f.path);
+  if (!body) throw new PlanNotFound();
+  return { body, type: f.type, name: f.name };
 }

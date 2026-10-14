@@ -31,6 +31,48 @@ Every release and every database migration, in order. Appended before each deplo
 
 ## Releases
 
+### 2026-10-14 — Files in conversations (Stage 2B, part 3)
+
+**Stage:** 2 (E §4.3, §8, §9; screens C8, V7, X13)
+**What changed (plain English):**
+- **Photos and PDFs in messages:** either side can add one photo or one PDF to a message, or
+  send it on its own.
+- **Photos** are made smaller in the sender's browser. The server removes hidden details such
+  as where a photo was taken.
+- **PDFs** (quotes, invoices, menus) go as they are, up to 4 MB.
+- **Private storage:** files are kept in a private folder. The site hands a file only to the
+  two sides of the conversation, checking every time.
+- **Removal:** a file goes when its message is removed or hidden, or when its sender deletes
+  their account, and its storage is deleted. The exception is a conversation reported while
+  the file was there: the team keeps it, and opens it only through the report, logged.
+- **Limits:** 20 files a day per person, and 700 MB in all.
+- **Switching it on:** needs one step from the owner, PO-20, a private storage folder in
+  Supabase. Until then, the reply box doesn't offer files.
+**Migrations applied:** `0028_conversation_files.sql`:
+- new table `conversation_file`, with per-side rules;
+- a message needs words or a file, checked at the end of each step (it replaces the rule
+  "not empty");
+- files go with their messages and accounts;
+- team-only functions to list and open a reported conversation's files, logged;
+- housekeeping functions for deleting storage.
+**Destructive?** No: one new table; the replaced rule is looser and every existing message
+meets it. To undo, a later migration drops them and restores the rule.
+**Tests run:**
+- database 0028 32/32 (new), every earlier file passing (0023's empty-message check now
+  expects the end-of-step refusal), proposal 31/31 (its old file checks removed, now built);
+- end-to-end messages 129/129 (22 new: send and open a PDF and a photo, outsiders refused,
+  wrong types and too large refused, location removed, removal deletes storage, kept for a
+  report and opened by the team, logged, nobody else);
+- every other suite passing, look checks 336/336;
+- unit 173/173 (6 new); checks; size 308 KiB.
+**Security tests:** another person, another business, someone not on the team, the team
+directly and someone signed out can't open a file; a file sent to someone else's
+conversation is refused and nothing kept; only the team opens kept files, through the report.
+**How to roll back:** Cloudflare → Deployments → previous version; the database change is
+undone by a new migration.
+**Approved by:** Product owner ("Messages with businesses", 14 October 2026; "yes" to files
+next).
+
 ### 2026-10-14 — Messages, fixed after a third review (Stage 2B)
 
 **Stage:** 2 (E §4.3, §8)

@@ -204,10 +204,10 @@ migrations 0021–0022); the team's **Bookings** page (D-46, migration 0020); **
 person's own new counts, blocking, removing your own message (migration 0023); **part 2**:
 Report and the team's Reports page (migration 0024); fixes after review: a business's next team
 never sees the last one's conversations, paused while a business isn't listed, the site's own
-cap on message emails, and a cheaper look for new messages (migration 0025).
+cap on message emails, and a cheaper look for new messages (migration 0025); **part 3**: files in
+conversations, a photo or PDF with a message (migration 0028; switched on by PO-20).
 
 **Not built yet in Stage 2:**
-- files in conversations (messages themselves are built, part 1);
 - batched email digests (each planning email is sent on its own, with repeats held back);
 - counting how often featured businesses are shown (D-43: later);
 - counting saves, inquiries, conversations and messages as activity (the D-30 funnel; D-42

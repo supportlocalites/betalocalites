@@ -6,7 +6,7 @@
 // The site reaches the database as app_server, so the database's rules are really tested.
 //
 // Usage: npm run test:e2e
-import { account, check, cookieFor, finish, mailFor, passwordSession, run, site, sql, twoStepSession } from './helpers.mjs';
+import { account, BASE, check, cookieFor, finish, MAIL, mailFor, passwordSession, run, site, sql, twoStepSession } from './helpers.mjs';
 
 const decode = (s) => s.replace(/&quot;/g, '"').replace(/&#x27;|&#39;/g, "'").replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&amp;/g, '&');
 const words = (html) => decode(html.replace(/<!-- -->/g, '').replace(/<[^>]*>/g, ' ')).replace(/\s+/g, ' ');
@@ -399,6 +399,107 @@ check('…the team still reads its words, marked as removed after the report, an
 r = await page(`/admin/reports/${rudeReport?.id}`, { cookie: cookie.m, method: 'POST', form: { intent: 'hide' } });
 check('…hiding it anyway is refused in plain words, not an error page',
   r.status === 409 && words(r.body).includes('Its author has already removed that message'), String(r.status));
+
+// ------------------------------------------------------------------ 5d. Files (part 3, migration 0028)
+const pdfBytes = (label) => new TextEncoder().encode(`%PDF-1.4\n% ${label} ${run}\n1 0 obj << >> endobj\ntrailer << >>\n%%EOF\n`);
+const be16 = (n) => [n >> 8, n & 0xff];
+const seg = (marker, payload) => [0xff, marker, ...be16(payload.length + 2), ...payload];
+const latin = (t) => [...Buffer.from(t, 'latin1')];
+const jpeg = (w, h, extra = []) =>
+  new Uint8Array([
+    0xff, 0xd8, ...seg(0xe0, latin('JFIF\0\x01\x01')), ...extra,
+    ...seg(0xc0, [8, ...be16(h), ...be16(w), 3, 1, 0x11, 0, 2, 0x11, 1, 3, 0x11, 1]),
+    ...seg(0xda, [3, 1, 0, 2, 0x11, 3, 0x11, 0, 0x3f, 0]),
+    ...latin(`picture ${run} `), ...Array.from({ length: 64 }, (_, i) => i), 0xff, 0xd9,
+  ]);
+async function postForm(path, c, fields) {
+  const form = new FormData();
+  for (const [k, v] of Object.entries(fields)) form.set(k, v);
+  const res = await fetch(BASE + path, { method: 'POST', headers: { Cookie: c ?? '', Origin: BASE }, body: form, redirect: 'manual' });
+  const r = { status: res.status, location: res.headers.get('location') ?? '', body: await res.text() };
+  seen.push({ path, body: r.body });
+  return r;
+}
+const filesIn = (cid) => sql`
+  select id, message_id, storage_path, file_name, mime_type, deleted_at, kept_for_report, storage_removed_at
+  from conversation_file where conversation_id = ${cid} order by created_at`;
+const storedKeys = async () => (await (await fetch(`${MAIL}/storage/files`)).json()).map((f) => f.key);
+const getFile = async (path, c) => {
+  const res = await fetch(BASE + path, { headers: c ? { Cookie: c } : {}, redirect: 'manual' });
+  return { status: res.status, headers: res.headers, bytes: Buffer.from(await res.arrayBuffer()) };
+};
+
+r = await postForm(THREAD, cookie.a, {
+  intent: 'send',
+  body: '',
+  file: new File([pdfBytes('quote')], '../../Our quote<1>.pdf', { type: 'application/pdf' }),
+});
+const pdf = (await filesIn(conversationId)).at(-1);
+check('the person sends a PDF with no words: one message, one file, in the conversation’s own folder, its name made safe',
+  r.status === 302 && pdf?.mime_type === 'application/pdf' && pdf.storage_path.startsWith(`conversations/${conversationId}/`) &&
+    pdf.file_name === 'Our quote1.pdf', `${r.status} ${JSON.stringify(pdf)}`);
+check('…kept in the private folder', (await storedKeys()).includes(`conversation-files/${pdf?.storage_path}`));
+r = await page(BIZ_THREAD, { cookie: cookie.s });
+check('the business sees it in the conversation', r.body.includes(`/files/${pdf?.id}`) && words(r.body).includes('PDF: Our quote1.pdf'));
+let got = await getFile(`${BIZ_THREAD}/files/${pdf?.id}`, cookie.s);
+check('…opens it: the same file, offered to save, never shown as a page of the site',
+  got.status === 200 && got.headers.get('content-type') === 'application/pdf' && (got.headers.get('content-disposition') ?? '').startsWith('attachment') &&
+    got.headers.get('x-content-type-options') === 'nosniff' && got.bytes.equals(Buffer.from(pdfBytes('quote'))), String(got.status));
+for (const [who, path, c] of [
+  ['another person', `${THREAD}/files/${pdf?.id}`, cookie.p],
+  ['another business’s owner', `/vendors/${W.slug}/messages/${conversationId}/files/${pdf?.id}`, cookie.n],
+  ['a Localites team member', `${BIZ_THREAD}/files/${pdf?.id}`, cookie.m],
+  ['someone not on the business’s team', `${BIZ_THREAD}/files/${pdf?.id}`, cookie.p],
+]) {
+  got = await getFile(path, c);
+  check(`${who}: the file is "not found"`, got.status === 404 && !got.bytes.includes(Buffer.from('%PDF')), String(got.status));
+}
+got = await getFile(`${THREAD}/files/${pdf?.id}`);
+check('signed out: opening a file asks you to sign in', [302, 303].includes(got.status), String(got.status));
+
+const keysBefore = (await storedKeys()).length;
+r = await postForm(THREAD, cookie.p, { intent: 'send', body: 'sneaky', file: new File([pdfBytes('x')], 'x.pdf', { type: 'application/pdf' }) });
+check('a file sent to someone else’s conversation: "not found", and nothing kept', r.status === 404 && (await storedKeys()).length === keysBefore, String(r.status));
+r = await postForm(THREAD, cookie.a, { intent: 'send', body: '', file: new File(['just words'], 'notes.txt', { type: 'text/plain' }) });
+check('only photos and PDFs', r.status === 400 && words(r.body).includes('Please choose a photo or a PDF.'), String(r.status));
+r = await postForm(THREAD, cookie.a, { intent: 'send', body: '', file: new File([jpeg(3000, 3000)], 'huge.jpg', { type: 'image/jpeg' }) });
+check('a photo the browser didn’t make smaller is refused, in plain words', r.status === 400 && words(r.body).includes('That photo is too large'), String(r.status));
+r = await postForm(THREAD, cookie.a, { intent: 'send', body: '   ' });
+check('no words and no file: refused', r.status === 400 && words(r.body).includes('Write a message first.'), String(r.status));
+
+const CAKE = `Our cake ${run}`;
+r = await postForm(BIZ_THREAD, cookie.s, {
+  intent: 'send',
+  body: CAKE,
+  file: new File([jpeg(800, 600, seg(0xe1, latin(`Exif\0\0GPS 44.6082N 79.4197W ${run}`)))], 'cake.jpg', { type: 'image/jpeg' }),
+});
+const photo = (await filesIn(conversationId)).at(-1);
+check('staff send a photo with a reply', r.status === 302 && photo?.mime_type === 'image/jpeg', String(r.status));
+r = await page(THREAD, { cookie: cookie.a });
+check('…the person sees it in the conversation', r.body.includes(`<img`) && r.body.includes(`/messages/${conversationId}/files/${photo?.id}`));
+got = await getFile(`${THREAD}/files/${photo?.id}`, cookie.a);
+check('…opens it, shown in the page, without where it was taken',
+  got.status === 200 && got.headers.get('content-type') === 'image/jpeg' && (got.headers.get('content-disposition') ?? '').startsWith('inline') &&
+    !got.bytes.includes(Buffer.from('GPS')), String(got.status));
+
+r = await page(THREAD, { cookie: cookie.a, method: 'POST', form: { intent: 'remove', messageId: pdf?.message_id } });
+got = await getFile(`${BIZ_THREAD}/files/${pdf?.id}`, cookie.s);
+check('the person removes the message: its file goes for both sides', r.status === 302 && got.status === 404, `${r.status} ${got.status}`);
+const gone = await waitFor(storedKeys, (keys) => !keys.includes(`conversation-files/${pdf?.storage_path}`));
+check('…and is deleted from storage', !gone.includes(`conversation-files/${pdf?.storage_path}`));
+
+r = await page(`${THREAD}/report`, { cookie: cookie.a, method: 'POST', form: { reason: 'inappropriate', details: `About the photo ${run}` } });
+const [photoReport] = await sql`select id from moderation_report where conversation_id = ${conversationId} and reporter_user_id = ${ids.a} order by created_at desc limit 1`;
+r = await page(BIZ_THREAD, { cookie: cookie.s, method: 'POST', form: { intent: 'remove', messageId: photo?.message_id } });
+const [kept] = await sql`select deleted_at, kept_for_report from conversation_file where id = ${photo?.id}`;
+check('reported, then removed by its sender: gone for both sides, kept for the team', Boolean(kept?.deleted_at) && kept?.kept_for_report === true, JSON.stringify(kept));
+r = await page(`/admin/reports/${photoReport?.id}`, { cookie: cookie.m });
+check('…the team’s report shows it, to open', r.body.includes(`/admin/reports/${photoReport?.id}/files/${photo?.id}`));
+const fileLooks = async () => (await sql`select count(*)::int as n from audit_log where action = 'conversation.report_file_view' and subject_id = ${photoReport?.id}`)[0].n;
+got = await getFile(`/admin/reports/${photoReport?.id}/files/${photo?.id}`, cookie.m);
+check('…the team opens it through the report, and that look is recorded', got.status === 200 && (await fileLooks()) === 1, String(got.status));
+got = await getFile(`/admin/reports/${photoReport?.id}/files/${photo?.id}`, cookie.a);
+check('…nobody else can open it that way', got.status === 403, String(got.status));
 
 // ------------------------------------------------------------------ 6. Leaving
 await sql`update vendor_member set ended_at = now() where vendor_id = ${V.id} and user_id = ${ids.s}`;

@@ -29,38 +29,9 @@
 -- CONVERSATIONS AND MESSAGES: now in db/migrations/0023_conversations.sql (conversation,
 -- message, conversation_read, with per-side rules: ADR-031). What follows reads them as built.
 
--- Files shared in a conversation. Always private storage, only the two parties
--- can open them (enforced in the application's policy layer and storage rules).
--- Localites does not read or interpret file contents. An invoice is just a file.
-create table message_attachment (
-  message_id      uuid not null references message(id),
-  media_asset_id  uuid not null unique references media_asset(id),  -- a file belongs to one message
-  primary key (message_id, media_asset_id)
-);
-
-create function enforce_attachment_rules() returns trigger
-language plpgsql as $$
-declare
-  a media_asset%rowtype;
-  m message%rowtype;
-begin
-  select * into strict a from media_asset where id = new.media_asset_id;
-  select * into strict m from message where id = new.message_id;
-  if a.bucket <> 'private' then
-    raise exception 'files shared in conversations must be stored privately';
-  end if;
-  if a.uploaded_by is distinct from m.author_user_id then
-    raise exception 'a file can only be attached by the person who uploaded it';
-  end if;
-  if (select count(*) from message_attachment x where x.message_id = new.message_id) >= 5 then
-    raise exception 'a message can have at most 5 files';
-  end if;
-  return new;
-end $$;
-
-create trigger message_attachment_rules
-  before insert on message_attachment
-  for each row execute function enforce_attachment_rules();
+-- FILES IN CONVERSATIONS: now in db/migrations/0028_conversation_files.sql (conversation_file:
+-- one photo or PDF per message, in a private storage folder, read by the same two sides as the
+-- messages; the team only through a report).
 
 -- INQUIRIES: now in db/migrations/0021_inquiries.sql (vendor_interest, with per-person
 -- rules, the team email's status and the "told it joined" mark; ADR-024).
@@ -243,14 +214,13 @@ group by ev.vendor_id;
 -- Stage 2 also adds per-request ownership rules for app_server on the most
 -- private tables, so that even a bug in the application's permission check cannot
 -- expose another person's events or conversations. Events and plans have them
--- (0012, ADR-031: who is acting, in the database); conversation, message and
--- message_attachment get theirs, the same way, when they are built.
+-- (0012, ADR-031: who is acting, in the database); so do conversations, messages and their
+-- files (0023, 0028).
 
 do $$
 declare t text;
 begin
   foreach t in array array[
-    'message_attachment',
     'review_request', 'review'
   ] loop
     execute format('alter table %I enable row level security', t);

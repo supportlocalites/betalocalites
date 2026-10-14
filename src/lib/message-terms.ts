@@ -11,6 +11,20 @@ export const MESSAGE_LIMITS = {
   messagesPerDay: 200,
 } as const;
 
+/** Files in conversations (migration 0028): one photo or PDF per message. */
+export const FILE_LIMITS = {
+  /** A photo, after the browser has shrunk it (as business photos). */
+  photoBytes: 1024 * 1024,
+  photoSide: 2048,
+  /** A PDF, as chosen (Localites doesn't change it). */
+  pdfBytes: 4 * 1024 * 1024,
+  /** Files one person may send in a day, across all conversations. */
+  perDay: 20,
+  /** All conversation files together (the free plan's 1 GB is shared with business photos). */
+  siteBytes: 700 * 1024 * 1024,
+  name: 120,
+} as const;
+
 /** Every conversation's footer (E §6, ADR-018). */
 export const NO_PAYMENTS_IN_CONVERSATION = 'Localites doesn’t process payments. Arrange payment directly with each other.';
 
@@ -54,8 +68,17 @@ export const MESSAGE_REFUSALS = {
   LP144: 'This business isn’t listed on Localites at the moment, so messages to it are paused.',
   LP145: 'Your business isn’t listed on Localites at the moment, so messages are paused until it is.',
   LP146: 'This person has left Localites, so no new messages can be sent.',
+  LP147: 'Write a message or add a file first.',
   empty: 'Write a message first.',
   tooLong: 'Please keep your message under 5,000 characters.',
   conversationsPerDay: 'You’ve started a lot of conversations today. Please try again tomorrow.',
   messagesPerDay: 'You’ve sent a lot of messages today. Please try again tomorrow.',
+  filesPerDay: 'You’ve sent a lot of files today. Please try again tomorrow.',
+  filesFull: 'Sending files is paused for now. Please send your message without it, or try again later.',
+  filesOff: 'Sending files isn’t switched on yet. Please send your message without it.',
+  fileNotSaved: 'The file couldn’t be saved just now. Please try again in a few minutes.',
+  fileType: 'Please choose a photo or a PDF.',
+  photoTooBig: 'That photo is too large. Please choose a smaller one (under 1 MB and 2048 pixels a side).',
+  photoTurned: 'That photo is stored on its side. Please turn it in your photo app and save it, then try again.',
+  pdfTooBig: 'That PDF is too large. Please choose one under 4 MB.',
 } as const;

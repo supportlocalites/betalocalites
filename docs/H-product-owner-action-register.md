@@ -1,6 +1,9 @@
 # H — Product Owner Action Register
 
-**Last updated:** 2026-10-14 (revision 28: PO-11 and D-12 parked by you; revision 27: PO-15 done, planning works on the test site; revision 26: PO-16 done, business photos on; revision 25: PO-18 done, nightly backups on; revision 24: PO-19 and PO-06 done, alerts reach you; messages fixed after two reviews; revision 23: messages and reports; revision 22: Inquire built, D-04 and D-05; revision 21: D-46, the team sees every booking; a business taken down can't be newly booked; revision 20: D-45, square profile photo and whole page photos; revision 19: business photos built, PO-16 to switch them on; revision 18: D-44, bookings marked before a business joined; revision 17: D-39 revised to D-43, "Plan an event" built)
+**Last updated:** 2026-10-14 (revision 29: PO-20, switch on files in conversations; revision 28: PO-11 and D-12 parked by you; revision 27: PO-15 done, planning works on the test site; revision 26: PO-16 done, business photos on; revision 25: PO-18 done, nightly backups on; revision 24: PO-19 and PO-06 done, alerts reach you; messages fixed after two reviews; revision 23: messages and reports; revision 22: Inquire built, D-04 and D-05; revision 21: D-46, the team sees every booking; a business taken down can't be newly booked; revision 20: D-45, square profile photo and whole page photos; revision 19: business photos built, PO-16 to switch them on; revision 18: D-44, bookings marked before a business joined; revision 17: D-39 revised to D-43, "Plan an event" built)
+
+**Revision 29 changes:** files in conversations are built: a photo or PDF with any message.
+One small step for you, **PO-20**: a private storage folder in Supabase (3 minutes, no keys).
 
 **Revision 24 changes:** PO-19 is done (and with it PO-06): the site watch's email reached
 supportlocalites@gmail.com at 5:20 am on 14 October, so you'll hear within minutes if the test
@@ -103,6 +106,7 @@ Recorded from your messages of 9 and 10 October 2026. These now shape every docu
 |---|---|---|---|
 | **ADR-005** | ✅ CPU time 8 ms with React Router (passes). A day after the speed improvements go live, glance at **Metrics** once more: CPU time, and whether any "Exceeded CPU" errors appear | Nothing; a final check | 2 min |
 | **PO-14** | Switch on activity counting: add one secret in Cloudflare (steps below) | Any numbers on the team's Activity pages and the owners' Analytics pages | 3 min |
+| **PO-20** | Switch on files in conversations: one private storage folder in Supabase (steps below) | People and businesses sending photos and PDFs in messages | 3 min |
 
 **How to respond:** reply in the conversation with decision numbers and your choice,
 e.g. *"Median 6 ms, P99 20 ms, no errors."* "I don't understand
@@ -1252,6 +1256,32 @@ look successful.
 
 ✅ **Done (14 October 2026):** the site watch's email arrived at supportlocalites@gmail.com at
 5:20 am ("The site is working now… this email only shows that alerts reach you").
+
+---
+
+### PO-20 — Switch on files in conversations (E §9, migration 0028)
+**When:** any time after this update reaches the test site. **Cost:** $0 (the same free 1 GB as
+business photos; Localites keeps conversation files under 700 MB of it).
+**Time:** about 3 minutes. No new keys: the photo keys from PO-16 already reach this folder.
+**Why:** a photo or PDF sent in a conversation is kept in a **private** folder: nobody can open
+it from an address; the website checks who's asking every time, and hands it over only to the
+two sides of the conversation.
+
+**In Supabase** (your Localites project):
+1. Open **Storage** in the left menu → **New bucket**.
+2. **Name:** `conversation-files` (exactly, lower case). Leave **Public bucket** **off**.
+3. Open **Additional configuration**: switch **Restrict file size** on and set **4 MB**; under
+   **Allowed MIME types** enter `image/jpeg, image/webp, application/pdf`. Click **Save**
+   (or **Create**).
+
+That's all: nothing to add in Cloudflare.
+
+**Try it:** open a conversation on the test site (as a person, or as a business owner), choose
+**Add a photo or PDF**, pick a photo, and send. The photo shows in the conversation; the
+other side sees it too. A PDF shows as a link that saves it.
+
+**Done when:** a photo shows in a conversation. Reply *"PO-20 done"*, or tell us what you saw.
+If the folder name is wrong, sending says "The file couldn't be saved just now".
 
 ---
 

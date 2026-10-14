@@ -94,21 +94,8 @@ insert into message (id, conversation_id, author_user_id, author_side, body) val
   ('70000000-0000-7000-8000-000000000001', '60000000-0000-7000-8000-000000000001', '10000000-0000-7000-8000-000000000001', 'consumer', 'Are you free on the 14th?'),
   ('70000000-0000-7000-8000-000000000002', '60000000-0000-7000-8000-000000000001', '10000000-0000-7000-8000-000000000004', 'vendor', 'Yes! Invoice attached.');
 
--- ------------------------------------------------------------------ files ---
-select pg_temp.expect_reject('file stored publicly',
-  $q$insert into message_attachment (message_id, media_asset_id)
-     values ('70000000-0000-7000-8000-000000000001', '80000000-0000-7000-8000-000000000002')$q$);
-select pg_temp.expect_reject('attaching someone else''s upload',
-  $q$insert into message_attachment (message_id, media_asset_id)
-     values ('70000000-0000-7000-8000-000000000001', '80000000-0000-7000-8000-000000000003')$q$);
-select pg_temp.expect_accept('vendor staff shares a PDF (e.g. an invoice) in the conversation',
-  $q$insert into message_attachment (message_id, media_asset_id)
-     values ('70000000-0000-7000-8000-000000000002', '80000000-0000-7000-8000-000000000004')$q$);
-insert into message (id, conversation_id, author_user_id, author_side, body) values
-  ('70000000-0000-7000-8000-000000000003', '60000000-0000-7000-8000-000000000001', '10000000-0000-7000-8000-000000000004', 'vendor', 'Sending it again');
-select pg_temp.expect_reject('same file attached to a second message (same uploader)',
-  $q$insert into message_attachment (message_id, media_asset_id)
-     values ('70000000-0000-7000-8000-000000000003', '80000000-0000-7000-8000-000000000004')$q$);
+-- Files in conversations: now built (db/migrations/0028_conversation_files.sql, its checks in
+-- db/tests/0028_conversation_files.test.sql).
 
 -- ------------------------------------------------------- feedback request ---
 select pg_temp.expect_reject('feedback request for a vendor not marked booked',

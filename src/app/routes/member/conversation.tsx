@@ -4,8 +4,9 @@ import { MessageList, ReplyBox, useRefresh } from '@/components/MessageThread';
 import { SiteHeader } from '@/components/SiteHeader';
 import { SquarePhoto } from '@/components/SquarePhoto';
 import { isUuid } from '@/lib/ids.mjs';
-import { NO_PAYMENTS_IN_CONVERSATION, SHARE_CAREFULLY } from '@/lib/message-terms';
+import { MESSAGE_REFUSALS, NO_PAYMENTS_IN_CONVERSATION, SHARE_CAREFULLY } from '@/lib/message-terms';
 import { pageMeta } from '@/lib/meta';
+import { cleanUpConversationFiles, filesOn, MAX_FILE_UPLOAD, readAttachment } from '@/server/conversation-files.server';
 import { shortDate, TOO_FAST } from '@/lib/plan-terms';
 import { emailAboutMessage, personChange, personSend, personThread, readBody } from '@/server/messages.server';
 import { afterwards, found, refusal, siteUrl, todayIso, tooFast } from '@/server/plan-pages.server';
@@ -25,22 +26,29 @@ export const meta: Route.MetaFunction = ({ loaderData }) => [
 export async function loader({ params, context }: Route.LoaderArgs) {
   if (!isUuid(params.id)) throw data(null, { status: 404 });
   const member = context.get(memberContext);
-  return { thread: await found(personThread(context.get(cloudflareContext).env, member.userId, params.id)), today: todayIso() };
+  const { env } = context.get(cloudflareContext);
+  return { thread: await found(personThread(env, member.userId, params.id)), today: todayIso(), canAttach: filesOn(env) };
 }
 
 export async function action({ request, params, context }: Route.ActionArgs) {
   if (!isUuid(params.id)) throw data(null, { status: 404 });
   const member = context.get(memberContext);
   const { env, ctx } = context.get(cloudflareContext);
+  // A file is at most 4 MB: anything clearly bigger is refused before it's read.
+  if (Number(request.headers.get('content-length') ?? 0) > MAX_FILE_UPLOAD) {
+    return data({ error: MESSAGE_REFUSALS.pdfTooBig }, { status: 413 });
+  }
   const form = await request.formData();
   const intent = String(form.get('intent') ?? '');
   if (await tooFast(env, member.userId)) return data({ error: TOO_FAST }, { status: 429 });
   const here = `/messages/${params.id}`;
   try {
     if (intent === 'send') {
-      const read = readBody(form);
+      const file = await readAttachment(form.get('file'));
+      if (file && 'error' in file) return data({ error: file.error }, { status: 400 });
+      const read = readBody(form, Boolean(file));
       if ('error' in read) return data({ error: read.error }, { status: 400 });
-      const written = await personSend(env, member.userId, params.id, read.body);
+      const written = await personSend(env, member.userId, params.id, read.body, file);
       afterwards(ctx, emailAboutMessage(env, { side: 'person', userId: member.userId }, written, siteUrl(env, request)), 'message email');
       return redirect(`${here}?sent=${written.messageId}`);
     }
@@ -48,6 +56,7 @@ export async function action({ request, params, context }: Route.ActionArgs) {
       const messageId = String(form.get('messageId') ?? '');
       if (!isUuid(messageId)) throw data(null, { status: 400 });
       await personChange(env, member.userId, params.id, { kind: 'remove', messageId });
+      afterwards(ctx, cleanUpConversationFiles(env, 2), 'file clean-up');
       return redirect(here);
     }
     if (intent === 'block' || intent === 'unblock') {
@@ -68,7 +77,7 @@ export async function action({ request, params, context }: Route.ActionArgs) {
   }
 }
 
-export default function Conversation({ loaderData: { thread, today }, actionData }: Route.ComponentProps) {
+export default function Conversation({ loaderData: { thread, today, canAttach }, actionData }: Route.ComponentProps) {
   useRefresh(`/messages/${thread.id}/check`, thread.version);
   const error = actionData?.error;
   const busy = useNavigation().state === 'submitting';
@@ -126,9 +135,14 @@ export default function Conversation({ loaderData: { thread, today }, actionData
             {error}
           </p>
         )}
-        <MessageList messages={thread.messages} canRemove reportPath={`/messages/${thread.id}/report`} />
+        <MessageList
+          messages={thread.messages}
+          canRemove
+          reportPath={`/messages/${thread.id}/report`}
+          filePath={`/messages/${thread.id}/files`}
+        />
         {canWrite ? (
-          <ReplyBox label={`Message ${vendor.name}`} busy={busy} />
+          <ReplyBox label={`Message ${vendor.name}`} busy={busy} canAttach={canAttach} />
         ) : (
           <p className="notice" role="status">
             {vendor.rejoined ? (

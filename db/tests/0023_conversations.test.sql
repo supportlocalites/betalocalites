@@ -101,9 +101,12 @@ insert into message (id, conversation_id, author_user_id, author_side, body) val
    'consumer', 'Do you have Saturday the 14th free?');
 select pg_temp.expect_equal('the person writes; the database records the time on the conversation',
   (select (last_message_at is not null)::text from conversation where id = '00000000-0000-7000-8000-000000002261'), 'true');
-select pg_temp.expect_code('an empty message is refused', $q$
-  insert into message (conversation_id, author_user_id, author_side, body) values
-  ('00000000-0000-7000-8000-000000002261', '00000000-0000-7000-8000-0000000022a1', 'consumer', '   ')$q$, '23514');
+select pg_temp.expect_code('an empty message is refused (since 0028: at the end of the step, words or a file)', $q$
+  do $d$ begin
+    insert into message (conversation_id, author_user_id, author_side, body) values
+    ('00000000-0000-7000-8000-000000002261', '00000000-0000-7000-8000-0000000022a1', 'consumer', '   ');
+    set constraints message_has_content immediate;
+  end $d$$q$, 'LP147');
 select pg_temp.expect_code('the person can''t write as the business', $q$
   insert into message (conversation_id, author_user_id, author_side, body) values
   ('00000000-0000-7000-8000-000000002261', '00000000-0000-7000-8000-0000000022a1', 'vendor', 'x')$q$, 'LP101');

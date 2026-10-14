@@ -1,6 +1,7 @@
-import { useEffect, useRef } from 'react';
-import { Form, Link, useNavigation, useRevalidator, useSearchParams } from 'react-router';
+import { useEffect, useRef, useState } from 'react';
+import { Form, Link, useNavigation, useRevalidator, useSearchParams, useSubmit } from 'react-router';
 import { MESSAGE_LIMITS, REFRESH } from '@/lib/message-terms';
+import { prepareOnePhoto } from '@/lib/photo-prepare';
 import styles from '@/app/routes/member/messages.module.css';
 
 /**
@@ -17,6 +18,7 @@ export type ShownMessage = {
   createdAt: string;
   removed: boolean;
   hidden: boolean;
+  file: { id: string; name: string; isPhoto: boolean; size: number; width: number | null; height: number | null } | null;
 };
 
 const when = new Intl.DateTimeFormat('en-CA', { dateStyle: 'medium', timeStyle: 'short', timeZone: 'America/Toronto' });
@@ -95,55 +97,137 @@ export function useRefresh(checkPath: string, version: string) {
   }, [checkPath, revalidate]);
 }
 
-/** reportPath: this conversation's Report page; each message from the other side links to it. */
-export function MessageList({ messages, canRemove, reportPath }: { messages: ShownMessage[]; canRemove: boolean; reportPath: string }) {
+/** A file's size in plain words. */
+const sizeWords = (bytes: number) =>
+  bytes < 1024 * 1024 ? `${Math.max(1, Math.round(bytes / 1024))} KB` : `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+
+/**
+ * reportPath: this conversation's Report page; each message from the other side links to it.
+ * filePath: where this conversation's files are opened (the site checks who's asking).
+ */
+export function MessageList({
+  messages,
+  canRemove,
+  reportPath,
+  filePath,
+}: {
+  messages: ShownMessage[];
+  canRemove: boolean;
+  reportPath: string;
+  filePath: string;
+}) {
   if (messages.length === 0) return <p className="muted">No messages yet.</p>;
   return (
     <ol className={styles.thread} aria-label="Messages">
-      {messages.map((m) => (
-        <li key={m.id} className={`${styles.message} ${m.mine ? styles.mine : ''} ${m.removed || m.hidden ? styles.removed : ''}`}>
-          <span className={styles.byline}>
-            {m.mine ? 'You' : m.author} · {when.format(new Date(m.createdAt))}
-          </span>
-          <p className={styles.body}>{m.hidden ? 'Hidden by Localites' : m.removed ? 'Message removed' : m.body}</p>
-          {!m.mine && !m.removed && !m.hidden && (
-            <Link to={`${reportPath}?message=${m.id}`} className={`${styles.messageActions} ${styles.textButton}`}>
-              Report
-            </Link>
-          )}
-          {canRemove && m.mine && !m.removed && !m.hidden && (
-            <Form method="post" className={styles.messageActions}>
-              <input type="hidden" name="intent" value="remove" />
-              <input type="hidden" name="messageId" value={m.id} />
-              <button type="submit" className={styles.textButton}>
-                Remove
-              </button>
-            </Form>
-          )}
-        </li>
-      ))}
+      {messages.map((m) => {
+        const gone = m.removed || m.hidden;
+        return (
+          <li key={m.id} className={`${styles.message} ${m.mine ? styles.mine : ''} ${gone ? styles.removed : ''}`}>
+            <span className={styles.byline}>
+              {m.mine ? 'You' : m.author} · {when.format(new Date(m.createdAt))}
+            </span>
+            {gone ? (
+              <p className={styles.body}>{m.hidden ? 'Hidden by Localites' : 'Message removed'}</p>
+            ) : (
+              m.body && <p className={styles.body}>{m.body}</p>
+            )}
+            {!gone && m.file?.isPhoto && (
+              <a href={`${filePath}/${m.file.id}`} className={styles.filePhoto} target="_blank" rel="noopener">
+                <img
+                  src={`${filePath}/${m.file.id}`}
+                  alt={`Photo sent by ${m.mine ? 'you' : m.author}: ${m.file.name}`}
+                  width={m.file.width ?? undefined}
+                  height={m.file.height ?? undefined}
+                  loading="lazy"
+                />
+              </a>
+            )}
+            {!gone && m.file && !m.file.isPhoto && (
+              <a href={`${filePath}/${m.file.id}`} className={`text-link ${styles.fileLink}`} download={m.file.name}>
+                PDF: {m.file.name} ({sizeWords(m.file.size)})
+              </a>
+            )}
+            {!m.mine && !gone && (
+              <Link to={`${reportPath}?message=${m.id}`} className={`${styles.messageActions} ${styles.textButton}`}>
+                Report
+              </Link>
+            )}
+            {canRemove && m.mine && !gone && (
+              <Form method="post" className={styles.messageActions}>
+                <input type="hidden" name="intent" value="remove" />
+                <input type="hidden" name="messageId" value={m.id} />
+                <button type="submit" className={styles.textButton}>
+                  Remove
+                </button>
+              </Form>
+            )}
+          </li>
+        );
+      })}
     </ol>
   );
 }
 
-/** The reply box. It starts empty again after each message sent (the address carries ?sent=). */
-export function ReplyBox({ label, busy, error }: { label: string; busy: boolean; error?: string | null }) {
+const isPdf = (file: File) => file.type === 'application/pdf' || /\.pdf$/i.test(file.name);
+
+/**
+ * The reply box. It starts empty again after each message sent (the address carries ?sent=).
+ * canAttach: sending files is switched on. With the page's script, a photo is made smaller
+ * (and its hidden details left behind) before it's sent; a PDF goes as chosen. Without the
+ * script, the server takes a photo only if it's already small enough.
+ */
+export function ReplyBox({ label, busy, error, canAttach }: { label: string; busy: boolean; error?: string | null; canAttach: boolean }) {
   const [params] = useSearchParams();
+  const submit = useSubmit();
+  const [problem, setProblem] = useState<string | null>(null);
+  const [preparing, setPreparing] = useState(false);
+
+  async function send(event: React.FormEvent<HTMLFormElement>) {
+    const input = event.currentTarget.elements.namedItem('file');
+    const file = input instanceof HTMLInputElement ? input.files?.[0] : undefined;
+    if (!file || isPdf(file)) return; // sent as chosen
+    event.preventDefault();
+    const form = new FormData(event.currentTarget);
+    setPreparing(true);
+    const photo = await prepareOnePhoto(file);
+    setPreparing(false);
+    if (!photo) {
+      setProblem('This browser couldn’t open that file as a photo. Please choose a photo or a PDF.');
+      return;
+    }
+    setProblem(null);
+    form.set('file', photo);
+    await submit(form, { method: 'post', encType: 'multipart/form-data' });
+  }
+
+  const shown = problem ?? error;
   return (
-    <Form method="post" className={styles.reply} key={params.get('sent') ?? 'new'}>
+    <Form method="post" encType="multipart/form-data" onSubmit={send} className={styles.reply} key={params.get('sent') ?? 'new'}>
       <input type="hidden" name="intent" value="send" />
       <label htmlFor="body" className="field-label">
         {label}
       </label>
-      {error && (
+      {shown && (
         <p className="field-error" role="alert">
-          {error}
+          {shown}
         </p>
       )}
-      <textarea id="body" name="body" className="input" maxLength={MESSAGE_LIMITS.body} required />
+      <textarea id="body" name="body" className="input" maxLength={MESSAGE_LIMITS.body} />
+      {canAttach && (
+        <div className="field">
+          <label htmlFor="file" className="field-label">
+            Add a photo or PDF (optional)
+          </label>
+          <p className="field-hint" id="file-hint">
+            One per message. Photos are made smaller and lose hidden details such as where they were taken. A PDF (a quote, an invoice, a
+            menu) goes as it is, up to 4 MB. Only the two of you can open it.
+          </p>
+          <input id="file" name="file" type="file" accept="image/*,application/pdf,.pdf" aria-describedby="file-hint" />
+        </div>
+      )}
       <p>
-        <button type="submit" className="button button-primary" disabled={busy}>
-          {busy ? 'Sending…' : 'Send'}
+        <button type="submit" className="button button-primary" disabled={busy || preparing}>
+          {preparing ? 'Getting the photo ready…' : busy ? 'Sending…' : 'Send'}
         </button>
       </p>
     </Form>

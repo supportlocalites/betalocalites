@@ -207,6 +207,20 @@ http
     } else if (url.pathname === '/turnstile/checks') {
       res.writeHead(200, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify(checks));
+    } else if (url.pathname.startsWith('/storage/v1/s3/') && req.method === 'GET') {
+      // Reading a stored file with the storage keys (the private conversation files, migration 0028).
+      const signed = String(req.headers.authorization ?? '').startsWith(`AWS4-HMAC-SHA256 Credential=${PHOTO_KEY}/`);
+      const file = files.get(decodeURIComponent(url.pathname.slice('/storage/v1/s3/'.length)));
+      if (!signed) {
+        res.writeHead(403, { 'Content-Type': 'application/xml' });
+        res.end('<Error><Code>AccessDenied</Code></Error>');
+      } else if (!file) {
+        res.writeHead(404);
+        res.end();
+      } else {
+        res.writeHead(200, { 'Content-Type': file.type, 'Content-Length': file.body.length });
+        res.end(file.body);
+      }
     } else if (url.pathname.startsWith('/storage/v1/s3/') && (req.method === 'PUT' || req.method === 'DELETE')) {
       const key = decodeURIComponent(url.pathname.slice('/storage/v1/s3/'.length));
       const chunks = [];

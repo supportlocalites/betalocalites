@@ -3,8 +3,9 @@ import { cloudflareContext, memberContext } from '@/app/context';
 import { MessageList, ReplyBox, useRefresh } from '@/components/MessageThread';
 import { SiteHeader } from '@/components/SiteHeader';
 import { isUuid, SLUG } from '@/lib/ids.mjs';
-import { NO_PAYMENTS_IN_CONVERSATION, SHARE_CAREFULLY } from '@/lib/message-terms';
+import { MESSAGE_REFUSALS, NO_PAYMENTS_IN_CONVERSATION, SHARE_CAREFULLY } from '@/lib/message-terms';
 import { pageMeta } from '@/lib/meta';
+import { cleanUpConversationFiles, filesOn, MAX_FILE_UPLOAD, readAttachment } from '@/server/conversation-files.server';
 import { guestsWords, longDateWithYear, TOO_FAST } from '@/lib/plan-terms';
 import { businessChange, businessReply, businessThread, emailAboutMessage, readBody } from '@/server/messages.server';
 import { afterwards, found, refusal, siteUrl, tooFast } from '@/server/plan-pages.server';
@@ -24,22 +25,29 @@ export const meta: Route.MetaFunction = ({ loaderData }) => [
 export async function loader({ params, context }: Route.LoaderArgs) {
   if (!SLUG.test(params.slug) || !isUuid(params.id)) throw data(null, { status: 404 });
   const member = context.get(memberContext);
-  return found(businessThread(context.get(cloudflareContext).env, member.userId, params.slug, params.id));
+  const { env } = context.get(cloudflareContext);
+  return { ...(await found(businessThread(env, member.userId, params.slug, params.id))), canAttach: filesOn(env) };
 }
 
 export async function action({ request, params, context }: Route.ActionArgs) {
   if (!SLUG.test(params.slug) || !isUuid(params.id)) throw data(null, { status: 404 });
   const member = context.get(memberContext);
   const { env, ctx } = context.get(cloudflareContext);
+  // A file is at most 4 MB: anything clearly bigger is refused before it's read.
+  if (Number(request.headers.get('content-length') ?? 0) > MAX_FILE_UPLOAD) {
+    return data({ error: MESSAGE_REFUSALS.pdfTooBig }, { status: 413 });
+  }
   const form = await request.formData();
   const intent = String(form.get('intent') ?? '');
   if (await tooFast(env, member.userId)) return data({ error: TOO_FAST }, { status: 429 });
   const here = `/vendors/${params.slug}/messages/${params.id}`;
   try {
     if (intent === 'send') {
-      const read = readBody(form);
+      const file = await readAttachment(form.get('file'));
+      if (file && 'error' in file) return data({ error: file.error }, { status: 400 });
+      const read = readBody(form, Boolean(file));
       if ('error' in read) return data({ error: read.error }, { status: 400 });
-      const written = await businessReply(env, member.userId, params.slug, params.id, read.body);
+      const written = await businessReply(env, member.userId, params.slug, params.id, read.body, file);
       afterwards(
         ctx,
         emailAboutMessage(env, { side: 'business', userId: member.userId, vendorId: written.vendorId }, written, siteUrl(env, request)),
@@ -51,6 +59,7 @@ export async function action({ request, params, context }: Route.ActionArgs) {
       const messageId = String(form.get('messageId') ?? '');
       if (!isUuid(messageId)) throw data(null, { status: 400 });
       await businessChange(env, member.userId, params.slug, params.id, { kind: 'remove', messageId });
+      afterwards(ctx, cleanUpConversationFiles(env, 2), 'file clean-up');
       return redirect(here);
     }
     if (intent === 'block' || intent === 'unblock') {
@@ -96,9 +105,14 @@ export default function BusinessConversation({ loaderData, actionData }: Route.C
             {error}
           </p>
         )}
-        <MessageList messages={messages} canRemove reportPath={`/vendors/${business.slug}/messages/${loaderData.id}/report`} />
+        <MessageList
+          messages={messages}
+          canRemove
+          reportPath={`/vendors/${business.slug}/messages/${loaderData.id}/report`}
+          filePath={`/vendors/${business.slug}/messages/${loaderData.id}/files`}
+        />
         {status === 'open' && !ended && business.listed ? (
-          <ReplyBox label={`Reply to ${person}`} busy={busy} />
+          <ReplyBox label={`Reply to ${person}`} busy={busy} canAttach={loaderData.canAttach} />
         ) : (
           <p className="notice" role="status">
             {ended

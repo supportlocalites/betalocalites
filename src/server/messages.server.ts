@@ -5,7 +5,19 @@ import { type Acting, actAs, actingAs, errorCode, PlanCapped, PlanNotFound, Plan
 import { type Db, withDb } from './db.server';
 import { sendEmails } from './email.server';
 import { renderEmail } from './email-templates.server';
+import {
+  abandonAttachment,
+  type Attachment,
+  attachFile,
+  checkFileRoom,
+  checkFilesToday,
+  filesByMessage,
+  findFile,
+  type ShownFile,
+  storeAttachment,
+} from './conversation-files.server';
 import type { ServerEnv } from './env';
+import { readPrivateFile } from './photo-store.server';
 import { LIST_PHOTO, LIST_PHOTO_COLUMNS, type ListPhoto, type ListPhotoColumns, withListPhoto } from './photo-store.server';
 
 /**
@@ -37,7 +49,15 @@ export async function talked<T>(work: Promise<T>): Promise<T> {
 
 const asPerson = (userId: string): Acting => ({ side: 'person', userId });
 const snippet = (body: string | null, removed: boolean, hidden = false) =>
-  hidden ? 'Message hidden by Localites' : removed ? 'Message removed' : body ? body.replace(/\s+/g, ' ').slice(0, 120) : null;
+  hidden
+    ? 'Message hidden by Localites'
+    : removed
+      ? 'Message removed'
+      : body === ''
+        ? 'Sent a file'
+        : body
+          ? body.replace(/\s+/g, ' ').slice(0, 120)
+          : null;
 
 /** One sender at a time: a lock on their account row, held until the step ends. */
 async function lockSender(tx: Db, userId: string): Promise<void> {
@@ -66,7 +86,15 @@ async function writeMessage(
   userId: string,
   side: 'consumer' | 'vendor',
   body: string,
+  withFile = false,
 ): Promise<{ messageId: string; again: boolean }> {
+  if (withFile) {
+    const messageId = uuidv7();
+    await tx.execute(sql`
+      insert into message (id, conversation_id, author_user_id, author_side, body)
+      values (${messageId}, ${conversationId}, ${userId}, ${side}, ${body})`);
+    return { messageId, again: false };
+  }
   const [last] = await tx.execute<{ id: string; same: boolean }>(sql`
     select id, author_user_id = ${userId} and body = ${body} and removed_at is null
                and created_at > now() - interval '2 minutes' as same
@@ -105,6 +133,8 @@ export type ThreadMessage = {
   removed: boolean;
   /** Hidden by the Localites team after a report (part 2): neither side sees its words. */
   hidden: boolean;
+  /** The photo or PDF sent with it (part 3), while it's there. */
+  file: ShownFile | null;
 };
 
 /**
@@ -129,6 +159,7 @@ async function readMessages(tx: Db, conversationId: string, userId: string, view
     where m.conversation_id = ${conversationId}
     order by m.created_at desc, m.id desc
     limit 300`);
+  const files = await filesByMessage(tx, conversationId);
   return [...rows].reverse().map(
     (m): ThreadMessage => ({
       id: m.id,
@@ -139,6 +170,7 @@ async function readMessages(tx: Db, conversationId: string, userId: string, view
       createdAt: m.createdAt,
       removed: m.removed,
       hidden: m.hidden,
+      file: files.get(m.id) ?? null,
     }),
   );
 }
@@ -330,16 +362,54 @@ export async function personThread(env: ServerEnv, userId: string, conversationI
   );
 }
 
-/** The person writes in their conversation. */
-export async function personSend(env: ServerEnv, userId: string, conversationId: string, body: string): Promise<Written> {
-  return talked(
-    actingAs(env, asPerson(userId), async (tx) => {
-      await lockSender(tx, userId);
-      await checkLimits(tx, userId, false);
-      const { messageId, again } = await writeMessage(tx, conversationId, userId, 'consumer', body);
-      await markRead(tx, conversationId, userId);
-      return { conversationId, messageId, again };
-    }),
+/**
+ * Stores the file (if any) first, outside the step that writes the message, then writes
+ * both; a file whose message wasn't saved is deleted again.
+ */
+async function sendWith<T>(
+  env: ServerEnv,
+  conversationId: string,
+  file: Attachment | null,
+  canSee: () => Promise<unknown>,
+  write: (path: string | null) => Promise<T>,
+): Promise<T> {
+  if (!file) return write(null);
+  await canSee();
+  await checkFileRoom(env, file.bytes.length);
+  const path = await storeAttachment(env, conversationId, file);
+  try {
+    return await write(path);
+  } catch (err) {
+    await abandonAttachment(env, path);
+    throw err;
+  }
+}
+
+/** The person writes in their conversation, with a photo or PDF if they chose one. */
+export async function personSend(
+  env: ServerEnv,
+  userId: string,
+  conversationId: string,
+  body: string,
+  file: Attachment | null = null,
+): Promise<Written> {
+  return sendWith(
+    env,
+    conversationId,
+    file,
+    () => personVersion(env, userId, conversationId),
+    (path) =>
+      talked(
+        actingAs(env, asPerson(userId), async (tx) => {
+          await lockSender(tx, userId);
+          await checkLimits(tx, userId, false);
+          if (file) await checkFilesToday(tx, userId);
+          const { messageId, again } = await writeMessage(tx, conversationId, userId, 'consumer', body, Boolean(file));
+          if (file && path) await attachFile(tx, messageId, conversationId, userId, path, file);
+          await markRead(tx, conversationId, userId);
+          return { conversationId, messageId, again };
+        }),
+      ),
   );
 }
 
@@ -502,14 +572,53 @@ export async function businessReply(
   slug: string,
   conversationId: string,
   body: string,
+  file: Attachment | null = null,
 ): Promise<Written & { vendorId: string }> {
-  return asTeam(env, userId, slug, async (tx, business) => {
-    await lockSender(tx, userId);
-    await checkLimits(tx, userId, false);
-    const { messageId, again } = await writeMessage(tx, conversationId, userId, 'vendor', body);
-    await markRead(tx, conversationId, userId);
-    return { conversationId, messageId, again, vendorId: business.id };
-  });
+  return sendWith(
+    env,
+    conversationId,
+    file,
+    () => businessVersion(env, userId, slug, conversationId),
+    (path) =>
+      asTeam(env, userId, slug, async (tx, business) => {
+        await lockSender(tx, userId);
+        await checkLimits(tx, userId, false);
+        if (file) await checkFilesToday(tx, userId);
+        const { messageId, again } = await writeMessage(tx, conversationId, userId, 'vendor', body, Boolean(file));
+        if (file && path) await attachFile(tx, messageId, conversationId, userId, path, file);
+        await markRead(tx, conversationId, userId);
+        return { conversationId, messageId, again, vendorId: business.id };
+      }),
+  );
+}
+
+// ======================================================================= opening a file
+
+export type OpenedFile = { body: ReadableStream; type: string; name: string };
+
+async function open(env: ServerEnv, found: { path: string; type: string; name: string } | null): Promise<OpenedFile> {
+  if (!found) throw new PlanNotFound();
+  const body = await readPrivateFile(env, found.path);
+  if (!body) throw new PlanNotFound();
+  return { body, type: found.type, name: found.name };
+}
+
+/** A file in the person's own conversation (anyone else's is "not found"). */
+export async function personFile(env: ServerEnv, userId: string, conversationId: string, fileId: string): Promise<OpenedFile> {
+  const found = await talked(actingAs(env, asPerson(userId), (tx) => findFile(tx, conversationId, fileId)));
+  return open(env, found);
+}
+
+/** A file in one of the business's conversations, for anyone on its team. */
+export async function businessFile(
+  env: ServerEnv,
+  userId: string,
+  slug: string,
+  conversationId: string,
+  fileId: string,
+): Promise<OpenedFile> {
+  const found = await asTeam(env, userId, slug, (tx) => findFile(tx, conversationId, fileId));
+  return open(env, found);
 }
 
 /** Block or unblock (owners and managers), or remove your own message (anyone on the team). */
@@ -623,12 +732,12 @@ export async function emailAboutMessage(env: ServerEnv, acting: Acting, written:
   });
 }
 
-/** A message from a form: trimmed, not empty, not too long. */
-export function readBody(form: FormData): { body: string } | { error: string } {
+/** A message from a form: trimmed, not too long, and not empty unless a file goes with it. */
+export function readBody(form: FormData, withFile = false): { body: string } | { error: string } {
   const body = String(form.get('body') ?? '')
     .replace(/\r\n?/g, '\n')
     .trim();
-  if (!body) return { error: MESSAGE_REFUSALS.empty };
+  if (!body && !withFile) return { error: MESSAGE_REFUSALS.empty };
   if (body.length > MESSAGE_LIMITS.body) return { error: MESSAGE_REFUSALS.tooLong };
   return { body };
 }

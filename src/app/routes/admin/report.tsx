@@ -91,6 +91,16 @@ export default function ReportPage({ loaderData: { report }, actionData }: Route
                   : ''}
               </span>
               <span>{m.removed && !m.body ? <span className="muted">(removed)</span> : m.body}</span>
+              {m.file &&
+                (m.file.gone ? (
+                  <span className="muted">
+                    {m.file.isPhoto ? 'Photo' : 'PDF'} “{m.file.name}” (deleted, not kept for this report)
+                  </span>
+                ) : (
+                  <a href={`/admin/reports/${report.id}/files/${m.file.id}`} className="text-link" target="_blank" rel="noopener">
+                    Open the {m.file.isPhoto ? 'photo' : 'PDF'} “{m.file.name}” (each look is recorded)
+                  </a>
+                ))}
             </li>
           ))}
         </ol>

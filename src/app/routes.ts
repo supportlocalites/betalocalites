@@ -47,6 +47,9 @@ export default [
     // An open conversation's quick look for anything new (no page, just its answer).
     route('messages/:id/check', 'routes/member/message-check.tsx', { id: 'person-check' }),
     route('vendors/:slug/messages/:id/check', 'routes/member/message-check.tsx', { id: 'business-check' }),
+    // A file sent in a conversation (part 3), handed over only to the two sides.
+    route('messages/:id/files/:fileId', 'routes/member/message-file.tsx', { id: 'person-file' }),
+    route('vendors/:slug/messages/:id/files/:fileId', 'routes/member/message-file.tsx', { id: 'business-file' }),
     route('business', 'routes/member/business.tsx'),
     route('vendors/:slug/bookings', 'routes/member/bookings.tsx'),
     // A business owner's team (V4, E §3).
@@ -70,6 +73,7 @@ export default [
     route('inquiries', 'routes/admin/inquiries.tsx'),
     route('reports', 'routes/admin/reports.tsx'),
     route('reports/:id', 'routes/admin/report.tsx'),
+    route('reports/:id/files/:fileId', 'routes/admin/report-file.tsx'),
     route('account-deletions', 'routes/admin/account-deletions.tsx'),
     route('photos', 'routes/admin/photos.tsx'),
     route('categories', 'routes/admin/categories.tsx'),

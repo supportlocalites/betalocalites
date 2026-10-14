@@ -82,3 +82,26 @@ export async function preparePhoto(file: File): Promise<Prepared | null> {
     loaded.done();
   }
 }
+
+/**
+ * One photo for a conversation (migration 0028): the same shrinking (up to 1600 pixels a side,
+ * under 1 MB, hidden details left behind), keeping the name the sender gave it. Null if this
+ * browser can't open the chosen file as a picture.
+ */
+export async function prepareOnePhoto(file: File): Promise<File | null> {
+  let loaded: Awaited<ReturnType<typeof load>>;
+  try {
+    loaded = await load(file);
+  } catch {
+    return null;
+  }
+  try {
+    const type = await bestType();
+    const stem = file.name.replace(/\.[^.]*$/, '') || 'photo';
+    return await encode(loaded.image, LARGE, type, `${stem}.${type === 'image/webp' ? 'webp' : 'jpg'}`);
+  } catch {
+    return null;
+  } finally {
+    loaded.done();
+  }
+}

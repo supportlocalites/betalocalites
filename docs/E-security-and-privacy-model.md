@@ -1,7 +1,7 @@
 # E — Security & Privacy Model
 
 **Status:** Approved (D-00, 10 October 2026).
-**Last updated:** 2026-10-14 (§4.3, §8: messages fixed after a third review, migration 0027; a second, migration 0026; after review, migration 0025; §4.3: messages built, part 1, migration 0023; §4.2: inquiries built, ADR-024, migration 0021; the team sees every booking, a business taken down can't be newly booked, D-46; 2026-10-13: §3, §4.2, §7, §7a, §8, §12: planning an event built, ADR-031, D-39 to D-43; earlier, §2: "are you human" check on sign-in codes; §7: sign-up details and anyone may join, D-36; §2: emailed sign-in codes and claims)
+**Last updated:** 2026-10-14 (§4.3, §8, §9: files in conversations, migration 0028; §4.3, §8: messages fixed after a third review, migration 0027; a second, migration 0026; after review, migration 0025; §4.3: messages built, part 1, migration 0023; §4.2: inquiries built, ADR-024, migration 0021; the team sees every booking, a business taken down can't be newly booked, D-46; 2026-10-13: §3, §4.2, §7, §7a, §8, §12: planning an event built, ADR-031, D-39 to D-43; earlier, §2: "are you human" check on sign-in codes; §7: sign-up details and anyone may join, D-36; §2: emailed sign-in codes and claims)
 
 **Revision 2:** rebuilt around the two users, consumer and vendor. Added
 conversations, shared files, consumer-marked bookings, and reviews. Removed the
@@ -293,7 +293,21 @@ team sees which conversations were reported (who, which business, status), never
   and, once the business has joined again, a link to message it afresh. An archived business
   that may come back: "isn't on Localites at the moment".
 
-**Next:** files in conversations.
+**Built (part 3, migration 0028, 14 October 2026): files in conversations.** Either side can
+send one photo (JPEG or WebP) or one PDF with a message, or on its own. The sender's browser
+makes a photo smaller first and leaves behind its hidden details; the server checks the file by
+its contents (never its name) and removes those details again (where and when it was taken). A
+PDF is sent as it is, up to 4 MB; Localites doesn't read it. Files are kept in a **private**
+storage folder (`conversation-files`, PO-20) with no public address: every time someone opens
+one, the site checks with the database's rules (the same as the messages, ADR-031) that they're
+one of the two sides, then hands it over itself. Photos show in the page; PDFs are saved, never
+shown as a page of the site; nothing the browser could run. The team opens a reported
+conversation's files only through the report, and each look is logged with it. A file goes
+when its message does (removed by its author, hidden by the team) or when its sender deletes
+their account, and its storage is then deleted (straight away, and by the nightly run if
+storage was down), unless the conversation had been reported while the file was there: then
+the team keeps it with the report. Limits: 20 files a day per person, and 700 MB for all
+conversation files together (the free plan's 1 GB is shared with business photos).
 
 ### 4.4 Feedback & reviews (Stage 3)
 
@@ -434,7 +448,7 @@ account exists, and detailed activity records kept for year-over-year reports (D
 |---|---|---|
 | Events and event plans (type, date, place, vendors, bookings, guest names and replies) | As long as the host's account exists, with no time limit, so hosts can look back years later | Deleted with the account |
 | Conversations and files | Up to 3 years after the last message (deleting them then isn't built yet) | Deleted. **Built (migration 0025):** when either side leaves (the person deletes their account, or the business stops being claimed), the conversation ends: the other side keeps its copy, nobody can write in it, and a business's later team never sees it |
-| When a consumer deletes their account | — | **Built (13 October 2026, migration 0014):** from **Your account → Delete your account**, after typing their email address. At once, in one step in the database: their events, plans (and any flag notes on them) and saved businesses are deleted, so businesses they marked booked no longer see the booking; their name, email and personal details are erased (the account row stays as *"Former Localites member"* because history points at it); they leave any business's team, and a business left with no owner goes back to unclaimed; open claims are withdrawn and their notes erased; they're unlinked from activity and suggestions; the session ends. The team then removes their Supabase sign-in record by hand within 30 days (**Admin → Deleted accounts**; the site doesn't hold Supabase's admin key). A team member can't delete their account until their team role is removed. From Stage 2B, in conversations their messages show as *"Former Localites member"* and their files are deleted. |
+| When a consumer deletes their account | — | **Built (13 October 2026, migration 0014):** from **Your account → Delete your account**, after typing their email address. At once, in one step in the database: their events, plans (and any flag notes on them) and saved businesses are deleted, so businesses they marked booked no longer see the booking; their name, email and personal details are erased (the account row stays as *"Former Localites member"* because history points at it); they leave any business's team, and a business left with no owner goes back to unclaimed; open claims are withdrawn and their notes erased; they're unlinked from activity and suggestions; the session ends. The team then removes their Supabase sign-in record by hand within 30 days (**Admin → Deleted accounts**; the site doesn't hold Supabase's admin key). A team member can't delete their account until their team role is removed. From Stage 2B, in conversations their messages show as *"Former Localites member"* and their files are deleted (built, migration 0028: unless kept for a report made while they were there). |
 | When a vendor leaves Localites | — | The listing is archived. Consumers keep their copies of conversations, shown as *"This business has left Localites"*. Published reviews stay, without the reply option. |
 | Published reviews | While the listing exists | The author is shown as *"A Localites member"* if they delete their account |
 | Guest phone numbers and emails (Stage 4) | Until 90 days after the event | Erased. Guest names and their replies stay with the event so the host can look back |
@@ -454,7 +468,7 @@ account exists, and detailed activity records kept for year-over-year reports (D
 | Published vendor photos and logos | Public | Anyone |
 | Unpublished listing media | Public storage, random file names (built: see below) | Anyone with the exact address; shown only on published pages |
 | Verification evidence | Private | Admins only |
-| **Files in conversations** | **Private, Canada** | **The two parties only**; links expire in minutes |
+| **Files in conversations** | **Private** (`conversation-files`, built: migration 0028) | **The two parties only**, checked by the site on every request; no public address at all. The team only through a report, logged |
 
 **Built (13 October 2026, migration 0016): business photos.** The business's owner or a
 manager adds up to 8 at `/vendors/<name>/photos` (checked in the database on every request;
