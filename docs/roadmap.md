@@ -218,8 +218,9 @@ conversations, a photo or PDF with a message (migration 0028; switched on by PO-
   the event's date ("This file has expired"), other conversations' files after 30 days (to
   confirm); kept for a report if reported; and, if built, photos people share from an event,
   deleted 30 days after it;
-- **storage for growth (D-47):** check Cloudflare's own file storage (R2, about 10 GB free, to
-  confirm) and move business photos and conversation files there before launch.
+- **storage for growth (D-47):** staying on Supabase for now (owner's choice); Cloudflare's own
+  storage (R2) to revisit as storage grows (it needs a payment card and bills past its free
+  amount).
 
 Also deferred from 2A: archiving or un-cancelling events, the team opening any event for
 support, typing in a business that isn't on Localites, and the team's screens for managers
