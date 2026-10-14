@@ -47,7 +47,9 @@ Every release and every database migration, in order. Appended before each deplo
 **Migrations applied:** `0033_guests.sql` (the guest table, the guest message, the link and
 reply functions, the 90-day erasing).
 **Destructive?** No: adds a table, a column and functions.
-**Tests run:** database 0033 29/29 (new); end to end guests 38/38 (new), look 408/408, event
+**Checked before release** by one independent review: the key step now never replaces the key
+unless Cloudflare clearly lists it missing; a host with no first name shows as "your host".
+**Tests run:** database 0033 30/30 (new); end to end guests 38/38 (new), look 408/408, event
 planning 141/141, account deletion 22/22; unit 176/176; checks; size.
 **How to roll back:** Cloudflare → Deployments → previous version; the table can stay.
 

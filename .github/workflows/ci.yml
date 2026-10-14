@@ -206,12 +206,16 @@ jobs:
       - run: npm ci
       # Guests' invitation links (Stage 4) are made from INVITE_KEY. It's made here once, as a
       # random value nobody sees, and kept in Cloudflare as a Secret; never replaced (every link
-      # already sent would stop working). If listing the secrets fails, nothing is changed.
+      # already sent would stop working). Only a clear answer from Cloudflare (a list without
+      # it) makes one; anything else changes nothing and the deploy goes ahead.
       - name: Make the invitation key, once
         if: env.CLOUDFLARE_API_TOKEN != '' && env.CLOUDFLARE_ACCOUNT_ID != ''
         run: |
-          names=$(npx wrangler secret list --format json)
-          if echo "$names" | grep -q '"INVITE_KEY"'; then
+          names=$(npx wrangler secret list --format json 2>/dev/null) || { echo "::warning::Couldn't list the site's secrets; the invitation key wasn't checked."; exit 0; }
+          if ! node -e 'const l=JSON.parse(process.argv[1]); if (!Array.isArray(l)) process.exit(1)' "$names" 2>/dev/null; then
+            echo "::warning::Cloudflare's list of secrets wasn't clear; the invitation key wasn't checked."; exit 0
+          fi
+          if node -e 'process.exit(JSON.parse(process.argv[1]).some((s) => s.name === "INVITE_KEY") ? 0 : 1)' "$names"; then
             echo "The invitation key is already set."
           else
             openssl rand -hex 32 | tr -d '\n' | npx wrangler secret put INVITE_KEY

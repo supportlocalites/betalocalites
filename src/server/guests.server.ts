@@ -213,7 +213,8 @@ export type Invitation = {
   town: string;
   where: string | null;
   message: string | null;
-  host: string;
+  /** The host's first name; null when they haven't given one. */
+  host: string | null;
   status: 'open' | 'closed' | 'cancelled';
   response: GuestResponse | null;
   partySize: number | null;

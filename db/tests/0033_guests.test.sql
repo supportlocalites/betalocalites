@@ -161,6 +161,14 @@ select pg_temp.act('person', '00000000-0000-7000-8000-0000000033a1');
 select pg_temp.expect_code('…and they can''t be put back', $q$
   update guest set phone = '705-555-0199' where id = '00000000-0000-7000-8000-0000000033d9'$q$, 'LP163');
 
+reset role;
+update app_user set given_name = null, family_name = null where id = '00000000-0000-7000-8000-0000000033a1';
+set local role app_server;
+select pg_temp.act(null, null);
+select pg_temp.expect_equal('a host with no first name given: no name shown (never a full or email-derived name)', (
+  select coalesce(host_name, 'none') from invitation_for(pg_temp.h('tok-2'))), 'none');
+select pg_temp.act('person', '00000000-0000-7000-8000-0000000033a1');
+
 -- ---------------------------------------------------------------- the host deletes their account
 select delete_my_account();
 reset role;

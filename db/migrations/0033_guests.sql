@@ -128,7 +128,8 @@ grant update (name, email, phone, token_hash, link_version) on guest to app_serv
 -- 2. THE GUEST'S LINK (no account)
 -- -----------------------------------------------------------------------------
 -- What a guest's own link shows: their name, the event's name, date, times, town, where, the
--- host's message and first name, and their own reply. Nothing about other guests, the plan,
+-- host's message and first name (null if they haven't given one: never a full or email-derived
+-- name), and their own reply. Nothing about other guests, the plan,
 -- businesses or budget. Nothing once the link has been replaced or 30 days after the event.
 -- Records when the link was opened (the host sees "Opened").
 create function invitation_for(p_token_hash bytea)
@@ -140,7 +141,7 @@ declare
   g record;
 begin
   select gu.id, gu.name, e.event_date, e.start_time, e.end_time, e.status as estatus, event_ends_at(e) as ends,
-         m.name as town, p.title, p.venue_note, p.guest_message, coalesce(u.given_name, u.display_name) as host,
+         m.name as town, p.title, p.venue_note, p.guest_message, u.given_name as host,  -- first name only, or none
          gu.response, gu.party_size, gu.reply_note
   into g
   from guest gu

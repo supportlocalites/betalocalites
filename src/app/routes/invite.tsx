@@ -51,13 +51,16 @@ export async function action({ request, context }: Route.ActionArgs) {
 }
 
 export default function Invite({ loaderData: { invitation: i }, actionData }: Route.ComponentProps) {
+  // The host's first name, or plain words when they haven't given one.
+  const Host = i.host ?? 'Your host';
+  const host = i.host ?? 'your host';
   const busy = useNavigation().state !== 'idle';
   const [params] = useSearchParams();
   const when = [longDateWithYear(i.date), timeRange(i.startTime, i.endTime)].filter(Boolean).join(' · ');
   return (
     <main className="page narrow">
       <p className="label">Hi {i.guestName},</p>
-      <p>{i.host} invites you to</p>
+      <p>{Host} invites you to</p>
       <h1 className="title-1">{i.title}</h1>
       <div className="title-rule" aria-hidden="true" />
       <p>
@@ -69,7 +72,7 @@ export default function Invite({ loaderData: { invitation: i }, actionData }: Ro
 
       {params.has('replied') && i.response && (
         <p className="notice" role="status">
-          Thanks! {i.host} can see your reply: {RESPONSE_CHOICES[i.response]}
+          Thanks! {Host} can see your reply: {RESPONSE_CHOICES[i.response]}
           {i.response !== 'no' && i.partySize ? ` (${i.partySize} ${i.partySize === 1 ? 'person' : 'people'})` : ''}. You can change it here
           until the event.
         </p>
@@ -113,7 +116,7 @@ export default function Invite({ loaderData: { invitation: i }, actionData }: Ro
           </div>
           <div className="field">
             <label htmlFor="note" className="field-label">
-              A note for {i.host} (optional)
+              A note for {host} (optional)
             </label>
             <textarea id="note" name="note" className="input" maxLength={GUEST_LIMITS.note} defaultValue={i.note ?? ''} />
           </div>
@@ -123,7 +126,7 @@ export default function Invite({ loaderData: { invitation: i }, actionData }: Ro
         </Form>
       )}
       <p className="muted section-gap">
-        Only {i.host} sees your reply. This invitation is sent through Localites, a local events site in Orillia; you don’t need an account.
+        Only {host} sees your reply. This invitation is sent through Localites, a local events site in Orillia; you don’t need an account.
       </p>
     </main>
   );

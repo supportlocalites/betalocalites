@@ -1197,11 +1197,14 @@ stores only the token's SHA-256, so the host's page can make the link again at a
 copy of the database alone opens nothing. A new link (version + 1) replaces the old one at
 once; the guest's reply is kept. The link is swapped at once for a short-lived cookie
 (`__Host-localites-invite`, a day) and the guest lands on `/invite`, so the address bar and
-history don't keep it. A guest has no account and no side: `invitation_for()` and
+history don't keep it. The `/i/<token>` request itself can appear in Cloudflare's own request
+logs, which only the account's owners can read and which are kept a few days. A guest has no account and no side: `invitation_for()` and
 `invitation_reply()` find their row by the hash and return only their own invitation.
 
 **The key.** The deploy makes `INVITE_KEY` once, as a random value nobody sees, and stores it
-in Cloudflare as a Secret; it never replaces it (every link already sent would stop working).
+in Cloudflare as a Secret; it never replaces it (every link already sent would stop working):
+only a clear list of the site's secrets without it makes one, and any doubt changes nothing.
+**Known limit:** the host holds every guest's link, so they could reply as a guest.
 If it is ever lost, links stop working and the host makes new ones.
 
 **Cost.** $0: Cloudflare's own crypto and rate limiter (`INVITE_LIMIT`, replies per address).
