@@ -1,7 +1,7 @@
 # E — Security & Privacy Model
 
 **Status:** Approved (D-00, 10 October 2026).
-**Last updated:** 2026-10-14 (§4.3: messages built, part 1, migration 0023; §4.2: inquiries built, ADR-024, migration 0021; the team sees every booking, a business taken down can't be newly booked, D-46; 2026-10-13: §3, §4.2, §7, §7a, §8, §12: planning an event built, ADR-031, D-39 to D-43; earlier, §2: "are you human" check on sign-in codes; §7: sign-up details and anyone may join, D-36; §2: emailed sign-in codes and claims)
+**Last updated:** 2026-10-14 (§4.3, §8: messages fixed after review, migration 0025; §4.3: messages built, part 1, migration 0023; §4.2: inquiries built, ADR-024, migration 0021; the team sees every booking, a business taken down can't be newly booked, D-46; 2026-10-13: §3, §4.2, §7, §7a, §8, §12: planning an event built, ADR-031, D-39 to D-43; earlier, §2: "are you human" check on sign-in codes; §7: sign-up details and anyone may join, D-36; §2: emailed sign-in codes and claims)
 
 **Revision 2:** rebuilt around the two users, consumer and vendor. Added
 conversations, shared files, consumer-marked bookings, and reviews. Removed the
@@ -237,6 +237,39 @@ the report. The team can hide the reported message (both sides then see "Hidden 
 Localites"), block the conversation ("The Localites team has closed this conversation"; only
 the team can reopen it), and close the report with a note; each decision is recorded. The
 team sees which conversations were reported (who, which business, status), never any other.
+
+**Fixed after review (migration 0025, 14 October 2026).**
+- **A new team never reads the last one's conversations** (ADR-029's rule: "a new owner never
+  sees what the team told the last one"). When a business stops being claimed (the team uses
+  Remove owner, or its last owner deletes their account), or its last owner leaves, its
+  conversations **end**: the person
+  keeps their copy ("… isn't on Localites any more, so this conversation has ended"); nobody can
+  write in them; no later team of that business can open, read, mark, report or reply to them,
+  or see the event summary. If the business is claimed again, the person can start a new
+  conversation with it.
+- **When a person deletes their account**, their conversations end too: the business keeps its
+  copy, from "Former Localites member", and can't write to them (§8).
+- **A business that isn't listed** (taken down by the team, D-46) can't send or receive
+  messages until it's listed again; both sides can still read, and are told why.
+- **Someone who joins a business's team** never sees their own conversation with it from the
+  business's side (so they can't reply to themselves as the business).
+- **Emails about new messages:** at most 30 a day across the site (the email service's free plan
+  sends 100 a day, and sign-in codes use the same account); beyond that each one is recorded as
+  held back, with the reason. The site decides about 20 seconds after a message is written, and
+  never emails someone who has already seen it, so two people chatting with the conversation
+  open aren't emailed about every message.
+- **Looking for new messages** is a quick look (one small read, nothing marked read); the page
+  reloads only when something changed. Quiet looks slow down from every 15 seconds to every 2
+  minutes, and stop while the tab is hidden or after 10 minutes without anyone touching the
+  page (Cloudflare's free plan counts every request; its database connection allows 100,000
+  queries a day).
+- **Send pressed twice** (or two quick sends to start a conversation) makes one message and one
+  conversation.
+- Message and "read up to" times are taken when written, so a message shown is never counted
+  unread.
+- Known and accepted: inside the database, the person's side could technically read which
+  team member wrote a reply and who blocked; no page or query on the site shows it.
+
 **Next:** files in conversations.
 
 ### 4.4 Feedback & reviews (Stage 3)
@@ -377,7 +410,7 @@ account exists, and detailed activity records kept for year-over-year reports (D
 | Data | Kept for | Then |
 |---|---|---|
 | Events and event plans (type, date, place, vendors, bookings, guest names and replies) | As long as the host's account exists, with no time limit, so hosts can look back years later | Deleted with the account |
-| Conversations and files | While both parties' accounts exist, up to 3 years after the last message | Deleted |
+| Conversations and files | Up to 3 years after the last message (deleting them then isn't built yet) | Deleted. **Built (migration 0025):** when either side leaves (the person deletes their account, or the business stops being claimed), the conversation ends: the other side keeps its copy, nobody can write in it, and a business's later team never sees it |
 | When a consumer deletes their account | — | **Built (13 October 2026, migration 0014):** from **Your account → Delete your account**, after typing their email address. At once, in one step in the database: their events, plans (and any flag notes on them) and saved businesses are deleted, so businesses they marked booked no longer see the booking; their name, email and personal details are erased (the account row stays as *"Former Localites member"* because history points at it); they leave any business's team, and a business left with no owner goes back to unclaimed; open claims are withdrawn and their notes erased; they're unlinked from activity and suggestions; the session ends. The team then removes their Supabase sign-in record by hand within 30 days (**Admin → Deleted accounts**; the site doesn't hold Supabase's admin key). A team member can't delete their account until their team role is removed. From Stage 2B, in conversations their messages show as *"Former Localites member"* and their files are deleted. |
 | When a vendor leaves Localites | — | The listing is archived. Consumers keep their copies of conversations, shown as *"This business has left Localites"*. Published reviews stay, without the reply option. |
 | Published reviews | While the listing exists | The author is shown as *"A Localites member"* if they delete their account |

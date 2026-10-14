@@ -117,6 +117,8 @@ jobs:
           printf 'TURNSTILE_SITE_KEY=e2e-turnstile-site-key\nTURNSTILE_SECRET_KEY=e2e-turnstile-secret-local-only\nTURNSTILE_VERIFY_URL=http://127.0.0.1:8787/turnstile/siteverify\n' >> .env
           # The site's own emails, sent to the pretend email service so the tests can read them (tests/e2e/event-plans.mjs).
           printf 'RESEND_API_KEY=e2e-email-key-local-only\nEMAIL_API_URL=http://127.0.0.1:8787/emails\n' >> .env
+          # Emails about new messages wait 2 seconds here, not 20, so the tests don't wait long (tests/e2e/messages.mjs).
+          printf 'MESSAGE_EMAIL_WAIT_SECONDS=2\n' >> .env
           # Business photos, stored in the pretend file storage (tests/e2e/photos.mjs).
           printf 'PHOTO_KEY_ID=e2e-photo-key\nPHOTO_SECRET=e2e-photo-secret-local-only\nPHOTO_REGION=local\nPHOTO_STORAGE_URL=http://127.0.0.1:8787/storage/v1\n' >> .env
           npm run build

@@ -40,7 +40,9 @@ export default function Messages({ loaderData: { conversations } }: Route.Compon
                         {c.snippet}
                       </span>
                     )}
-                    {(c.blocked || c.left) && <span className={styles.snippet}>{c.left ? 'No longer on Localites' : 'Blocked'}</span>}
+                    {(c.blocked || c.left || c.paused) && (
+                      <span className={styles.snippet}>{c.left ? 'No longer on Localites' : c.paused ? 'Paused' : 'Blocked'}</span>
+                    )}
                   </span>
                   <span className={styles.cardBody}>
                     {c.lastMessageAt && <span className={styles.when}>{when.format(new Date(c.lastMessageAt))}</span>}

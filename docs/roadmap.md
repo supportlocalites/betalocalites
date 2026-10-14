@@ -202,7 +202,9 @@ team's **Inquiries** list and an email to each person when the business joins (A
 migrations 0021–0022); the team's **Bookings** page (D-46, migration 0020); **messages, part
 1** (text): conversations, replies by the whole team, emails once per unread stretch, each
 person's own new counts, blocking, removing your own message (migration 0023); **part 2**:
-Report and the team's Reports page (migration 0024).
+Report and the team's Reports page (migration 0024); fixes after review: a business's next team
+never sees the last one's conversations, paused while a business isn't listed, the site's own
+cap on message emails, and a cheaper look for new messages (migration 0025).
 
 **Not built yet in Stage 2:**
 - files in conversations (messages themselves are built, part 1);

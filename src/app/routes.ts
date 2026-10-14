@@ -44,6 +44,9 @@ export default [
     // Report a conversation or a message (part 2): one page, two addresses (person, business).
     route('messages/:id/report', 'routes/member/report.tsx', { id: 'person-report' }),
     route('vendors/:slug/messages/:id/report', 'routes/member/report.tsx', { id: 'business-report' }),
+    // An open conversation's quick look for anything new (no page, just its answer).
+    route('messages/:id/check', 'routes/member/message-check.tsx', { id: 'person-check' }),
+    route('vendors/:slug/messages/:id/check', 'routes/member/message-check.tsx', { id: 'business-check' }),
     route('business', 'routes/member/business.tsx'),
     route('vendors/:slug/bookings', 'routes/member/bookings.tsx'),
     // A business owner's team (V4, E §3).

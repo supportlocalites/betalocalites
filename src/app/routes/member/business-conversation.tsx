@@ -66,10 +66,11 @@ export async function action({ request, params, context }: Route.ActionArgs) {
 }
 
 export default function BusinessConversation({ loaderData, actionData }: Route.ComponentProps) {
-  useRefresh();
+  useRefresh(`/vendors/${loaderData.business.slug}/messages/${loaderData.id}/check`, loaderData.version);
+  const error = actionData?.error;
   const busy = useNavigation().state === 'submitting';
-  const { business, person, status, event, messages } = loaderData;
-  const canBlock = business.role !== 'staff';
+  const { business, person, status, ended, event, messages } = loaderData;
+  const canBlock = business.role !== 'staff' && !ended;
   return (
     <>
       <SiteHeader />
@@ -90,21 +91,25 @@ export default function BusinessConversation({ loaderData, actionData }: Route.C
             </span>
           </div>
         )}
-        {actionData?.error && (
+        {error && (
           <p className="notice" role="alert">
-            {actionData.error}
+            {error}
           </p>
         )}
         <MessageList messages={messages} canRemove reportPath={`/vendors/${business.slug}/messages/${loaderData.id}/report`} />
-        {status === 'open' ? (
+        {status === 'open' && !ended && business.listed ? (
           <ReplyBox label={`Reply to ${person}`} busy={busy} />
         ) : (
           <p className="notice" role="status">
-            {status === 'blocked_by_team'
-              ? 'The Localites team has closed this conversation, so no new messages can be sent.'
-              : status === 'blocked_by_vendor'
-                ? 'Your business blocked this conversation, so neither of you can send messages.'
-                : `${person} has blocked this conversation, so no new messages can be sent.`}
+            {ended
+              ? 'This person has left Localites, so no new messages can be sent.'
+              : !business.listed
+                ? 'Your business isn’t listed on Localites at the moment, so messages are paused until it is.'
+                : status === 'blocked_by_team'
+                  ? 'The Localites team has closed this conversation, so no new messages can be sent.'
+                  : status === 'blocked_by_vendor'
+                    ? 'Your business blocked this conversation, so neither of you can send messages.'
+                    : `${person} has blocked this conversation, so no new messages can be sent.`}
           </p>
         )}
         <div className={styles.footer}>

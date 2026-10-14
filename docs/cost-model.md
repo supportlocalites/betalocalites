@@ -1,6 +1,6 @@
 # Cost Model
 
-**Last updated:** 2026-10-09 (revision 3)
+**Last updated:** 2026-10-14 (revision 4: the database connection's daily query limit; the site's own email caps)
 
 **Revision 3, the product owner's direction: no running costs.** Every service now
 runs on a free plan. The only recommended cost is the web address (domain), about
@@ -25,7 +25,7 @@ stops working.
 | Service | What it does, in plain terms | Plan | Cost | Free-plan limits that matter | Source |
 |---|---|---|---|---|---|
 | **Supabase** | The filing cabinet: database, sign-in, vendor photos, files shared in conversations | Free | $0 | 500 MB database · 1 GB file storage · 2 projects (live + test copy) · pauses after a week of *no* activity (a live site with daily visitors won't pause; Supabase emails a week before) | [supabase.com/pricing](https://supabase.com/pricing), [pausing](https://supabase.com/docs/guides/platform/free-project-pausing), [database size](https://supabase.com/changelog/33121-relaxing-database-size-limit-on-free-plan-0-5-gb-database-size-per-project) |
-| **Cloudflare** | The shopfront: runs the website and sends pages to visitors' phones | Free | $0 | Pre-built pages and images: unlimited · pages built on request (signed-in screens): 100,000/day · 10 ms of processing per request | [Workers limits](https://developers.cloudflare.com/workers/platform/limits/), [static assets](https://developers.cloudflare.com/workers/static-assets/billing-and-limitations/) |
+| **Cloudflare** | The shopfront: runs the website and sends pages to visitors' phones | Free | $0 | Pre-built pages and images: unlimited · pages built on request (signed-in screens): 100,000/day · 10 ms of processing per request · its database connection (Hyperdrive): 100,000 database queries/day, every query counted, resetting at midnight UTC | [Workers limits](https://developers.cloudflare.com/workers/platform/limits/), [static assets](https://developers.cloudflare.com/workers/static-assets/billing-and-limitations/), [Hyperdrive pricing](https://developers.cloudflare.com/hyperdrive/platform/pricing/) |
 | **Resend** | The post office: sign-in links, new-message notices, "How was it?" emails | Free | $0 | 100 emails/day · 3,000/month · requires a verified domain to email anyone | [quotas](https://resend.com/docs/knowledge-base/account-quotas-and-limits), [domain required](https://resend.com/docs/api-reference/errors) |
 | **Sentry** | The smoke alarm: alerts when something breaks | Free (1 user) | $0 | Error volume cap; ample for us | To confirm at signup |
 | **GitHub** | Where the code lives; runs automated tests | Free | $0 | Monthly allowance of test-running minutes for private repositories | Existing account |
@@ -50,7 +50,8 @@ email (sign-in, message notices, feedback requests) won't work until a domain is
 
 | Limit | What happens if reached | Roughly when | What we'd do first (free) |
 |---|---|---|---|
-| **Email: 100/day** | Emails beyond the cap fail until the next day | A busy messaging day after Stage 2 | Sign-in emails always go first; message notices batched more tightly; a second free email service (Brevo: 300/day) as overflow |
+| **Email: 100/day** | Emails beyond the cap fail until the next day | A busy messaging day after Stage 2 | **Built:** the site keeps room for sign-in codes by capping its own emails: message notices at most 30 a day across the site (never to someone who has already seen the message), inquiries to the team at most 40 a day; the rest are recorded as held back. Next, if needed: a second free email service (Brevo: 300/day) as overflow |
+| **Database queries: 100,000/day** (Hyperdrive) | Pages that read the database fail until midnight UTC | Before the 100,000 requests below: a signed-in page makes several queries | **Built:** an open conversation looks for new messages with one small read, slowing down when nothing changes and stopping when nobody is there (E §4.3). Next, if needed: fewer queries per page |
 | **File storage: 1 GB** | New uploads fail | As photos and shared files accumulate. Business photos: at most 8 per business, each stored twice and under about 1.3 MB together (usually 150–400 KB), so typically 1–3 MB per business; removed photos are deleted | Photos are already shrunk in the owner's browser (built); lower the size limits or the photos per business |
 | **Data transfer (photos served)** | Supabase's free monthly allowance runs out | With steady traffic. Lists use the small version (usually under 60 KB); browsers and Supabase's cache keep each photo for an hour, so a removed photo stops showing within the hour | Serve photos through Cloudflare's cache so repeat views don't count |
 | **Database: 500 MB** | Writes fail | Years away for a local directory and its messages | Archive old data |

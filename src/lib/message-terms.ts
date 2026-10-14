@@ -17,8 +17,19 @@ export const NO_PAYMENTS_IN_CONVERSATION = 'Localites doesn’t process payments
 /** E §6: we can't control what people write, so we say so. */
 export const SHARE_CAREFULLY = 'Only share what’s needed to plan your event. Never send passwords or card numbers.';
 
-/** How often an open conversation looks for new messages (D-13: about every 15 seconds). */
-export const REFRESH_SECONDS = 15;
+/**
+ * How an open conversation looks for new messages (D-13: about every 15 seconds while you're
+ * there). Each look is one small read; the page reloads only when something changed. Quiet
+ * looks slow down, and stop while you're away (the free plans count every request).
+ */
+export const REFRESH = {
+  /** The first look, and the next one after anything new or anything you do on the page. */
+  fastestSeconds: 15,
+  /** Each quiet look waits twice as long as the last, up to this. */
+  slowestSeconds: 120,
+  /** No looks after this long without you touching the page; it looks again when you do. */
+  idleMinutes: 10,
+} as const;
 
 /** Why someone reports a conversation or a message (E §4.3). */
 export const REPORT_REASONS = {
@@ -40,6 +51,9 @@ export const MESSAGE_REFUSALS = {
   LP140: 'This business isn’t on Localites right now, so it can’t receive messages.',
   LP142: 'Businesses can reply, but the person starts the conversation.',
   LP143: 'This conversation is blocked, so no new messages can be sent.',
+  LP144: 'This business isn’t listed on Localites at the moment, so messages to it are paused.',
+  LP145: 'Your business isn’t listed on Localites at the moment, so messages are paused until it is.',
+  LP146: 'This person has left Localites, so no new messages can be sent.',
   empty: 'Write a message first.',
   tooLong: 'Please keep your message under 5,000 characters.',
   conversationsPerDay: 'You’ve started a lot of conversations today. Please try again tomorrow.',

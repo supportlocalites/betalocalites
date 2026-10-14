@@ -1,12 +1,12 @@
-import { useEffect } from 'react';
-import { Form, Link, useRevalidator, useSearchParams } from 'react-router';
-import { MESSAGE_LIMITS, REFRESH_SECONDS } from '@/lib/message-terms';
+import { useEffect, useRef } from 'react';
+import { Form, Link, useNavigation, useRevalidator, useSearchParams } from 'react-router';
+import { MESSAGE_LIMITS, REFRESH } from '@/lib/message-terms';
 import styles from '@/app/routes/member/messages.module.css';
 
 /**
  * A conversation's messages and its reply box (Stage 2B), shared by the person's page and
- * the business's. The page looks for new messages about every 15 seconds while it's open
- * and visible (D-13); no typing indicators or read receipts (E §4.3).
+ * the business's. While it's open and you're there, the page looks for anything new (D-13),
+ * as REFRESH says; no typing indicators or read receipts (E §4.3).
  */
 
 export type ShownMessage = {
@@ -21,15 +21,76 @@ export type ShownMessage = {
 
 const when = new Intl.DateTimeFormat('en-CA', { dateStyle: 'medium', timeStyle: 'short', timeZone: 'America/Toronto' });
 
-/** Reloads the page's data every REFRESH_SECONDS while the tab is visible and nothing is being sent. */
-export function useRefresh() {
-  const { revalidate, state } = useRevalidator();
+/**
+ * Looks at checkPath (the conversation's quick look) for a version other than the page's,
+ * and reloads the page only then. Quiet looks wait twice as long each time, up to
+ * REFRESH.slowestSeconds; anything new, or anything you do, brings it back to
+ * REFRESH.fastestSeconds. No looks while the tab is hidden or after REFRESH.idleMinutes
+ * without you touching the page; coming back looks at once. (Reloading forgets the last
+ * form's answer, such as a refusal; it happens only when something new has arrived.)
+ */
+export function useRefresh(checkPath: string, version: string) {
+  const { revalidate } = useRevalidator();
+  const busy = useNavigation().state !== 'idle';
+  const page = useRef({ version, busy });
   useEffect(() => {
-    const id = window.setInterval(() => {
-      if (document.visibilityState === 'visible' && state === 'idle') void revalidate();
-    }, REFRESH_SECONDS * 1000);
-    return () => window.clearInterval(id);
-  }, [revalidate, state]);
+    page.current = { version, busy };
+  });
+  useEffect(() => {
+    const fastest = REFRESH.fastestSeconds * 1000;
+    let wait = fastest;
+    let lastTouched = Date.now();
+    let timer: number | undefined;
+    let looking = false;
+    let stopped = false;
+    const here = () => document.visibilityState === 'visible' && Date.now() - lastTouched < REFRESH.idleMinutes * 60_000;
+    const next = () => {
+      window.clearTimeout(timer);
+      timer = !stopped && here() ? window.setTimeout(look, wait) : undefined;
+    };
+    async function look() {
+      if (stopped || !here()) {
+        timer = undefined; // asleep until you come back
+        return;
+      }
+      if (looking || page.current.busy) return next();
+      looking = true;
+      let changed = false;
+      try {
+        const res = await fetch(checkPath, { headers: { Accept: 'application/json' } });
+        if (res.ok) changed = ((await res.json()) as { version?: string }).version !== page.current.version;
+      } catch {
+        // Offline, or signed out: look again later.
+      }
+      looking = false;
+      if (changed) {
+        wait = fastest;
+        if (!stopped) void revalidate();
+      } else {
+        wait = Math.min(wait * 2, REFRESH.slowestSeconds * 1000);
+      }
+      next();
+    }
+    const touched = () => {
+      const asleep = timer === undefined;
+      lastTouched = Date.now();
+      if (asleep && document.visibilityState === 'visible') {
+        wait = fastest;
+        void look();
+      } else if (wait > fastest) {
+        wait = fastest;
+        next();
+      }
+    };
+    const events = ['pointerdown', 'keydown', 'focus', 'visibilitychange'] as const;
+    for (const e of events) (e === 'visibilitychange' ? document : window).addEventListener(e, touched, { passive: true });
+    next();
+    return () => {
+      stopped = true;
+      window.clearTimeout(timer);
+      for (const e of events) (e === 'visibilitychange' ? document : window).removeEventListener(e, touched);
+    };
+  }, [checkPath, revalidate]);
 }
 
 /** reportPath: this conversation's Report page; each message from the other side links to it. */

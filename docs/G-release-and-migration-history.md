@@ -31,6 +31,51 @@ Every release and every database migration, in order. Appended before each deplo
 
 ## Releases
 
+### 2026-10-14 — Messages, fixed after review (Stage 2B)
+
+**Stage:** 2 (E §4.3, §8; screens C7, C8, V6, V7)
+**What changed (plain English):**
+- **A business's next team never sees the last one's conversations.** When a business stops
+  being claimed (the team uses Remove owner, or its last owner deletes their account), its
+  conversations end. The person keeps their copy, told the business "isn't on Localites any
+  more, so this conversation has ended", and can message it afresh if it joins again. Before
+  this fix, a new owner approved later would have seen them.
+- **When a person deletes their account**, their conversations end. The business keeps its
+  copy, from "Former Localites member", and can't write to them.
+- **A business that's taken down** (D-46): messages are paused both ways until it's listed
+  again. Both sides can still read, and are told why.
+- **Someone who joins a business's team** never sees their own conversation with it from the
+  business's side.
+- **Emails about new messages:** at most 30 a day across the site, which keeps room for sign-in
+  codes in the email service's 100 a day; the rest are recorded as held back. The site decides
+  about 20 seconds after a message, and never emails someone who has already seen it.
+- **Looking for new messages** costs one small read instead of reloading the page. It slows
+  down when nothing changes, and stops while nobody is there. The free plans count every
+  request; the database connection allows 100,000 queries a day (now in the cost notes).
+- **Send pressed twice** makes one message, and two quick starts make one conversation.
+**Migrations applied:** `0025_conversation_fixes.sql`:
+- two new columns on `conversation` (when it ended, and why), empty unless it ended;
+- the one-conversation-per-pair rule now counts only conversations that haven't ended;
+- the 0023 rules and email function replaced; three triggers added (a business stops being
+  claimed, its last owner leaves, a person deletes their account);
+- an index on `notification`.
+**Destructive?** No: no rows are removed or changed (conversations already belonging to a
+business that left, or a deleted account, are marked ended; none were expected, as messages
+went live the same day). To undo, a later migration restores 0023's rules.
+**Tests run:**
+- database 0025 33/33 (new) and every earlier file unchanged and passing (0023 45/45, 0024
+  19/19);
+- end-to-end messages 101/101 (26 new), every other end-to-end suite passing, look checks
+  336/336;
+- unit 167/167; checks; size 304 KiB.
+**Security tests:** a new owner can't open, read, mark, report, look at or reply to the last
+team's conversations; someone on a team can't answer their own conversation as the business;
+the quick look answers only the two sides.
+**How to roll back:** Cloudflare → Deployments → previous version; the database change is
+undone by a new migration.
+**Approved by:** Product owner (Messages, 14 October 2026); the fixes follow ADR-029's rule
+that a new owner never sees what the team told the last one, and D-46.
+
 ### 2026-10-14 — Report a conversation or message; the team's Reports (Stage 2B, part 2)
 
 **Stage:** 2 (E §4.3 and §6; screens C8, V7, X13)

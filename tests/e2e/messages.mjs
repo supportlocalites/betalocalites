@@ -1,7 +1,8 @@
-// Messages (Stage 2B, part 1; D-13, D-17, E §4.3 and §6, migration 0023): a person messages a
+// Messages (Stage 2B; D-13, D-17, E §4.3 and §6, migrations 0023 to 0025): a person messages a
 // business that has joined; anyone on its team replies (never starts); emails once per unread
-// stretch, never the message itself; unread counts are each person's own; block both ways;
-// only the two sides read a conversation, never another person, business or the team.
+// stretch, never the message itself, never to someone who has seen it; unread counts are each
+// person's own; block both ways; only the two sides read a conversation, never another person,
+// business or the team, nor a business's next team; paused while a business isn't listed.
 // The site reaches the database as app_server, so the database's rules are really tested.
 //
 // Usage: npm run test:e2e
@@ -140,7 +141,7 @@ const personMail = await waitFor(() => newMail('a', beforeReply), (l) => l.lengt
 check('the person is emailed: “New message from <business>”, with a link',
   personMail.length === 1 && personMail[0].subject === `New message from ${V.name} on Localites` && personMail[0].body.includes(THREAD), JSON.stringify(personMail));
 await page(BIZ_THREAD, { cookie: cookie.g, method: 'POST', form: { intent: 'send', body: `And we deliver. ${run}` } });
-await new Promise((res) => setTimeout(res, 800));
+await new Promise((res) => setTimeout(res, 3000)); // the site waits 2 seconds here before emailing (20 when live)
 check('a second reply before they’ve read it: no second email', (await newMail('a', beforeReply)).length === 1);
 r = await page('/messages', { cookie: cookie.a });
 check('the person sees 2 new', r.body.includes('aria-label="2 new"'));
@@ -265,6 +266,114 @@ check('the team closes it as dealt with, recorded',
     (await sql`select count(*)::int as n from audit_log where action = 'moderation_report.actioned' and subject_id = ${report.id}`)[0].n === 1);
 await page(`/admin/reports/${report.id}`, { cookie: cookie.m, method: 'POST', form: { intent: 'unblock' } });
 check('…and can open the conversation again', (await sql`select status from conversation where id = ${conversationId}`)[0].status === 'open');
+
+// ------------------------------------------------------------------ 5c. After review (migration 0025)
+// An open conversation's quick look for anything new: one small read; nothing marked read.
+const look = async (path, c) => {
+  const res = await site(`${path}/check`, { cookie: c });
+  let version = null;
+  try {
+    version = JSON.parse(res.body).version ?? null;
+  } catch {
+    // not an answer from the quick look
+  }
+  return { status: res.status, version };
+};
+const firstLook = await look(THREAD, cookie.a);
+check('an open conversation’s quick look answers with its version',
+  firstLook.status === 200 && typeof firstLook.version === 'string' && firstLook.version.length > 0, String(firstLook.status));
+const bizLook = await look(BIZ_THREAD, cookie.o);
+check('…the same version for the business’s team', bizLook.status === 200 && bizLook.version === firstLook.version, String(bizLook.status));
+for (const [who, path, c] of [
+  ['another person', THREAD, cookie.b],
+  ['another business’s owner', `/vendors/${W.slug}/messages/${conversationId}`, cookie.p],
+  ['a Localites team member', BIZ_THREAD, cookie.m],
+]) {
+  const other = await look(path, c);
+  check(`${who}: the quick look is "not found"`, other.status === 404 && other.version === null, String(other.status));
+}
+r = await site(`${THREAD}/check`);
+check('signed out: the quick look asks you to sign in', [302, 303].includes(r.status), String(r.status));
+const readAt = async (who) =>
+  (await sql`select last_read_at::text as t from conversation_read where conversation_id = ${conversationId} and user_id = ${ids[who]}`)[0]?.t ?? null;
+const ownerReadAt = await readAt('o');
+await look(BIZ_THREAD, cookie.o);
+check('…and looking marks nothing read', (await readAt('o')) === ownerReadAt);
+
+const AGAIN = `Is the 14th still free? ${run}`;
+const beforeAgain = Date.now();
+const countAgain = (await messagesIn(conversationId)).length;
+r = await page(THREAD, { cookie: cookie.a, method: 'POST', form: { intent: 'send', body: AGAIN } });
+const second = await page(THREAD, { cookie: cookie.a, method: 'POST', form: { intent: 'send', body: AGAIN } });
+check('Send pressed twice: one message', r.status === 302 && second.status === 302 && (await messagesIn(conversationId)).length === countAgain + 1,
+  `${r.status} ${second.status}`);
+await page(BIZ_THREAD, { cookie: cookie.o }); // the owner has the conversation open, and sees it at once
+check('a new message changes the version', (await look(THREAD, cookie.a)).version !== firstLook.version);
+await waitFor(
+  async () => Promise.all(['g', 's'].map((w) => newMail(w, beforeAgain))),
+  (lists) => lists.every((l) => l.length > 0),
+);
+await new Promise((res) => setTimeout(res, 1500)); // a second email would be here by now
+const againMail = await Promise.all(['o', 'g', 's'].map((w) => newMail(w, beforeAgain)));
+check('…the team is emailed once about it, not twice', againMail[1].length === 1 && againMail[2].length === 1, JSON.stringify(againMail.map((l) => l.length)));
+check('…and not someone who had the conversation open (they’ve seen it)', againMail[0].length === 0, JSON.stringify(againMail.map((l) => l.length)));
+
+const START = `Do you do helium? ${run}`;
+const both = await Promise.all([1, 2].map(() => site(`/vendors/${W.slug}/message`, { cookie: cookie.b, method: 'POST', form: { body: START } })));
+const bStarted = await sql`select id from conversation where consumer_user_id = ${ids.b} and vendor_id = ${W.id}`;
+check('two quick sends to a business: both answered, one conversation, one message',
+  both.every((x) => x.status === 302) && bStarted.length === 1 && (await messagesIn(bStarted[0].id)).length === 1,
+  `${both.map((x) => x.status).join(' ')} ${bStarted.length}`);
+const B_THREAD = `/messages/${bStarted[0]?.id}`;
+const W_THREAD = `/vendors/${W.slug}/messages/${bStarted[0]?.id}`;
+
+await sql`update vendor set listing_status = 'unpublished' where id = ${W.id}`;
+r = await page(B_THREAD, { cookie: cookie.b });
+check('a business taken down: the person is told messages are paused, and has no reply box',
+  r.status === 200 && words(r.body).includes(`${W.name} isn’t listed on Localites at the moment, so messages are paused.`) && !r.body.includes('name="body"'),
+  String(r.status));
+r = await page(B_THREAD, { cookie: cookie.b, method: 'POST', form: { intent: 'send', body: 'Hello?' } });
+check('…sending anyway is refused in plain words', r.status === 409 && words(r.body).includes('messages to it are paused'), String(r.status));
+r = await page(`/vendors/${W.slug}/messages`, { cookie: cookie.p });
+check('…its team’s Messages says why', r.status === 200 && words(r.body).includes('so messages are paused'), String(r.status));
+r = await page(W_THREAD, { cookie: cookie.p });
+check('…its team still reads the conversation, with no reply box',
+  r.status === 200 && words(r.body).includes(START) && words(r.body).includes('Your business isn’t listed on Localites at the moment') && !r.body.includes('name="body"'),
+  String(r.status));
+r = await page(W_THREAD, { cookie: cookie.p, method: 'POST', form: { intent: 'send', body: 'Hi' } });
+check('…and replying anyway is refused', r.status === 409 && words(r.body).includes('messages are paused until it is'), String(r.status));
+await sql`update vendor set listing_status = 'published' where id = ${W.id}`;
+
+// The team removes W's owner (W is unclaimed again); later someone else's claim is approved.
+await sql`update vendor_member set ended_at = now() where vendor_id = ${W.id} and user_id = ${ids.p}`;
+await sql`update vendor set claim_status = 'unclaimed' where id = ${W.id}`;
+r = await page(B_THREAD, { cookie: cookie.b });
+check('a business’s team ends: the person keeps the conversation, and is told it has ended',
+  r.status === 200 && words(r.body).includes(`${W.name} isn’t on Localites any more, so this conversation has ended.`) && !r.body.includes('name="body"'),
+  String(r.status));
+await sql`insert into vendor_member (vendor_id, user_id, role) values (${W.id}, ${ids.n}, 'owner')`;
+await sql`update vendor set claim_status = 'claimed' where id = ${W.id}`;
+r = await page(`/vendors/${W.slug}/messages`, { cookie: cookie.n });
+check('a new owner sees none of the last team’s conversations',
+  r.status === 200 && words(r.body).includes('No messages yet.') && !r.body.includes(bStarted[0]?.id), String(r.status));
+r = await page(W_THREAD, { cookie: cookie.n });
+check('…can’t open one', r.status === 404 && !r.body.includes(START), String(r.status));
+check('…nor look at one', (await look(W_THREAD, cookie.n)).status === 404);
+r = await page(W_THREAD, { cookie: cookie.n, method: 'POST', form: { intent: 'send', body: 'Hi' } });
+check('…nor reply to one', r.status === 404, String(r.status));
+r = await page(`/vendors/${W.slug}/message`, { cookie: cookie.b });
+check('the person can message the business afresh', r.status === 200 && r.body.includes('name="body"'), `${r.status} ${r.location}`);
+r = await page(`/vendors/${W.slug}/message`, { cookie: cookie.b, method: 'POST', form: { body: `Hello again ${run}` } });
+const fresh = /^\/messages\/([0-9a-f-]{36})\?sent=/.exec(r.location ?? '')?.[1];
+r = await page(`/vendors/${W.slug}/messages`, { cookie: cookie.n });
+check('…a new conversation, which the new team sees', Boolean(fresh) && fresh !== bStarted[0]?.id && r.body.includes(fresh), String(fresh));
+
+r = await page('/account/delete', { cookie: cookie.b, method: 'POST', form: { intent: 'delete', confirm: email('b') } });
+r = await page(`/vendors/${W.slug}/messages/${fresh}`, { cookie: cookie.n });
+check('a person deletes their account: the business keeps its copy, and is told no new messages can be sent',
+  r.status === 200 && words(r.body).includes('This person has left Localites') && !r.body.includes('name="body"'), String(r.status));
+r = await page(`/vendors/${W.slug}/messages/${fresh}`, { cookie: cookie.n, method: 'POST', form: { intent: 'send', body: 'Hello?' } });
+check('…replying anyway is refused in plain words', r.status === 409 && words(r.body).includes('This person has left Localites'), String(r.status));
 
 // ------------------------------------------------------------------ 6. Leaving
 await sql`update vendor_member set ended_at = now() where vendor_id = ${V.id} and user_id = ${ids.s}`;

@@ -39,6 +39,12 @@ export default function BusinessMessages({ loaderData: { business, conversations
         <p className="label">{business.name}</p>
         <h1 className="title-1">Messages</h1>
         <div className="title-rule" aria-hidden="true" />
+        {!business.listed && (
+          <p className="notice" role="status">
+            Your business isn’t listed on Localites at the moment, so messages are paused: you can read them, but neither side can send any
+            until it’s listed again.
+          </p>
+        )}
         {conversations.length === 0 ? (
           <p>No messages yet. People who find you on Localites can message you from your page; you’ll be emailed when they do.</p>
         ) : (
@@ -54,7 +60,7 @@ export default function BusinessMessages({ loaderData: { business, conversations
                         {c.snippet}
                       </span>
                     )}
-                    {c.blocked && <span className={styles.snippet}>Blocked</span>}
+                    {(c.blocked || c.ended) && <span className={styles.snippet}>{c.ended ? 'Left Localites' : 'Blocked'}</span>}
                   </span>
                   <span className={styles.cardBody}>
                     {c.lastMessageAt && <span className={styles.when}>{when.format(new Date(c.lastMessageAt))}</span>}

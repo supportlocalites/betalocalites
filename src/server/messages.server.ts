@@ -13,8 +13,9 @@ import { LIST_PHOTO, LIST_PHOTO_COLUMNS, type ListPhoto, type ListPhotoColumns, 
  * conversation with a business that has joined Localites; the business's team (owner,
  * managers and staff) replies. Every step acts as a side (ADR-031), and the database's own
  * rules decide what that side may read and write: the person their own conversations, the
- * business its own, the team nothing (reports come next). Unread positions are private.
- * Emails about new messages go once per unread stretch (new_message_notices()).
+ * business its own (never one from before its team last ended, migration 0025), the team only
+ * through a report. Unread positions are private. Emails about new messages go once per
+ * unread stretch, within the site's daily limit (new_message_notices()).
  */
 
 /** Refusals in plain words; someone else's conversation, like a missing one, is "not found". */
@@ -38,10 +39,14 @@ const asPerson = (userId: string): Acting => ({ side: 'person', userId });
 const snippet = (body: string | null, removed: boolean, hidden = false) =>
   hidden ? 'Message hidden by Localites' : removed ? 'Message removed' : body ? body.replace(/\s+/g, ' ').slice(0, 120) : null;
 
-/** One person's sending limits, checked under a lock on their account row. */
-async function checkSending(tx: Db, userId: string, newConversation: boolean): Promise<void> {
+/** One sender at a time: a lock on their account row, held until the step ends. */
+async function lockSender(tx: Db, userId: string): Promise<void> {
   const [me] = await tx.execute<{ id: string }>(sql`select id from app_user where id = ${userId} and deleted_at is null for update`);
   if (!me) throw new PlanNotFound();
+}
+
+/** One person's sending limits; call lockSender first. */
+async function checkLimits(tx: Db, userId: string, newConversation: boolean): Promise<void> {
   const [n] = await tx.execute<{ messages: number; started: number }>(sql`
     select (select count(*) from message where author_user_id = ${userId} and created_at > now() - interval '1 day')::int as messages,
            (select count(*) from conversation where consumer_user_id = ${userId} and created_at > now() - interval '1 day')::int as started`);
@@ -49,6 +54,42 @@ async function checkSending(tx: Db, userId: string, newConversation: boolean): P
   if (newConversation && (n?.started ?? 0) >= MESSAGE_LIMITS.conversationsPerDay)
     throw new PlanCapped(MESSAGE_REFUSALS.conversationsPerDay);
 }
+
+/**
+ * Writes a message, unless it's the same words this person sent last in this conversation
+ * within the last 2 minutes (Send pressed twice, or a page sent again): then that message
+ * stands, and `again` says so (no second email). Call lockSender first.
+ */
+async function writeMessage(
+  tx: Db,
+  conversationId: string,
+  userId: string,
+  side: 'consumer' | 'vendor',
+  body: string,
+): Promise<{ messageId: string; again: boolean }> {
+  const [last] = await tx.execute<{ id: string; same: boolean }>(sql`
+    select id, author_user_id = ${userId} and body = ${body} and removed_at is null
+               and created_at > now() - interval '2 minutes' as same
+    from message where conversation_id = ${conversationId}
+    order by created_at desc, id desc limit 1`);
+  if (last?.same) return { messageId: last.id, again: true };
+  const messageId = uuidv7();
+  await tx.execute(sql`
+    insert into message (id, conversation_id, author_user_id, author_side, body)
+    values (${messageId}, ${conversationId}, ${userId}, ${side}, ${body})`);
+  return { messageId, again: false };
+}
+
+/**
+ * What a conversation page compares to see whether anything changed: its last message, a
+ * removal or hiding, a block, its end, or the business being listed or not. Read before the
+ * messages, so a message arriving in between shows on the next look rather than never.
+ */
+const VERSION = sql`concat_ws('|', c.status, c.ended_at, c.last_message_at, v.claim_status, v.listing_status,
+  (select max(greatest(m.removed_at, m.hidden_by_team_at)) from message m where m.conversation_id = c.id))`;
+
+/** For the person: the business has left (its team ended, or it was archived), so the conversation has ended. */
+const LEFT = sql`(c.ended_at is not null or v.claim_status <> 'claimed' or v.listing_status = 'archived')`;
 
 export type ThreadMessage = {
   id: string;
@@ -116,8 +157,10 @@ export type ConversationCard = {
   lastFromMe: boolean;
   unread: number;
   blocked: boolean;
-  /** The business isn't on Localites any more (left, or no one runs it). */
+  /** The business isn't on Localites any more (left, or no one runs it): the conversation has ended. */
   left: boolean;
+  /** The business isn't listed at the moment: messages are paused. */
+  paused: boolean;
 };
 
 export async function myConversations(env: ServerEnv, userId: string): Promise<ConversationCard[]> {
@@ -128,7 +171,7 @@ export async function myConversations(env: ServerEnv, userId: string): Promise<C
           ListPhotoColumns & { listed: boolean; lastBody: string | null; lastRemoved: boolean; lastHidden: boolean }
       >(sql`
         select c.id, v.slug::text as "vendorSlug", v.display_name as "vendorName", c.last_message_at::text as "lastMessageAt",
-               c.status <> 'open' as blocked, (v.claim_status <> 'claimed' or v.listing_status = 'archived') as left,
+               c.status <> 'open' as blocked, ${LEFT} as left, not ${LEFT} and v.listing_status <> 'published' as paused,
                v.listing_status = 'published' as listed,
                lm.body as "lastBody", coalesce(lm.removed, false) as "lastRemoved", coalesce(lm.hidden, false) as "lastHidden",
                coalesce(lm.mine, false) as "lastFromMe",
@@ -154,19 +197,6 @@ export async function myConversations(env: ServerEnv, userId: string): Promise<C
   );
 }
 
-/** New messages from businesses, across the person's conversations (for "Messages (n new)"). */
-export async function myUnread(env: ServerEnv, userId: string): Promise<number> {
-  return actingAs(env, asPerson(userId), async (tx) => {
-    const [n] = await tx.execute<{ n: number }>(sql`
-      select count(*)::int as n
-      from conversation c join message m on m.conversation_id = c.id
-      left join conversation_read r on r.conversation_id = c.id and r.user_id = ${userId}
-      where c.consumer_user_id = ${userId} and m.author_side = 'vendor' and m.removed_at is null and m.hidden_by_team_at is null
-        and m.created_at > coalesce(r.last_read_at, '-infinity')`);
-    return n?.n ?? 0;
-  });
-}
-
 export type StartPage = {
   vendor: { id: string; slug: string; name: string; open: boolean; ownBusiness: boolean };
   existing: string | null;
@@ -183,7 +213,7 @@ export async function startPage(env: ServerEnv, userId: string, slug: string): P
         from vendor v where v.slug = ${slug} and v.listing_status = 'published'`);
       if (!vendor) throw new PlanNotFound();
       const [c] = await tx.execute<{ id: string }>(sql`
-        select id from conversation where consumer_user_id = ${userId} and vendor_id = ${vendor.id}`);
+        select id from conversation where consumer_user_id = ${userId} and vendor_id = ${vendor.id} and ended_at is null`);
       const events = await tx.execute<StartPage['events'][number]>(sql`
         select e.id, p.title as name, e.event_date::text as date
         from event e join event_private p on p.event_id = e.id
@@ -194,7 +224,8 @@ export async function startPage(env: ServerEnv, userId: string, slug: string): P
   );
 }
 
-export type Written = { conversationId: string; messageId: string };
+/** again: the same message was already sent a moment ago (see writeMessage); nobody is emailed twice. */
+export type Written = { conversationId: string; messageId: string; again: boolean };
 
 /** Starts a conversation with its first message (or adds to the one already there). */
 export async function startConversation(
@@ -207,9 +238,11 @@ export async function startConversation(
     actingAs(env, asPerson(userId), async (tx) => {
       const [v] = await tx.execute<{ id: string }>(sql`select id from vendor where slug = ${slug} and listing_status = 'published'`);
       if (!v) throw new PlanNotFound();
+      // Locked first, so two quick sends can't both find no conversation and both start one.
+      await lockSender(tx, userId);
       const [existing] = await tx.execute<{ id: string }>(sql`
-        select id from conversation where consumer_user_id = ${userId} and vendor_id = ${v.id}`);
-      await checkSending(tx, userId, !existing);
+        select id from conversation where consumer_user_id = ${userId} and vendor_id = ${v.id} and ended_at is null`);
+      await checkLimits(tx, userId, !existing);
       const conversationId = existing?.id ?? uuidv7();
       if (!existing) {
         await tx.execute(sql`
@@ -218,20 +251,19 @@ export async function startConversation(
       } else if (input.eventId) {
         await tx.execute(sql`update conversation set event_id = ${input.eventId} where id = ${conversationId}`);
       }
-      const messageId = uuidv7();
-      await tx.execute(sql`
-        insert into message (id, conversation_id, author_user_id, author_side, body)
-        values (${messageId}, ${conversationId}, ${userId}, 'consumer', ${input.body})`);
+      const { messageId, again } = await writeMessage(tx, conversationId, userId, 'consumer', input.body);
       await markRead(tx, conversationId, userId);
-      return { conversationId, messageId };
+      return { conversationId, messageId, again };
     }),
   );
 }
 
 export type PersonThread = {
   id: string;
-  vendor: { slug: string; name: string; photo: ListPhoto | null; left: boolean };
+  vendor: { slug: string; name: string; photo: ListPhoto | null; left: boolean; paused: boolean };
   status: 'open' | 'blocked_by_consumer' | 'blocked_by_vendor' | 'blocked_by_team';
+  /** Compared by the page's quick look for anything new (personVersion). */
+  version: string;
   event: { id: string; name: string; date: string } | null;
   events: { id: string; name: string; date: string }[];
   messages: ThreadMessage[];
@@ -250,10 +282,11 @@ export async function personThread(env: ServerEnv, userId: string, conversationI
           name: string;
           left: boolean;
           listed: boolean;
+          version: string;
         } & ListPhotoColumns
       >(sql`
         select c.id, c.status, c.event_id as "eventId", v.slug::text as slug, v.display_name as name,
-               (v.claim_status <> 'claimed' or v.listing_status = 'archived') as left, v.listing_status = 'published' as listed,
+               ${LEFT} as left, v.listing_status = 'published' as listed, ${VERSION} as version,
                ${LIST_PHOTO_COLUMNS}
         from conversation c join vendor v on v.id = c.vendor_id
         ${LIST_PHOTO}
@@ -269,8 +302,9 @@ export async function personThread(env: ServerEnv, userId: string, conversationI
       const { photo } = withListPhoto(env, c, c.listed);
       return {
         id: c.id,
-        vendor: { slug: c.slug, name: c.name, photo, left: c.left },
+        vendor: { slug: c.slug, name: c.name, photo, left: c.left, paused: !c.left && !c.listed },
         status: c.status,
+        version: c.version,
         event: events.find((e) => e.id === c.eventId) ?? null,
         events: [...events],
         messages,
@@ -283,13 +317,11 @@ export async function personThread(env: ServerEnv, userId: string, conversationI
 export async function personSend(env: ServerEnv, userId: string, conversationId: string, body: string): Promise<Written> {
   return talked(
     actingAs(env, asPerson(userId), async (tx) => {
-      await checkSending(tx, userId, false);
-      const messageId = uuidv7();
-      await tx.execute(sql`
-        insert into message (id, conversation_id, author_user_id, author_side, body)
-        values (${messageId}, ${conversationId}, ${userId}, 'consumer', ${body})`);
+      await lockSender(tx, userId);
+      await checkLimits(tx, userId, false);
+      const { messageId, again } = await writeMessage(tx, conversationId, userId, 'consumer', body);
       await markRead(tx, conversationId, userId);
-      return { conversationId, messageId };
+      return { conversationId, messageId, again };
     }),
   );
 }
@@ -322,12 +354,19 @@ export async function personChange(
 
 // ======================================================================= the business's side
 
-export type MessagingBusiness = { id: string; slug: string; name: string; role: 'owner' | 'manager' | 'staff' };
+export type MessagingBusiness = {
+  id: string;
+  slug: string;
+  name: string;
+  role: 'owner' | 'manager' | 'staff';
+  /** Listed on Localites: if not (taken down), its messages are paused (migration 0025). */
+  listed: boolean;
+};
 
 /** A business this person is on the team of (any role), not archived; by web address, or an old one. */
 async function findTeam(db: Db, userId: string, slug: string): Promise<MessagingBusiness | null> {
   const [v] = await db.execute<MessagingBusiness>(sql`
-    select v.id, v.slug::text as slug, v.display_name as name, m.role
+    select v.id, v.slug::text as slug, v.display_name as name, m.role, v.listing_status = 'published' as listed
     from vendor v
     join vendor_member m on m.vendor_id = v.id and m.user_id = ${userId} and m.ended_at is null
     where v.listing_status <> 'archived'
@@ -356,6 +395,8 @@ export type BusinessCard = {
   lastFromUs: boolean;
   unread: number;
   blocked: boolean;
+  /** The person deleted their account: the conversation has ended. */
+  ended: boolean;
 };
 
 /** V6: the business's conversations, newest first, each with this team member's own unread count. */
@@ -369,6 +410,7 @@ export async function businessInbox(
       Omit<BusinessCard, 'snippet'> & { lastBody: string | null; lastRemoved: boolean; lastHidden: boolean }
     >(sql`
       select c.id, u.display_name as person, c.last_message_at::text as "lastMessageAt", c.status <> 'open' as blocked,
+             c.ended_at is not null as ended,
              lm.body as "lastBody", coalesce(lm.removed, false) as "lastRemoved", coalesce(lm.hidden, false) as "lastHidden",
              coalesce(lm.ours, false) as "lastFromUs",
              (select count(*) from message m where m.conversation_id = c.id and m.author_side = 'consumer' and m.removed_at is null and m.hidden_by_team_at is null
@@ -411,6 +453,10 @@ export type BusinessThread = {
   id: string;
   person: string;
   status: 'open' | 'blocked_by_consumer' | 'blocked_by_vendor' | 'blocked_by_team';
+  /** The person deleted their account: no new messages. */
+  ended: boolean;
+  /** Compared by the page's quick look for anything new (businessVersion). */
+  version: string;
   /** D-40's summary of the event the person mentioned, if any: never its name or private details. */
   event: { date: string; town: string; guests: number | null; cancelled: boolean } | null;
   messages: ThreadMessage[];
@@ -419,16 +465,16 @@ export type BusinessThread = {
 /** V7: one conversation, as the business; marks it read for this team member. */
 export async function businessThread(env: ServerEnv, userId: string, slug: string, conversationId: string): Promise<BusinessThread> {
   return asTeam(env, userId, slug, async (tx, business) => {
-    const [c] = await tx.execute<{ id: string; person: string; status: BusinessThread['status'] }>(sql`
-      select c.id, u.display_name as person, c.status
-      from conversation c join app_user u on u.id = c.consumer_user_id
+    const [c] = await tx.execute<{ id: string; person: string; status: BusinessThread['status']; ended: boolean; version: string }>(sql`
+      select c.id, u.display_name as person, c.status, c.ended_at is not null as ended, ${VERSION} as version
+      from conversation c join app_user u on u.id = c.consumer_user_id join vendor v on v.id = c.vendor_id
       where c.id = ${conversationId} and c.vendor_id = ${business.id}`);
     if (!c) throw new PlanNotFound();
     const [event] = await tx.execute<NonNullable<BusinessThread['event']>>(sql`
       select event_date::text as date, town, guests, cancelled from conversation_event_for_business(${c.id}::uuid)`);
     const messages = await readMessages(tx, c.id, userId, 'business', business.name);
     await markRead(tx, c.id, userId);
-    return { business, id: c.id, person: c.person, status: c.status, event: event ?? null, messages };
+    return { business, id: c.id, person: c.person, status: c.status, ended: c.ended, version: c.version, event: event ?? null, messages };
   });
 }
 
@@ -441,13 +487,11 @@ export async function businessReply(
   body: string,
 ): Promise<Written & { vendorId: string }> {
   return asTeam(env, userId, slug, async (tx, business) => {
-    await checkSending(tx, userId, false);
-    const messageId = uuidv7();
-    await tx.execute(sql`
-      insert into message (id, conversation_id, author_user_id, author_side, body)
-      values (${messageId}, ${conversationId}, ${userId}, 'vendor', ${body})`);
+    await lockSender(tx, userId);
+    await checkLimits(tx, userId, false);
+    const { messageId, again } = await writeMessage(tx, conversationId, userId, 'vendor', body);
     await markRead(tx, conversationId, userId);
-    return { conversationId, messageId, vendorId: business.id };
+    return { conversationId, messageId, again, vendorId: business.id };
   });
 }
 
@@ -474,14 +518,53 @@ export async function businessChange(
   });
 }
 
-// ======================================================================= emails
+// ======================================================================= the quick look for anything new
 
 /**
- * After a message is written: emails whoever new_message_notices() says is due (the person,
- * or each member of the business's team), once per unread stretch, recording each email
- * honestly in `notification`. Never the message itself: it links to the conversation.
+ * An open conversation page asks this instead of reloading (MessageThread's useRefresh):
+ * one small read, nothing marked. Someone else's conversation is "not found".
+ */
+export async function personVersion(env: ServerEnv, userId: string, conversationId: string): Promise<string> {
+  return talked(
+    actingAs(env, asPerson(userId), async (tx) => {
+      const [c] = await tx.execute<{ version: string }>(sql`
+        select ${VERSION} as version from conversation c join vendor v on v.id = c.vendor_id
+        where c.id = ${conversationId} and c.consumer_user_id = ${userId}`);
+      if (!c) throw new PlanNotFound();
+      return c.version;
+    }),
+  );
+}
+
+/** The same, for a member of the business's team. */
+export async function businessVersion(env: ServerEnv, userId: string, slug: string, conversationId: string): Promise<string> {
+  return asTeam(env, userId, slug, async (tx, business) => {
+    const [c] = await tx.execute<{ version: string }>(sql`
+      select ${VERSION} as version from conversation c join vendor v on v.id = c.vendor_id
+      where c.id = ${conversationId} and c.vendor_id = ${business.id}`);
+    if (!c) throw new PlanNotFound();
+    return c.version;
+  });
+}
+
+// ======================================================================= emails
+
+/** How long after a message the site decides who to email: anyone who opens it meanwhile has seen it. */
+const EMAIL_WAIT_SECONDS = 20;
+
+/**
+ * After a message is written (in the background, after the page has answered): waits
+ * EMAIL_WAIT_SECONDS, so two people chatting with the conversation open aren't emailed about
+ * every message, then emails whoever new_message_notices() says is due (the person, or each
+ * member of the business's team): once per unread stretch, never someone who has seen it,
+ * within the site's daily limit, each recorded honestly in `notification`. Never the message
+ * itself: the email links to the conversation. (Cloudflare lets background work run for 30
+ * seconds after the page answers.)
  */
 export async function emailAboutMessage(env: ServerEnv, acting: Acting, written: Written, siteUrl: string): Promise<void> {
+  if (written.again) return;
+  const seconds = Math.min(Math.max(Number(env.MESSAGE_EMAIL_WAIT_SECONDS ?? EMAIL_WAIT_SECONDS) || 0, 0), EMAIL_WAIT_SECONDS);
+  await new Promise((done) => setTimeout(done, seconds * 1000));
   await withDb(env, async (db) => {
     const { due, info } = await actAs(db, acting, async (tx) => {
       const due = await tx.execute<{ notificationId: string; email: string; name: string; forBusiness: boolean }>(sql`

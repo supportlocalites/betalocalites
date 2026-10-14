@@ -69,10 +69,11 @@ export async function action({ request, params, context }: Route.ActionArgs) {
 }
 
 export default function Conversation({ loaderData: { thread, today }, actionData }: Route.ComponentProps) {
-  useRefresh();
+  useRefresh(`/messages/${thread.id}/check`, thread.version);
+  const error = actionData?.error;
   const busy = useNavigation().state === 'submitting';
   const { vendor, status } = thread;
-  const canWrite = status === 'open' && !vendor.left;
+  const canWrite = status === 'open' && !vendor.left && !vendor.paused;
   return (
     <>
       <SiteHeader />
@@ -86,7 +87,7 @@ export default function Conversation({ loaderData: { thread, today }, actionData
           <SquarePhoto photo={vendor.photo} alt="" />
           <span className={styles.cardBody}>
             <h1 className="title-2">{vendor.name}</h1>
-            {!vendor.left && (
+            {!vendor.left && !vendor.paused && (
               <Link to={`/vendors/${vendor.slug}`} className="text-link">
                 See their page
               </Link>
@@ -94,33 +95,35 @@ export default function Conversation({ loaderData: { thread, today }, actionData
           </span>
         </div>
 
-        <Form method="post" className={styles.eventBox}>
-          <input type="hidden" name="intent" value="event" />
-          <label htmlFor="eventId" className="field-label">
-            About one of your events (optional)
-          </label>
-          <select id="eventId" name="eventId" className="input" defaultValue={thread.event?.id ?? ''}>
-            <option value="">No event</option>
-            {thread.events.map((e) => (
-              <option key={e.id} value={e.id}>
-                {`${e.name} · ${shortDate(e.date, today)}`}
-              </option>
-            ))}
-          </select>
-          <p className="field-hint">
-            {vendor.name} sees only the date, the town and about how many guests. Never your event’s name, where it is, the ages, your
-            budget or your notes.
-          </p>
-          <p>
-            <button type="submit" className="button button-secondary" disabled={busy}>
-              Save
-            </button>
-          </p>
-        </Form>
+        {!vendor.left && (
+          <Form method="post" className={styles.eventBox}>
+            <input type="hidden" name="intent" value="event" />
+            <label htmlFor="eventId" className="field-label">
+              About one of your events (optional)
+            </label>
+            <select id="eventId" name="eventId" className="input" defaultValue={thread.event?.id ?? ''}>
+              <option value="">No event</option>
+              {thread.events.map((e) => (
+                <option key={e.id} value={e.id}>
+                  {`${e.name} · ${shortDate(e.date, today)}`}
+                </option>
+              ))}
+            </select>
+            <p className="field-hint">
+              {vendor.name} sees only the date, the town and about how many guests. Never your event’s name, where it is, the ages, your
+              budget or your notes.
+            </p>
+            <p>
+              <button type="submit" className="button button-secondary" disabled={busy}>
+                Save
+              </button>
+            </p>
+          </Form>
+        )}
 
-        {actionData?.error && (
+        {error && (
           <p className="notice" role="alert">
-            {actionData.error}
+            {error}
           </p>
         )}
         <MessageList messages={thread.messages} canRemove reportPath={`/messages/${thread.id}/report`} />
@@ -129,19 +132,21 @@ export default function Conversation({ loaderData: { thread, today }, actionData
         ) : (
           <p className="notice" role="status">
             {vendor.left
-              ? `${vendor.name} isn’t on Localites any more, so no new messages can be sent.`
-              : status === 'blocked_by_team'
-                ? 'The Localites team has closed this conversation, so no new messages can be sent.'
-                : status === 'blocked_by_consumer'
-                  ? 'You blocked this conversation, so neither of you can send messages.'
-                  : `${vendor.name} has blocked this conversation, so no new messages can be sent.`}
+              ? `${vendor.name} isn’t on Localites any more, so this conversation has ended. If they join again, you can message them afresh.`
+              : vendor.paused
+                ? `${vendor.name} isn’t listed on Localites at the moment, so messages are paused.`
+                : status === 'blocked_by_team'
+                  ? 'The Localites team has closed this conversation, so no new messages can be sent.'
+                  : status === 'blocked_by_consumer'
+                    ? 'You blocked this conversation, so neither of you can send messages.'
+                    : `${vendor.name} has blocked this conversation, so no new messages can be sent.`}
           </p>
         )}
 
         <div className={styles.footer}>
           <p className="muted">{NO_PAYMENTS_IN_CONVERSATION}</p>
           <p className="muted">{SHARE_CAREFULLY}</p>
-          {(status === 'open' || status === 'blocked_by_consumer') && (
+          {!vendor.left && (status === 'open' || status === 'blocked_by_consumer') && (
             <Form method="post">
               <input type="hidden" name="intent" value={status === 'blocked_by_consumer' ? 'unblock' : 'block'} />
               <button type="submit" className={styles.textButton} disabled={busy}>
