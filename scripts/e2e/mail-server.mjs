@@ -3,8 +3,9 @@
 //     it in memory (no TLS, no password: it only listens on this computer);
 //   - HTTP on 127.0.0.1:8787 serves our sign-in email template (emails/sign-in-code.html)
 //     to the sign-in server, and lets the tests read what was sent: GET /messages?to=<address>;
-//   - POST /emails stands in for Resend's sending service (the site's own emails, when the
-//     site is pointed here with EMAIL_API_URL): it keeps the email like the ones above.
+//   - POST /emails (and /emails/batch, a list at once) stands in for Resend's sending
+//     service (the site's own emails, when the site is pointed here with EMAIL_API_URL): it
+//     keeps the email like the ones above.
 //     Only the test key is accepted. POST /emails/fail?on=1 makes it refuse every email
 //     (as Resend would when down) until ?on=0;
 //   - POST /turnstile/siteverify stands in for Cloudflare's "are you human" checker. An
@@ -151,6 +152,41 @@ http
         });
         res.writeHead(200, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ id: `e2e-${messages.length}` }));
+      }
+    } else if (url.pathname === '/emails/batch' && req.method === 'POST') {
+      // Resend's batch sending: a list of emails, all sent or none.
+      let raw = '';
+      for await (const chunk of req) raw += chunk;
+      let emails = null;
+      try {
+        emails = JSON.parse(raw);
+      } catch {
+        emails = null;
+      }
+      const valid = (e) => Array.isArray(e?.to) && typeof e.subject === 'string' && typeof e.text === 'string';
+      if (req.headers.authorization !== `Bearer ${EMAIL_KEY}`) {
+        res.writeHead(401, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ name: 'invalid_api_key', message: 'API key is invalid' }));
+      } else if (emailFails) {
+        res.writeHead(500, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ name: 'application_error', message: 'Pretend outage' }));
+      } else if (!Array.isArray(emails) || emails.length === 0 || emails.length > 100 || !emails.every(valid)) {
+        res.writeHead(422, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ name: 'validation_error', message: 'Each email needs to, subject and text' }));
+      } else {
+        const ids = [];
+        for (const email of emails) {
+          messages.push({
+            to: email.to.map((t) => String(t).toLowerCase()),
+            subject: email.subject,
+            body: email.text,
+            replyTo: email.reply_to ?? null,
+            at: Date.now(),
+          });
+          ids.push({ id: `e2e-${messages.length}` });
+        }
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ data: ids }));
       }
     } else if (url.pathname === '/emails/fail' && req.method === 'POST') {
       emailFails = url.searchParams.get('on') === '1';

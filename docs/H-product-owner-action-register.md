@@ -1,6 +1,11 @@
 # H — Product Owner Action Register
 
-**Last updated:** 2026-10-14 (revision 23: messages and reports; revision 22: Inquire built, D-04 and D-05; revision 21: D-46, the team sees every booking; a business taken down can't be newly booked; revision 20: D-45, square profile photo and whole page photos; revision 19: business photos built, PO-16 to switch them on; revision 18: D-44, bookings marked before a business joined; revision 17: D-39 revised to D-43, "Plan an event" built)
+**Last updated:** 2026-10-14 (revision 24: PO-19 and PO-06 done, alerts reach you; messages fixed after two reviews; revision 23: messages and reports; revision 22: Inquire built, D-04 and D-05; revision 21: D-46, the team sees every booking; a business taken down can't be newly booked; revision 20: D-45, square profile photo and whole page photos; revision 19: business photos built, PO-16 to switch them on; revision 18: D-44, bookings marked before a business joined; revision 17: D-39 revised to D-43, "Plan an event" built)
+
+**Revision 24 changes:** PO-19 is done (and with it PO-06): the site watch's email reached
+supportlocalites@gmail.com at 5:20 am on 14 October, so you'll hear within minutes if the test
+site stops working. Messages were also fixed after two reviews (a business's new owner never
+sees the last owner's conversations; email and running-cost limits). Nothing for you to do.
 
 **Revision 23 changes:** messages are built (your D-13 and D-17): people message businesses
 that have joined, and the whole business team replies (part 1); either side can report a
@@ -101,7 +106,6 @@ Recorded from your messages of 9 and 10 October 2026. These now shape every docu
 | **PO-15** | Once "Plan an event" reaches the test site: plan a test event and look at it (steps below) | Knowing that planning works on the real hosting, not only on our computers | 5 min |
 | **PO-16** | Switch on business photos: one storage folder in Supabase, three secrets in Cloudflare (steps below) | Businesses adding photos | 10 min |
 | **PO-18** | Switch on nightly backups: a passphrase and a switch in GitHub, and two GitHub settings (steps below) | A copy of everything to restore from if the database is ever damaged | 10 min |
-| **PO-19** | Switch on alerts when the site breaks: one email key, from Resend into Cloudflare (steps below) | Hearing about an outage within minutes, not from a customer | 5 min |
 | **PO-11** | Check the 28 test businesses (drafts) and publish the ones that are right (steps below) | Real listings on the test site | At your pace, ~5 min each |
 | **D-12** | Mailing address for the privacy policy and terms | Public launch | 1 min, later |
 
@@ -845,7 +849,7 @@ us.**
 ### PO-06 — Alert email address
 **When:** Just before launch. Alerts go to supportlocalites@gmail.com (D-11); we'll send a
 test alert there and you confirm it arrived. **Now part of PO-19** (its first email is the
-test alert).
+test alert). ✅ **Done 14 October 2026** with PO-19.
 
 ### PO-07 — Legal review
 **When:** Before public launch. **Start looking now.**
@@ -1239,8 +1243,10 @@ one, then replace the secret in Cloudflare (steps 3 to 4).
 Cloudflare fault: on 13 October its scheduler didn't start new every-5-minutes schedules
 (its status page: "Workers - Cron Trigger Activation Issues", fixed 00:09 UTC on 14 October).
 Since then Cloudflare's own record shows the watch looking at the site every 5 minutes, every
-look successful. If the email still isn't in the inbox or spam, tell us and we'll look at
-why that one email didn't go.
+look successful.
+
+✅ **Done (14 October 2026):** the site watch's email arrived at supportlocalites@gmail.com at
+5:20 am ("The site is working now… this email only shows that alerts reach you").
 
 ---
 
@@ -1309,3 +1315,4 @@ you saw (a screenshot is fine; never include a key).
 | 2026-10-13 | PO-17: GitHub puts the test site live only after every test and the database update (first deploy checked healthy); Cloudflare's own builds disconnected |
 | 2026-10-13 | D-45: a square profile photo for lists; the photos on a business's page shown whole |
 | 2026-10-14 | D-46: a business taken down is hidden from people and can't be newly booked; the team sees every booking |
+| 2026-10-14 | PO-19 and PO-06: alerts switched on; the site watch's first email reached supportlocalites@gmail.com |

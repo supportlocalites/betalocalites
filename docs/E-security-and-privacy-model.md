@@ -1,7 +1,7 @@
 # E — Security & Privacy Model
 
 **Status:** Approved (D-00, 10 October 2026).
-**Last updated:** 2026-10-14 (§4.3, §8: messages fixed after review, migration 0025; §4.3: messages built, part 1, migration 0023; §4.2: inquiries built, ADR-024, migration 0021; the team sees every booking, a business taken down can't be newly booked, D-46; 2026-10-13: §3, §4.2, §7, §7a, §8, §12: planning an event built, ADR-031, D-39 to D-43; earlier, §2: "are you human" check on sign-in codes; §7: sign-up details and anyone may join, D-36; §2: emailed sign-in codes and claims)
+**Last updated:** 2026-10-14 (§4.3, §8: messages fixed after a second review, migration 0026; after review, migration 0025; §4.3: messages built, part 1, migration 0023; §4.2: inquiries built, ADR-024, migration 0021; the team sees every booking, a business taken down can't be newly booked, D-46; 2026-10-13: §3, §4.2, §7, §7a, §8, §12: planning an event built, ADR-031, D-39 to D-43; earlier, §2: "are you human" check on sign-in codes; §7: sign-up details and anyone may join, D-36; §2: emailed sign-in codes and claims)
 
 **Revision 2:** rebuilt around the two users, consumer and vendor. Added
 conversations, shared files, consumer-marked bookings, and reviews. Removed the
@@ -270,6 +270,25 @@ team sees which conversations were reported (who, which business, status), never
 - Known and accepted: inside the database, the person's side could technically read which
   team member wrote a reply and who blocked; no page or query on the site shows it.
 
+**Fixed after a second review (migration 0026, 14 October 2026).**
+- Conversations a new team had already inherited before 0025 are ended now, and when a new
+  team forms (an owner joins a business that has none), anything still current ends first.
+  So a conversation started at the very moment the last owner was removed can't pass to the
+  next team either.
+- Emails about a person's message go only to people on the business's team when it was
+  written, never about a conversation that has ended, and in one request for the whole team.
+  The site decides about 18 seconds after the message.
+- "Read up to" is the newest message the page showed, so a message saved a moment later is
+  never counted as read (or as seen, for emails).
+- If the author removes a message after its conversation was reported, the team keeps a copy
+  of its words with the report (table `reported_message_text`, no rule for any side; read
+  only through `reported_conversation_for_team()`, logged). Both sides see it removed.
+  Reporting a scam can't be undone by deleting the evidence. "Hide" isn't offered for a
+  message that's already removed.
+- A person whose conversation ended sees "… left Localites, so this conversation has ended",
+  and, once the business has joined again, a link to message it afresh. An archived business
+  that may come back: "isn't on Localites at the moment".
+
 **Next:** files in conversations.
 
 ### 4.4 Feedback & reviews (Stage 3)
@@ -419,6 +438,7 @@ account exists, and detailed activity records kept for year-over-year reports (D
 | Suggested businesses (D-25) | Kept | On a declined suggestion, the phone number or email typed in is erased after 1 year; the count stays for reports |
 | Email delivery log | 1 year | Deleted |
 | Audit log | 2 years | Deleted |
+| Words of a message removed after its conversation was reported (migration 0026) | With the report | Read only by the team, through the report; deleted with it |
 | Verification evidence | While verified + 1 year | Deleted; outcome kept |
 | Account deletion request | Within 30 days | As above |
 | Backups | Our own nightly backup, kept 30 days (F §5) | Expire automatically; deleted data is fully gone after 30 days |

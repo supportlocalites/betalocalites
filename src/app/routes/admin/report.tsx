@@ -3,6 +3,7 @@ import { adminContext, cloudflareContext } from '@/app/context';
 import { isUuid } from '@/lib/ids.mjs';
 import { REPORT_REASONS } from '@/lib/message-terms';
 import { pageMeta } from '@/lib/meta';
+import { PlanRefused } from '@/server/acting.server';
 import { decideReport, reportDetail } from '@/server/reports.server';
 import { found } from '@/server/plan-pages.server';
 import type { Route } from './+types/report';
@@ -29,7 +30,12 @@ export async function action({ params, request, context }: Route.ActionArgs) {
   const form = await request.formData();
   const intent = String(form.get('intent') ?? '');
   if (intent === 'hide' || intent === 'block' || intent === 'unblock') {
-    await found(decideReport(env, admin, params.id, { kind: intent }));
+    try {
+      await found(decideReport(env, admin, params.id, { kind: intent }));
+    } catch (err) {
+      if (err instanceof PlanRefused) return data({ error: err.message }, { status: 409 });
+      throw err;
+    }
   } else if (intent === 'actioned' || intent === 'dismissed') {
     const note = String(form.get('note') ?? '')
       .replace(/\s+/g, ' ')
@@ -78,9 +84,13 @@ export default function ReportPage({ loaderData: { report }, actionData }: Route
                 {m.author} ({m.side === 'consumer' ? 'customer' : 'business'}) · {when.format(new Date(m.createdAt))}
                 {m.reported ? ' · Reported' : ''}
                 {m.hidden ? ' · Hidden by the team' : ''}
-                {m.removed ? ' · Removed by its author' : ''}
+                {m.removed
+                  ? m.body
+                    ? ' · Removed by its author after the report (its words kept for you)'
+                    : ' · Removed by its author'
+                  : ''}
               </span>
-              <span>{m.removed ? <span className="muted">(removed)</span> : m.body}</span>
+              <span>{m.removed && !m.body ? <span className="muted">(removed)</span> : m.body}</span>
             </li>
           ))}
         </ol>
@@ -102,7 +112,7 @@ export default function ReportPage({ loaderData: { report }, actionData }: Route
           )}
         </p>
         <div className={styles.statusPanel}>
-          {reported && !reported.hidden && (
+          {reported && !reported.hidden && !reported.removed && (
             <Form method="post">
               <input type="hidden" name="intent" value="hide" />
               <button type="submit" className="button button-secondary" disabled={busy}>

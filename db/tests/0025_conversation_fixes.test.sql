@@ -120,8 +120,8 @@ select pg_temp.expect_equal('the person keeps their copy', (select count(*)::tex
 select pg_temp.expect_code('…but can''t write in it', $q$
   insert into message (conversation_id, author_user_id, author_side, body) values
   ('00000000-0000-7000-8000-000000002561', '00000000-0000-7000-8000-0000000025a1', 'consumer', 'Hello?')$q$, 'LP140');
-select pg_temp.expect_code('…or change it', $q$
-  update conversation set status = 'blocked_by_consumer' where id = '00000000-0000-7000-8000-000000002561'$q$, 'LP146');
+select pg_temp.expect_code('…or change it (in the person''s own words since 0026)', $q$
+  update conversation set status = 'blocked_by_consumer' where id = '00000000-0000-7000-8000-000000002561'$q$, 'LP140');
 update message set removed_at = now() where id = '00000000-0000-7000-8000-000000002571';
 select pg_temp.expect_equal('…though they can still remove their own message from it', (
   select (removed_at is not null)::text from message where id = '00000000-0000-7000-8000-000000002571'), 'true');

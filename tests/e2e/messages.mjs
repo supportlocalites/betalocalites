@@ -349,7 +349,7 @@ await sql`update vendor_member set ended_at = now() where vendor_id = ${W.id} an
 await sql`update vendor set claim_status = 'unclaimed' where id = ${W.id}`;
 r = await page(B_THREAD, { cookie: cookie.b });
 check('a business’s team ends: the person keeps the conversation, and is told it has ended',
-  r.status === 200 && words(r.body).includes(`${W.name} isn’t on Localites any more, so this conversation has ended.`) && !r.body.includes('name="body"'),
+  r.status === 200 && words(r.body).includes(`${W.name} left Localites, so this conversation has ended.`) && !r.body.includes('name="body"'),
   String(r.status));
 await sql`insert into vendor_member (vendor_id, user_id, role) values (${W.id}, ${ids.n}, 'owner')`;
 await sql`update vendor set claim_status = 'claimed' where id = ${W.id}`;
@@ -361,6 +361,9 @@ check('…can’t open one', r.status === 404 && !r.body.includes(START), String
 check('…nor look at one', (await look(W_THREAD, cookie.n)).status === 404);
 r = await page(W_THREAD, { cookie: cookie.n, method: 'POST', form: { intent: 'send', body: 'Hi' } });
 check('…nor reply to one', r.status === 404, String(r.status));
+r = await page(B_THREAD, { cookie: cookie.b });
+check('…and once it has joined again, is offered to message it afresh',
+  words(r.body).includes('has since joined again') && r.body.includes(`href="/vendors/${W.slug}/message"`) && !r.body.includes('name="body"'));
 r = await page(`/vendors/${W.slug}/message`, { cookie: cookie.b });
 check('the person can message the business afresh', r.status === 200 && r.body.includes('name="body"'), `${r.status} ${r.location}`);
 r = await page(`/vendors/${W.slug}/message`, { cookie: cookie.b, method: 'POST', form: { body: `Hello again ${run}` } });
@@ -375,6 +378,24 @@ check('a person deletes their account: the business keeps its copy, and is told 
 r = await page(`/vendors/${W.slug}/messages/${fresh}`, { cookie: cookie.n, method: 'POST', form: { intent: 'send', body: 'Hello?' } });
 check('…replying anyway is refused in plain words', r.status === 409 && words(r.body).includes('This person has left Localites'), String(r.status));
 
+// A reported message its author then removes: the team keeps its words (only the team).
+const RUDE = `Rude words ${run}`;
+await page(BIZ_THREAD, { cookie: cookie.o, method: 'POST', form: { intent: 'send', body: RUDE } });
+const [rude] = await sql`select id from message where conversation_id = ${conversationId} and body = ${RUDE}`;
+await page(`${THREAD}/report`, { cookie: cookie.a, method: 'POST', form: { messageId: rude.id, reason: 'harassment' } });
+const [rudeReport] = await sql`select id from moderation_report where message_id = ${rude.id}`;
+r = await page(BIZ_THREAD, { cookie: cookie.o, method: 'POST', form: { intent: 'remove', messageId: rude.id } });
+check('(set-up: the author removes the reported message)', r.status === 302 && Boolean(rudeReport), String(r.status));
+r = await page(THREAD, { cookie: cookie.a });
+check('…both sides see it removed', !words(r.body).includes(RUDE));
+r = await page(`/admin/reports/${rudeReport?.id}`, { cookie: cookie.m });
+check('…the team still reads its words, marked as removed after the report, and isn’t offered to hide it',
+  r.status === 200 && words(r.body).includes(RUDE) && words(r.body).includes('Removed by its author after the report') && !r.body.includes('Hide the reported message'),
+  String(r.status));
+r = await page(`/admin/reports/${rudeReport?.id}`, { cookie: cookie.m, method: 'POST', form: { intent: 'hide' } });
+check('…hiding it anyway is refused in plain words, not an error page',
+  r.status === 409 && words(r.body).includes('Its author has already removed that message'), String(r.status));
+
 // ------------------------------------------------------------------ 6. Leaving
 await sql`update vendor_member set ended_at = now() where vendor_id = ${V.id} and user_id = ${ids.s}`;
 r = await page(BIZ_THREAD, { cookie: cookie.s });
@@ -386,7 +407,7 @@ check('…their past replies stay, as the business’s',
 await sql`update vendor set listing_status = 'archived', archived_at = now() where id = ${V.id}`;
 r = await page(THREAD, { cookie: cookie.a });
 check('a business that leaves Localites: the person keeps the conversation, and is told they can’t send',
-  r.status === 200 && words(r.body).includes(`${V.name} isn’t on Localites any more`) && !r.body.includes('name="body"'), String(r.status));
+  r.status === 200 && words(r.body).includes(`${V.name} isn’t on Localites at the moment`) && !r.body.includes('name="body"'), String(r.status));
 r = await page(BIZ_THREAD, { cookie: cookie.o });
 check('…and its team can no longer open it', r.status === 404, String(r.status));
 

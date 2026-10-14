@@ -41,7 +41,9 @@ export default function Messages({ loaderData: { conversations } }: Route.Compon
                       </span>
                     )}
                     {(c.blocked || c.left || c.paused) && (
-                      <span className={styles.snippet}>{c.left ? 'No longer on Localites' : c.paused ? 'Paused' : 'Blocked'}</span>
+                      <span className={styles.snippet}>
+                        {c.rejoined ? 'Ended (they’ve joined again)' : c.left ? 'No longer on Localites' : c.paused ? 'Paused' : 'Blocked'}
+                      </span>
                     )}
                   </span>
                   <span className={styles.cardBody}>

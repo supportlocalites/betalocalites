@@ -1,7 +1,7 @@
 import { sql } from 'drizzle-orm';
 import { uuidv7 } from '@/lib/ids.mjs';
 import { REPORT_REASONS, type ReportReason } from '@/lib/message-terms';
-import { type Acting, actingAs, PlanNotFound } from './acting.server';
+import { type Acting, actingAs, errorCode, PlanNotFound, PlanRefused } from './acting.server';
 import { audit } from './admin/audit.server';
 import type { Admin } from './auth/admin.server';
 import type { Db } from './db.server';
@@ -187,7 +187,13 @@ export async function decideReport(
 ): Promise<void> {
   await actingAs(env, { side: 'team', userId: admin.userId }, async (tx) => {
     if (decision.kind === 'hide') {
-      await tx.execute(sql`select team_hide_reported_message(${reportId}::uuid)`);
+      try {
+        await tx.execute(sql`select team_hide_reported_message(${reportId}::uuid)`);
+      } catch (err) {
+        // Its author removed it already: nobody sees its words, so there's nothing to hide.
+        if (errorCode(err) === 'LP109') throw new PlanRefused('Its author has already removed that message, so nobody sees it.');
+        throw err;
+      }
     } else if (decision.kind === 'block' || decision.kind === 'unblock') {
       await tx.execute(sql`select team_block_reported(${reportId}::uuid, ${decision.kind === 'block'})`);
     } else if (decision.kind === 'close') {

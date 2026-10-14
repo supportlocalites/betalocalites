@@ -131,15 +131,26 @@ export default function Conversation({ loaderData: { thread, today }, actionData
           <ReplyBox label={`Message ${vendor.name}`} busy={busy} />
         ) : (
           <p className="notice" role="status">
-            {vendor.left
-              ? `${vendor.name} isn’t on Localites any more, so this conversation has ended. If they join again, you can message them afresh.`
-              : vendor.paused
-                ? `${vendor.name} isn’t listed on Localites at the moment, so messages are paused.`
-                : status === 'blocked_by_team'
-                  ? 'The Localites team has closed this conversation, so no new messages can be sent.'
-                  : status === 'blocked_by_consumer'
-                    ? 'You blocked this conversation, so neither of you can send messages.'
-                    : `${vendor.name} has blocked this conversation, so no new messages can be sent.`}
+            {vendor.rejoined ? (
+              <>
+                This conversation has ended: {vendor.name} left Localites, and has since joined again.{' '}
+                <Link to={`/vendors/${vendor.slug}/message`} className="text-link">
+                  Message {vendor.name} afresh
+                </Link>
+              </>
+            ) : thread.ended ? (
+              `${vendor.name} left Localites, so this conversation has ended. If they join again, you can message them afresh.`
+            ) : vendor.left ? (
+              `${vendor.name} isn’t on Localites at the moment, so no new messages can be sent.`
+            ) : vendor.paused ? (
+              `${vendor.name} isn’t listed on Localites at the moment, so messages are paused.`
+            ) : status === 'blocked_by_team' ? (
+              'The Localites team has closed this conversation, so no new messages can be sent.'
+            ) : status === 'blocked_by_consumer' ? (
+              'You blocked this conversation, so neither of you can send messages.'
+            ) : (
+              `${vendor.name} has blocked this conversation, so no new messages can be sent.`
+            )}
           </p>
         )}
 

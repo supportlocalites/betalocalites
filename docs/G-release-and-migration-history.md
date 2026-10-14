@@ -31,6 +31,50 @@ Every release and every database migration, in order. Appended before each deplo
 
 ## Releases
 
+### 2026-10-14 — Messages, fixed after a second review (Stage 2B)
+
+**Stage:** 2 (E §4.3, §8; screens C7, C8, X13)
+**What changed (plain English):**
+- **No new team inherits conversations, closing two gaps in the previous release.** Its
+  clean-up missed conversations a new owner had *already* taken over before it. A
+  conversation started at the very moment an owner was being removed could also pass to the
+  next team. Both are ended now. From now on, when a new team forms (an owner joins a
+  business that has none), anything still open ends first.
+- **Emails about a person's message** go only to people who were on the business's team
+  when it was written, never about a conversation that has ended. The whole team's emails go
+  in one request, which fits in the time Cloudflare allows. Any email request now gives up
+  after 5 seconds and is recorded as failed. An email stuck "being sent" stops counting after
+  10 minutes.
+- **"Read up to"** is the newest message the page showed, never a later moment.
+- **Evidence kept for reports:** if someone removes a message after its conversation was
+  reported, the team still sees its words on the report. Both sides see it removed.
+  **Hide** isn't offered for it any more; before, pressing it showed an error page.
+- **Clearer words:** "… left Localites, so this conversation has ended", with a link to
+  message the business afresh once it has joined again. Refusals use each side's own words.
+- **Looking for new messages** also notices the event the conversation is about, and
+  messages saved a moment out of order. A page whose conversation is gone reloads and says so.
+**Migrations applied:** `0026_conversation_fixes_2.sql`:
+- a new table `reported_message_text` (team-only, no rule for any side);
+- two new triggers (a new team forms; keep a reported message's words);
+- the 0025 email, "read up to" and conversation rules replaced;
+- the 0024 report reading replaced, to show kept words;
+- the read time loses its automatic default (the rule sets it);
+- `end_inherited_conversations()` run once.
+**Destructive?** No: no rows removed. Conversations a new team had wrongly inherited are
+marked ended (none expected). To undo, a later migration restores 0025's functions and drops
+the table.
+**Tests run:**
+- database 0026 20/20 (new) and every earlier file passing (0025 33/33, with one expectation
+  updated to the person's own words);
+- end-to-end messages 106/106 (5 new), every other suite passing, look checks 336/336;
+- unit 167/167; checks.
+**Security tests:** a new team can't inherit a conversation that slipped through while the
+last owner was being removed; a later team member isn't emailed about earlier messages;
+neither side can read kept words; the team can't write them.
+**How to roll back:** Cloudflare → Deployments → previous version; the database change is
+undone by a new migration.
+**Approved by:** Product owner (Messages, 14 October 2026), as the release before.
+
 ### 2026-10-14 — Messages, fixed after review (Stage 2B)
 
 **Stage:** 2 (E §4.3, §8; screens C7, C8, V6, V7)

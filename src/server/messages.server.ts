@@ -3,7 +3,7 @@ import { uuidv7 } from '@/lib/ids.mjs';
 import { MESSAGE_LIMITS, MESSAGE_REFUSALS } from '@/lib/message-terms';
 import { type Acting, actAs, actingAs, errorCode, PlanCapped, PlanNotFound, PlanRefused } from './acting.server';
 import { type Db, withDb } from './db.server';
-import { sendEmail } from './email.server';
+import { sendEmails } from './email.server';
 import { renderEmail } from './email-templates.server';
 import type { ServerEnv } from './env';
 import { LIST_PHOTO, LIST_PHOTO_COLUMNS, type ListPhoto, type ListPhotoColumns, withListPhoto } from './photo-store.server';
@@ -81,15 +81,19 @@ async function writeMessage(
 }
 
 /**
- * What a conversation page compares to see whether anything changed: its last message, a
- * removal or hiding, a block, its end, or the business being listed or not. Read before the
- * messages, so a message arriving in between shows on the next look rather than never.
+ * What a conversation page compares to see whether anything changed: a new message (also one
+ * saved a moment out of order: the count), a removal or hiding, a block, its end, the event
+ * it's about, or the business being listed or not. Each in its own place, empty ones too.
+ * Read before the messages, so a message arriving in between shows on the next look.
  */
-const VERSION = sql`concat_ws('|', c.status, c.ended_at, c.last_message_at, v.claim_status, v.listing_status,
+const VERSION = sql`format('%s|%s|%s|%s|%s|%s|%s|%s', c.status, c.ended_at, c.last_message_at, c.event_id, v.claim_status,
+  v.listing_status, (select count(*) from message m where m.conversation_id = c.id),
   (select max(greatest(m.removed_at, m.hidden_by_team_at)) from message m where m.conversation_id = c.id))`;
 
-/** For the person: the business has left (its team ended, or it was archived), so the conversation has ended. */
+/** For the person: the business isn't on Localites (its team ended, or it was archived): nobody can write. */
 const LEFT = sql`(c.ended_at is not null or v.claim_status <> 'claimed' or v.listing_status = 'archived')`;
+/** For the person: the conversation ended, and the business has since joined Localites again (a new team). */
+const REJOINED = sql`(c.ended_at is not null and v.claim_status = 'claimed' and v.listing_status = 'published')`;
 
 export type ThreadMessage = {
   id: string;
@@ -139,10 +143,14 @@ async function readMessages(tx: Db, conversationId: string, userId: string, view
   );
 }
 
-async function markRead(tx: Db, conversationId: string, userId: string) {
+/**
+ * Marks the conversation read up to `upTo`, the newest message the page showed, so one saved
+ * a moment later isn't counted as read; or up to now (after writing). Never goes back.
+ */
+async function markRead(tx: Db, conversationId: string, userId: string, upTo: string | null = null) {
   await tx.execute(sql`
-    insert into conversation_read (conversation_id, user_id) values (${conversationId}, ${userId})
-    on conflict (conversation_id, user_id) do update set last_read_at = now()`);
+    insert into conversation_read (conversation_id, user_id, last_read_at) values (${conversationId}, ${userId}, ${upTo}::timestamptz)
+    on conflict (conversation_id, user_id) do update set last_read_at = excluded.last_read_at`);
 }
 
 // ======================================================================= the person's side
@@ -161,6 +169,8 @@ export type ConversationCard = {
   left: boolean;
   /** The business isn't listed at the moment: messages are paused. */
   paused: boolean;
+  /** The conversation ended, and the business has since joined again: the person can start afresh. */
+  rejoined: boolean;
 };
 
 export async function myConversations(env: ServerEnv, userId: string): Promise<ConversationCard[]> {
@@ -172,6 +182,7 @@ export async function myConversations(env: ServerEnv, userId: string): Promise<C
       >(sql`
         select c.id, v.slug::text as "vendorSlug", v.display_name as "vendorName", c.last_message_at::text as "lastMessageAt",
                c.status <> 'open' as blocked, ${LEFT} as left, not ${LEFT} and v.listing_status <> 'published' as paused,
+               ${REJOINED} as rejoined,
                v.listing_status = 'published' as listed,
                lm.body as "lastBody", coalesce(lm.removed, false) as "lastRemoved", coalesce(lm.hidden, false) as "lastHidden",
                coalesce(lm.mine, false) as "lastFromMe",
@@ -260,7 +271,9 @@ export async function startConversation(
 
 export type PersonThread = {
   id: string;
-  vendor: { slug: string; name: string; photo: ListPhoto | null; left: boolean; paused: boolean };
+  vendor: { slug: string; name: string; photo: ListPhoto | null; left: boolean; paused: boolean; rejoined: boolean };
+  /** The conversation has ended (the business left Localites); see vendor.rejoined. */
+  ended: boolean;
   status: 'open' | 'blocked_by_consumer' | 'blocked_by_vendor' | 'blocked_by_team';
   /** Compared by the page's quick look for anything new (personVersion). */
   version: string;
@@ -282,11 +295,14 @@ export async function personThread(env: ServerEnv, userId: string, conversationI
           name: string;
           left: boolean;
           listed: boolean;
+          rejoined: boolean;
+          ended: boolean;
           version: string;
         } & ListPhotoColumns
       >(sql`
         select c.id, c.status, c.event_id as "eventId", v.slug::text as slug, v.display_name as name,
-               ${LEFT} as left, v.listing_status = 'published' as listed, ${VERSION} as version,
+               ${LEFT} as left, v.listing_status = 'published' as listed, ${REJOINED} as rejoined,
+               c.ended_at is not null as ended, ${VERSION} as version,
                ${LIST_PHOTO_COLUMNS}
         from conversation c join vendor v on v.id = c.vendor_id
         ${LIST_PHOTO}
@@ -298,11 +314,12 @@ export async function personThread(env: ServerEnv, userId: string, conversationI
         where e.host_user_id = ${userId} and (e.id = ${c.eventId} or (e.status = 'planning' and event_ends_at(e) >= now()))
         order by e.event_date limit 50`);
       const messages = await readMessages(tx, c.id, userId, 'person', c.name);
-      await markRead(tx, c.id, userId);
+      await markRead(tx, c.id, userId, messages.at(-1)?.createdAt ?? null);
       const { photo } = withListPhoto(env, c, c.listed);
       return {
         id: c.id,
-        vendor: { slug: c.slug, name: c.name, photo, left: c.left, paused: !c.left && !c.listed },
+        vendor: { slug: c.slug, name: c.name, photo, left: c.left, paused: !c.left && !c.listed, rejoined: c.rejoined },
+        ended: c.ended,
         status: c.status,
         version: c.version,
         event: events.find((e) => e.id === c.eventId) ?? null,
@@ -473,7 +490,7 @@ export async function businessThread(env: ServerEnv, userId: string, slug: strin
     const [event] = await tx.execute<NonNullable<BusinessThread['event']>>(sql`
       select event_date::text as date, town, guests, cancelled from conversation_event_for_business(${c.id}::uuid)`);
     const messages = await readMessages(tx, c.id, userId, 'business', business.name);
-    await markRead(tx, c.id, userId);
+    await markRead(tx, c.id, userId, messages.at(-1)?.createdAt ?? null);
     return { business, id: c.id, person: c.person, status: c.status, ended: c.ended, version: c.version, event: event ?? null, messages };
   });
 }
@@ -549,17 +566,22 @@ export async function businessVersion(env: ServerEnv, userId: string, slug: stri
 
 // ======================================================================= emails
 
-/** How long after a message the site decides who to email: anyone who opens it meanwhile has seen it. */
-const EMAIL_WAIT_SECONDS = 20;
+/**
+ * How long after a message the site decides who to email: anyone who opens it meanwhile has
+ * seen it (an open conversation looks every 15 seconds while you're there). With one request
+ * for all the emails, this fits in the 30 seconds Cloudflare lets background work run.
+ */
+const EMAIL_WAIT_SECONDS = 18;
 
 /**
  * After a message is written (in the background, after the page has answered): waits
  * EMAIL_WAIT_SECONDS, so two people chatting with the conversation open aren't emailed about
- * every message, then emails whoever new_message_notices() says is due (the person, or each
- * member of the business's team): once per unread stretch, never someone who has seen it,
- * within the site's daily limit, each recorded honestly in `notification`. Never the message
- * itself: the email links to the conversation. (Cloudflare lets background work run for 30
- * seconds after the page answers.)
+ * every message, then emails whoever new_message_notices() says is due (the person, or the
+ * business's team as it was when the message was written): once per unread stretch, never
+ * someone who has seen it, within the site's daily limit, in one request, each recorded
+ * honestly in `notification`. Never the message itself: the email links to the conversation.
+ * (If Cloudflare stops the work part-way, an email left "being sent" stops counting after 10
+ * minutes, and the nightly run marks it failed.)
  */
 export async function emailAboutMessage(env: ServerEnv, acting: Acting, written: Written, siteUrl: string): Promise<void> {
   if (written.again) return;
@@ -576,22 +598,26 @@ export async function emailAboutMessage(env: ServerEnv, acting: Acting, written:
         where c.id = ${written.conversationId}`);
       return { due: [...due], info };
     });
-    if (!info) return;
-    for (const d of due) {
-      const content = renderEmail('newMessage', {
-        name: d.name,
-        from: d.forBusiness ? info.person : info.business,
-        link: d.forBusiness
-          ? `${siteUrl}/vendors/${info.slug}/messages/${written.conversationId}`
-          : `${siteUrl}/messages/${written.conversationId}`,
-      });
-      const result = await sendEmail(env, { to: d.email, ...content });
-      await db.execute(
-        result.sent
-          ? sql`update notification set status = 'sent', sent_at = now() where id = ${d.notificationId}`
-          : sql`update notification set status = 'failed', failure_reason = ${result.reason} where id = ${d.notificationId}`,
-      );
-    }
+    if (!info || due.length === 0) return;
+    const result = await sendEmails(
+      env,
+      due.map((d) => ({
+        to: d.email,
+        ...renderEmail('newMessage', {
+          name: d.name,
+          from: d.forBusiness ? info.person : info.business,
+          link: d.forBusiness
+            ? `${siteUrl}/vendors/${info.slug}/messages/${written.conversationId}`
+            : `${siteUrl}/messages/${written.conversationId}`,
+        }),
+      })),
+    );
+    const ids = `{${due.map((d) => d.notificationId).join(',')}}`;
+    await db.execute(
+      result.sent
+        ? sql`update notification set status = 'sent', sent_at = now() where id = any(${ids}::uuid[])`
+        : sql`update notification set status = 'failed', failure_reason = ${result.reason} where id = any(${ids}::uuid[])`,
+    );
   });
 }
 

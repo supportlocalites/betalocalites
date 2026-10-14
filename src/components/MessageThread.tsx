@@ -58,7 +58,9 @@ export function useRefresh(checkPath: string, version: string) {
       let changed = false;
       try {
         const res = await fetch(checkPath, { headers: { Accept: 'application/json' } });
-        if (res.ok) changed = ((await res.json()) as { version?: string }).version !== page.current.version;
+        // Gone ("not found": you've left the team, say): reload, so the page says so.
+        if (res.status === 404) changed = true;
+        else if (res.ok) changed = ((await res.json()) as { version?: string }).version !== page.current.version;
       } catch {
         // Offline, or signed out: look again later.
       }
