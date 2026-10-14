@@ -3,6 +3,7 @@ import { actAs, planned, PlanNotFound } from './acting.server';
 import type { MyBusiness } from './claims.server';
 import { type Db, withDb } from './db.server';
 import type { ServerEnv } from './env';
+import { businessUnread } from './messages.server';
 
 /**
  * The business's side of planning (V1-lite, V8; D-13 R3–R5, D-40, D-41, ADR-031). Only an
@@ -14,8 +15,11 @@ import type { ServerEnv } from './env';
  * flag_booking() (ADR-031). Coming up or earlier is by date alone, so no time is revealed.
  */
 
-/** "My business": the businesses this person runs, each with how many bookings are marked coming up. */
-export async function myBusinesses(env: ServerEnv, userId: string): Promise<(MyBusiness & { comingUp: number })[]> {
+/**
+ * "My business": the businesses this person runs, each with how many bookings are marked
+ * coming up, and how many new messages this person hasn't read there (Stage 2B).
+ */
+export async function myBusinesses(env: ServerEnv, userId: string): Promise<(MyBusiness & { comingUp: number; unread: number })[]> {
   return withDb(env, async (db) => {
     const businesses = await db.execute<MyBusiness>(sql`
       select v.id, v.display_name as name, v.slug::text as slug, m.role, v.listing_status = 'published' as listed,
@@ -24,9 +28,9 @@ export async function myBusinesses(env: ServerEnv, userId: string): Promise<(MyB
       from vendor_member m join vendor v on v.id = m.vendor_id
       where m.user_id = ${userId} and m.ended_at is null
       order by v.display_name`);
-    const out: (MyBusiness & { comingUp: number })[] = [];
+    const out: (MyBusiness & { comingUp: number; unread: number })[] = [];
     for (const b of businesses) {
-      // Staff see no bookings (E §3: owners and managers); they're listed for the messages to come.
+      // Staff see no bookings (E §3: owners and managers); they read and reply to messages.
       const comingUp =
         b.archived || b.role === 'staff'
           ? 0
@@ -36,7 +40,8 @@ export async function myBusinesses(env: ServerEnv, userId: string): Promise<(MyB
               where not cancelled and event_date >= (now() at time zone 'America/Toronto')::date`);
               return n?.n ?? 0;
             });
-      out.push({ ...b, comingUp });
+      const unread = b.archived ? 0 : await businessUnread(db, userId, b.id);
+      out.push({ ...b, comingUp, unread });
     }
     return out;
   });

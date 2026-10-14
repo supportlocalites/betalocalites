@@ -85,46 +85,14 @@ insert into media_asset (id, owner_kind, owner_id, bucket, storage_path, mime_ty
 insert into event_vendor (id, event_id, vendor_id, host_user_id) values
   ('90000000-0000-7000-8000-000000000001', '50000000-0000-7000-8000-000000000001', '30000000-0000-7000-8000-000000000001', '10000000-0000-7000-8000-000000000001');
 
--- ---------------------------------------------------------- conversations ---
-select pg_temp.expect_reject('conversation with a business that has not joined Localites',
-  $q$insert into conversation (consumer_user_id, vendor_id)
-     values ('10000000-0000-7000-8000-000000000001', '30000000-0000-7000-8000-000000000002')$q$);
-select pg_temp.expect_reject('conversation about someone else''s event',
-  $q$insert into conversation (consumer_user_id, vendor_id, event_id)
-     values ('10000000-0000-7000-8000-000000000001', '30000000-0000-7000-8000-000000000001', '50000000-0000-7000-8000-000000000003')$q$);
-select pg_temp.expect_reject('vendor owner starts a conversation with their own business',
-  $q$insert into conversation (consumer_user_id, vendor_id)
-     values ('10000000-0000-7000-8000-000000000003', '30000000-0000-7000-8000-000000000001')$q$);
-select pg_temp.expect_accept('A starts a conversation with Test Vendor 1 about her party',
-  $q$insert into conversation (id, consumer_user_id, vendor_id, event_id)
-     values ('60000000-0000-7000-8000-000000000001', '10000000-0000-7000-8000-000000000001', '30000000-0000-7000-8000-000000000001', '50000000-0000-7000-8000-000000000001')$q$);
-select pg_temp.expect_reject('second conversation about the same event with the same vendor',
-  $q$insert into conversation (consumer_user_id, vendor_id, event_id)
-     values ('10000000-0000-7000-8000-000000000001', '30000000-0000-7000-8000-000000000001', '50000000-0000-7000-8000-000000000001')$q$);
-
--- --------------------------------------------------------------- messages ---
-select pg_temp.expect_reject('vendor writes first (vendors cannot start conversations)',
-  $q$insert into message (conversation_id, author_user_id, author_side, body)
-     values ('60000000-0000-7000-8000-000000000001', '10000000-0000-7000-8000-000000000003', 'vendor', 'Hi!')$q$);
-select pg_temp.expect_reject('Consumer B writes in A''s conversation',
-  $q$insert into message (conversation_id, author_user_id, author_side, body)
-     values ('60000000-0000-7000-8000-000000000001', '10000000-0000-7000-8000-000000000002', 'consumer', 'Hello')$q$);
-select pg_temp.expect_accept('A sends the first message',
-  $q$insert into message (id, conversation_id, author_user_id, author_side, body)
-     values ('70000000-0000-7000-8000-000000000001', '60000000-0000-7000-8000-000000000001', '10000000-0000-7000-8000-000000000001', 'consumer', 'Are you free on the 14th?')$q$);
-select pg_temp.expect_reject('outsider writes as the business',
-  $q$insert into message (conversation_id, author_user_id, author_side, body)
-     values ('60000000-0000-7000-8000-000000000001', '10000000-0000-7000-8000-000000000005', 'vendor', 'Hi')$q$);
-select pg_temp.expect_reject('former team member writes as the business',
-  $q$insert into message (conversation_id, author_user_id, author_side, body)
-     values ('60000000-0000-7000-8000-000000000001', '10000000-0000-7000-8000-000000000007', 'vendor', 'Hi')$q$);
-select pg_temp.expect_accept('current staff member replies for the business',
-  $q$insert into message (id, conversation_id, author_user_id, author_side, body)
-     values ('70000000-0000-7000-8000-000000000002', '60000000-0000-7000-8000-000000000001', '10000000-0000-7000-8000-000000000004', 'vendor', 'Yes! Invoice attached.')$q$);
-select pg_temp.expect_reject('rewriting a sent message',
-  $q$update message set body = 'Something else' where id = '70000000-0000-7000-8000-000000000001'$q$);
-select pg_temp.expect_accept('author removes their message',
-  $q$update message set removed_at = now() where id = '70000000-0000-7000-8000-000000000001'$q$);
+-- ------------------------------------------- conversations and messages ---
+-- Their checks now live with the migration: db/tests/0023_conversations.test.sql. This file
+-- needs one conversation with three messages for the file checks below.
+insert into conversation (id, consumer_user_id, vendor_id, event_id) values
+  ('60000000-0000-7000-8000-000000000001', '10000000-0000-7000-8000-000000000001', '30000000-0000-7000-8000-000000000001', '50000000-0000-7000-8000-000000000001');
+insert into message (id, conversation_id, author_user_id, author_side, body) values
+  ('70000000-0000-7000-8000-000000000001', '60000000-0000-7000-8000-000000000001', '10000000-0000-7000-8000-000000000001', 'consumer', 'Are you free on the 14th?'),
+  ('70000000-0000-7000-8000-000000000002', '60000000-0000-7000-8000-000000000001', '10000000-0000-7000-8000-000000000004', 'vendor', 'Yes! Invoice attached.');
 
 -- ------------------------------------------------------------------ files ---
 select pg_temp.expect_reject('file stored publicly',
@@ -141,17 +109,6 @@ insert into message (id, conversation_id, author_user_id, author_side, body) val
 select pg_temp.expect_reject('same file attached to a second message (same uploader)',
   $q$insert into message_attachment (message_id, media_asset_id)
      values ('70000000-0000-7000-8000-000000000003', '80000000-0000-7000-8000-000000000004')$q$);
-
--- ------------------------------------------------------------- blocking ---
-insert into conversation (id, consumer_user_id, vendor_id) values
-  ('60000000-0000-7000-8000-000000000009', '10000000-0000-7000-8000-000000000002', '30000000-0000-7000-8000-000000000004');
-insert into message (conversation_id, author_user_id, author_side, body) values
-  ('60000000-0000-7000-8000-000000000009', '10000000-0000-7000-8000-000000000002', 'consumer', 'Hello');
-update conversation set status = 'blocked_by_vendor', blocked_at = now()
-  where id = '60000000-0000-7000-8000-000000000009';
-select pg_temp.expect_reject('message into a blocked conversation',
-  $q$insert into message (conversation_id, author_user_id, author_side, body)
-     values ('60000000-0000-7000-8000-000000000009', '10000000-0000-7000-8000-000000000002', 'consumer', 'Hello?')$q$);
 
 -- ------------------------------------------------------- feedback request ---
 select pg_temp.expect_reject('feedback request for a vendor not marked booked',

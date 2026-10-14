@@ -303,6 +303,11 @@ guide this live (PO-03 part 3). Changing the password later is the same two step
   2A this list is for reading: if something looks wrong (for example a business flagging
   every booking), contact the business or the person directly from
   supportlocalites@gmail.com. Deciding on flags comes in Stage 3.
+- **Messages (Stage 2B):** conversations are private to the person and the business's team.
+  The team has no page for them and can't open one (reports, with a logged look, come next).
+  If someone asks for help with a conversation, ask them what happened; never ask for their
+  password. Emails about new messages go once per unread stretch and never contain the
+  message.
 - **Inquiries (Admin → Inquiries (n waiting); ADR-024, D-04, D-05):** people interested in
   a business that isn't on Localites yet, each also emailed to supportlocalites@gmail.com
   ("Inquiry about …"; replying reaches the person). Use them to invite the business to claim

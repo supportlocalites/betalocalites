@@ -1,0 +1,154 @@
+import { data, Form, Link, redirect, useNavigation } from 'react-router';
+import { cloudflareContext, memberContext } from '@/app/context';
+import { MessageList, ReplyBox, useRefresh } from '@/components/MessageThread';
+import { SiteHeader } from '@/components/SiteHeader';
+import { SquarePhoto } from '@/components/SquarePhoto';
+import { isUuid } from '@/lib/ids.mjs';
+import { NO_PAYMENTS_IN_CONVERSATION, SHARE_CAREFULLY } from '@/lib/message-terms';
+import { pageMeta } from '@/lib/meta';
+import { shortDate, TOO_FAST } from '@/lib/plan-terms';
+import { emailAboutMessage, personChange, personSend, personThread, readBody } from '@/server/messages.server';
+import { afterwards, found, refusal, siteUrl, todayIso, tooFast } from '@/server/plan-pages.server';
+import type { Route } from './+types/conversation';
+import styles from './messages.module.css';
+
+/**
+ * Screen C8: one conversation, as the person (Stage 2B). Only their own: anyone else's is
+ * "not found". Opening it marks it read for them (their own unread count, never shown to
+ * the business). They can mention one of their events, block, and remove their own messages.
+ */
+export const meta: Route.MetaFunction = ({ loaderData }) => [
+  ...pageMeta(loaderData ? `Messages with ${loaderData.thread.vendor.name}` : 'Messages'),
+  { name: 'robots', content: 'noindex' },
+];
+
+export async function loader({ params, context }: Route.LoaderArgs) {
+  if (!isUuid(params.id)) throw data(null, { status: 404 });
+  const member = context.get(memberContext);
+  return { thread: await found(personThread(context.get(cloudflareContext).env, member.userId, params.id)), today: todayIso() };
+}
+
+export async function action({ request, params, context }: Route.ActionArgs) {
+  if (!isUuid(params.id)) throw data(null, { status: 404 });
+  const member = context.get(memberContext);
+  const { env, ctx } = context.get(cloudflareContext);
+  const form = await request.formData();
+  const intent = String(form.get('intent') ?? '');
+  if (await tooFast(env, member.userId)) return data({ error: TOO_FAST }, { status: 429 });
+  const here = `/messages/${params.id}`;
+  try {
+    if (intent === 'send') {
+      const read = readBody(form);
+      if ('error' in read) return data({ error: read.error }, { status: 400 });
+      const written = await personSend(env, member.userId, params.id, read.body);
+      afterwards(ctx, emailAboutMessage(env, { side: 'person', userId: member.userId }, written, siteUrl(env, request)), 'message email');
+      return redirect(`${here}?sent=${written.messageId}`);
+    }
+    if (intent === 'remove') {
+      const messageId = String(form.get('messageId') ?? '');
+      if (!isUuid(messageId)) throw data(null, { status: 400 });
+      await personChange(env, member.userId, params.id, { kind: 'remove', messageId });
+      return redirect(here);
+    }
+    if (intent === 'block' || intent === 'unblock') {
+      await personChange(env, member.userId, params.id, { kind: intent });
+      return redirect(here);
+    }
+    if (intent === 'event') {
+      const eventId = String(form.get('eventId') ?? '');
+      if (eventId && !isUuid(eventId)) throw data(null, { status: 400 });
+      await personChange(env, member.userId, params.id, { kind: 'event', eventId: eventId || null });
+      return redirect(here);
+    }
+    throw data(null, { status: 400 });
+  } catch (err) {
+    // Anything that isn't a refusal (including the 400s above) is rethrown by refusal().
+    const { error, status } = refusal(err);
+    return data({ error }, { status });
+  }
+}
+
+export default function Conversation({ loaderData: { thread, today }, actionData }: Route.ComponentProps) {
+  useRefresh();
+  const busy = useNavigation().state === 'submitting';
+  const { vendor, status } = thread;
+  const canWrite = status === 'open' && !vendor.left;
+  return (
+    <>
+      <SiteHeader />
+      <main className="page narrow">
+        <p>
+          <Link to="/messages" className="text-link">
+            ← All messages
+          </Link>
+        </p>
+        <div className={`${styles.card} ${styles.withPhoto}`}>
+          <SquarePhoto photo={vendor.photo} alt="" />
+          <span className={styles.cardBody}>
+            <h1 className="title-2">{vendor.name}</h1>
+            {!vendor.left && (
+              <Link to={`/vendors/${vendor.slug}`} className="text-link">
+                See their page
+              </Link>
+            )}
+          </span>
+        </div>
+
+        <Form method="post" className={styles.eventBox}>
+          <input type="hidden" name="intent" value="event" />
+          <label htmlFor="eventId" className="field-label">
+            About one of your events (optional)
+          </label>
+          <select id="eventId" name="eventId" className="input" defaultValue={thread.event?.id ?? ''}>
+            <option value="">No event</option>
+            {thread.events.map((e) => (
+              <option key={e.id} value={e.id}>
+                {`${e.name} · ${shortDate(e.date, today)}`}
+              </option>
+            ))}
+          </select>
+          <p className="field-hint">
+            {vendor.name} sees only the date, the town and about how many guests. Never your event’s name, where it is, the ages, your
+            budget or your notes.
+          </p>
+          <p>
+            <button type="submit" className="button button-secondary" disabled={busy}>
+              Save
+            </button>
+          </p>
+        </Form>
+
+        {actionData?.error && (
+          <p className="notice" role="alert">
+            {actionData.error}
+          </p>
+        )}
+        <MessageList messages={thread.messages} canRemove />
+        {canWrite ? (
+          <ReplyBox label={`Message ${vendor.name}`} busy={busy} />
+        ) : (
+          <p className="notice" role="status">
+            {vendor.left
+              ? `${vendor.name} isn’t on Localites any more, so no new messages can be sent.`
+              : status === 'blocked_by_consumer'
+                ? 'You blocked this conversation, so neither of you can send messages.'
+                : `${vendor.name} has blocked this conversation, so no new messages can be sent.`}
+          </p>
+        )}
+
+        <div className={styles.footer}>
+          <p className="muted">{NO_PAYMENTS_IN_CONVERSATION}</p>
+          <p className="muted">{SHARE_CAREFULLY}</p>
+          {status !== 'blocked_by_vendor' && (
+            <Form method="post">
+              <input type="hidden" name="intent" value={status === 'blocked_by_consumer' ? 'unblock' : 'block'} />
+              <button type="submit" className={styles.textButton} disabled={busy}>
+                {status === 'blocked_by_consumer' ? 'Unblock this conversation' : `Block ${vendor.name}`}
+              </button>
+            </Form>
+          )}
+        </div>
+      </main>
+    </>
+  );
+}

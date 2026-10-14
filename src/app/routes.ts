@@ -35,6 +35,12 @@ export default [
     route('vendors/:slug/add', 'routes/member/vendor-add.tsx'),
     // Inquire, for a business not on Localites yet (C10, ADR-024).
     route('vendors/:slug/inquire', 'routes/member/inquire.tsx'),
+    // Messages (Stage 2B): /messages… act as the person; /vendors/:slug/messages… as the business.
+    route('messages', 'routes/member/messages.tsx'),
+    route('messages/:id', 'routes/member/conversation.tsx'),
+    route('vendors/:slug/message', 'routes/member/message-start.tsx'),
+    route('vendors/:slug/messages', 'routes/member/business-messages.tsx'),
+    route('vendors/:slug/messages/:id', 'routes/member/business-conversation.tsx'),
     route('business', 'routes/member/business.tsx'),
     route('vendors/:slug/bookings', 'routes/member/bookings.tsx'),
     // A business owner's team (V4, E §3).

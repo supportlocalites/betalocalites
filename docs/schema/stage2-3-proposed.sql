@@ -1,9 +1,9 @@
 -- =============================================================================
 -- Localites — PROPOSED Stage 2–3 schema: the consumer–vendor handshake and reviews
 -- =============================================================================
--- STATUS: the event-plan part is BUILT (migration 0012), and inquiries (0021). The
--- conversation, file and review parts below are still a PROPOSAL FOR REVIEW, NOT APPLIED TO
--- ANY DATABASE. Applies on top of migrations 0001–0021.
+-- STATUS: the event-plan part is BUILT (migration 0012), inquiries (0021), and
+-- conversations and messages (0023). The file, report and review parts below are still a
+-- PROPOSAL FOR REVIEW, NOT APPLIED TO ANY DATABASE. Applies on top of migrations 0001–0023.
 --
 -- What this models (see docs/roles-and-relationships.md):
 --   * A consumer plans an event and adds vendors to it (considering -> booked).
@@ -26,127 +26,8 @@
 -- THE HANDSHAKE: conversations, messages, files
 -- =============================================================================
 
-create table conversation (
-  id                uuid primary key default gen_random_uuid(),
-  consumer_user_id  uuid not null references app_user(id),
-  vendor_id         uuid not null references vendor(id),
-  event_id          uuid references event(id),     -- optional; can be linked later
-  status            text not null default 'open'
-                    check (status in ('open', 'blocked_by_consumer', 'blocked_by_vendor')),
-  blocked_at        timestamptz,
-  last_message_at   timestamptz,
-  created_at        timestamptz not null default now(),
-  check ((status = 'open') = (blocked_at is null))
-);
-create unique index conversation_general_once
-  on conversation (consumer_user_id, vendor_id) where event_id is null;
-create unique index conversation_event_once
-  on conversation (consumer_user_id, vendor_id, event_id) where event_id is not null;
-create index conversation_for_vendor on conversation (vendor_id, last_message_at desc);
-create index conversation_for_consumer on conversation (consumer_user_id, last_message_at desc);
-
-create function enforce_conversation_parties() returns trigger
-language plpgsql as $$
-begin
-  if tg_op = 'UPDATE' then
-    if new.consumer_user_id <> old.consumer_user_id or new.vendor_id <> old.vendor_id then
-      raise exception 'the people in a conversation cannot be changed';
-    end if;
-    if old.event_id is not null and new.event_id is distinct from old.event_id then
-      raise exception 'a conversation already linked to an event cannot be moved to another';
-    end if;
-  end if;
-
-  if tg_op = 'INSERT' then
-    -- [D-05] Messaging is only possible with businesses that have claimed their listing.
-    if not exists (select 1 from vendor v
-                   where v.id = new.vendor_id and v.claim_status = 'claimed'
-                     and v.listing_status <> 'archived') then
-      raise exception 'this business has not joined Localites yet, so it cannot receive messages';
-    end if;
-    if exists (select 1 from vendor_member m
-               where m.vendor_id = new.vendor_id and m.user_id = new.consumer_user_id
-                 and m.ended_at is null) then
-      raise exception 'you cannot start a conversation with your own business';
-    end if;
-  end if;
-
-  if new.event_id is not null and not exists (
-       select 1 from event e where e.id = new.event_id and e.host_user_id = new.consumer_user_id) then
-    raise exception 'a conversation can only be about the consumer''s own event';
-  end if;
-  return new;
-end $$;
-
-create trigger conversation_parties
-  before insert or update of consumer_user_id, vendor_id, event_id on conversation
-  for each row execute function enforce_conversation_parties();
-
-create table message (
-  id               uuid primary key default gen_random_uuid(),
-  conversation_id  uuid not null references conversation(id),
-  author_user_id   uuid not null references app_user(id),
-  author_side      text not null check (author_side in ('consumer', 'vendor')),
-  body             text not null default '' check (char_length(body) <= 5000),
-  created_at       timestamptz not null default now(),
-  removed_at       timestamptz          -- author removed it; shown as "message removed"
-);
-create index message_in_conversation on message (conversation_id, created_at);
-
-create function enforce_message_author() returns trigger
-language plpgsql as $$
-declare
-  c conversation%rowtype;
-begin
-  select * into strict c from conversation where id = new.conversation_id;
-
-  if c.status <> 'open' then
-    raise exception 'this conversation has been blocked, so no new messages can be sent';
-  end if;
-
-  if new.author_side = 'consumer' then
-    if new.author_user_id <> c.consumer_user_id then
-      raise exception 'only the consumer in this conversation can write as the consumer';
-    end if;
-  else
-    if not exists (select 1 from vendor_member m
-                   where m.vendor_id = c.vendor_id and m.user_id = new.author_user_id
-                     and m.ended_at is null) then
-      raise exception 'only a current member of this business''s team can write as the business';
-    end if;
-    -- [D-13 R1] Vendors reply; they never start conversations.
-    if not exists (select 1 from message m
-                   where m.conversation_id = c.id and m.author_side = 'consumer') then
-      raise exception 'businesses can reply to a conversation but cannot start one';
-    end if;
-  end if;
-
-  update conversation set last_message_at = new.created_at where id = c.id;
-  return new;
-end $$;
-
-create trigger message_author
-  before insert on message
-  for each row execute function enforce_message_author();
-
--- Messages can be removed by their author, never rewritten.
-create function enforce_message_immutable() returns trigger
-language plpgsql as $$
-begin
-  if new.body <> old.body or new.author_user_id <> old.author_user_id
-     or new.author_side <> old.author_side or new.conversation_id <> old.conversation_id
-     or new.created_at <> old.created_at then
-    raise exception 'messages cannot be edited, only removed';
-  end if;
-  if old.removed_at is not null and new.removed_at is distinct from old.removed_at then
-    raise exception 'a removed message stays removed';
-  end if;
-  return new;
-end $$;
-
-create trigger message_immutable
-  before update on message
-  for each row execute function enforce_message_immutable();
+-- CONVERSATIONS AND MESSAGES: now in db/migrations/0023_conversations.sql (conversation,
+-- message, conversation_read, with per-side rules: ADR-031). What follows reads them as built.
 
 -- Files shared in a conversation. Always private storage, only the two parties
 -- can open them (enforced in the application's policy layer and storage rules).
@@ -180,15 +61,6 @@ end $$;
 create trigger message_attachment_rules
   before insert on message_attachment
   for each row execute function enforce_attachment_rules();
-
--- Each person's own unread position. Private to them: this is an unread
--- count, not a read receipt, and is never shown to the other side.
-create table conversation_read_marker (
-  conversation_id  uuid not null references conversation(id),
-  user_id          uuid not null references app_user(id),
-  last_read_at     timestamptz not null,
-  primary key (conversation_id, user_id)
-);
 
 -- INQUIRIES: now in db/migrations/0021_inquiries.sql (vendor_interest, with per-person
 -- rules, the team email's status and the "told it joined" mark; ADR-024).
@@ -393,8 +265,7 @@ do $$
 declare t text;
 begin
   foreach t in array array[
-    'conversation', 'message',
-    'message_attachment', 'conversation_read_marker',
+    'message_attachment',
     'moderation_report', 'review_request', 'review'
   ] loop
     execute format('alter table %I enable row level security', t);

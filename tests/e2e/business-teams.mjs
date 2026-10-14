@@ -146,8 +146,8 @@ r = await site(`/team-invite/${stfToken}`, { cookie: cookie.stf, method: 'POST',
 check('staff accept their invitation', r.status === 200 && (await membership('stf')) === 'staff', String(r.status));
 r = await site('/business', { cookie: cookie.stf });
 check(
-  'staff see the business, with a plain note that messaging is coming',
-  r.status === 200 && r.body.includes(V.name) && r.body.includes('when messaging arrives'),
+  'staff see the business, with its Messages (and nothing they can’t open)',
+  r.status === 200 && r.body.includes(V.name) && r.body.includes(`/vendors/${V.slug}/messages`) && !r.body.includes(`/vendors/${V.slug}/edit`),
 );
 for (const path of [`/vendors/${V.slug}/edit`, `/vendors/${V.slug}/bookings`, TEAM]) {
   r = await site(path, { cookie: cookie.stf });

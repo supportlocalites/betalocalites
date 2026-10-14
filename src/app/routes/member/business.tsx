@@ -44,11 +44,16 @@ export default function MyBusiness({ loaderData: { businesses } }: Route.Compone
                     </span>
                   )}
                   {b.role === 'staff' ? (
-                    <span className={styles.meta}>
-                      You’ll be able to read and reply to customers’ messages here when messaging arrives.
-                    </span>
+                    <div className={styles.rowActions}>
+                      <Link to={`/vendors/${b.slug}/messages`} className="text-link">
+                        {b.unread > 0 ? `Messages (${b.unread} new)` : 'Messages'}
+                      </Link>
+                    </div>
                   ) : (
                     <div className={styles.rowActions}>
+                      <Link to={`/vendors/${b.slug}/messages`} className="text-link">
+                        {b.unread > 0 ? `Messages (${b.unread} new)` : 'Messages'}
+                      </Link>
                       <Link to={`/vendors/${b.slug}/bookings`} className="text-link">
                         Bookings marked
                       </Link>

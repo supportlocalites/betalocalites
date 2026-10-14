@@ -31,6 +31,35 @@ Every release and every database migration, in order. Appended before each deplo
 
 ## Releases
 
+### 2026-10-14 — Messages between people and businesses (Stage 2B, part 1: text)
+
+**Stage:** 2 (D-13, D-17; screens C7, C8, C9, V6, V7)
+**What changed (plain English):** on the page of a business that has joined Localites,
+**Questions? → Message …** lets a signed-in person write to it, optionally about one of their
+events (the business then sees only the date, the town and about how many guests). One
+conversation per person and business. Everyone on the business's team (owner, managers and
+staff) sees it under **My business → Messages (n new)** and can reply; the person sees only the
+business's name on replies. Both sides are emailed about a new message once until they've
+read it, with a link and never the message itself. Each person's new count is their own; no
+read receipts or typing signs. Either side can block (on the business's side, owners and
+managers); a block stops messages both ways. The author can remove their own message ("Message
+removed"); nothing is rewritten. Open conversations look for new messages about every 15
+seconds. Every conversation says "Localites doesn't process payments" and to share only
+what's needed. "Messages" is in the header. Not yet: files, Report and the team's Reports
+queue (part 2); until then the team can't open any conversation.
+**Migrations applied:** `0023_conversations.sql` (new tables `conversation`, `message` and
+`conversation_read` with per-side rules; functions for who to email and the event summary).
+**Destructive?** No: new tables only. To undo, a later migration drops them.
+**Tests run:** database 0023 45/45 (new); the Stage 2–3 proposal 35/35 (its conversation checks
+moved to 0023); end-to-end messages 55/55 (new: where you can message; starting; the team's
+emails and their contents; the business's side and each person's own count; replies under the
+business's name; another person, another business, a former team member, someone with no
+business and the Localites team all "not found"; removing; blocking both ways and who may;
+the event taken off; a business that leaves); look checks 312/312 (5 new pages).
+**How to roll back:** Cloudflare → Deployments → previous version; the database change is
+undone by a new migration.
+**Approved by:** Product owner (D-13 and D-17; chose "Messages with businesses" on 14 October 2026).
+
 ### 2026-10-14 — Inquire: honest about every email (review fixes)
 
 **Stage:** 2 (ADR-024)

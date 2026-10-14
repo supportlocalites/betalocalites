@@ -199,11 +199,12 @@ ADR-031; not yet on the test site):
 
 **Built since (14 October 2026):** **Inquire** for businesses not on Localites yet, with the
 team's **Inquiries** list and an email to each person when the business joins (ADR-024,
-migration 0021); the team's **Bookings** page (D-46, migration 0020).
+migrations 0021–0022); the team's **Bookings** page (D-46, migration 0020); **messages, part
+1** (text): conversations, replies by the whole team, emails once per unread stretch, each
+person's own new counts, blocking, removing your own message (migration 0023).
 
 **Not built yet in Stage 2:**
-- conversations and messages (with unread counts and email notices);
-- files in conversations;
+- files in conversations (messages themselves are built, part 1);
 - block and report, and the team's Reports queue;
 - batched email digests (each planning email is sent on its own, with repeats held back);
 - counting how often featured businesses are shown (D-43: later);

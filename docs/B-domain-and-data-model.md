@@ -522,7 +522,7 @@ hiding there.
 | Person ↔ Vendor team (`vendor_member`) | many-to-many, with role | Ended, not deleted. Past messages stay attributed to the business. |
 | Consumer → Event | one host, many events | Cancelling sets status and is final; businesses marked booked are emailed. A change of date or town is also emailed to them (every real change; at most 30 planning emails a day to anyone). |
 | Event ↔ Vendor (`event_vendor`) | one row per event+vendor pair | Removing sets `removed`; re-adding reuses the row. History in `status_change`. |
-| Consumer ↔ Vendor (`conversation`) | at most one general conversation per pair, plus at most one per event | Blocking closes it for both; nothing is deleted. |
+| Consumer ↔ Vendor (`conversation`) | **as built (0023): one conversation per pair**, optionally about one of the person's events (they can change it) | Blocking closes it for both; nothing is deleted. |
 | Conversation → Event | optional; can be linked later | Proposed: the vendor sees only the event's date, town and guest-count estimate (D-40 removed the kind of event for bookings; the same is expected for conversations). |
 | Event ↔ Vendor → Review | at most one | Enforced by the database. |
 | Consumer ↔ unclaimed Vendor (`vendor_interest`) | one per pair | When the vendor claims, the consumer is told they can now message them. |

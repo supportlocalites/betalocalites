@@ -15,6 +15,9 @@ export function SiteHeader() {
           <Link to="/events" className="text-link">
             My events
           </Link>
+          <Link to="/messages" className="text-link">
+            Messages
+          </Link>
           <Link to="/account" className="text-link">
             Account
           </Link>

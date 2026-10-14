@@ -62,6 +62,22 @@ await site(`/vendors/${V.slug}/add`, { cookie: cookieOf(sessions.person), method
 const [planRow] = await sql`select id from event_vendor where event_id = ${eventId} and vendor_id = ${V.id}`;
 await site(`/events/${eventId}/plan/${planRow.id}/book`, { cookie: cookieOf(sessions.person), method: 'POST' });
 await site(`/vendors/${W.slug}/add`, { cookie: cookieOf(sessions.person), method: 'POST', form: { intent: 'add', eventId } });
+// A conversation with a reply (Stage 2B), and a business that has joined, for the Message page.
+const started = await site(`/vendors/${V.slug}/message`, {
+  cookie: cookieOf(sessions.person),
+  method: 'POST',
+  form: { body: 'Hi! Could you do a two-tier cake for 15 on the 14th? Nut-free, please.', eventId },
+});
+const conversationId = /^\/messages\/([0-9a-f-]{36})/.exec(started.location ?? '')?.[1];
+await site(`/vendors/${V.slug}/messages/${conversationId}`, {
+  cookie: cookieOf(sessions.owner),
+  method: 'POST',
+  form: { intent: 'send', body: 'Yes, we can. Nut-free is no problem. Would vanilla or chocolate suit?' },
+});
+const [Z] = await sql`
+  insert into vendor (slug, display_name, primary_municipality_id, listing_status, published_at, claim_status, source)
+  values (${`e2e-look-z-${run}`}, ${`Orchard Photo Booth ${run}`}, ${town.id}, 'published', now(), 'claimed', 'admin_entered')
+  returning id, slug::text as slug, display_name as name`;
 
 const browser = await chromium.launch();
 async function contextFor(who, size) {
@@ -152,6 +168,9 @@ const PAGES = [
   { who: 'person', path: '/saved', label: 'Saved businesses' },
   { who: 'person', path: `/vendors/${V.slug}/add`, label: 'Add to an event' },
   { who: 'person', path: `/vendors/${W.slug}/inquire`, label: 'Inquire' },
+  { who: 'person', path: '/messages', label: 'Messages' },
+  { who: 'person', path: `/messages/${conversationId}`, label: 'A conversation' },
+  { who: 'person', path: `/vendors/${Z.slug}/message`, label: 'Message a business' },
   { who: 'owner', path: '/business', label: 'Your business' },
   { who: 'owner', path: `/vendors/${V.slug}/edit`, label: 'Editing a listing' },
   { who: 'owner', path: `/vendors/${V.slug}/photos`, label: 'Photos (owner)' },
@@ -164,6 +183,8 @@ const PAGES = [
   },
   { who: 'owner', path: `/vendors/${V.slug}/team`, label: 'The business team' },
   { who: 'owner', path: `/vendors/${V.slug}/bookings`, label: 'Bookings marked' },
+  { who: 'owner', path: `/vendors/${V.slug}/messages`, label: 'Business messages' },
+  { who: 'owner', path: `/vendors/${V.slug}/messages/${conversationId}`, label: 'A conversation (business)' },
   { who: 'team', path: '/admin', label: 'Team: listings' },
   { who: 'team', path: `/admin/listings/${V.id}`, label: 'Team: one listing' },
   { who: 'team', path: '/admin/listings/new', label: 'Team: new listing' },

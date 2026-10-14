@@ -1,7 +1,7 @@
 # E — Security & Privacy Model
 
 **Status:** Approved (D-00, 10 October 2026).
-**Last updated:** 2026-10-14 (§4.2: inquiries built, ADR-024, migration 0021; the team sees every booking, a business taken down can't be newly booked, D-46; 2026-10-13: §3, §4.2, §7, §7a, §8, §12: planning an event built, ADR-031, D-39 to D-43; earlier, §2: "are you human" check on sign-in codes; §7: sign-up details and anyone may join, D-36; §2: emailed sign-in codes and claims)
+**Last updated:** 2026-10-14 (§4.3: messages built, part 1, migration 0023; §4.2: inquiries built, ADR-024, migration 0021; the team sees every booking, a business taken down can't be newly booked, D-46; 2026-10-13: §3, §4.2, §7, §7a, §8, §12: planning an event built, ADR-031, D-39 to D-43; earlier, §2: "are you human" check on sign-in codes; §7: sign-up details and anyone may join, D-36; §2: emailed sign-in codes and claims)
 
 **Revision 2:** rebuilt around the two users, consumer and vendor. Added
 conversations, shared files, consumer-marked bookings, and reviews. Removed the
@@ -82,7 +82,7 @@ Two users, one platform team. See [roles-and-relationships.md](./roles-and-relat
 | **Consumer** | Any signed-in account | Their own saved vendors, events, conversations, reviews |
 | **Vendor owner** | Approved claim, or assigned by the platform team | Their business: listing, team, conversations, bookings marked, review replies |
 | **Vendor manager** | Invited by the owner (built, migration 0015) | As owner, except team and ownership changes |
-| **Vendor staff** | Invited by the owner (built, migration 0015) | Read and reply to the business's conversations (Stage 2B; until then staff see only the business's name) |
+| **Vendor staff** | Invited by the owner (built, migration 0015) | Read and reply to the business's conversations (built, Stage 2B part 1, migration 0023) |
 | **Guest** (Stage 4) | Holds a valid invitation link | One invitation page and their own RSVP |
 | **Platform admin** | Granted by another admin; logged | Listings, claims, verification, reports, review moderation |
 
@@ -211,6 +211,22 @@ your account deletes your inquiries (a trigger on the account row, §8).
 
 Former team members lose access to the business's conversations the moment their
 membership ends. Their past messages stay, attributed to the business.
+
+**Built (Stage 2B part 1, migration 0023, 14 October 2026): text messages.** Enforced by the
+database's per-side rules (ADR-031), with no rule for the team at all: the person reads and
+writes only their own conversations (with a business that has joined, never their own);
+anyone currently on the business's team (owner, manager or staff; not archived) reads and
+replies, only after the person's first message; owners and managers block and unblock; the
+person blocks and unblocks; a block stops messages both ways. Messages are never rewritten:
+the author can remove one, which blanks it and shows "Message removed". Each person's unread
+position is their own (no read receipts). If the person mentions an event, the business sees
+only the date, the town and about how many guests (`conversation_event_for_business()`).
+Emails about new messages link to the conversation and never include the message; each
+person is emailed once per unread stretch, at most 30 a day (`new_message_notices()`). The
+person sees only the business's name on its replies, never which team member wrote. Every
+other side's attempt (another person, another business, a former team member, the team) is
+"not found", tested end to end. **Next (part 2):** files, Report and the team's Reports queue;
+until then the team can't open any conversation.
 
 ### 4.4 Feedback & reviews (Stage 3)
 
