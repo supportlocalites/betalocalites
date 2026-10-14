@@ -33,11 +33,15 @@ export async function action({ params, request, context }: Route.ActionArgs) {
     .replace(/\s+/g, ' ')
     .trim()
     .slice(0, REVIEW_LIMITS.reason);
+  // When the words the team read last changed (the database's own time, as text).
+  const seen = String(form.get('seen') ?? '');
+  const deciding = intent === 'publish' || intent === 'decline';
+  if (deciding && !/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}(\.\d+)?[+-]\d{2}(:\d{2})?$/.test(seen)) throw data(null, { status: 400 });
   let decision: ReviewDecision;
-  if (intent === 'publish') decision = { kind: 'publish' };
+  if (intent === 'publish') decision = { kind: 'publish', seen };
   else if (intent === 'decline' || intent === 'remove' || intent === 'remove_reply') {
     if (!reason) return data({ error: 'Say why, in a few words. The author is told when a review is declined.' }, { status: 400 });
-    decision = { kind: intent, reason };
+    decision = intent === 'decline' ? { kind: intent, reason, seen } : { kind: intent, reason };
   } else throw data(null, { status: 400 });
   try {
     const { notify } = await found(decideReview(env, admin, params.id, decision));
@@ -64,6 +68,9 @@ export default function TeamReviewPage({ loaderData: { review }, actionData }: R
         <span className={styles.status}>{REVIEW_STATUS[review.status]}</span> · by {review.author} (shown as “{review.shownAs}”) · event on{' '}
         {longDateWithYear(review.eventDate)} · {review.plannedOnLocalites ? PLANNED_ON : PLANNED_OUTSIDE}
       </p>
+      {review.flagged && (
+        <p className="notice">The business says it wasn’t booked for this event, and the team hasn’t said the booking stands.</p>
+      )}
       {review.emailStatus === 'failed' && <p className="muted">The email telling the team about this review didn’t go.</p>}
       <blockquote className={styles.section}>
         <p style={{ whiteSpace: 'pre-wrap' }}>{review.body}</p>
@@ -87,11 +94,13 @@ export default function TeamReviewPage({ loaderData: { review }, actionData }: R
           <h2 id="decide">Decide</h2>
           <Form method="post">
             <input type="hidden" name="intent" value="publish" />
+            <input type="hidden" name="seen" value={review.seen} />
             <button type="submit" className="button button-primary" disabled={busy}>
               Publish
             </button>
           </Form>
           <Form method="post" className={styles.statusPanel}>
+            <input type="hidden" name="seen" value={review.seen} />
             <div className={`field ${styles.reasonField}`}>
               <label htmlFor="reason" className="field-label">
                 Or decline it: why (the author is told)

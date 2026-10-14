@@ -46,8 +46,13 @@ Every release and every database migration, in order. Appended before each deplo
 **Migrations applied:** `0031_reviews.sql` (the review table, its rules and per-side
 permissions, the public and team functions, two new email kinds).
 **Destructive?** No: adds a table and functions only.
-**Tests run:** database 0031 36/36 (new), every earlier file passing; end-to-end reviews
-37/37 (new), look 368/368, every other suite passing; unit 173/173; checks; size.
+**Checked before release** by one independent review (CLAUDE.md): fixed a Living Local
+tie that would have badged everyone, the team publishing words changed while they read
+them, the author or business writing the team's reason, a second reply offered after a
+removed one, and a waiting review left behind when its booking was unmarked or the event
+cancelled.
+**Tests run:** database 0031 42/42 (new), every earlier file passing; end-to-end reviews
+39/39 (new), look 368/368, every other suite passing; unit 173/173; checks; size.
 **How to roll back:** Cloudflare → Deployments → previous version; the review table can stay.
 
 ### 2026-10-14 — Files in conversations end (D-47)

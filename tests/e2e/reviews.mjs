@@ -92,6 +92,7 @@ r = await page(`/vendors/${V.slug}`);
 check('nothing is public yet', !r.body.includes(BODY));
 r = await page(`/vendors/${V.slug}/reviews`, { cookie: cookie.o });
 check('…nor shown to the business', r.status === 200 && !r.body.includes(BODY), String(r.status));
+const staleSeen = (await sql`select updated_at::text as t from review where id = ${rev.id}`)[0].t;
 r = await page(REVIEW(past), { cookie: cookie.a, method: 'POST', form: { rating: '5', body: `${BODY}!` } });
 check('the author changes it while it waits', r.status === 302 && (await sql`select rating from review where id = ${rev.id}`)[0].rating === 5);
 r = await page(`/events/${past.id}`, { cookie: cookie.a });
@@ -107,8 +108,13 @@ for (const [who, c] of [['a person', cookie.a], ['a business owner', cookie.o]])
 }
 r = await page(`/admin/reviews/${rev.id}`, { cookie: cookie.m, method: 'POST', form: { intent: 'decline', reason: '' } });
 check('declining needs a reason', r.status === 400, String(r.status));
+r = await page(`/admin/reviews/${rev.id}`, { cookie: cookie.m, method: 'POST', form: { intent: 'publish', seen: staleSeen } });
+check('words changed since the team read them: not published, "look again"',
+  r.status === 409 && (await sql`select status from review where id = ${rev.id}`)[0].status === 'pending', String(r.status));
+r = await page(`/admin/reviews/${rev.id}`, { cookie: cookie.m });
+const seenNow = /name="seen" value="([^"]+)"/.exec(r.body)?.[1] ?? '';
 const beforePublish = Date.now();
-r = await page(`/admin/reviews/${rev.id}`, { cookie: cookie.m, method: 'POST', form: { intent: 'publish' } });
+r = await page(`/admin/reviews/${rev.id}`, { cookie: cookie.m, method: 'POST', form: { intent: 'publish', seen: seenNow } });
 check('the team publishes it, recorded',
   r.status === 302 && (await sql`select status from review where id = ${rev.id}`)[0].status === 'published' &&
     (await sql`select count(*)::int as n from audit_log where action = 'review.publish' and subject_id = ${rev.id}`)[0].n === 1, String(r.status));
@@ -143,6 +149,8 @@ check('the reply shows under the review', words(r.body).includes(REPLY));
 r = await page(`/admin/reviews/${rev.id}`, { cookie: cookie.m, method: 'POST', form: { intent: 'remove_reply', reason: `Off topic ${run}` } });
 r = await page(`/vendors/${V.slug}`);
 check('the team removes the reply, with a reason: it’s no longer shown', !words(r.body).includes(REPLY) && words(r.body).includes(`${BODY}!`));
+r = await page(`/vendors/${V.slug}/reviews`, { cookie: cookie.o });
+check('…and the business isn’t offered a second reply', r.status === 200 && !r.body.includes('name="reply"'), String(r.status));
 r = await page(`/admin/reviews/${rev.id}`, { cookie: cookie.m, method: 'POST', form: { intent: 'remove', reason: `Personal details ${run}` } });
 r = await page(`/vendors/${V.slug}`);
 check('…and the review, with a reason: it’s no longer shown', !r.body.includes(`${BODY}!`) && words(r.body).includes('No reviews yet'));

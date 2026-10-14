@@ -322,7 +322,9 @@ isn't built yet.
 waits; the business sees its published reviews and replies once (owner or manager, not
 staff); the team publishes, declines with a reason, removes with a reason, or removes a
 reply, each logged. The public sees published reviews only, with the author as "Sarah M."
-(D-48), never their full name or email. Not built yet (part 2): the "How was it?" request
+(D-48), never their full name or email. A waiting review is withdrawn if the person
+unmarks the booking or cancels the event; the team decides on the words it read (if the
+author changed them meanwhile, the team is asked to look again). Not built yet (part 2): the "How was it?" request
 and reminder emails, and reporting a review.
 
 | Record | Visitor | Author | The reviewed vendor | Other vendors | Admin |
@@ -545,7 +547,7 @@ Every row of §4 becomes automated tests run before every deployment, including:
   to mark a vendor booked on someone else's event. All must fail.
 - **Review integrity:** reviews without a booking, before the event, after the window,
   without a Localites conversation, on a flagged booking, by someone else, or twice. All
-  must fail. *(Built: database checks 0031, 36 of 36, and the reviews browser checks.)*
+  must fail. *(Built: database checks 0031, 42 of 42, and the reviews browser checks.)*
 - **File access:** expired links, links for files in other conversations, public
   storage attempts. All must fail.
 - **Role escalation:** vendor staff attempt owner actions; consumers attempt admin

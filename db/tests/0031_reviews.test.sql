@@ -133,6 +133,8 @@ select pg_temp.expect_equal('the team publishes it; the database records who and
 select pg_temp.act('person', '00000000-0000-7000-8000-0000000031a1');
 select pg_temp.expect_code('once checked, the author can''t change it', $q$
   update review set body = 'Changed my mind' where id = '00000000-0000-7000-8000-000000003191'$q$, 'LP155');
+select pg_temp.expect_code('…nor write the team''s reason', $q$
+  update review set decision_reason = 'My own reason' where id = '00000000-0000-7000-8000-000000003191'$q$, 'LP100');
 
 -- ---------------------------------------------------------------- the public and the business
 select pg_temp.act(null, null);
@@ -156,6 +158,8 @@ select pg_temp.expect_code('once', $q$
   update review set vendor_reply = 'Again' where id = '00000000-0000-7000-8000-000000003191'$q$, 'LP156');
 select pg_temp.expect_code('the business can''t touch the rating', $q$
   update review set rating = 5 where id = '00000000-0000-7000-8000-000000003191'$q$, 'LP100');
+select pg_temp.expect_code('…nor the team''s reason', $q$
+  update review set decision_reason = 'Fake' where id = '00000000-0000-7000-8000-000000003191'$q$, 'LP100');
 select pg_temp.act(null, null);
 select pg_temp.expect_equal('the public sees the reply', (
   select reply from published_reviews('00000000-0000-7000-8000-0000000031c1')), 'Thank you, Sarah!');
@@ -165,6 +169,8 @@ select pg_temp.act('team', '00000000-0000-7000-8000-0000000031a7');
 select pg_temp.expect_code('removing a reply needs a reason', $q$
   update review set reply_removed_at = now() where id = '00000000-0000-7000-8000-000000003191'$q$, 'LP157');
 update review set reply_removed_at = now(), reply_removed_reason = 'Personal details' where id = '00000000-0000-7000-8000-000000003191';
+select pg_temp.expect_code('…and its reason isn''t rewritten later', $q$
+  update review set reply_removed_reason = 'Something else' where id = '00000000-0000-7000-8000-000000003191'$q$, 'LP100');
 select pg_temp.act(null, null);
 select pg_temp.expect_equal('a removed reply isn''t shown', (
   select coalesce(reply, 'none') from published_reviews('00000000-0000-7000-8000-0000000031c1')), 'none');
@@ -182,6 +188,43 @@ select pg_temp.expect_equal('a reviewer without a last name: just the first name
   select string_agg(author, ',' order by author) from published_reviews('00000000-0000-7000-8000-0000000031c1')), 'Ben,Pat O.,Sarah M.');
 select pg_temp.expect_equal('Living Local: nobody yet (fewer than 100 reviewers)', (
   select count(*)::text from published_reviews('00000000-0000-7000-8000-0000000031c1') where living_local), '0');
+
+-- Living Local with 100+ reviewers: a tie earns nobody; only the top 1% does.
+reset role;
+insert into app_user (id, display_name, email)
+  select ('00000000-0000-7000-8000-00000031' || lpad(n::text, 4, '0'))::uuid, 'Many ' || n, 'many-' || n || '-31@example.com'
+  from generate_series(1, 100) n;
+insert into review (vendor_id, author_user_id, event_date, rating, body, status, decided_at, decided_by, published_at)
+  select '00000000-0000-7000-8000-0000000031c2', ('00000000-0000-7000-8000-00000031' || lpad(n::text, 4, '0'))::uuid,
+         current_date - 10, 4, 'Good', 'published', now(), '00000000-0000-7000-8000-0000000031a7', now()
+  from generate_series(1, 100) n;
+select pg_temp.expect_equal('Living Local: 100+ reviewers all with one review: nobody (a tie isn''t the top 1%)', (
+  select count(*)::text from living_local_reviewers()), '0');
+insert into review (vendor_id, author_user_id, event_date, rating, body, status, decided_at, decided_by, published_at) values
+  ('00000000-0000-7000-8000-0000000031c1', '00000000-0000-7000-8000-000000310001', current_date - 20, 5, 'Again good', 'published',
+   now(), '00000000-0000-7000-8000-0000000031a7', now());
+select pg_temp.expect_equal('…one with more reviews than anyone else: just them', (
+  select string_agg(user_id::text, ',') from living_local_reviewers()), '00000000-0000-7000-8000-000000310001');
+
+-- A waiting review goes when its booking no longer stands: unmarked, or the event cancelled.
+insert into event (id, host_user_id, event_date, municipality_id) values
+  ('00000000-0000-7000-8000-0000000031f5', '00000000-0000-7000-8000-0000000031a2', current_date - 2, '00000000-0000-7000-8000-0000000031b1'),
+  ('00000000-0000-7000-8000-0000000031f6', '00000000-0000-7000-8000-0000000031a2', current_date - 2, '00000000-0000-7000-8000-0000000031b1');
+insert into event_vendor (id, event_id, host_user_id, vendor_id, status, booked_at) values
+  ('00000000-0000-7000-8000-0000000031e6', '00000000-0000-7000-8000-0000000031f5', '00000000-0000-7000-8000-0000000031a2', '00000000-0000-7000-8000-0000000031c1', 'booked', now() - interval '9 days'),
+  ('00000000-0000-7000-8000-0000000031e7', '00000000-0000-7000-8000-0000000031f6', '00000000-0000-7000-8000-0000000031a2', '00000000-0000-7000-8000-0000000031c2', 'booked', now() - interval '9 days');
+set local role app_server;
+select pg_temp.act('person', '00000000-0000-7000-8000-0000000031a2');
+insert into review (id, event_vendor_id, author_user_id, rating, body) values
+  ('00000000-0000-7000-8000-000000003196', '00000000-0000-7000-8000-0000000031e6', '00000000-0000-7000-8000-0000000031a2', 2, 'Late'),
+  ('00000000-0000-7000-8000-000000003197', '00000000-0000-7000-8000-0000000031e7', '00000000-0000-7000-8000-0000000031a2', 3, 'Fine');
+reset role;
+update event_vendor set status = 'considering', booked_at = null where id = '00000000-0000-7000-8000-0000000031e6';
+update event set status = 'cancelled', cancelled_at = now() where id = '00000000-0000-7000-8000-0000000031f6';
+select pg_temp.expect_equal('…both withdrawn', (
+  select string_agg(status, ',' order by id) from review
+  where id in ('00000000-0000-7000-8000-000000003196', '00000000-0000-7000-8000-000000003197')), 'withdrawn,withdrawn');
+set local role app_server;
 
 -- ---------------------------------------------------------------- a person deletes their account
 select pg_temp.act('person', '00000000-0000-7000-8000-0000000031a1');

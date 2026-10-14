@@ -79,6 +79,10 @@ begin
                            or (new.event_vendor_id is distinct from old.event_vendor_id and new.event_vendor_id is not null)) then
     raise exception 'that can''t be changed' using errcode = 'LP100';
   end if;
+  -- The booking is gone (unmarked, or its event deleted): a review still waiting goes too.
+  if tg_op = 'UPDATE' and old.event_vendor_id is not null and new.event_vendor_id is null and old.status = 'pending' then
+    new.status := 'withdrawn';
+  end if;
   if current_user <> 'app_server' then
     new.updated_at := now();
     return new;                                                   -- owner path (functions)
@@ -139,16 +143,18 @@ begin
     if (new.rating, new.body) is distinct from (old.rating, old.body) and old.status <> 'pending' then
       raise exception 'a review can''t be changed once our team has looked at it' using errcode = 'LP155';
     end if;
-    if new.status is distinct from old.status
-       or new.vendor_reply is distinct from old.vendor_reply or new.reply_removed_at is distinct from old.reply_removed_at then
+    if new.status is distinct from old.status or new.decision_reason is distinct from old.decision_reason
+       or new.vendor_reply is distinct from old.vendor_reply or new.reply_removed_at is distinct from old.reply_removed_at
+       or new.reply_removed_reason is distinct from old.reply_removed_reason then
       raise exception 'that can''t be changed' using errcode = 'LP100';
     end if;
     if new.team_email_status is distinct from old.team_email_status and old.team_email_status <> 'pending' then
       raise exception 'that can''t be changed' using errcode = 'LP100';
     end if;
   elsif v_side = 'business' then
-    if (new.rating, new.body, new.status, new.team_email_status) is distinct from (old.rating, old.body, old.status, old.team_email_status)
-       or new.reply_removed_at is distinct from old.reply_removed_at then
+    if (new.rating, new.body, new.status, new.team_email_status, new.decision_reason)
+         is distinct from (old.rating, old.body, old.status, old.team_email_status, old.decision_reason)
+       or (new.reply_removed_at, new.reply_removed_reason) is distinct from (old.reply_removed_at, old.reply_removed_reason) then
       raise exception 'that can''t be changed' using errcode = 'LP100';
     end if;
     if new.vendor_reply is distinct from old.vendor_reply then
@@ -175,6 +181,10 @@ begin
       new.decided_by := acting_user(); new.decided_at := now();
       if new.status = 'published' then new.published_at := now(); new.decision_reason := null; end if;
     elsif new.decision_reason is distinct from old.decision_reason then
+      raise exception 'that can''t be changed' using errcode = 'LP100';
+    end if;
+    if new.reply_removed_at is not distinct from old.reply_removed_at
+       and new.reply_removed_reason is distinct from old.reply_removed_reason then
       raise exception 'that can''t be changed' using errcode = 'LP100';
     end if;
     if new.reply_removed_at is distinct from old.reply_removed_at then
@@ -205,6 +215,26 @@ end $$;
 create trigger app_user_withdraw_reviews after update of deleted_at on app_user
   for each row execute function withdraw_reviews_of_deleted();
 
+-- A waiting review whose booking no longer stands goes too: the person unmarked it, or the
+-- event was cancelled. (A business flagging it doesn't: the team sees the flag and decides.)
+create function withdraw_reviews_of_unbooked() returns trigger
+language plpgsql security definer set search_path = public, extensions as $$
+begin
+  if tg_table_name = 'event_vendor' then
+    if old.status = 'booked' and new.status <> 'booked' then
+      update review set status = 'withdrawn' where event_vendor_id = new.id and status = 'pending';
+    end if;
+  elsif old.status <> 'cancelled' and new.status = 'cancelled' then
+    update review set status = 'withdrawn'
+    where status = 'pending' and event_vendor_id in (select x.id from event_vendor x where x.event_id = new.id);
+  end if;
+  return null;
+end $$;
+create trigger event_vendor_withdraw_reviews after update of status on event_vendor
+  for each row execute function withdraw_reviews_of_unbooked();
+create trigger event_withdraw_reviews after update of status on event
+  for each row execute function withdraw_reviews_of_unbooked();
+
 -- -----------------------------------------------------------------------------
 -- 2. WHAT THE PUBLIC SEES (D-48)
 -- -----------------------------------------------------------------------------
@@ -218,9 +248,10 @@ language sql stable security definer set search_path = public, extensions as $$
     where r.status = 'published' and u.deleted_at is null
     group by r.author_user_id
   ), ranked as (
-    select uid, percent_rank() over (order by n desc) as pr, count(*) over () as reviewers from counts
+    -- cume_dist: the share of reviewers with at least as many reviews (ties counted in full).
+    select uid, cume_dist() over (order by n desc) as share, count(*) over () as reviewers from counts
   )
-  select uid from ranked where reviewers >= 100 and pr < 0.01
+  select uid from ranked where reviewers >= 100 and share <= 0.01
 $$;
 
 -- How an author is shown: "Sarah M." (first name, initial of the last); "A Localites member"
@@ -325,7 +356,7 @@ alter table notification add constraint notification_kind_check check (kind in (
   'booking_unmarked', 'review_request', 'review_reminder', 'review_published', 'review_reply', 'vendor_joined',
   'booked_event_cancelled', 'booked_event_changed', 'booking_flagged', 'review_declined', 'review_for_business'));
 
-revoke all on function withdraw_reviews_of_deleted(), living_local_reviewers(), reviewer_name(uuid),
+revoke all on function withdraw_reviews_of_deleted(), withdraw_reviews_of_unbooked(), living_local_reviewers(), reviewer_name(uuid),
   published_reviews(uuid, int), vendor_rating(uuid), review_for_email(uuid), review_business_contacts(uuid) from public;
 do $$
 declare r text;

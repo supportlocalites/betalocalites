@@ -199,8 +199,8 @@ export type BusinessReview = PublicReview & { canReply: boolean };
 export async function businessReviews(env: ServerEnv, userId: string, slug: string) {
   return reviewed(
     asTeam(env, userId, slug, async (tx, business) => {
-      const rows = await tx.execute<Omit<BusinessReview, 'canReply'>>(sql`
-        select r.id, r.rating, r.body, reviewer_name(r.author_user_id) as author, false as "livingLocal",
+      const rows = await tx.execute<Omit<BusinessReview, 'canReply'> & { replied: boolean }>(sql`
+        select r.id, r.vendor_reply is not null as replied, r.rating, r.body, reviewer_name(r.author_user_id) as author, false as "livingLocal",
                date_trunc('month', r.event_date)::date::text as "eventMonth", r.planned_on_localites as "plannedOnLocalites",
                case when r.reply_removed_at is null then r.vendor_reply end as reply
         from review r where r.vendor_id = ${business.id} and r.status = 'published'
@@ -212,7 +212,8 @@ export async function businessReviews(env: ServerEnv, userId: string, slug: stri
         business,
         count: rating?.count ?? 0,
         average: rating?.average ? Number(rating.average) : null,
-        reviews: rows.map((r) => ({ ...r, canReply: replies && r.reply === null })),
+        // A reply the team removed still counts: the business replies once.
+        reviews: rows.map(({ replied, ...r }) => ({ ...r, canReply: replies && !replied })),
       };
     }),
   );
@@ -273,6 +274,10 @@ export type TeamReview = TeamReviewRow & {
   reply: string | null;
   replyRemoved: boolean;
   emailStatus: 'pending' | 'sent' | 'failed';
+  /** The business says it wasn't booked (and the team hasn't said the booking stands). */
+  flagged: boolean;
+  /** When the words last changed: the team decides on the words it read. */
+  seen: string;
 };
 
 export async function teamReview(env: ServerEnv, admin: Admin, id: string): Promise<TeamReview> {
@@ -281,8 +286,11 @@ export async function teamReview(env: ServerEnv, admin: Admin, id: string): Prom
       select r.id, v.display_name as business, v.slug::text as slug, u.display_name as author, r.rating, r.status,
              r.planned_on_localites as "plannedOnLocalites", r.created_at::text as "createdAt", r.body,
              reviewer_name(r.author_user_id) as "shownAs", r.event_date::text as "eventDate", r.decision_reason as reason,
-             r.vendor_reply as reply, r.reply_removed_at is not null as "replyRemoved", r.team_email_status as "emailStatus"
+             r.vendor_reply as reply, r.reply_removed_at is not null as "replyRemoved", r.team_email_status as "emailStatus",
+             coalesce(x.vendor_flagged_at is not null and x.flag_outcome is distinct from 'booking_stands', false) as flagged,
+             r.updated_at::text as seen
       from review r join vendor v on v.id = r.vendor_id join app_user u on u.id = r.author_user_id
+        left join event_vendor x on x.id = r.event_vendor_id   -- the team sees flagged bookings only (0012)
       where r.id = ${id}`);
     if (!row) throw new PlanNotFound();
     return row;
@@ -290,8 +298,8 @@ export async function teamReview(env: ServerEnv, admin: Admin, id: string): Prom
 }
 
 export type ReviewDecision =
-  | { kind: 'publish' }
-  | { kind: 'decline'; reason: string }
+  | { kind: 'publish'; seen: string }
+  | { kind: 'decline'; reason: string; seen: string }
   | { kind: 'remove'; reason: string }
   | { kind: 'remove_reply'; reason: string };
 
@@ -306,15 +314,17 @@ export async function decideReview(
     actingAs(env, { side: 'team', userId: admin.userId }, async (tx) => {
       const change =
         decision.kind === 'publish'
-          ? sql`update review set status = 'published' where id = ${id} and status = 'pending' returning id`
+          ? sql`update review set status = 'published'
+                where id = ${id} and status = 'pending' and updated_at = ${decision.seen}::timestamptz returning id`
           : decision.kind === 'decline'
-            ? sql`update review set status = 'declined', decision_reason = ${decision.reason} where id = ${id} and status = 'pending' returning id`
+            ? sql`update review set status = 'declined', decision_reason = ${decision.reason}
+                  where id = ${id} and status = 'pending' and updated_at = ${decision.seen}::timestamptz returning id`
             : decision.kind === 'remove'
               ? sql`update review set status = 'removed', decision_reason = ${decision.reason} where id = ${id} and status = 'published' returning id`
               : sql`update review set reply_removed_at = now(), reply_removed_reason = ${decision.reason}
                     where id = ${id} and vendor_reply is not null and reply_removed_at is null returning id`;
       const done = await tx.execute(change);
-      if (done.length === 0) throw new PlanRefused('That was already decided. Please look again.');
+      if (done.length === 0) throw new PlanRefused('That was already decided, or the review changed. Please look again.');
       await audit(tx, {
         actor: admin.userId,
         action: `review.${decision.kind}`,
