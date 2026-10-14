@@ -296,6 +296,15 @@ emailed to the team with a link to approve or decline it in the admin area** (AD
 moderation queue with written policy · booking-flag resolution · publication on
 profiles · vendor reply (once) · rating summary (from 3 reviews).
 
+**Built, part 1 (14 October 2026, migration 0031).** Review form (stars and words) from
+"Plan an event"; eligibility per D-06; the team emailed each new review and deciding it on
+**Admin → Reviews** (publish, decline with a reason, remove, remove a reply); the person
+emailed when it is published or declined, the business when it is published; reviews on
+the business page with "Sarah M." and Living Local (D-48); one reply from the owner or a
+manager; the average from 3 reviews. **Still to build (part 2):** the morning-after
+request and its reminder, retroactive requests, reporting a review, the written review
+policy (lawyer).
+
 **Dependencies.** Stage 2 (D-06 and D-14 decided); review policy reviewed by the lawyer.
 
 **Effort.** 2–3 weeks.

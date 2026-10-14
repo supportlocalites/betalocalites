@@ -31,6 +31,25 @@ Every release and every database migration, in order. Appended before each deplo
 
 ## Releases
 
+### 2026-10-14 — Reviews, part 1 (D-06, D-48)
+
+**Stage:** 3 (E §4.4, §4.5)
+**What changed (plain English):**
+- **People:** once an event has passed, "Plan an event" shows "Review <business>" by each
+  business marked booked (within 60 days). Stars and words; editable until the team decides.
+- **The team:** each new review is emailed to the team and waits on **Admin → Reviews**:
+  publish, decline with a reason (the person is told), remove a published review or a reply.
+- **Businesses:** a published review shows on the business page as "Sarah M." (Living Local
+  for the top 1% once there are 100 reviewers); the business is emailed and the owner or a
+  manager can reply once. The average shows from 3 reviews.
+- **Not yet:** the "How was it?" emails and reminder, and reporting a review (part 2).
+**Migrations applied:** `0031_reviews.sql` (the review table, its rules and per-side
+permissions, the public and team functions, two new email kinds).
+**Destructive?** No: adds a table and functions only.
+**Tests run:** database 0031 36/36 (new), every earlier file passing; end-to-end reviews
+37/37 (new), look 368/368, every other suite passing; unit 173/173; checks; size.
+**How to roll back:** Cloudflare → Deployments → previous version; the review table can stay.
+
 ### 2026-10-14 — Files in conversations end (D-47)
 
 **Stage:** 2 (E §8)
