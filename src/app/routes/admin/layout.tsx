@@ -29,13 +29,13 @@ export const middleware: Route.MiddlewareFunction[] = [
 export async function loader({ context }: Route.LoaderArgs) {
   const admin = context.get(adminContext);
   const { env } = context.get(cloudflareContext);
-  const [newSuggestions, openClaims, { openFlags, checkIns }, deletions] = await Promise.all([
+  const [newSuggestions, openClaims, { openFlags, checkIns, inquiries }, deletions] = await Promise.all([
     countNewSuggestions(env),
     countOpenClaims(env),
     teamMenuCounts(env, admin),
     countPendingDeletions(env, admin),
   ]);
-  return { name: admin.name, email: admin.email, newSuggestions, openClaims, openFlags, deletions, checkIns };
+  return { name: admin.name, email: admin.email, newSuggestions, openClaims, openFlags, deletions, checkIns, inquiries };
 }
 
 export default function AdminLayout({ loaderData }: Route.ComponentProps) {
@@ -52,6 +52,9 @@ export default function AdminLayout({ loaderData }: Route.ComponentProps) {
           </NavLink>
           <NavLink to="/admin/claims" className="text-link">
             Claims{loaderData.openClaims > 0 ? ` (${loaderData.openClaims} waiting)` : ''}
+          </NavLink>
+          <NavLink to="/admin/inquiries" className="text-link">
+            Inquiries{loaderData.inquiries > 0 ? ` (${loaderData.inquiries} waiting)` : ''}
           </NavLink>
           <NavLink to="/admin/suggestions" className="text-link">
             Suggestions{loaderData.newSuggestions > 0 ? ` (${loaderData.newSuggestions} new)` : ''}

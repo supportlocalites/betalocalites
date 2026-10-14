@@ -1,6 +1,10 @@
 # H — Product Owner Action Register
 
-**Last updated:** 2026-10-14 (revision 21: D-46, the team sees every booking; a business taken down can't be newly booked; revision 20: D-45, square profile photo and whole page photos; revision 19: business photos built, PO-16 to switch them on; revision 18: D-44, bookings marked before a business joined; revision 17: D-39 revised to D-43, "Plan an event" built)
+**Last updated:** 2026-10-14 (revision 22: Inquire built, D-04 and D-05; revision 21: D-46, the team sees every booking; a business taken down can't be newly booked; revision 20: D-45, square profile photo and whole page photos; revision 19: business photos built, PO-16 to switch them on; revision 18: D-44, bookings marked before a business joined; revision 17: D-39 revised to D-43, "Plan an event" built)
+
+**Revision 22 changes:** Inquire is built (your D-04 and D-05): people can tell our team
+they're interested in a business that hasn't joined, and are emailed when it does. Nothing for
+you to do; see "Inquiries" in the team menu.
 
 **Revision 21 changes:** D-46, what happens when a business is taken down, and the team's view
 of every booking, is recorded in your own words and built. Nothing for you to do.

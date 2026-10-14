@@ -33,6 +33,8 @@ export default [
     route('events/:id/plan/:rowId/:change', 'routes/member/plan-change.tsx'),
     route('saved', 'routes/member/saved.tsx'),
     route('vendors/:slug/add', 'routes/member/vendor-add.tsx'),
+    // Inquire, for a business not on Localites yet (C10, ADR-024).
+    route('vendors/:slug/inquire', 'routes/member/inquire.tsx'),
     route('business', 'routes/member/business.tsx'),
     route('vendors/:slug/bookings', 'routes/member/bookings.tsx'),
     // A business owner's team (V4, E §3).
@@ -53,6 +55,7 @@ export default [
     route('event-types', 'routes/admin/event-types.tsx'),
     route('booking-flags', 'routes/admin/booking-flags.tsx'),
     route('bookings', 'routes/admin/bookings.tsx'),
+    route('inquiries', 'routes/admin/inquiries.tsx'),
     route('account-deletions', 'routes/admin/account-deletions.tsx'),
     route('photos', 'routes/admin/photos.tsx'),
     route('categories', 'routes/admin/categories.tsx'),

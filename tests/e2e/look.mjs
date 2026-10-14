@@ -151,6 +151,7 @@ const PAGES = [
   { who: 'person', path: `/events/${eventId}/edit`, label: 'Editing an event' },
   { who: 'person', path: '/saved', label: 'Saved businesses' },
   { who: 'person', path: `/vendors/${V.slug}/add`, label: 'Add to an event' },
+  { who: 'person', path: `/vendors/${W.slug}/inquire`, label: 'Inquire' },
   { who: 'owner', path: '/business', label: 'Your business' },
   { who: 'owner', path: `/vendors/${V.slug}/edit`, label: 'Editing a listing' },
   { who: 'owner', path: `/vendors/${V.slug}/photos`, label: 'Photos (owner)' },
@@ -173,6 +174,7 @@ const PAGES = [
   { who: 'team', path: '/admin/event-types', label: 'Team: kinds of event' },
   { who: 'team', path: '/admin/activity', label: 'Team: activity' },
   { who: 'team', path: `/admin/bookings?business=${V.id}`, label: 'Team: bookings' },
+  { who: 'team', path: '/admin/inquiries?show=all', label: 'Team: inquiries' },
 ];
 
 const RULES = ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa'];

@@ -1,0 +1,11 @@
+Subject: {{business}} has joined Localites
+
+Hi {{name}},
+
+You told us you were interested in {{business}}. They've now joined Localites and
+manage their own page:
+{{vendorUrl}}
+
+Contact them using the details on their page.
+
+Localites

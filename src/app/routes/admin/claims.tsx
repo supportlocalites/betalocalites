@@ -6,6 +6,7 @@ import { pageMeta } from '@/lib/meta';
 import { type Check, CHECKS, RELATIONSHIPS } from '@/lib/claim-terms';
 import { emailClaimDecision } from '@/server/claim-emails.server';
 import { approveClaim, ClaimConflict, declineClaim, listClaims } from '@/server/claims.server';
+import { tellJoined } from '@/server/inquiries.server';
 import type { Route } from './+types/claims';
 import styles from './admin.module.css';
 
@@ -39,6 +40,12 @@ export async function action({ request, context }: Route.ActionArgs) {
       ctx.waitUntil(
         emailClaimDecision(env, site, id, decided, { approved: true }).catch((err) =>
           console.error('claim emails not recorded', err instanceof Error ? err.message : err),
+        ),
+      );
+      // Everyone who asked about this business while it wasn't on Localites (ADR-024).
+      ctx.waitUntil(
+        tellJoined(env, admin, { id: decided.vendorId, name: decided.business, slug: decided.slug }, site).catch((err) =>
+          console.error('joined emails not recorded', err instanceof Error ? err.message : err),
         ),
       );
     } else if (intent === 'decline') {

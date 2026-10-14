@@ -5,7 +5,8 @@
 //     to the sign-in server, and lets the tests read what was sent: GET /messages?to=<address>;
 //   - POST /emails stands in for Resend's sending service (the site's own emails, when the
 //     site is pointed here with EMAIL_API_URL): it keeps the email like the ones above.
-//     Only the test key is accepted;
+//     Only the test key is accepted. POST /emails/fail?on=1 makes it refuse every email
+//     (as Resend would when down) until ?on=0;
 //   - POST /turnstile/siteverify stands in for Cloudflare's "are you human" checker. An
 //     answer "pass:<form>:<site>:<anything>" passes for that form on that site, once; "fail"
 //     fails; "down" makes the checker answer with an error. Only the test secret is accepted;
@@ -29,6 +30,7 @@ const spent = new Set();
 const PHOTO_KEY = process.env.E2E_PHOTO_KEY ?? 'e2e-photo-key';
 const files = new Map(); // "<bucket>/<path>" -> { type, body: Buffer }
 let storageFails = false;
+let emailFails = false;
 const checks = []; // what the site sent the checker: { response, remoteip }
 
 function siteverify(body) {
@@ -133,14 +135,27 @@ http
       if (req.headers.authorization !== `Bearer ${EMAIL_KEY}`) {
         res.writeHead(401, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ name: 'invalid_api_key', message: 'API key is invalid' }));
+      } else if (emailFails) {
+        res.writeHead(500, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ name: 'application_error', message: 'Pretend outage' }));
       } else if (!Array.isArray(email?.to) || typeof email.subject !== 'string' || typeof email.text !== 'string') {
         res.writeHead(422, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ name: 'validation_error', message: 'Missing to, subject or text' }));
       } else {
-        messages.push({ to: email.to.map((t) => String(t).toLowerCase()), subject: email.subject, body: email.text, at: Date.now() });
+        messages.push({
+          to: email.to.map((t) => String(t).toLowerCase()),
+          subject: email.subject,
+          body: email.text,
+          replyTo: email.reply_to ?? null,
+          at: Date.now(),
+        });
         res.writeHead(200, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ id: `e2e-${messages.length}` }));
       }
+    } else if (url.pathname === '/emails/fail' && req.method === 'POST') {
+      emailFails = url.searchParams.get('on') === '1';
+      res.writeHead(204);
+      res.end();
     } else if (url.pathname === '/turnstile/siteverify' && req.method === 'POST') {
       let raw = '';
       for await (const chunk of req) raw += chunk;

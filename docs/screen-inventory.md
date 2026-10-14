@@ -52,7 +52,7 @@ added; quotes, bookings and the concierge queue removed.
 | C7 | Messages | All conversations, unread first | 2 |
 | C8 ★ | Conversation | Messages and files; "about" an event (optional); block, report; "Localites doesn't process payments" footer | 2 |
 | C9 | Start a conversation | Choose whether to share an event, with a preview of exactly what the vendor will see | 2 |
-| C10 | Inquire | For unclaimed or unverified businesses: their own contact details, an optional note and event; says honestly what happens next (D-04) | 2 |
+| C10 | Inquire | For unclaimed or unverified businesses: their own contact details, an optional note and event; says honestly what happens next (D-04). **Built** (ADR-024, `/vendors/<name>/inquire`, from **Interested? → Inquire** on the business page): once per business; the team email sent before the page answers, and a failure said plainly with **Try sending again**; the person is emailed when the business joins | 2 |
 | C11 | How was it? | From the feedback email: stars + comments, one per booked vendor | 3 |
 | C12 | My reviews | Status: checking, published, declined (with reason) | 3 |
 | C13 | Guests | Guest list; who has opened and replied; match names from the group link; "No reply yet" list (D-08) | 4 |
@@ -101,7 +101,7 @@ added; quotes, bookings and the concierge queue removed.
 | X11 | Audit log | | 1 |
 | X12 | Event types | **Built** (`/admin/event-types`, D-39, D-43): add, rename, order, hide (never delete); per type, the kinds of business to suggest (ticks and order) and featured businesses (first and last day, team note, End early; showing now, coming up, earlier; a warning when more than 3 overlap); a business finder. Every change recorded | 2 |
 | X13 | Reports | Reported messages, conversations, listings. Opening a conversation is logged. | 2 |
-| X14 | Inquiries | Every inquiry, by business, to follow up and invite (D-04) | 2 |
+| X14 | Inquiries | Every inquiry, by business, to follow up and invite (D-04). **Built** (`/admin/inquiries`, "Inquiries (n waiting)" in the team menu): business, who (name, email), note, event summary, the team email's status, when they were told it joined; waiting only or all; every look recorded | 2 |
 | X15 | Review moderation | Approve or decline each review against the written policy; opened from the new-review email (D-06, ADR-026) | 3 |
 | X16 | Booking flags | Resolve vendor flags. **Read-only list built** (2A, `/admin/booking-flags`, "Booking flags (n)" in the team menu): business, note, who marked it, when; every look recorded. Resolving stays Stage 3 | 3 |
 | X20 | Bookings (team) | **Built** (D-46, `/admin/bookings`, "Bookings (n to check in)" in the team menu): every business marked booked, listed or not, with the person's name and email, the date, the town and guests; taken-down businesses with bookings still to come first ("Check in with these people"), then coming up, then past and cancelled; one business's from its listing page. Every look recorded | 2 |

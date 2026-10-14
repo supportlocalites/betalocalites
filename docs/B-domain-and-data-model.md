@@ -567,7 +567,7 @@ hiding there.
 | `featured_placement` | Commercial | S2 | A business the team features for a kind of event, between two dates; team-only note; no money (D-43). **Built** (0012) |
 | `conversation`, `message`, `message_attachment` | Handshake | S2 | Consumer ↔ vendor messaging with files |
 | `conversation_read_marker` | Handshake | S2 | Private unread counts |
-| `vendor_interest` | Handshake | S2 | **Inquiries** (D-04, D-05): who asked about an unclaimed or unverified vendor, an optional note and event, and whether the team email was sent |
+| `vendor_interest` | Handshake | S2 | **Inquiries** (D-04, D-05): who asked about an unclaimed or unverified vendor, an optional note and event, and whether the team email was sent. **Built** (0021): the event is kept as the one-line summary that was sent; plus when the person was told it joined |
 | `moderation_report` | Safety | S2 | Reports of messages, conversations, reviews, listings |
 | `notification` | Comms | S1 | Log of every email sent to a person (from Stage 1: claim emails), with honest status |
 | `review_request` | Reviews | S3 | "How was it?" prompts |

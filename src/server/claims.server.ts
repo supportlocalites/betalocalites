@@ -230,7 +230,7 @@ const websiteSetByOwner = (vendorId: SQL, websiteUrl: SQL) => sql`exists (
   select 1 from owner_change oc join audit_log a on a.id = oc.audit_id
   where oc.vendor_id = ${vendorId} and a.changes->'websiteUrl'->>'to' = ${websiteUrl})`;
 
-type Decided = { business: string; slug: string; claimant: Person; declined: (Person & { claimId: string })[] };
+type Decided = { vendorId: string; business: string; slug: string; claimant: Person; declined: (Person & { claimId: string })[] };
 
 /**
  * Locks the business first, then the claim: every change to a business's claims takes the
@@ -326,7 +326,7 @@ export async function approveClaim(env: ServerEnv, admin: Admin, claimId: string
         },
         sessionRef: admin.sessionId,
       });
-      return { business: c.business, slug: c.slug, claimant: c.claimant, declined: [...declined] };
+      return { vendorId: c.vendorId, business: c.business, slug: c.slug, claimant: c.claimant, declined: [...declined] };
     }),
   );
 }
@@ -357,7 +357,7 @@ export async function declineClaim(env: ServerEnv, admin: Admin, claimId: string
         changes: reopened ? { claimStatus: { from: 'claim_pending', to: 'unclaimed' } } : null,
         sessionRef: admin.sessionId,
       });
-      return { business: c.business, slug: c.slug, claimant: c.claimant, declined: [] };
+      return { vendorId: c.vendorId, business: c.business, slug: c.slug, claimant: c.claimant, declined: [] };
     }),
   );
 }

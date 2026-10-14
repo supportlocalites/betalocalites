@@ -64,15 +64,17 @@ export async function upcomingBookingCount(db: Db, admin: Admin, vendorId: strin
 }
 
 /**
- * The team menu's two counts in one connection: booking flags not yet decided (D-41), and
- * bookings still to come of businesses that aren't listed, to check in about (D-46). Counts
- * only: not audited.
+ * The team menu's counts in one connection: booking flags not yet decided (D-41), bookings
+ * still to come of businesses that aren't listed, to check in about (D-46), and inquiries
+ * about businesses not on Localites yet (ADR-024). Counts only: not audited.
  */
-export async function teamMenuCounts(env: ServerEnv, admin: Admin): Promise<{ openFlags: number; checkIns: number }> {
+export async function teamMenuCounts(env: ServerEnv, admin: Admin): Promise<{ openFlags: number; checkIns: number; inquiries: number }> {
   return actingAs(env, { side: 'team', userId: admin.userId }, async (tx) => {
-    const [n] = await tx.execute<{ openFlags: number | string; checkIns: number | string }>(sql`
+    const [n] = await tx.execute<{ openFlags: number | string; checkIns: number | string; inquiries: number | string }>(sql`
       select (select count(*) from event_vendor where vendor_flagged_at is not null and flag_resolved_at is null)::int as "openFlags",
-             taken_down_booking_count() as "checkIns"`);
-    return { openFlags: Number(n?.openFlags ?? 0), checkIns: Number(n?.checkIns ?? 0) };
+             taken_down_booking_count() as "checkIns",
+             (select count(*) from vendor_interest vi join vendor v on v.id = vi.vendor_id
+              where v.claim_status <> 'claimed' and v.listing_status = 'published')::int as inquiries`);
+    return { openFlags: Number(n?.openFlags ?? 0), checkIns: Number(n?.checkIns ?? 0), inquiries: Number(n?.inquiries ?? 0) };
   });
 }

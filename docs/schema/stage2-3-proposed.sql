@@ -1,9 +1,9 @@
 -- =============================================================================
 -- Localites — PROPOSED Stage 2–3 schema: the consumer–vendor handshake and reviews
 -- =============================================================================
--- STATUS: the event-plan part is BUILT (migration 0012). The conversation, file and
--- review parts below are still a PROPOSAL FOR REVIEW, NOT APPLIED TO ANY DATABASE.
--- Applies on top of migrations 0001–0012.
+-- STATUS: the event-plan part is BUILT (migration 0012), and inquiries (0021). The
+-- conversation, file and review parts below are still a PROPOSAL FOR REVIEW, NOT APPLIED TO
+-- ANY DATABASE. Applies on top of migrations 0001–0021.
 --
 -- What this models (see docs/roles-and-relationships.md):
 --   * A consumer plans an event and adds vendors to it (considering -> booked).
@@ -190,15 +190,8 @@ create table conversation_read_marker (
   primary key (conversation_id, user_id)
 );
 
--- A consumer who wanted to message a business that hasn't joined Localites.
--- Used to (truthfully) invite the business, and to tell the consumer when it joins.
-create table vendor_interest (
-  vendor_id           uuid not null references vendor(id),
-  user_id             uuid not null references app_user(id),
-  created_at          timestamptz not null default now(),
-  notified_joined_at  timestamptz,
-  primary key (vendor_id, user_id)
-);
+-- INQUIRIES: now in db/migrations/0021_inquiries.sql (vendor_interest, with per-person
+-- rules, the team email's status and the "told it joined" mark; ADR-024).
 
 -- =============================================================================
 -- SAFETY & NOTIFICATIONS
@@ -401,7 +394,7 @@ declare t text;
 begin
   foreach t in array array[
     'conversation', 'message',
-    'message_attachment', 'conversation_read_marker', 'vendor_interest',
+    'message_attachment', 'conversation_read_marker',
     'moderation_report', 'review_request', 'review'
   ] loop
     execute format('alter table %I enable row level security', t);

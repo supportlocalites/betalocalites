@@ -197,10 +197,13 @@ ADR-031; not yet on the test site):
 - **Team pages:** read-only **Booking flags**, and team-only planning counts (D-42).
 - **Per-person database rules** for events, plans and saves.
 
+**Built since (14 October 2026):** **Inquire** for businesses not on Localites yet, with the
+team's **Inquiries** list and an email to each person when the business joins (ADR-024,
+migration 0021); the team's **Bookings** page (D-46, migration 0020).
+
 **Not built yet in Stage 2:**
 - conversations and messages (with unread counts and email notices);
 - files in conversations;
-- **Inquire** for unclaimed businesses, and the team's Inquiries list;
 - block and report, and the team's Reports queue;
 - batched email digests (each planning email is sent on its own, with repeats held back);
 - counting how often featured businesses are shown (D-43: later);

@@ -19,7 +19,7 @@
     "check": "npm run lint && npm run typecheck && npm run check:tokens && npm run check:words",
     "test": "vitest run",
     "test:db": "node scripts/test-db.mjs",
-    "test:e2e": "node tests/e2e/admin-access.mjs && node tests/e2e/claiming.mjs && node tests/e2e/human-check.mjs && node tests/e2e/owner-editing.mjs && node tests/e2e/analytics.mjs && node tests/e2e/event-plans.mjs && node tests/e2e/account-deletion.mjs && node tests/e2e/business-teams.mjs && node tests/e2e/photos.mjs && node tests/e2e/categories.mjs && node tests/e2e/look.mjs",
+    "test:e2e": "node tests/e2e/admin-access.mjs && node tests/e2e/claiming.mjs && node tests/e2e/human-check.mjs && node tests/e2e/owner-editing.mjs && node tests/e2e/analytics.mjs && node tests/e2e/event-plans.mjs && node tests/e2e/account-deletion.mjs && node tests/e2e/business-teams.mjs && node tests/e2e/photos.mjs && node tests/e2e/categories.mjs && node tests/e2e/inquiries.mjs && node tests/e2e/look.mjs",
     "size": "node scripts/worker-size.mjs",
     "db:migrate": "node scripts/migrate.mjs",
     "db:seed:test": "node scripts/seed-test-data.mjs",

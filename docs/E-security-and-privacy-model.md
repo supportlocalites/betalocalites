@@ -1,7 +1,7 @@
 # E — Security & Privacy Model
 
 **Status:** Approved (D-00, 10 October 2026).
-**Last updated:** 2026-10-14 (§4.2: the team sees every booking, a business taken down can't be newly booked, D-46; 2026-10-13: §3, §4.2, §7, §7a, §8, §12: planning an event built, ADR-031, D-39 to D-43; earlier, §2: "are you human" check on sign-in codes; §7: sign-up details and anyone may join, D-36; §2: emailed sign-in codes and claims)
+**Last updated:** 2026-10-14 (§4.2: inquiries built, ADR-024, migration 0021; the team sees every booking, a business taken down can't be newly booked, D-46; 2026-10-13: §3, §4.2, §7, §7a, §8, §12: planning an event built, ADR-031, D-39 to D-43; earlier, §2: "are you human" check on sign-in codes; §7: sign-up details and anyone may join, D-36; §2: emailed sign-in codes and claims)
 
 **Revision 2:** rebuilt around the two users, consumer and vendor. Added
 conversations, shared files, consumer-marked bookings, and reviews. Removed the
@@ -146,6 +146,7 @@ grants more, and every admin action is recorded in `audit_log`.
 | The event's name, where, ages, budget, notes (`event_private`) | — | R U (own) | — | — | — |
 | Flag note | — | — | — | C (own flag) | R |
 | Saves, adds and bookings per business (D-42) | — | — | — | — (not on their Analytics page) | totals only |
+| Inquiry about a business not on Localites yet (`vendor_interest`, ADR-024)⁴ | — | R C (own, once per business; again only if the team email failed) | — | — (never sent anything) | R, every inquiry, logged |
 
 ¹ **Built (D-40):** for a booking, the person's name, the date, the town and about how many
 guests. Never the event's name or kind, start time, where, ages, budget, notes, the other
@@ -186,6 +187,17 @@ what they're considering; one already marked booked stays on that person's plan 
   acting as the team. The team still has no rule on the planning tables themselves.
 - *Admin "support, logged" reads of any event:* not built; beyond the booking summary
   (note ³), the team can't open a person's event unless a booking on it is flagged.
+
+⁴ **Built (ADR-024, migration 0021, 14 October 2026):** a signed-in person can tell the team
+they're interested in a published business that hasn't joined, with an optional note and
+one of their own events still to come. The team receives the person's name and email, the
+note, and the event as a one-line summary (kind, date, town, about how many guests; never
+its name or private details), by email and on the team's **Inquiries** page (each look
+logged). The business is never sent anything by Localites. When the team approves the
+business's claim, each person who asked is emailed once that it joined
+(`take_joined_notices()`, team only). Enforced by the database's per-side rules: the person
+reads and writes only their own; the team only reads; no business rule exists. Deleting
+your account deletes your inquiries (a trigger on the account row, §8).
 
 ### 4.3 Conversations & files (Stage 2)
 

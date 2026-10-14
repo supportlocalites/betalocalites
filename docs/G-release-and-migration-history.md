@@ -31,6 +31,34 @@ Every release and every database migration, in order. Appended before each deplo
 
 ## Releases
 
+### 2026-10-14 — Inquire, for businesses not on Localites yet
+
+**Stage:** 2 (ADR-024, D-04, D-05; screens C10 and X14)
+**What changed (plain English):** a business that hasn't joined Localites now shows
+**Interested? → Inquire**. A signed-in person can add a note and mention one of their events
+still to come; the page says exactly what our team receives (name, email, note, and the
+event's kind, date, town and about how many guests, never its name or private details) and
+that the business isn't sent anything. The team is emailed before the page answers, so the
+person is told the truth: "We've passed your interest to our team, who'll get in touch with
+them. We'll let you know if they join", or, if the email failed, that it's on the team's
+list and they can try again. Once per business. The team's new **Inquiries** page lists them
+(every look recorded) with a count in the menu. When the team approves the business's claim,
+everyone who asked is emailed once that it joined. Deleting your account deletes your
+inquiries.
+**Migrations applied:** `0021_inquiries.sql` (new table `vendor_interest` with per-person
+rules, the function `take_joined_notices`, and a trigger that deletes a deleted account's
+inquiries).
+**Destructive?** No: nothing existing changes. To undo, a later migration drops them.
+**Tests run:** database 0021 23/23 (new) and every earlier file; the Stage 2–3 proposal
+49/49 (now using the built table); end-to-end Inquire 34/34 (new: who sees Inquire, sending,
+the team email and its honest failure, once per business, refusals, the daily limit, the
+team's page and outsiders refused, the email when the business joins, no wording suggesting
+the business got a message); look checks 272/272 (the Inquire page and the team's page).
+**How to roll back:** Cloudflare → Deployments → previous version; the database change is
+undone by a new migration.
+**Approved by:** Product owner (D-04 and D-05, 10 October 2026; chose "Inquire button" on
+14 October 2026).
+
 ### 2026-10-14 — A business taken down: hidden from people, and the team sees every booking
 
 **Stage:** 2 (D-46)

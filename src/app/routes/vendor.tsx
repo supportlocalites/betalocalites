@@ -80,6 +80,19 @@ export default function VendorProfile({ loaderData: { vendor, slug, signedIn, tr
         <PlanNotice name={vendor.name} />
         <VendorPage vendor={vendor}>
           {/* Only here, not on the owner's edit page or preview (they share VendorPage). */}
+          {!vendor.claimed && (
+            <section aria-labelledby="inquire" className={styles.owner}>
+              <h2 id="inquire" className="label">
+                Interested?
+              </h2>
+              <p className="muted">{vendor.name} isn’t on Localites yet. Tell our team you’re interested and we’ll invite them to join.</p>
+              <div className={styles.contact}>
+                <Link to={`/vendors/${slug}/inquire`} className="button button-secondary">
+                  Inquire
+                </Link>
+              </div>
+            </section>
+          )}
           <section aria-labelledby="plan" className={styles.owner}>
             <h2 id="plan" className="label">
               Planning an event?

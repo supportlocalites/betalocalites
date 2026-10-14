@@ -303,6 +303,14 @@ guide this live (PO-03 part 3). Changing the password later is the same two step
   2A this list is for reading: if something looks wrong (for example a business flagging
   every booking), contact the business or the person directly from
   supportlocalites@gmail.com. Deciding on flags comes in Stage 3.
+- **Inquiries (Admin → Inquiries (n waiting); ADR-024, D-04, D-05):** people interested in
+  a business that isn't on Localites yet, each also emailed to supportlocalites@gmail.com
+  ("Inquiry about …"; replying reaches the person). Use them to invite the business to claim
+  its listing (claiming is free), for example "Three people asked about you on Localites
+  this month". Don't pass messages back and forth: once the business joins, people contact
+  it directly. When you approve its claim, everyone who asked is emailed once that it
+  joined. If the page says an email to the team failed, the inquiry is still here; the
+  person was told and can send it again. Every look is recorded.
 - **Bookings (Admin → Bookings; D-46):** every business a person marked booked, listed or
   not, past events too, with the person's name and email, the date, the town and about how
   many guests (never the event's name or private details). Every look is recorded. When a

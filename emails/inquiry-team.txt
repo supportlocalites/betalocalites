@@ -1,0 +1,12 @@
+Subject: Inquiry about {{business}}
+
+{{name}} ({{email}}) is interested in {{business}}, which isn't on Localites yet.
+Their note: {{note}}
+Their event: {{event}}
+
+The business hasn't been sent anything. Invite them to claim their listing (claiming is
+free), so people can contact them directly on Localites. Please don't pass messages back
+and forth (D-05). Replying to this email reaches {{name}}.
+
+The business's page: {{vendorUrl}}
+Every inquiry: {{inquiriesUrl}}

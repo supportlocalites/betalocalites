@@ -12,6 +12,8 @@ import bookingFlaggedPerson from '../../emails/booking-flagged-person.txt?raw';
 import bookingUnmarked from '../../emails/booking-unmarked.txt?raw';
 import markedBooked from '../../emails/marked-booked.txt?raw';
 import teamInvite from '../../emails/team-invite.txt?raw';
+import inquiryTeam from '../../emails/inquiry-team.txt?raw';
+import vendorJoined from '../../emails/vendor-joined.txt?raw';
 import { uuidv7 } from '@/lib/ids.mjs';
 import { type Db, withDb } from './db.server';
 import { sendEmail, TEAM_ADDRESS } from './email.server';
@@ -37,6 +39,9 @@ const TEMPLATES = {
   bookingFlaggedPerson,
   // A business owner's team (V4, E §3).
   teamInvite,
+  // Inquire (ADR-024).
+  inquiryTeam,
+  vendorJoined,
 } as const;
 export type TemplateName = keyof typeof TEMPLATES;
 
@@ -65,7 +70,7 @@ export function renderEmail(name: TemplateName, values: Record<string, string | 
 export async function emailPerson(
   env: ServerEnv,
   to: { userId: string; email: string },
-  kind: 'claim_received' | 'claim_decision' | 'listing_change_undone' | 'owner_removed',
+  kind: 'claim_received' | 'claim_decision' | 'listing_change_undone' | 'owner_removed' | 'vendor_joined',
   subject: { type: string; id: string },
   content: { subject: string; text: string },
 ): Promise<void> {
