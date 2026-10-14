@@ -31,6 +31,28 @@ Every release and every database migration, in order. Appended before each deplo
 
 ## Releases
 
+### 2026-10-14 — Messages, fixed after a third review (Stage 2B)
+
+**Stage:** 2 (E §4.3, §8)
+**What changed (plain English):**
+- **Emails fixed:** since the previous release, someone who read a conversation without
+  replying was never emailed about the next message. Now they are, once per unread stretch
+  as intended.
+- **Kept words narrowed:** the team keeps the words of a removed message only if it was there
+  when the conversation was reported, never anything written after the report.
+- **Email time limit:** the email work no longer tries a second time if that would run past
+  Cloudflare's 30-second limit for background work.
+**Migrations applied:** `0027_conversation_fixes_3.sql` (two functions replaced:
+`new_message_notices()` and `keep_reported_message_text()`).
+**Destructive?** No. To undo, a later migration restores 0026's functions.
+**Tests run:** database 0027 5/5 (new; the email check fails without this migration and passes
+with it) and every earlier file passing; end-to-end messages 107/107 (1 new: read, then another
+reply, emailed again), every other suite passing (the analytics speed-limit check needed a
+minute's pause between local runs), look checks 336/336; unit 167/167; checks.
+**How to roll back:** Cloudflare → Deployments → previous version; the database change is
+undone by a new migration.
+**Approved by:** Product owner (Messages, 14 October 2026), as the releases before.
+
 ### 2026-10-14 — Messages, fixed after a second review (Stage 2B)
 
 **Stage:** 2 (E §4.3, §8; screens C7, C8, X13)

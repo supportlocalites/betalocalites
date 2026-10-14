@@ -585,6 +585,7 @@ const EMAIL_WAIT_SECONDS = 18;
  */
 export async function emailAboutMessage(env: ServerEnv, acting: Acting, written: Written, siteUrl: string): Promise<void> {
   if (written.again) return;
+  const deadline = Date.now() + 27_000; // Cloudflare stops background work 30 seconds after the page answers
   const seconds = Math.min(Math.max(Number(env.MESSAGE_EMAIL_WAIT_SECONDS ?? EMAIL_WAIT_SECONDS) || 0, 0), EMAIL_WAIT_SECONDS);
   await new Promise((done) => setTimeout(done, seconds * 1000));
   await withDb(env, async (db) => {
@@ -611,6 +612,7 @@ export async function emailAboutMessage(env: ServerEnv, acting: Acting, written:
             : `${siteUrl}/messages/${written.conversationId}`,
         }),
       })),
+      deadline,
     );
     const ids = `{${due.map((d) => d.notificationId).join(',')}}`;
     await db.execute(

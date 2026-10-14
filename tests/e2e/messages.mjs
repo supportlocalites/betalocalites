@@ -148,6 +148,10 @@ check('the person sees 2 new', r.body.includes('aria-label="2 new"'));
 r = await page(THREAD, { cookie: cookie.a });
 text = words(r.body);
 check('the person reads the replies under the business’s name, never the staff member’s', text.includes(REPLY) && text.includes(V.name) && !text.includes(S_NAME));
+const beforeMore = Date.now();
+await page(BIZ_THREAD, { cookie: cookie.g, method: 'POST', form: { intent: 'send', body: `One more thing. ${run}` } });
+const moreMail = await waitFor(() => newMail('a', beforeMore), (l) => l.length > 0);
+check('read without replying, then another reply: emailed again', moreMail.length === 1, JSON.stringify(moreMail.length));
 
 // ------------------------------------------------------------------ 4. Nobody else
 const ZERO = '00000000-0000-7000-8000-000000000000';

@@ -47,17 +47,20 @@ export type EmailResult = { sent: true } | { sent: false; reason: string };
 
 /**
  * One request to the email service, told to slow down at most once (it allows a few sends a
- * second): wait as asked (at most 2 s) and try once more. Never throws.
+ * second): wait as asked (at most 2 s) and try once more, if that still ends before
+ * `deadline` (when given). Never throws.
  */
-async function deliver(env: EmailEnv, url: string, body: unknown): Promise<EmailResult> {
+async function deliver(env: EmailEnv, url: string, body: unknown, deadline?: number): Promise<EmailResult> {
   if (!env.RESEND_API_KEY) return { sent: false, reason: 'Email isn’t set up yet (PO-12).' };
   try {
     let response = await post(env, url, body);
     if (response.status === 429) {
-      await response.body?.cancel();
       const wait = Math.min(2000, Math.max(500, Number(response.headers.get('retry-after') ?? 1) * 1000 || 1000));
-      await new Promise((r) => setTimeout(r, wait));
-      response = await post(env, url, body);
+      if (deadline === undefined || Date.now() + wait + REQUEST_SECONDS * 1000 < deadline) {
+        await response.body?.cancel();
+        await new Promise((r) => setTimeout(r, wait));
+        response = await post(env, url, body);
+      }
     }
     if (response.ok) {
       await response.body?.cancel();
@@ -94,10 +97,11 @@ export function sendEmail(env: EmailEnv, email: Email): Promise<EmailResult> {
 
 /**
  * Several emails in one request (Resend's batch sending, up to 100): all sent, or none. For
- * a business's whole team at once, so the sending fits in the time Cloudflare allows.
+ * a business's whole team at once, so the sending fits in the time Cloudflare allows; no
+ * second try that would end after `deadline` (milliseconds, as Date.now()).
  */
-export function sendEmails(env: EmailEnv, emails: Email[]): Promise<EmailResult> {
+export function sendEmails(env: EmailEnv, emails: Email[], deadline?: number): Promise<EmailResult> {
   if (emails.length === 0) return Promise.resolve({ sent: true });
   if (emails.length > 100) return Promise.resolve({ sent: false, reason: 'More than 100 emails at once.' });
-  return deliver(env, `${emailApiUrl(env)}/batch`, emails.map(asResend));
+  return deliver(env, `${emailApiUrl(env)}/batch`, emails.map(asResend), deadline);
 }
