@@ -19,6 +19,8 @@ export async function loader({ request, context }: Route.LoaderArgs) {
 }
 
 const when = new Intl.DateTimeFormat('en-CA', { dateStyle: 'medium', timeStyle: 'short', timeZone: 'America/Toronto' });
+/** The "it joined" email's real outcome (a failed one: email the person yourself). */
+const JOINED_WORDS = { sent: 'sent', queued: 'on its way', failed: 'failed: email them yourself', suppressed: 'not sent' } as const;
 const EMAIL_WORDS = { sent: 'Emailed to the team', pending: 'Email on its way', failed: 'Email to the team failed' } as const;
 
 export default function Inquiries({ loaderData: { show, inquiries } }: Route.ComponentProps) {
@@ -69,7 +71,7 @@ export default function Inquiries({ loaderData: { show, inquiries } }: Route.Com
               <span className="muted">
                 {EMAIL_WORDS[q.emailStatus]}
                 {q.emailStatus === 'failed' && q.emailError ? ` (${q.emailError})` : ''}
-                {q.joinedToldAt ? ` · Told it joined, ${when.format(new Date(q.joinedToldAt))}` : ''}
+                {q.joinedToldAt && q.joinedEmail ? ` · “It joined” email ${JOINED_WORDS[q.joinedEmail]}, ${when.format(new Date(q.joinedToldAt))}` : ''}
               </span>
             </li>
           ))}

@@ -14,6 +14,7 @@ import markedBooked from '../../emails/marked-booked.txt?raw';
 import teamInvite from '../../emails/team-invite.txt?raw';
 import inquiryTeam from '../../emails/inquiry-team.txt?raw';
 import vendorJoined from '../../emails/vendor-joined.txt?raw';
+import newMessage from '../../emails/new-message.txt?raw';
 import { uuidv7 } from '@/lib/ids.mjs';
 import { type Db, withDb } from './db.server';
 import { sendEmail, TEAM_ADDRESS } from './email.server';
@@ -42,6 +43,8 @@ const TEMPLATES = {
   // Inquire (ADR-024).
   inquiryTeam,
   vendorJoined,
+  // Messages (Stage 2B).
+  newMessage,
 } as const;
 export type TemplateName = keyof typeof TEMPLATES;
 
@@ -179,18 +182,21 @@ export async function emailPersonUnlessRepeat(
 }
 
 /**
- * The nightly run (workers/app.ts): plan emails left "queued" by a run that was cut short
- * (the email may or may not have gone) are marked failed, so the record stays honest.
+ * The nightly run (workers/app.ts): emails left "queued" by a run that was cut short (the
+ * email may or may not have gone) are marked failed, so the record stays honest: plan
+ * emails, "it joined" emails (ADR-024) and new-message emails; and inquiry emails to the
+ * team left "pending" (close_stale_inquiry_emails, migration 0022).
  */
 export async function closeInterruptedPlanEmails(env: ServerEnv): Promise<number> {
-  const kinds = `{${PLAN_EMAIL_KINDS.join(',')}}`;
-  const rows = await withDb(env, (db) =>
-    db.execute(sql`
+  const kinds = `{${[...PLAN_EMAIL_KINDS, 'vendor_joined', 'new_message'].join(',')}}`;
+  return withDb(env, async (db) => {
+    const rows = await db.execute(sql`
       update notification set status = 'failed', failure_reason = 'Not known whether it was sent: the sending was interrupted.'
       where status = 'queued' and kind = any(${kinds}::text[]) and created_at < now() - interval '1 hour'
-      returning id`),
-  );
-  return rows.length;
+      returning id`);
+    const [inquiries] = await db.execute<{ n: number }>(sql`select close_stale_inquiry_emails() as n`);
+    return rows.length + (inquiries?.n ?? 0);
+  });
 }
 
 /** A plan email that wasn't attempted, recorded as failed with why (so the team can follow up). */

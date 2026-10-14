@@ -37,6 +37,10 @@ async function listing(label, { claim = 'unclaimed', status = 'published' } = {}
 }
 const U = await listing('unclaimed');
 const U2 = await listing('second');
+const U3 = await listing('third');
+const U4 = await listing('fourth');
+const U5 = await listing('fifth');
+const X = await listing('own');
 const C = await listing('claimed', { claim: 'claimed' });
 const H = await listing('hidden', { status: 'unpublished' });
 
@@ -46,7 +50,7 @@ const ids = {};
 for (const who of ['a', 'b', 'd', 'o', 'm', 'n']) ids[who] = await account(email(who));
 await sql`update app_user set display_name = ${`Ava Asker ${run}`} where id = ${ids.a}`;
 await sql`insert into platform_role (user_id, role) values (${ids.m}, 'admin')`;
-await sql`insert into vendor_member (vendor_id, user_id, role) values (${C.id}, ${ids.o}, 'owner')`;
+await sql`insert into vendor_member (vendor_id, user_id, role) values (${C.id}, ${ids.o}, 'owner'), (${X.id}, ${ids.o}, 'manager')`;
 const cookie = {};
 for (const who of ['a', 'b', 'd', 'o', 'n']) cookie[who] = cookieFor(await passwordSession(email(who)));
 cookie.m = cookieFor(await twoStepSession(email('m')));
@@ -116,13 +120,23 @@ r = await page(`/vendors/${U2.slug}/inquire`, { cookie: cookie.a, method: 'POST'
 check('someone else’s event can’t be mentioned: refused, nothing saved', r.status === 409 && !(await rowOf(U2.id, ids.a)), String(r.status));
 r = await page(`/vendors/${U2.slug}/inquire`, { cookie: cookie.a, method: 'POST', form: { note: 'x'.repeat(1001) } });
 check('a note over 1,000 characters is refused', r.status === 400 && !(await rowOf(U2.id, ids.a)), String(r.status));
-r = await page(`/vendors/${C.slug}/inquire`, { cookie: cookie.o });
-check('a business’s own owner is sent back to its page', [302, 303].includes(r.status), String(r.status));
+r = await page(`/vendors/${X.slug}/inquire`, { cookie: cookie.o });
+check('on your own business (not yet joined), the page says so and offers no form',
+  r.status === 200 && words(r.body).includes('This is your own business.') && !r.body.includes('name="note"'), String(r.status));
+r = await page(`/vendors/${X.slug}/inquire`, { cookie: cookie.o, method: 'POST', form: { note: 'x' } });
+check('…and sending anyway is refused, nothing saved', r.status === 409 && !(await rowOf(X.id, ids.o)), String(r.status));
 
 // ------------------------------------------------------------------ 4. The email fails: said honestly, and can be sent again
-await fetch(`${MAIL}/emails/fail?on=1`, { method: 'POST' });
-r = await page(`/vendors/${U2.slug}/inquire`, { cookie: cookie.b, method: 'POST', form: { note: `First try ${run}` } });
-await fetch(`${MAIL}/emails/fail?on=0`, { method: 'POST' });
+/** Runs with the pretend email service refusing every email, and always turns it back on. */
+async function emailDown(fn) {
+  await fetch(`${MAIL}/emails/fail?on=1`, { method: 'POST' });
+  try {
+    return await fn();
+  } finally {
+    await fetch(`${MAIL}/emails/fail?on=0`, { method: 'POST' });
+  }
+}
+r = await emailDown(() => page(`/vendors/${U2.slug}/inquire`, { cookie: cookie.b, method: 'POST', form: { note: `First try ${run}` } }));
 row = await rowOf(U2.id, ids.b);
 check('when the team email fails, the inquiry is kept and recorded as failed, with the reason',
   r.status === 302 && r.location === `/vendors/${U2.slug}/inquire` && row?.team_email_status === 'failed' && Boolean(row.team_email_error),
@@ -134,6 +148,23 @@ row = await rowOf(U2.id, ids.b);
 check('sent again: the email goes and the new note is kept',
   r.status === 302 && row?.team_email_status === 'sent' && row.note === `Second try ${run}` && (await teamMail()).some((m) => m.body.includes(`Second try ${run}`)),
   `${r.status} ${JSON.stringify(row)}`);
+
+// An email interrupted (left "pending" over 10 minutes) counts as failed: it can be sent again.
+await sql`insert into vendor_interest (vendor_id, user_id, note, updated_at) values (${U5.id}, ${ids.b}, 'Interrupted', now() - interval '15 minutes')`;
+r = await page(`/vendors/${U5.slug}/inquire`, { cookie: cookie.b });
+check('an interrupted email is shown as not sent, with Try sending again', words(r.body).includes('couldn’t email our team just now') && words(r.body).includes('Try sending again'));
+r = await page(`/vendors/${U5.slug}/inquire`, { cookie: cookie.b, method: 'POST', form: { note: `After interruption ${run}` } });
+check('…and sending again works', r.status === 302 && (await rowOf(U5.id, ids.b))?.team_email_status === 'sent', String(r.status));
+
+// A failed email, then the business joins: no sending again, and the page says it joined.
+r = await emailDown(() => page(`/vendors/${U4.slug}/inquire`, { cookie: cookie.a, method: 'POST', form: { note: `Before it joined ${run}` } }));
+await sql`update vendor set claim_status = 'claimed' where id = ${U4.id}`;
+r = await page(`/vendors/${U4.slug}/inquire`, { cookie: cookie.a });
+check('once the business has joined, the page says so and offers no form',
+  words(r.body).includes(`${U4.name} has joined Localites.`) && !r.body.includes('Try sending again'));
+r = await page(`/vendors/${U4.slug}/inquire`, { cookie: cookie.a, method: 'POST', form: { note: 'again' } });
+check('…and sending again is refused; the team isn’t emailed about a business that joined',
+  r.status === 409 && !(await teamMail()).some((m) => m.subject === `Inquiry about ${U4.name}`), String(r.status));
 
 // ------------------------------------------------------------------ 5. A daily limit
 const many = [];
@@ -175,6 +206,23 @@ r = await page(`/vendors/${U.slug}/inquire`, { cookie: cookie.a });
 check('the person’s Inquire page now says it joined', words(r.body).includes(`${U.name} has joined Localites.`));
 r = await page(`/vendors/${U.slug}`);
 check('…and the business’s page no longer offers Inquire', !r.body.includes(`/vendors/${U.slug}/inquire`));
+
+// The "it joined" email fails: recorded as failed, and the team's page says so.
+await page(`/vendors/${U3.slug}/inquire`, { cookie: cookie.b, method: 'POST', form: { note: `About three ${run}` } });
+const [claim3] = await sql`
+  insert into vendor_claim (vendor_id, claimant_user_id, relationship, status) values (${U3.id}, ${ids.o}, 'owner', 'submitted') returning id`;
+await emailDown(async () => {
+  await page('/admin/claims', { cookie: cookie.m, method: 'POST', form: { intent: 'approve', id: claim3.id, check: 'phoned_business' } });
+  return waitFor(
+    () => sql`select n.status from notification n join vendor_interest vi on vi.id = n.subject_id where n.kind = 'vendor_joined' and vi.vendor_id = ${U3.id}`,
+    (rows) => rows.length > 0 && rows[0].status !== 'queued',
+  );
+});
+const [joinedFail] = await sql`select n.status, n.failure_reason from notification n join vendor_interest vi on vi.id = n.subject_id
+  where n.kind = 'vendor_joined' and vi.vendor_id = ${U3.id}`;
+check('when the "it joined" email fails, it’s recorded as failed with the reason', joinedFail?.status === 'failed' && Boolean(joinedFail.failure_reason), JSON.stringify(joinedFail));
+r = await page('/admin/inquiries?show=all', { cookie: cookie.m });
+check('…and the team’s page says so, so they can email the person themselves', words(r.body).includes('“It joined” email failed: email them yourself'));
 
 // ------------------------------------------------------------------ 8. Wording (D-16, D-24; ADR-024)
 const banned = /book now|booking confirmed|deposit|checkout|confirmed|message sent|we('|’)ve sent your message|delivered/i;

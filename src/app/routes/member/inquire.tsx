@@ -35,11 +35,13 @@ export async function action({ request, params, context }: Route.ActionArgs) {
   const { env } = context.get(cloudflareContext);
   const form = await request.formData();
   const note = String(form.get('note') ?? '').trim();
-  const eventId = String(form.get('eventId') ?? '');
+  // "keep" keeps the event mentioned before (sending again); "" or "none" is no event.
+  const picked = String(form.get('eventId') ?? '');
+  const eventId = picked === 'keep' ? 'keep' : picked === 'none' ? '' : picked;
   if (note.length > INQUIRY_LIMITS.note) {
     return data({ error: `Please keep your note under ${INQUIRY_LIMITS.note} characters.` }, { status: 400 });
   }
-  if (eventId && !isUuid(eventId)) return data({ error: 'Choose one of your events, or none.' }, { status: 400 });
+  if (eventId && eventId !== 'keep' && !isUuid(eventId)) return data({ error: 'Choose one of your events, or none.' }, { status: 400 });
   if (await tooFast(env, member.userId)) return data({ error: TOO_FAST }, { status: 429 });
   try {
     const sent = await saveInquiry(env, member.userId, params.slug, { note: note || null, eventId: eventId || null });
@@ -85,8 +87,8 @@ export default function Inquire({ loaderData, actionData }: Route.ComponentProps
     );
   }
 
-  // Already sent (the email went, or is on its way): say what happened, honestly.
-  if (sent && sent.emailStatus !== 'failed') {
+  // Joined since, or already sent (the email went, or is on its way): say what happened, honestly.
+  if (sent && (vendor.claimed || sent.emailStatus !== 'failed')) {
     return (
       <>
         <SiteHeader />
@@ -99,9 +101,7 @@ export default function Inquire({ loaderData, actionData }: Route.ComponentProps
             </p>
           )}
           <p>
-            {sent.joinedTold || vendor.claimed
-              ? `${vendor.name} has joined Localites. Contact them using the details on their page.`
-              : INQUIRY_SENT}
+            {vendor.claimed ? `${vendor.name} has joined Localites. Contact them using the details on their page.` : INQUIRY_SENT}
           </p>
           <p className="muted">
             You told us on {day.format(new Date(sent.createdAt))}.{sent.sharedEvent ? ` Event mentioned: ${sent.sharedEvent}.` : ''}
@@ -145,13 +145,14 @@ export default function Inquire({ loaderData, actionData }: Route.ComponentProps
               defaultValue={sent?.note ?? ''}
             />
           </div>
-          {events.length > 0 && (
+          {(events.length > 0 || sent?.sharedEvent) && (
             <div className="field">
               <label htmlFor="eventId" className="field-label">
                 Mention one of your events (optional)
               </label>
-              <select id="eventId" name="eventId" className="input" defaultValue="">
-                <option value="">No event</option>
+              <select id="eventId" name="eventId" className="input" defaultValue={sent?.sharedEvent ? 'keep' : 'none'}>
+                {sent?.sharedEvent && <option value="keep">{`As before: ${sent.sharedEvent}`}</option>}
+                <option value="none">No event</option>
                 {events.map((e) => (
                   <option key={e.id} value={e.id}>
                     {`${e.name} · ${shortDate(e.date, today)}`}

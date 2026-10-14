@@ -309,8 +309,11 @@ guide this live (PO-03 part 3). Changing the password later is the same two step
   its listing (claiming is free), for example "Three people asked about you on Localites
   this month". Don't pass messages back and forth: once the business joins, people contact
   it directly. When you approve its claim, everyone who asked is emailed once that it
-  joined. If the page says an email to the team failed, the inquiry is still here; the
-  person was told and can send it again. Every look is recorded.
+  joined; the page shows whether each of those emails went, and if one says "failed: email
+  them yourself", do that from supportlocalites@gmail.com. If an inquiry's email to the team
+  failed, the inquiry is still here; the person was told and can send it again. Inquiry
+  emails stop at 40 a day across the site (the free email plan's 100 a day also covers
+  sign-in codes); past that they're only on this page. Every look is recorded.
 - **Bookings (Admin → Bookings; D-46):** every business a person marked booked, listed or
   not, past events too, with the person's name and email, the date, the town and about how
   many guests (never the event's name or private details). Every look is recorded. When a

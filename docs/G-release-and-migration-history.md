@@ -31,6 +31,31 @@ Every release and every database migration, in order. Appended before each deplo
 
 ## Releases
 
+### 2026-10-14 — Inquire: honest about every email (review fixes)
+
+**Stage:** 2 (ADR-024)
+**What changed (plain English):** an independent review of Inquire found no privacy hole but
+some places where the record could say more than was true. Now: each "it joined" email is
+recorded before it's sent and the team's Inquiries page shows whether it went ("failed:
+email them yourself" if not); a team email cut off part-way counts as not sent after 10
+minutes, so the person can send it again, and the nightly run records it as failed; once
+the business has joined, sending again isn't offered; the database allows only the steps
+that make sense for an email's status; inquiry emails stop at 40 a day across the site (the
+free email plan's 100 a day also covers sign-in codes), and the inquiry is still saved and
+said so; a business that stops being claimed will have its askers told again if it rejoins;
+the business's own team isn't told it joined; sending again keeps the event mentioned before
+unless changed; the menu count and the list agree.
+**Migrations applied:** `0022_inquiry_fixes.sql` (replaces the inquiry rule and
+`take_joined_notices`; adds three small functions and one trigger).
+**Destructive?** No: no table or row changes. To undo, a later migration puts back 0021's.
+**Tests run:** database 0022 15/15 (new), 0021 23/23 (one check corrected to read back as
+the team); end-to-end Inquire 41/41 (7 new: your own business, an interrupted email, a
+failed email then the business joins, a failed "it joined" email; the email outage switch
+always turned back on).
+**How to roll back:** Cloudflare → Deployments → previous version; the database change is
+undone by a new migration.
+**Approved by:** Product owner (Inquire, 14 October 2026); fixes from the independent review.
+
 ### 2026-10-14 — Inquire, for businesses not on Localites yet
 
 **Stage:** 2 (ADR-024, D-04, D-05; screens C10 and X14)

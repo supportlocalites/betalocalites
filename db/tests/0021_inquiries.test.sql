@@ -102,8 +102,10 @@ insert into vendor_interest (id, vendor_id, user_id) values
   ('00000000-0000-7000-8000-000000002162', '00000000-0000-7000-8000-0000000021c1', '00000000-0000-7000-8000-0000000021a2');
 select pg_temp.expect_equal('another person sees only their own', (select count(*)::text from vendor_interest), '1');
 update vendor_interest set team_email_status = 'failed', team_email_error = 'x' where id = '00000000-0000-7000-8000-000000002161';
-select pg_temp.expect_equal('…and can''t change someone else''s', (
-  select team_email_status from vendor_interest where id = '00000000-0000-7000-8000-000000002161'), null);
+select pg_temp.act('team', '00000000-0000-7000-8000-0000000021a4');
+select pg_temp.expect_equal('…and can''t change someone else''s (read back as the team)', (
+  select team_email_status from vendor_interest where id = '00000000-0000-7000-8000-000000002161'), 'sent');
+select pg_temp.act('person', '00000000-0000-7000-8000-0000000021a2');
 
 -- The business itself and the team.
 select pg_temp.act('business', '00000000-0000-7000-8000-0000000021a3', '00000000-0000-7000-8000-0000000021c2');

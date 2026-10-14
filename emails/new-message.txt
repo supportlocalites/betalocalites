@@ -1,0 +1,10 @@
+Subject: New message from {{from}} on Localites
+
+Hi {{name}},
+
+{{from}} sent you a message on Localites. Read it and reply here:
+{{link}}
+
+You won't get another email about this conversation until you've read it.
+
+Localites

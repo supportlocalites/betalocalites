@@ -4,7 +4,12 @@
  * message: it hasn't, until our team invites it and it joins.
  */
 
-export const INQUIRY_LIMITS = { note: 1000, perDay: 10 } as const;
+export const INQUIRY_LIMITS = {
+  note: 1000,
+  perDay: 10,
+  /** Inquiry emails to the team in a day, across the whole site (Resend's free plan: 100 a day for everything). */
+  teamEmailsPerDay: 40,
+} as const;
 
 /** After sending (ADR-024's own words). */
 export const INQUIRY_SENT =
