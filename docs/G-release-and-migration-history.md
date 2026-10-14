@@ -44,10 +44,13 @@ Every release and every database migration, in order. Appended before each deplo
 - **Clean-up:** deleting an account deletes its files from storage straight away; the nightly
   clean-up handles up to 20 at a time.
 - **Errors:** an old error no longer sticks in the reply box.
+- **First message:** a photo or PDF can now go with the very first message to a business
+  (you asked for this), or be all of it.
 **Migrations applied:** `0029_conversation_files_fixes.sql` (one function, `files_sent_today()`).
 **Destructive?** No.
 **Tests run:** database 0029 2/2 (new), every earlier file passing; unit 173/173; checks;
-end-to-end messages and account deletion passing.
+end-to-end messages 131/131 (2 new: a first message that's just a file, opened by the business),
+account deletion and look checks passing.
 **How to roll back:** Cloudflare → Deployments → previous version.
 **Approved by:** Product owner (files in conversations, 14 October 2026).
 

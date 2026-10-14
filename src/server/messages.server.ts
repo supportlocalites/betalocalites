@@ -276,30 +276,49 @@ export async function startConversation(
   env: ServerEnv,
   userId: string,
   slug: string,
-  input: { body: string; eventId: string | null },
+  input: { body: string; eventId: string | null; file?: Attachment | null },
 ): Promise<Written> {
-  return talked(
-    actingAs(env, asPerson(userId), async (tx) => {
-      const [v] = await tx.execute<{ id: string }>(sql`select id from vendor where slug = ${slug} and listing_status = 'published'`);
-      if (!v) throw new PlanNotFound();
-      // Locked first, so two quick sends can't both find no conversation and both start one.
-      await lockSender(tx, userId);
-      const [existing] = await tx.execute<{ id: string }>(sql`
-        select id from conversation where consumer_user_id = ${userId} and vendor_id = ${v.id} and ended_at is null`);
-      await checkLimits(tx, userId, !existing);
-      const conversationId = existing?.id ?? uuidv7();
-      if (!existing) {
-        await tx.execute(sql`
-          insert into conversation (id, consumer_user_id, vendor_id, event_id)
-          values (${conversationId}, ${userId}, ${v.id}, ${input.eventId})`);
-      } else if (input.eventId) {
-        await tx.execute(sql`update conversation set event_id = ${input.eventId} where id = ${conversationId}`);
-      }
-      const { messageId, again } = await writeMessage(tx, conversationId, userId, 'consumer', input.body);
-      await markRead(tx, conversationId, userId);
-      return { conversationId, messageId, again };
-    }),
-  );
+  const file = input.file ?? null;
+  // With a file, the conversation's id is chosen first, so the file can be stored in its folder
+  // before the step that writes them (the database checks the folder matches).
+  let planned: string | null = null;
+  let path: string | null = null;
+  if (file) {
+    const page = await startPage(env, userId, slug);
+    if (!page.vendor.open || page.vendor.ownBusiness) throw new PlanRefused(MESSAGE_REFUSALS.LP140);
+    planned = page.existing ?? uuidv7();
+    await checkFileRoom(env, file.bytes.length);
+    path = await storeAttachment(env, planned, file);
+  }
+  try {
+    return await talked(
+      actingAs(env, asPerson(userId), async (tx) => {
+        const [v] = await tx.execute<{ id: string }>(sql`select id from vendor where slug = ${slug} and listing_status = 'published'`);
+        if (!v) throw new PlanNotFound();
+        // Locked first, so two quick sends can't both find no conversation and both start one.
+        await lockSender(tx, userId);
+        const [existing] = await tx.execute<{ id: string }>(sql`
+          select id from conversation where consumer_user_id = ${userId} and vendor_id = ${v.id} and ended_at is null`);
+        await checkLimits(tx, userId, !existing);
+        if (file) await checkFilesToday(tx, userId);
+        const conversationId = existing?.id ?? planned ?? uuidv7();
+        if (!existing) {
+          await tx.execute(sql`
+            insert into conversation (id, consumer_user_id, vendor_id, event_id)
+            values (${conversationId}, ${userId}, ${v.id}, ${input.eventId})`);
+        } else if (input.eventId) {
+          await tx.execute(sql`update conversation set event_id = ${input.eventId} where id = ${conversationId}`);
+        }
+        const { messageId, again } = await writeMessage(tx, conversationId, userId, 'consumer', input.body, Boolean(file));
+        if (file && path) await attachFile(tx, messageId, conversationId, userId, path, file);
+        await markRead(tx, conversationId, userId);
+        return { conversationId, messageId, again };
+      }),
+    );
+  } catch (err) {
+    if (path) await abandonAttachment(env, path);
+    throw err;
+  }
 }
 
 export type PersonThread = {

@@ -171,17 +171,14 @@ export function MessageList({
 const isPdf = (file: File) => file.type === 'application/pdf' || /\.pdf$/i.test(file.name);
 
 /**
- * The reply box. It starts empty again after each message sent (the address carries ?sent=).
- * canAttach: sending files is switched on. With the page's script, a photo is made smaller
+ * Sending a form that may carry a photo or PDF: with the page's script, a photo is made smaller
  * (and its hidden details left behind) before it's sent; a PDF goes as chosen. Without the
  * script, the server takes a photo only if it's already small enough.
  */
-export function ReplyBox({ label, busy, error, canAttach }: { label: string; busy: boolean; error?: string | null; canAttach: boolean }) {
-  const [params] = useSearchParams();
+export function useFileSend() {
   const submit = useSubmit();
   const [problem, setProblem] = useState<string | null>(null);
   const [preparing, setPreparing] = useState(false);
-
   async function send(event: React.FormEvent<HTMLFormElement>) {
     setProblem(null);
     const input = event.currentTarget.elements.namedItem('file');
@@ -196,10 +193,35 @@ export function ReplyBox({ label, busy, error, canAttach }: { label: string; bus
       setProblem('This browser couldn’t open that file as a photo. Please choose a photo or a PDF.');
       return;
     }
-    setProblem(null);
     form.set('file', photo);
     await submit(form, { method: 'post', encType: 'multipart/form-data' });
   }
+  return { send, problem, preparing };
+}
+
+/** "Add a photo or PDF": the file box, with what happens to the file said beside it. */
+export function FileField() {
+  return (
+    <div className="field">
+      <label htmlFor="file" className="field-label">
+        Add a photo or PDF (optional)
+      </label>
+      <p className="field-hint" id="file-hint">
+        One per message. Photos are made smaller and lose hidden details such as where they were taken. A PDF (a quote, an invoice, a menu)
+        goes as it is, up to 4 MB. Only the two of you can open it.
+      </p>
+      <input id="file" name="file" type="file" accept="image/*,application/pdf,.pdf" aria-describedby="file-hint" />
+    </div>
+  );
+}
+
+/**
+ * The reply box. It starts empty again after each message sent (the address carries ?sent=).
+ * canAttach: sending files is switched on.
+ */
+export function ReplyBox({ label, busy, error, canAttach }: { label: string; busy: boolean; error?: string | null; canAttach: boolean }) {
+  const [params] = useSearchParams();
+  const { send, problem, preparing } = useFileSend();
 
   const shown = problem ?? error;
   return (
@@ -214,18 +236,7 @@ export function ReplyBox({ label, busy, error, canAttach }: { label: string; bus
         </p>
       )}
       <textarea id="body" name="body" className="input" maxLength={MESSAGE_LIMITS.body} />
-      {canAttach && (
-        <div className="field">
-          <label htmlFor="file" className="field-label">
-            Add a photo or PDF (optional)
-          </label>
-          <p className="field-hint" id="file-hint">
-            One per message. Photos are made smaller and lose hidden details such as where they were taken. A PDF (a quote, an invoice, a
-            menu) goes as it is, up to 4 MB. Only the two of you can open it.
-          </p>
-          <input id="file" name="file" type="file" accept="image/*,application/pdf,.pdf" aria-describedby="file-hint" />
-        </div>
-      )}
+      {canAttach && <FileField />}
       <p>
         <button type="submit" className="button button-primary" disabled={busy || preparing}>
           {preparing ? 'Getting the photo ready…' : busy ? 'Sending…' : 'Send'}

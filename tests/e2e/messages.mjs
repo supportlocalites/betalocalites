@@ -501,6 +501,17 @@ check('…the team opens it through the report, and that look is recorded', got.
 got = await getFile(`/admin/reports/${photoReport?.id}/files/${photo?.id}`, cookie.a);
 check('…nobody else can open it that way', got.status === 403, String(got.status));
 
+r = await postForm(`/vendors/${V.slug}/message`, cookie.p, {
+  body: '',
+  file: new File([pdfBytes('floor plan')], 'floor plan.pdf', { type: 'application/pdf' }),
+});
+const firstWithFile = /^\/messages\/([0-9a-f-]{36})\?sent=/.exec(r.location ?? '')?.[1];
+const [startFile] = firstWithFile ? await filesIn(firstWithFile) : [];
+check('the very first message can be just a file', r.status === 302 && startFile?.file_name === 'floor plan.pdf' &&
+  startFile.storage_path.startsWith(`conversations/${firstWithFile}/`), `${r.status} ${r.location}`);
+got = await getFile(`/vendors/${V.slug}/messages/${firstWithFile}/files/${startFile?.id}`, cookie.o);
+check('…and the business opens it', got.status === 200 && got.bytes.equals(Buffer.from(pdfBytes('floor plan'))), String(got.status));
+
 // ------------------------------------------------------------------ 6. Leaving
 await sql`update vendor_member set ended_at = now() where vendor_id = ${V.id} and user_id = ${ids.s}`;
 r = await page(BIZ_THREAD, { cookie: cookie.s });
