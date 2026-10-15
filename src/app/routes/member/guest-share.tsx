@@ -95,6 +95,17 @@ export default function GuestShare({ loaderData, actionData }: Route.ComponentPr
   const [params] = useSearchParams();
   const body = encodeURIComponent(text);
   const digits = guest.phone?.replace(/[^0-9+]/g, '') ?? '';
+  // Email: the phone or computer's own email program, or the webmail most people use, each
+  // opened with the invitation written and the guest's address filled in (if given).
+  const to = guest.email ?? '';
+  const subject = `You’re invited: ${event.name}`;
+  const q = (params: Record<string, string>) => new URLSearchParams(params).toString();
+  const mail = {
+    gmail: `https://mail.google.com/mail/?${q({ view: 'cm', fs: '1', to, su: subject, body: text })}`,
+    outlook: `https://outlook.live.com/mail/0/deeplink/compose?${q({ to, subject, body: text })}`,
+    yahoo: `https://compose.mail.yahoo.com/?${q({ to, subject, body: text })}`,
+    app: `mailto:${encodeURIComponent(to)}?subject=${encodeURIComponent(subject)}&body=${body}`,
+  };
   return (
     <>
       <SiteHeader />
@@ -150,12 +161,25 @@ export default function GuestShare({ loaderData, actionData }: Route.ComponentPr
             >
               WhatsApp
             </a>
-            <a
-              className="button button-secondary"
-              href={`mailto:${guest.email ?? ''}?subject=${encodeURIComponent(`You’re invited: ${event.name}`)}&body=${body}`}
-            >
-              Email
+          </p>
+          <h3 className="label">By email</h3>
+          <p className={styles.actions}>
+            <a className="button button-secondary" href={mail.gmail} target="_blank" rel="noreferrer">
+              Gmail
             </a>
+            <a className="button button-secondary" href={mail.outlook} target="_blank" rel="noreferrer">
+              Outlook.com
+            </a>
+            <a className="button button-secondary" href={mail.yahoo} target="_blank" rel="noreferrer">
+              Yahoo Mail
+            </a>
+            <a className="button button-secondary" href={mail.app}>
+              Email app
+            </a>
+          </p>
+          <p className="muted">
+            “Email app” opens the email program on this phone or computer, if one is set up. If nothing happens, use Gmail, Outlook.com or
+            Yahoo Mail, or Copy link and paste it into any email.
           </p>
         </section>
 

@@ -55,8 +55,9 @@ check('…and another', r.status === 302 && Boolean(rob));
 // ------------------------------------------------------------------ 2. Sending a link
 r = await site(`${GUESTS}/${jo.id}`, { cookie: cookie.a });
 const link = /https?:\/\/[^\s"<]+\/i\/([A-Za-z0-9_-]{43})/.exec(decode(r.body));
-check('the send page shows Jo’s own link, with text, WhatsApp and email buttons',
-  r.status === 200 && Boolean(link) && r.body.includes('href="sms:7055550101?&amp;body=') && r.body.includes('https://wa.me/7055550101?text=') && r.body.includes('mailto:'),
+check('the send page shows Jo’s own link, with text, WhatsApp, Gmail, Outlook.com, Yahoo Mail and email-app buttons',
+  r.status === 200 && Boolean(link) && r.body.includes('href="sms:7055550101?&amp;body=') && r.body.includes('https://wa.me/7055550101?text=') && r.body.includes('mailto:') &&
+    r.body.includes('https://mail.google.com/mail/?view=cm') && r.body.includes('outlook.live.com/mail/') && r.body.includes('compose.mail.yahoo.com'),
   String(r.status));
 const token = link?.[1] ?? '';
 check('…the link isn’t stored, only its fingerprint', !(await sql`select count(*)::int as n from guest where token_hash::text like ${'%' + token + '%'}`)[0].n);
