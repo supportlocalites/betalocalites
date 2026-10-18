@@ -206,7 +206,8 @@ check('the team switches it on: recorded with who, why and the session', s.statu
 s = await site(analytics(a), { cookie: ownerCookie });
 check('its owner now sees their own numbers', s.status === 200 && s.body.includes(`Analytics for Analytics alpha ${run}`) && s.body.includes('>42<'), String(s.status));
 check('…never another business’s, nor who (no browser codes, accounts or words)',
-  !s.body.includes('977') && !s.body.includes('0000000a0003') && !s.body.includes(ownerVid) && !s.body.includes(ownerA) && !s.body.includes(nothing));
+  // 977 as a number on the page (">977<"), not inside the page's random signed codes, which can contain those digits.
+  !s.body.includes('>977<') && !s.body.includes('0000000a0003') && !s.body.includes(ownerVid) && !s.body.includes(ownerA) && !s.body.includes(nothing));
 check('…and not stored by browsers', s.headers.get('cache-control') === 'no-store');
 s = await site(`${analytics(a).replace('?', '.data?')}`, { cookie: ownerCookie });
 check('the page’s data address answers the same', s.status === 200 && s.body.includes('42'), String(s.status));
