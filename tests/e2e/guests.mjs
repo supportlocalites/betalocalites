@@ -78,7 +78,8 @@ check('the invitation: Jo’s name, the event, the date and time, where, the hos
   r.status === 200 && text.includes(`Hi Grandma Jo ${run}`) && text.includes(TITLE) && text.includes('Our backyard') && text.includes('Ann invites you') && text.includes('14:00'),
   String(r.status));
 check('…never the budget, notes, other guests, or the host’s last name',
-  !text.includes('500') && !text.includes(`Secret notes ${run}`) && !text.includes(`Uncle Rob ${run}`) && !text.includes(`Host${run}`));
+  // "$500", not "500": the run's random code (in the event's name) can contain those digits.
+  !/\$\s?500/.test(text) && !text.includes('50000') && !text.includes(`Secret notes ${run}`) && !text.includes(`Uncle Rob ${run}`) && !text.includes(`Host${run}`));
 check('…not for search engines', r.body.includes('noindex') && r.headers.get('x-robots-tag') === 'noindex');
 check('…and the host sees it was opened', (await sql`select first_opened_at is not null as o from guest where id = ${jo.id}`)[0].o);
 r = await site('/invite', { cookie: jar, method: 'POST', form: { response: 'yes', partySize: '50' } });
