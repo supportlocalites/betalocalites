@@ -108,6 +108,26 @@ on codes (ADR-028).
   2026; switched on by PO-18); alerts when the site breaks (D-11; built 13 October 2026, switched on by PO-19); automated accessibility and
   screen-size checks (built 13 October 2026 at phone and computer sizes; a tablet size and
   screenshot comparison still to come).
+- **Policy drafts written 18 October 2026** ([docs/legal](./legal/)): privacy policy, terms of use,
+  review policy and a brief for the lawyer (PO-07), each checked against what the site does.
+  Pages for them are built after the lawyer's review.
+- **Added before launch (product owner, 18 October 2026: "add all of them"):**
+  1. scheduled deletions the privacy policy promises (email records 1 year, the team's change log
+     2 years, conversations 3 years after the last message, declined suggestions' contact
+     details 1 year);
+  2. the team can suspend an account (checked on the server, recorded in `audit_log`);
+  3. **Download my data** on Your account (a person's right to a copy);
+  4. GitHub's automatic alerts and updates for known security problems in the code packages;
+  5. one full security review of the whole site, just before launch;
+  6. a reminder in the team's daily note for the hand-done removal of a deleted account's
+     sign-in record;
+  7. one "waiting for you" page for the team (held changes, reviews, reports, claims,
+     suggestions, inquiries, deleted accounts);
+  8. a short team handbook;
+  9. a help and contact page, linked from a footer on every page;
+  10. "Something wrong with this listing?" on each business page;
+  11. previews when a link is shared (title, picture) and a site map for search engines;
+  12. a click-through checklist for the product owner to try every feature on their phone.
 - **Built since (13 October 2026):** deleting your own account (0014); a business's team
   (0015); business photos, added by owners and managers, reviewed and removed by the team
   (0016, switched on by PO-16); categories and towns for the team (0017).

@@ -58,6 +58,7 @@ and "Booked" that lead to post-event feedback and reviews.
 | [API & Integration Strategy](./api-strategy.md) | Internal contracts, messaging delivery, third-party services |
 | [Testing Strategy](./testing-strategy.md) | What we test and what "done" means |
 | [Design System](./design-system.md) | How Localites looks and behaves on phones and computers (direction G) |
+| [Policy drafts](./legal/) | Privacy policy, terms of use, review policy and the brief for the lawyer (PO-07): drafts, not in force |
 | [Launch vendor research](./launch/vendor-research-2026-10-10.md) | Researched Orillia-area businesses for the launch list (PO-08) |
 | [Design archive](./design/README.md) | Every mockup explored (A to H), kept for reference |
 | [Database migrations](../db/migrations/) · [checks](../db/tests/) (built: 0001–0011 Stage 1; 0012 events, plans and saves, Stage 2) · [original proposal](./schema/stage1-proposed.sql) | The real database, in order (the Stage 1 proposal was not applied as is) |

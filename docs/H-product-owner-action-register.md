@@ -1,6 +1,6 @@
 # H — Product Owner Action Register
 
-**Last updated:** 2026-10-18 (revision 36: D-52, businesses see their messages in Analytics; D-53, a daily summary of booking emails; revision 35: D-51, approve or deny reviews from the email; revision 34: D-50, words checked before they show; revision 33: D-49, the host changes replies, guests emailed, add to calendar; revision 32: D-48, reviewer names and the Living Local badge; revision 31: D-47, end dates for photos and files; revision 30: PO-20 done, files in conversations on; revision 29: PO-20, switch on files in conversations; revision 28: PO-11 and D-12 parked by you; revision 27: PO-15 done, planning works on the test site; revision 26: PO-16 done, business photos on; revision 25: PO-18 done, nightly backups on; revision 24: PO-19 and PO-06 done, alerts reach you; messages fixed after two reviews; revision 23: messages and reports; revision 22: Inquire built, D-04 and D-05; revision 21: D-46, the team sees every booking; a business taken down can't be newly booked; revision 20: D-45, square profile photo and whole page photos; revision 19: business photos built, PO-16 to switch them on; revision 18: D-44, bookings marked before a business joined; revision 17: D-39 revised to D-43, "Plan an event" built)
+**Last updated:** 2026-10-18 (revision 37: PO-07 policy drafts ready; twelve tasks added before launch; revision 36: D-52, businesses see their messages in Analytics; D-53, a daily summary of booking emails; revision 35: D-51, approve or deny reviews from the email; revision 34: D-50, words checked before they show; revision 33: D-49, the host changes replies, guests emailed, add to calendar; revision 32: D-48, reviewer names and the Living Local badge; revision 31: D-47, end dates for photos and files; revision 30: PO-20 done, files in conversations on; revision 29: PO-20, switch on files in conversations; revision 28: PO-11 and D-12 parked by you; revision 27: PO-15 done, planning works on the test site; revision 26: PO-16 done, business photos on; revision 25: PO-18 done, nightly backups on; revision 24: PO-19 and PO-06 done, alerts reach you; messages fixed after two reviews; revision 23: messages and reports; revision 22: Inquire built, D-04 and D-05; revision 21: D-46, the team sees every booking; a business taken down can't be newly booked; revision 20: D-45, square profile photo and whole page photos; revision 19: business photos built, PO-16 to switch them on; revision 18: D-44, bookings marked before a business joined; revision 17: D-39 revised to D-43, "Plan an event" built)
 
 **Revision 36 changes:** your D-52 and D-53 are recorded in your words and built. Nothing for
 you to do.
@@ -882,6 +882,9 @@ kept; and the business name (D-12): if
 "Localites" isn't yet a registered business name, ask whether it needs registering in
 Ontario before launch. We'll prepare drafts and a one-page summary so the lawyer reviews
 rather than discovers. Ask for a fixed-fee quote. Not in the infrastructure budget.
+**Drafts ready (18 October 2026):** [docs/legal](./legal/): the privacy policy, terms of use,
+review policy and a one-page brief listing the questions for the lawyer. Before sending them,
+fill in the operator's legal name, and your mailing address if you're ready (D-12).
 
 ### PO-08 — Starting vendor list, and early claims
 **When:** Stage 1, weeks 1–4.
