@@ -2,7 +2,8 @@ import { data, Form, Link, redirect, useNavigation } from 'react-router';
 import { adminContext, cloudflareContext } from '@/app/context';
 import { isUuid } from '@/lib/ids.mjs';
 import { pageMeta } from '@/lib/meta';
-import { decline, listSuggestions, markDuplicate, SuggestionConflict } from '@/server/suggestions.server';
+import { siteUrl } from '@/server/plan-pages.server';
+import { decline, emailSuggesters, listSuggestions, markDuplicate, SuggestionConflict } from '@/server/suggestions.server';
 import type { Route } from './+types/suggestions';
 import styles from './admin.module.css';
 
@@ -27,6 +28,12 @@ export async function action({ request, context }: Route.ActionArgs) {
       const vendorId = String(form.get('vendorId') ?? '');
       if (!isUuid(vendorId)) return data({ id, error: 'Choose the listing it matches.' }, { status: 400 });
       await markDuplicate(env, admin, id, vendorId);
+      // D-25: if that business is already listed, whoever suggested it while signed in is told now.
+      context.get(cloudflareContext).ctx.waitUntil(
+        emailSuggesters(env, vendorId, siteUrl(env, request)).catch((err) =>
+          console.error('suggestion email not recorded', err instanceof Error ? err.message : err),
+        ),
+      );
     } else if (intent === 'decline') {
       const reason = String(form.get('reason') ?? '').trim().slice(0, 500);
       if (!reason) return data({ id, error: 'Give a short reason (kept for the team only).' }, { status: 400 });

@@ -27,6 +27,7 @@ import heldEditTeam from '../../emails/held-edit-team.txt?raw';
 import heldEditPublished from '../../emails/held-edit-published.txt?raw';
 import heldEditDeclined from '../../emails/held-edit-declined.txt?raw';
 import replyHeldTeam from '../../emails/reply-held-team.txt?raw';
+import suggestionListed from '../../emails/suggestion-listed.txt?raw';
 import { uuidv7 } from '@/lib/ids.mjs';
 import { type Db, withDb } from './db.server';
 import { sendEmail, TEAM_ADDRESS } from './email.server';
@@ -72,6 +73,8 @@ const TEMPLATES = {
   heldEditPublished,
   heldEditDeclined,
   replyHeldTeam,
+  // Suggest a business (D-25): the person who suggested it, once it's listed.
+  suggestionListed,
 } as const;
 export type TemplateName = keyof typeof TEMPLATES;
 
@@ -110,7 +113,8 @@ export async function emailPerson(
     | 'review_declined'
     | 'review_for_business'
     | 'held_edit_published'
-    | 'held_edit_declined',
+    | 'held_edit_declined'
+    | 'suggestion_listed',
   subject: { type: string; id: string },
   content: { subject: string; text: string },
 ): Promise<void> {

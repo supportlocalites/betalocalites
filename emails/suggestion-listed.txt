@@ -1,0 +1,9 @@
+Subject: {{business}} is on Localites
+
+Hi {{name}},
+
+Thanks for suggesting {{business}}. It's now on Localites:
+
+{{link}}
+
+Localites

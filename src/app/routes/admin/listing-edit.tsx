@@ -20,6 +20,8 @@ import { listOwnerChanges, OwnerChangeConflict, removeOwner, undoOwnerChange } f
 import { upcomingBookingCount } from '@/server/admin/team-bookings.server';
 import { withDb } from '@/server/db.server';
 import { emailPerson, renderEmail } from '@/server/email-templates.server';
+import { siteUrl } from '@/server/plan-pages.server';
+import { emailSuggesters } from '@/server/suggestions.server';
 import type { Route } from './+types/listing-edit';
 import styles from './admin.module.css';
 
@@ -139,6 +141,8 @@ export async function action({ params, request, context }: Route.ActionArgs) {
           .trim()
           .slice(0, 500) || null;
       await changeListingStatus(env, admin, params.id, to, reason);
+      // D-25: anyone who suggested this business while signed in is told it's listed.
+      if (to === 'published') later(emailSuggesters(env, params.id, siteUrl(env, request)));
       return back(to);
     }
     if (intent === 'service') {

@@ -215,8 +215,10 @@ conversations, a photo or PDF with a message (migration 0028; switched on by PO-
 - counting how often featured businesses are shown (D-43: later);
 - counting saves, inquiries, conversations and messages as activity (the D-30 funnel; D-42
   gives the team planning totals meanwhile);
-- suggestions from signed-in people linked to their account;
-- linking a conversation to an event.
+- ~~suggestions from signed-in people linked to their account~~ **built 18 October 2026**
+  (migration 0038): linked from their session, and emailed once when the business is listed;
+- ~~linking a conversation to an event~~: **already built** with messages (choose an event when
+  starting a conversation, or change it in the conversation; the business sees only the D-40 summary).
 - **end dates for photos people share from an event (D-47), when that's built:** 30 days after
   the event (conversation files' end dates are built: migration 0030);
 - **storage for growth (D-47):** staying on Supabase for now (owner's choice); Cloudflare's own

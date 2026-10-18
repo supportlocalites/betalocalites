@@ -27,7 +27,7 @@ added; quotes, bookings and the concierge queue removed.
 | P8 | Claim or remove this listing | From an unclaimed profile. **Built** (`/vendors/<name>/claim`, ADR-028): how you're connected, a note, "I'm allowed to manage this listing"; removal by email to the team | 1 |
 | P9 | Privacy · Terms · Review policy · Contact | | 1 |
 | P10 | 404 / error | Friendly, with a way back | 1 |
-| P11 | Suggest a business | Three questions (name; website; phone or email), then an honest "our team will look into it" (D-25) | 1 |
+| P11 | Suggest a business | Three questions (name; website; phone or email), then an honest "our team will look into it" (D-25). Signed in: linked to their account, "We'll email you when it's on Localites" (migration 0038) | 1 |
 
 ## Account
 
@@ -108,7 +108,7 @@ added; quotes, bookings and the concierge queue removed.
 | X21 | Held changes | **Built** (`/admin/held-changes`, D-50, migration 0036, "Held changes (n waiting)" in the team menu): owners' saves the language check held, with what changed and what the check found; Put live (as the owner's save) or Decline with a reason the owner is emailed; the last 30 days' decisions | 1 |
 | X17 | Operations report | Listings, claims, conversations, reply rates, reviews | 3 |
 | X18 | Vendor activity reports | One vendor's totals by period (seen in search, views, taps; later saves, inquiries, messages), and the switch that turns on that business's Analytics page (V10, D-37); category-level figures for others (D-22). **Built** (`/admin/activity`, each listing's **Activity** page; the detail by day and the words searched, each look recorded). **Plus "Planning (team only)"** (D-42): saved, added to an event plan and marked booked per business, a top-20 table, and totals by kind of event with "No type given" | 1 |
-| X19 | Suggested businesses | Every suggestion, with likely duplicates; mark added, declined or duplicate; link to the new listing (D-25) | 1 |
+| X19 | Suggested businesses | Every suggestion, with likely duplicates; mark added, declined or duplicate; link to the new listing (D-25). Publishing the listing made from it, or marking it a duplicate of a listed business, emails whoever suggested it signed in, once | 1 |
 
 ## Counts
 

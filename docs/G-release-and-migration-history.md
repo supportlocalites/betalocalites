@@ -31,6 +31,29 @@ Every release and every database migration, in order. Appended before each deplo
 
 ## Releases
 
+### 2026-10-18 — An email when a suggested business is listed (D-25)
+
+**Stage:** 2 (screens P11, X19)
+**What changed (plain English):** when someone signed in suggests a business, the suggestion is
+linked to their account (from their sign-in, never from the form), and the thanks page says
+"We'll email you when it's on Localites". They're emailed once, with a link, when the team
+publishes the listing made from it, or straight away when the team marks it as a business that's
+already listed. Someone who has since deleted their account isn't emailed. Signed-out suggestions
+work as before. Also found: linking a conversation to an event was already built; the roadmap
+said otherwise and is corrected.
+**Migrations applied:** `0038_suggestion_emails.sql` (one more kind of email, and an index)
+**Destructive?** No.
+**Tests run:** database checks 38 of 38 files (0038: 4 checks); suggestion emails 9 of 9; admin
+access 43 of 43.
+**Security tests:** a signed-out suggestion naming someone in the form is linked to nobody; a
+business that isn't listed sends nothing; someone who deleted their account isn't emailed.
+**Independent review before push:** fixed: two team members publishing at once could send the
+email twice (now one per suggestion, by an index); at most 50 a time (was 20). If the one email
+fails, it isn't sent again.
+**Existing functionality affected:** none.
+**How to roll back:** with the next update (the email kind can stay).
+**Approved by:** D-25 (10 October 2026).
+
 ### 2026-10-18 — Guests, part 2: the group link, QR codes, questions and updates
 
 **Stage:** 4 (screens C13, C14, G1 to G3; D-08)

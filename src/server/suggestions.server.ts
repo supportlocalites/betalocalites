@@ -2,8 +2,9 @@ import { sql } from 'drizzle-orm';
 import { uuidv7 } from '@/lib/ids.mjs';
 import type { Admin } from './auth/admin.server';
 import { audit } from './admin/audit.server';
-import { withDb } from './db.server';
+import { isUniqueViolation, withDb } from './db.server';
 import { sendEmail, TEAM_ADDRESS } from './email.server';
+import { emailPerson, renderEmail } from './email-templates.server';
 import type { ServerEnv } from './env';
 import { type SuggestionInput, teamEmail } from './suggestion-input';
 
@@ -13,7 +14,13 @@ export const ALL_VISITORS_PER_DAY = 100;
 
 export type SaveResult = { saved: true; id: string } | { saved: false; reason: 'visitor_limit' | 'daily_limit' };
 
-export async function saveSuggestion(env: ServerEnv, input: SuggestionInput, visitorId: string): Promise<SaveResult> {
+/** suggestedBy: the signed-in person, if any (D-25: they're emailed when the business is listed). */
+export async function saveSuggestion(
+  env: ServerEnv,
+  input: SuggestionInput,
+  visitorId: string,
+  suggestedBy: string | null = null,
+): Promise<SaveResult> {
   return withDb(env, async (db) => {
     const [counts] = await db.execute<{ visitor: number; today: number }>(sql`
       select count(*) filter (where visitor_id = ${visitorId} and created_at > now() - interval '1 hour')::int as visitor,
@@ -23,9 +30,10 @@ export async function saveSuggestion(env: ServerEnv, input: SuggestionInput, vis
     if ((counts?.today ?? 0) >= ALL_VISITORS_PER_DAY) return { saved: false, reason: 'daily_limit' };
     const id = uuidv7();
     await db.execute(sql`
-      insert into vendor_suggestion (id, business_name, website, contact, category_id, search_text, visitor_id)
+      insert into vendor_suggestion (id, business_name, website, contact, category_id, search_text, visitor_id, suggested_by)
       values (${id}, ${input.businessName}, ${input.website}, ${input.contact},
-              (select id from category where slug = ${input.category}), ${input.q}, ${visitorId})`);
+              (select id from category where slug = ${input.category}), ${input.q}, ${visitorId},
+              (select u.id from app_user u where u.id = ${suggestedBy}::uuid and u.deleted_at is null))`);
     return { saved: true, id };
   });
 }
@@ -154,4 +162,35 @@ export async function suggestionForListing(env: ServerEnv, id: string): Promise<
   if (!s) return null;
   const site = s.website && /^(https?:\/\/)?[\w-]+(\.[\w-]+)+(\/\S*)?$/i.test(s.website) ? s.website : null;
   return { name: s.name, website: site };
+}
+
+/**
+ * D-25: emails everyone who suggested this business while signed in, once it's published (or
+ * now, if it already is), once per suggestion (a database index makes it once even when two
+ * team members publish together; a failed email isn't sent again). Never someone who has since
+ * deleted their account. At most 50 at a time; any more are emailed the next time it's
+ * published or matched.
+ */
+export async function emailSuggesters(env: ServerEnv, vendorId: string, siteUrl: string): Promise<void> {
+  const due = await withDb(env, (db) =>
+    db.execute<{ id: string; userId: string; email: string; name: string; business: string; slug: string }>(sql`
+      select s.id, u.id as "userId", u.email::text as email, coalesce(u.given_name, u.display_name) as name,
+             v.display_name as business, v.slug::text as slug
+      from vendor_suggestion s
+        join vendor v on v.id = s.vendor_id and v.listing_status = 'published'
+        join app_user u on u.id = s.suggested_by and u.deleted_at is null
+      where s.vendor_id = ${vendorId} and s.status in ('added', 'duplicate')
+        and not exists (select 1 from notification n
+                        where n.kind = 'suggestion_listed' and n.subject_type = 'vendor_suggestion' and n.subject_id = s.id)
+      order by s.created_at limit 50`),
+  );
+  for (const d of due) {
+    try {
+      await emailPerson(env, { userId: d.userId, email: d.email }, 'suggestion_listed', { type: 'vendor_suggestion', id: d.id },
+        renderEmail('suggestionListed', { name: d.name, business: d.business, link: `${siteUrl}/vendors/${d.slug}` }));
+    } catch (err) {
+      // Another request is emailing this one right now (the index refuses a second): not twice.
+      if (!isUniqueViolation(err)) throw err;
+    }
+  }
 }

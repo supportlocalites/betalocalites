@@ -3,11 +3,15 @@ import { cloudflareContext } from '@/app/context';
 import { SiteHeader } from '@/components/SiteHeader';
 import { pageMeta } from '@/lib/meta';
 import { suggestionInput } from '@/server/suggestion-input';
+import { hasSessionCookie, loadSession } from '@/server/auth/session.server';
 import { notifyTeam, saveSuggestion } from '@/server/suggestions.server';
 import { addressKey, visitor } from '@/server/visitor.server';
 import type { Route } from './+types/suggest';
 
-/** Screen P11: Suggest a business (D-25, ADR-027). Open to everyone, no account. */
+/**
+ * Screen P11: Suggest a business (D-25, ADR-027). Open to everyone, no account. Someone signed
+ * in is linked to their suggestion and emailed once the business is listed.
+ */
 export const meta: Route.MetaFunction = () => pageMeta('Suggest a business');
 
 export function loader({ request }: Route.LoaderArgs) {
@@ -41,8 +45,13 @@ export async function action({ request, context }: Route.ActionArgs) {
   }
 
   const who = visitor(request);
-  const headers = who.setCookie ? { 'Set-Cookie': who.setCookie } : undefined;
-  const result = await saveSuggestion(env, parsed.data, who.id);
+  const headers = new Headers();
+  if (who.setCookie) headers.append('Set-Cookie', who.setCookie);
+  // Signed in: linked to their account (checked with the sign-in service, never taken from the form).
+  const signedIn = hasSessionCookie(request) ? await loadSession(request, env).catch(() => null) : null;
+  for (const c of signedIn?.setCookies ?? []) headers.append('Set-Cookie', c);
+  const userId = signedIn?.session?.user.id ?? null;
+  const result = await saveSuggestion(env, parsed.data, who.id, userId);
   if (!result.saved) {
     const error = result.reason === 'daily_limit' ? 'We’ve had a lot of suggestions today. Please try again tomorrow.' : LIMITED;
     return data({ error, errors: {} as Record<string, string> }, { status: 429, headers });
@@ -53,7 +62,7 @@ export async function action({ request, context }: Route.ActionArgs) {
       console.error('suggestion email not recorded', err instanceof Error ? err.message : err),
     ),
   );
-  return data({ done: true as const }, { headers });
+  return data({ done: true as const, linked: Boolean(userId) }, { headers });
 }
 
 export default function Suggest({ loaderData, actionData }: Route.ComponentProps) {
@@ -65,7 +74,10 @@ export default function Suggest({ loaderData, actionData }: Route.ComponentProps
         <main className="page narrow">
           <h1 className="title-1">Thanks</h1>
           <div className="title-rule" aria-hidden="true" />
-          <p role="status">Our team will look into this business and add it if it’s a fit.</p>
+          <p role="status">
+            Our team will look into this business and add it if it’s a fit.
+            {'linked' in actionData && actionData.linked ? ' We’ll email you when it’s on Localites.' : ''}
+          </p>
           <p className="section-gap">
             <Link to="/explore" className="button button-primary">
               Back to Explore
