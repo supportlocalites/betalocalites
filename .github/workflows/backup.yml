@@ -78,7 +78,7 @@ jobs:
 
       - name: Keep it for 30 days
         if: steps.on.outputs.on == 'true'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: ${{ steps.take.outputs.name }}
           path: ${{ steps.take.outputs.file }}
