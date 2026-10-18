@@ -29,3 +29,10 @@
   font-weight: 600;
   font-size: var(--text-title-3);
 }
+
+.more {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-5);
+  margin-top: var(--space-8);
+}

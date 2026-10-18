@@ -84,7 +84,7 @@ Two users, one platform team. See [roles-and-relationships.md](./roles-and-relat
 | **Vendor manager** | Invited by the owner (built, migration 0015) | As owner, except team and ownership changes |
 | **Vendor staff** | Invited by the owner (built, migration 0015) | Read and reply to the business's conversations (built, Stage 2B part 1, migration 0023) |
 | **Guest** (Stage 4) | Holds a valid invitation link | One invitation page and their own RSVP |
-| **Platform admin** | Granted by another admin; logged | Listings, claims, verification, reports, review moderation |
+| **Platform admin** | Granted by another admin on **Users and roles** (migration 0035: only through the database's own functions, as the team, never by the person themselves, nobody removes themselves); logged | Listings, claims, verification, reports, review moderation, the team, the audit log |
 
 One person can be a consumer and a vendor team member (ADR-022). Permissions are
 checked against **the side they're acting as** in each request. Acting for your
@@ -560,7 +560,9 @@ its profile photo, and each change is in `audit_log`. The photo file itself is n
 
 `audit_log` records every admin action and every permission-sensitive action (including
 every staff view of a reported conversation): who, what, which record, when, and
-before/after values. It is append-only, enforced by the database (tested).
+before/after values. It is append-only, enforced by the database (tested). The team reads it
+on the **Audit log** page (`/admin/audit`, screen X11); each look is itself recorded, as a look
+at the log with its filters (never as part of the record looked at).
 
 ## 12. Security testing
 

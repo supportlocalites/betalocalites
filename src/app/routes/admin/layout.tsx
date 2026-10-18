@@ -97,6 +97,12 @@ export default function AdminLayout({ loaderData }: Route.ComponentProps) {
           <NavLink to="/admin/account-deletions" className="text-link">
             Deleted accounts{loaderData.deletions > 0 ? ` (${loaderData.deletions} to finish)` : ''}
           </NavLink>
+          <NavLink to="/admin/team" className="text-link">
+            Users and roles
+          </NavLink>
+          <NavLink to="/admin/audit" className="text-link">
+            Audit log
+          </NavLink>
           <Link to="/explore" className="text-link">
             Public site
           </Link>

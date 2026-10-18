@@ -39,6 +39,17 @@ export default function Explore({ loaderData: { categories } }: Route.ComponentP
             </li>
           ))}
         </ul>
+        <p className={styles.more}>
+          <Link to="/how-it-works" className="text-link">
+            How it works
+          </Link>
+          <Link to="/for-businesses" className="text-link">
+            For businesses
+          </Link>
+          <Link to="/suggest" className="text-link">
+            Suggest a business
+          </Link>
+        </p>
       </main>
     </>
   );

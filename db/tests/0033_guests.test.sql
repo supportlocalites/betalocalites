@@ -131,7 +131,8 @@ select pg_temp.expect_equal('the old party''s link: over 30 days after, it no lo
 
 -- Replies close when the event is over; a cancelled event says so.
 reset role;
-update event set event_date = current_date - 1 where id = '00000000-0000-7000-8000-0000000033f1';
+-- Yesterday in Toronto (the event's time zone): in the evening there, the server's own date is already tomorrow.
+update event set event_date = (now() at time zone 'America/Toronto')::date - 1 where id = '00000000-0000-7000-8000-0000000033f1';
 set local role app_server;
 select pg_temp.expect_equal('the day after: the invitation still opens, replies closed', (
   select status from invitation_for(pg_temp.h('tok-2'))), 'closed');

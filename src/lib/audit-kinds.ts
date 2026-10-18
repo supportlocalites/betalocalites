@@ -1,0 +1,20 @@
+/** What an entry can be about (subject_type), in plain words, for the page's filter. */
+export const AUDIT_KINDS: Record<string, string> = {
+  vendor: 'Businesses',
+  vendor_claim: 'Claims',
+  app_user: 'People and the team',
+  review: 'Reviews',
+  moderation_report: 'Reports',
+  conversation: 'Conversations',
+  message: 'Messages',
+  vendor_suggestion: 'Suggestions',
+  vendor_interest: 'Inquiries',
+  event_vendor: 'Bookings',
+  event_type: 'Event types',
+  featured_placement: 'Featured businesses',
+  category: 'Kinds of business',
+  municipality: 'Towns',
+  activity: 'Activity',
+  search: 'Searches',
+  audit_log: 'Looks at this log',
+};

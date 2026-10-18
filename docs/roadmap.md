@@ -112,9 +112,10 @@ on codes (ADR-028).
   (0015); business photos, added by owners and managers, reviewed and removed by the team
   (0016, switched on by PO-16); categories and towns for the team (0017).
 - **Team tools not built yet:** verification records,
-  filters (attributes), collections, users and roles (adding admins is
-  still done in the database, runbook), the audit-log page, listing review (X3).
-- **Pages not built yet:** collections, How it works, For vendors.
+  filters (attributes), collections. **Built 18 October 2026:** users and roles (migration
+  0035) and the audit-log page; listing review (X3) isn't planned for now, as owners' changes go
+  live with the team's daily note and Undo (D-34).
+- **Pages not built yet:** collections. **Built 18 October 2026:** How it works, For businesses.
 - **Owner steps waiting:** PO-11 (check and publish the test businesses), PO-14 (switch on
   activity counting).
 

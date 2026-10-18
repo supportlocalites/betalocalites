@@ -22,8 +22,8 @@ added; quotes, bookings and the concierge queue removed.
 | P3 ★ | Search results | Keyword + filters; honest empty state | 1 |
 | P4 ★ | Vendor profile | Services, published prices, photos (**built**: the first photo whole in a band on top, the square profile photo beside the name, every photo whole in rows, opening in a full-screen viewer; search results show the square profile photo), area, verification; **Message** (claimed) or the business's own contact + **Inquire** (unclaimed or unverified, D-04); **Add to event**; reviews from Stage 3. **Planning an event?** section built (2A): **Add to event**, **Save**, and a line saying the business isn't told | 1 |
 | P5 | Collection page | A curated list | 1 |
-| P6 | How it works | For consumers and for vendors. States plainly that Localites doesn't handle payments. | 1 |
-| P7 | For vendors | Why join, how claiming works, that it's free | 1 |
+| P6 | How it works | For consumers and for vendors. States plainly that Localites doesn't handle payments. **Built** (`/how-it-works`, linked from Explore): find, talk directly or Inquire, plan, invite guests, say how it went; no money through Localites | 1 |
+| P7 | For vendors | Why join, how claiming works, that it's free. **Built** (`/for-businesses`, linked from Explore): already listed from public details and removal on request (D-03), claiming and how it's checked (D-33, D-35), what an owner can do (ADR-029, 0015), D-40's booked summary; nothing about paid plans (not decided) | 1 |
 | P8 | Claim or remove this listing | From an unclaimed profile. **Built** (`/vendors/<name>/claim`, ADR-028): how you're connected, a note, "I'm allowed to manage this listing"; removal by email to the team | 1 |
 | P9 | Privacy · Terms · Review policy · Contact | | 1 |
 | P10 | 404 / error | Friendly, with a way back | 1 |
@@ -90,15 +90,15 @@ added; quotes, bookings and the concierge queue removed.
 |---|---|---|---|
 | X1 | Admin home | Queues needing attention | 1 |
 | X2 | Listing editor | Create/edit any listing; history. **Plus** the owner, Remove owner, and **Changes by the owner** with Undo (ADR-029) | 1 |
-| X3 | Listing review | Approve or return with reason | 1 |
+| X3 | Listing review | Approve or return with reason. **Not built, not planned for now:** owners' changes go live at once, with the team's daily note and Undo (D-34, ADR-029), so nothing waits for approval; the product owner can ask for it | 1 |
 | X4 | Claims | Approve (saying how it was confirmed, D-33) or decline with a reason emailed to the claimant; first approved wins (D-35). **Built** (`/admin/claims`) | 1 |
 | X5 | Verification | Record a check with evidence | 1 |
 | X6 | Categories | **Built** (`/admin/categories`, with X8): add, rename, describe, reorder, hide; two levels (a main kind and kinds within it); web addresses never change | 1 |
 | X7 | Attributes (filters) | | 1 |
 | X8 | Places | **Built** (same page as X6): add, rename, reorder, show or hide towns; a new town starts hidden | 1 |
 | X9 | Collections | | 1 |
-| X10 | Users & roles | | 1 |
-| X11 | Audit log | | 1 |
+| X10 | Users & roles | **Built** (`/admin/team`, migration 0035): who is on the team and since when, added by whom; add an admin by the email of an existing account, with a reason; remove one, with a reason (never yourself); former members listed. Only through the database's own functions, each recorded | 1 |
+| X11 | Audit log | **Built** (`/admin/audit`): every entry, newest first, 50 at a time; by who, by kind of record, or one record's history; links to the record's team page; each look recorded | 1 |
 | X12 | Event types | **Built** (`/admin/event-types`, D-39, D-43): add, rename, order, hide (never delete); per type, the kinds of business to suggest (ticks and order) and featured businesses (first and last day, team note, End early; showing now, coming up, earlier; a warning when more than 3 overlap); a business finder. Every change recorded | 2 |
 | X13 | Reports | Reported messages, conversations, listings. Opening a conversation is logged. **Built for conversations and messages** (part 2, `/admin/reports`, "Reports (n open)" in the team menu): the list shows who reported what and why, never the messages; a report's page shows the whole conversation (each look written to the audit log with the report); hide the reported message, block or unblock the conversation, close as dealt with or dismissed with a note. Listing reports come with Stage 3; a message its author removed after the report still shows its words to the team, marked so, and isn't offered Hide (migration 0026); a reported conversation's files, opened only through the report, each look recorded | 2 |
 | X14 | Inquiries | Every inquiry, by business, to follow up and invite (D-04). **Built** (`/admin/inquiries`, "Inquiries (n waiting)" in the team menu): business, who (name, email), note, event summary, the team email's status, when they were told it joined; waiting only or all; every look recorded | 2 |

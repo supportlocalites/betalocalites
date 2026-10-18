@@ -144,13 +144,18 @@ guide this live (PO-03 part 3). Changing the password later is the same two step
   Cloudflare secrets `SUPABASE_URL` and `SUPABASE_PUBLISHABLE_KEY` (PO-10).
 - **First admin:** `select grant_first_admin('<email>');` in Supabase's SQL editor
   (migration 0003). It refuses once any admin exists.
-- **Add another admin** (until the Users & roles page, X10, exists): create their account
-  as in PO-10 B, have them sign in once, then in the SQL editor:
-  `insert into platform_role (user_id, role, granted_by) select n.id, 'admin', g.id from app_user n, app_user g where n.email = '<new>' and g.email = '<you>';`
-  and record it: `insert into audit_log (actor_user_id, action, subject_type, subject_id, reason) select g.id, 'platform_role.grant', 'app_user', n.id, '<why>' from app_user n, app_user g where n.email = '<new>' and g.email = '<you>';`
-- **Remove an admin:** `update platform_role set revoked_at = now() where role = 'admin' and revoked_at is null and user_id = (select id from app_user where email = '<email>');`
-  (plus an audit_log row as above, action `platform_role.revoke`). Takes effect on their
-  next click.
+- **Add another admin:** create their account as in PO-10 B (they type their own password),
+  have them sign in once at `/sign-in` (the team pages turn them away; that creates their
+  Localites account), then add them on the team's **Users and roles** page (`/admin/team`,
+  migration 0035) with a reason. The page explains the same steps.
+- **Remove an admin:** on **Users and roles**, with a reason. Nobody removes themselves:
+  another admin does it. Takes effect on their next click. Both are recorded in `audit_log`
+  (`platform_role.grant`, `platform_role.revoke`) by the database itself; the app can't
+  write `platform_role` directly. If no admin can sign in at all, the console path is
+  `grant_first_admin` after ending the old roles in the SQL editor
+  (`update platform_role set revoked_at = now() where revoked_at is null;`).
+- **The audit log** is on the team's **Audit log** page (`/admin/audit`): newest first, by
+  who, by kind of record, or one record's history. Each look is recorded too.
 - **Lost phone (authenticator):** in the SQL editor, `delete from auth.mfa_factors where user_id = (select id from auth.users where email = '<email>');`
   Their next sign-in shows a new square code to scan.
 - **Forgotten team password:** the public has no passwords (D-32); for a team account,

@@ -9,6 +9,8 @@ export default [
   route('api/health', 'routes/health.ts'),
   route('api/activity', 'routes/api-activity.ts'),
   route('suggest', 'routes/suggest.tsx'),
+  route('how-it-works', 'routes/how-it-works.tsx'),
+  route('for-businesses', 'routes/for-businesses.tsx'),
   route('join', 'routes/join.tsx'),
   route('sign-in', 'routes/sign-in.tsx'),
   route('two-step', 'routes/two-step.tsx'),
@@ -93,5 +95,8 @@ export default [
     route('account-deletions', 'routes/admin/account-deletions.tsx'),
     route('photos', 'routes/admin/photos.tsx'),
     route('categories', 'routes/admin/categories.tsx'),
+    // Users and roles (X10, migration 0035), and the audit log (X11).
+    route('team', 'routes/admin/team.tsx'),
+    route('audit', 'routes/admin/audit.tsx'),
   ]),
 ] satisfies RouteConfig;

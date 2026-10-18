@@ -198,6 +198,8 @@ const PAGES = [
   { who: null, path: '/join', label: 'Join' },
   { who: null, path: '/sign-in', label: 'Team sign-in' },
   { who: null, path: '/suggest', label: 'Suggest a business' },
+  { who: null, path: '/how-it-works', label: 'How it works' },
+  { who: null, path: '/for-businesses', label: 'For businesses' },
   { who: 'person', path: '/account', label: 'Your account' },
   { who: 'person', path: '/events', label: 'Your events' },
   { who: 'person', path: '/events/new', label: 'Plan an event' },
@@ -246,6 +248,8 @@ const PAGES = [
   { who: 'team', path: `/admin/reviews/${lookReview.id}`, label: 'Team: one review' },
   { who: 'team', path: '/admin/reports?show=all', label: 'Team: reports' },
   { who: 'team', path: `/admin/reports/${lookReport.id}`, label: 'Team: one report' },
+  { who: 'team', path: '/admin/team', label: 'Team: users and roles' },
+  { who: 'team', path: '/admin/audit', label: 'Team: audit log' },
 ];
 
 const RULES = ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa'];

@@ -31,6 +31,38 @@ Every release and every database migration, in order. Appended before each deplo
 
 ## Releases
 
+### 2026-10-18 — Users and roles, the audit log, How it works, For businesses
+
+**Stage:** 1 (screens X10, X11, P6, P7)
+**What changed (plain English):**
+- **Users and roles** (`/admin/team`): the team sees who is on it, adds an admin by the email
+  of an existing Localites account, and removes one, each with a reason. Nobody removes
+  themselves. The database makes each change and records it; the app can no longer write the
+  team's roles itself. Replaces the runbook's console steps.
+- **Audit log** (`/admin/audit`): every recorded action, newest first, by who, by kind of
+  record, or one record's history. Each look is recorded.
+- **How it works** and **For businesses**: two reading pages, linked from Explore, saying only
+  what the site does today.
+- **Listing review (X3)** isn't built or planned for now: owners' changes go live with the
+  team's daily note and Undo (D-34), so nothing waits for approval.
+- A guest-invitation database check used the server's date instead of Toronto's, so it failed
+  in Toronto's evenings; it now uses Toronto's date (the check only, not the database).
+**Migrations applied:** `0035_team_admins.sql`
+**Destructive?** No. Takes back the app's rights to write `platform_role`, adds two functions
+and two indexes.
+**Tests run:** database checks 35 of 35 files (0035: 24 checks); unit tests 181 of 181; browser
+suites admin access 43 of 43, users and roles and the audit log 31 of 31 (paging and malformed
+addresses included), look checks 440 of 440.
+**Security tests:** a person, someone claiming the team side without the role, and an admin
+acting as a person are refused; removing yourself is refused; a removed admin is refused on the
+next click and can't add themselves back; forms from other websites refused; the browser-facing
+role can't run either function.
+**Existing functionality affected:** none. Adding admins in the SQL editor as the database owner
+still works.
+**How to roll back:** a new migration granting `insert, update on platform_role` back to
+`app_server`; the pages can be removed with the next update.
+**Approved by:** Stage 1 (D-23); the product owner chose this work on 17 October 2026.
+
 ### 2026-10-14 — The host changes replies; add to calendar (D-49)
 
 **Stage:** 4 (E §4.6)
