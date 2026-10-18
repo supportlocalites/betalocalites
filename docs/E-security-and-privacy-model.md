@@ -393,6 +393,19 @@ calendar:** links for Google, Outlook.com, Microsoft 365 and Yahoo are made on t
 nowhere until the guest taps one; the calendar file needs the guest's link. Neither contains
 the guest's link.
 
+**Built, part 2 (18 October 2026, migration 0037).** **The group link:** one per event, made
+from `INVITE_KEY` like a guest's link (only its hash stored); the host switches it off or makes a
+new one, and the old one stops at once; it opens through `group_invitation_for()` only the
+invitation (no guest's name) and this browser's own reply, found by the hash of a random key in
+a cookie (`__Host-localites-gkey`, 60 days); never anyone else's reply. Replies go only through
+`group_invitation_reply()` (a name, limited per internet address, at most 300 an event), and
+the host matches each to a guest (`match_group_reply()`) or removes it. **Questions** (up to 5,
+short answers, optional) and **updates** (up to 20) are the host's own; guests' answers are
+written only through the invitation functions, and nobody, the host included, can write or
+change them otherwise. Another person, a booked business and the Localites team see none of it.
+**QR code:** drawn on the server from the link (no outside service sees it), on a printable page
+only the host opens.
+
 ## 5. Invitation-link security
 
 Stage 4. Unchanged from revision 1:

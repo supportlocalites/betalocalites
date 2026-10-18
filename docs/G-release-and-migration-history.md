@@ -31,6 +31,33 @@ Every release and every database migration, in order. Appended before each deplo
 
 ## Releases
 
+### 2026-10-18 — Guests, part 2: the group link, QR codes, questions and updates
+
+**Stage:** 4 (screens C13, C14, G1 to G3; D-08)
+**What changed (plain English):**
+- **The group link:** one link per event for a group chat, a social post or a printed invitation.
+  Anyone with it replies with their name and sees only their own reply (and can change it from
+  the same phone or computer). The host sees these replies on the Guests page, matches each to a
+  guest on the list with one tap (that guest then shows the reply), or removes it. The host can
+  switch the link off or make a new one; the old one stops at once.
+- **A printable invitation with a QR code**, for the group link or one guest's own link.
+- **Questions:** up to 5 short questions on every invitation ("Any allergies?"); answering is
+  optional; the host sees each guest's answers.
+- **Updates:** short notes ("We've moved to 3 pm") at the top of every invitation. Localites
+  doesn't send them anywhere (D-08); the host can share them from their phone.
+**Migrations applied:** `0037_guests_part2.sql`
+**Destructive?** No. New tables and functions.
+**Tests run:** database checks 37 of 37 files (0037: 34 checks); browser suites guests 47 of 47,
+guests part 2 31 of 31, look checks 464 of 464; unit tests 191 of 191.
+**Security tests:** another person and the team can't make, see or change the group link,
+questions, updates or replies, or match a reply; a group link's guest never sees anyone else's
+reply or the plan's private notes; a switched-off or replaced link opens nothing; nobody but the
+guest writes their answers; the browser-facing role can't open an invitation.
+**Existing functionality affected:** none.
+**How to roll back:** a later migration drops the new tables; the pages can be removed with the
+next update.
+**Approved by:** D-08 (10 October 2026); the product owner asked for step 7 on 18 October 2026.
+
 ### 2026-10-18 — Approve or deny reviews from the email (D-51)
 
 **Stage:** 3 (screens X15, C11)

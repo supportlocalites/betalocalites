@@ -100,6 +100,8 @@
   --size-form-narrow: 440px;
   --size-form-wide: 760px;
   --size-qr: 200px;
+  /* A printed invitation's QR code (guests, part 2): large enough to scan from across a table. */
+  --size-qr-print: 288px;
   --size-textarea: 140px;
 }
 

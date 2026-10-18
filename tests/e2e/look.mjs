@@ -68,6 +68,15 @@ const addedGuest = await site(`/events/${eventId}/guests`, {
 });
 const guestId = /\/guests\/([0-9a-f-]{36})/.exec(addedGuest.location)?.[1];
 const guestToken = /\/i\/([A-Za-z0-9_-]{43})/.exec((await site(`/events/${eventId}/guests/${guestId}`, { cookie: cookieOf(sessions.person) })).body)?.[1];
+// Part 2: a question, an update and the group link, for the guest pages and the group invitation.
+for (const form of [
+  { intent: 'question-add', question: 'Any allergies?' },
+  { intent: 'update-post', body: 'We’ve moved to 3 pm.' },
+  { intent: 'group-new' },
+]) {
+  await site(`/events/${eventId}/guests`, { cookie: cookieOf(sessions.person), method: 'POST', form });
+}
+const groupToken = /\/g\/([A-Za-z0-9_-]{43})/.exec((await site(`/events/${eventId}/guests`, { cookie: cookieOf(sessions.person) })).body)?.[1];
 await site(`/events/${eventId}/plan/${planRow.id}/book`, { cookie: cookieOf(sessions.person), method: 'POST' });
 await site(`/vendors/${W.slug}/add`, { cookie: cookieOf(sessions.person), method: 'POST', form: { intent: 'add', eventId } });
 // A conversation with a reply (Stage 2B), and a business that has joined, for the Message page.
@@ -119,6 +128,13 @@ async function contextFor(who, size) {
     const host = new URL(BASE).hostname;
     await ctx.addCookies([
       { name: '__Host-localites-invite', value: guestToken, domain: host, path: '/', secure: true, httpOnly: true, sameSite: 'Lax' },
+    ]);
+  }
+  if (who === 'groupGuest') {
+    const host = new URL(BASE).hostname;
+    await ctx.addCookies([
+      { name: '__Host-localites-group', value: groupToken, domain: host, path: '/', secure: true, httpOnly: true, sameSite: 'Lax' },
+      { name: '__Host-localites-gkey', value: 'k'.repeat(43), domain: host, path: '/', secure: true, httpOnly: true, sameSite: 'Lax' },
     ]);
   }
   if (s) {
@@ -212,6 +228,8 @@ const PAGES = [
   { who: 'person', path: `/events/${eventId}/guests`, label: 'Guests' },
   { who: 'person', path: `/events/${eventId}/guests/${guestId}`, label: 'Send an invitation' },
   { who: 'guest', path: '/invite', label: 'A guest’s invitation' },
+  { who: 'person', path: `/events/${eventId}/guests/print`, label: 'Print an invitation with a QR code' },
+  { who: 'groupGuest', path: '/group-invite', label: 'The group invitation' },
   { who: 'person', path: '/messages', label: 'Messages' },
   { who: 'person', path: `/messages/${conversationId}`, label: 'A conversation' },
   { who: 'person', path: `/vendors/${Z.slug}/message`, label: 'Message a business' },

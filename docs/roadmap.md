@@ -340,8 +340,9 @@ changeable until the event; who opened and who replied, with totals; the host's 
 links stop 30 days after the event; phone numbers and emails erased 90 days after. **Then
 (D-49, migration 0034):** the host changes any guest's reply and the guest is emailed;
 guests add the event to Google, Apple, Outlook, Microsoft 365, Yahoo or any calendar.
-**Part 2:** the group link and matching names, the printable QR code, the host's questions,
-updates to guests.
+**Part 2, built 18 October 2026 (migration 0037):** the group link and matching names, the
+printable QR code, the host's questions (up to 5) with each guest's answers, and updates shown on
+every invitation (not sent by Localites, D-08: the host shares them from their phone).
 
 **Dependencies.** Stage 3 (D-14); D-08 and D-10 decided. **Effort:** 3–4 weeks.
 

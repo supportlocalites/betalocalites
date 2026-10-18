@@ -8,12 +8,14 @@ import { type Db, withDb } from './db.server';
 import type { ServerEnv } from './env';
 
 /**
- * Guests and replies (Stage 4, part 1; D-08, D-10, E §4.6 and §5; migration 0033). The host
+ * Guests and replies (Stage 4; D-08, D-10, E §4.6 and §5; migrations 0033 and 0037). The host
  * keeps a guest list for their own event, as the person (ADR-031); the database lets nobody
  * else read it. Each guest has a personal link the host sends from their own phone: the link
  * is made from INVITE_KEY (a secret only the site has) and the guest's id, so the host can
  * copy it again any time, and only its hash is stored. A guest has no account: their link
  * opens their own invitation and reply (invitation_for, invitation_reply) and nothing else.
+ * Part 2: one group link per event (anyone with it replies with their name; the host matches
+ * each reply to the list), the host's questions, and updates shown on every invitation.
  */
 
 const asPerson = (userId: string) => ({ side: 'person' as const, userId });
@@ -54,12 +56,18 @@ async function linkToken(env: ServerEnv, guestId: string, version: number): Prom
   return base64url(await crypto.subtle.sign('HMAC', key, new TextEncoder().encode(`localites-invite:${guestId}:${version}`)));
 }
 
+/** The event's group link (D-08): made like a guest's link, from the event's id and version. */
+async function groupToken(env: ServerEnv, eventId: string, version: number): Promise<string> {
+  return linkToken(env, `group:${eventId}`, version);
+}
+
 /** The stored form of a token: its SHA-256, as hex for the query. */
 export async function tokenHash(token: string): Promise<string> {
   return hex(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(token)));
 }
 
 export const inviteUrl = (siteUrl: string, token: string) => `${siteUrl}/i/${token}`;
+export const groupUrl = (siteUrl: string, token: string) => `${siteUrl}/g/${token}`;
 
 // ======================================================================= the host
 
@@ -97,28 +105,170 @@ async function hostEvent(tx: Db, userId: string, eventId: string): Promise<Guest
   return e;
 }
 
-/** C13: the host's own guest list, in the order added, with the totals. */
-export async function guestList(env: ServerEnv, userId: string, eventId: string) {
+export type Answer = { question: string; answer: string };
+export type GroupReplyRow = {
+  id: string;
+  name: string;
+  response: GuestResponse;
+  partySize: number | null;
+  note: string | null;
+  at: string;
+  answers: Answer[];
+};
+export type Question = { id: string; question: string };
+export type GuestUpdate = { id: string; body: string; at: string };
+
+/**
+ * C13: the host's own guest list, in the order added, with the totals; and part 2: the group
+ * link, replies through it not yet matched to a guest, the questions, each one's answers, and
+ * the updates. One connection, as the host.
+ */
+export async function guestList(env: ServerEnv, userId: string, eventId: string, siteUrl: string) {
   return guarded(
     actingAs(env, asPerson(userId), async (tx) => {
       const event = await hostEvent(tx, userId, eventId);
-      const guests = await tx.execute<GuestRow>(sql`
-        select id, name, phone, email, first_opened_at is not null as opened, response, party_size as "partySize",
-               reply_note as note, replied_at::text as "repliedAt"
-        from guest where event_id = ${eventId} and host_user_id = ${userId} order by created_at, id`);
-      const people = (r: GuestResponse) => guests.filter((g) => g.response === r).reduce((n, g) => n + (g.partySize ?? 0), 0);
+      const guests = await tx.execute<GuestRow & { answers: Answer[] }>(sql`
+        select g.id, g.name, g.phone, g.email, g.first_opened_at is not null as opened, g.response, g.party_size as "partySize",
+               g.reply_note as note, g.replied_at::text as "repliedAt",
+               coalesce((select json_agg(json_build_object('question', q.question, 'answer', a.answer) order by q.created_at)
+                         from guest_answer a join event_question q on q.id = a.question_id where a.guest_id = g.id), '[]') as answers
+        from guest g where g.event_id = ${eventId} and g.host_user_id = ${userId} order by g.created_at, g.id`);
+      const groupReplies = await tx.execute<GroupReplyRow>(sql`
+        select r.id, r.name, r.response, r.party_size as "partySize", r.reply_note as note, r.updated_at::text as at,
+               coalesce((select json_agg(json_build_object('question', q.question, 'answer', a.answer) order by q.created_at)
+                         from guest_answer a join event_question q on q.id = a.question_id where a.group_reply_id = r.id), '[]') as answers
+        from group_reply r where r.event_id = ${eventId} and r.host_user_id = ${userId} and r.matched_guest_id is null
+        order by r.created_at`);
+      const questions = await tx.execute<Question>(sql`
+        select id, question from event_question where event_id = ${eventId} and host_user_id = ${userId} order by created_at`);
+      const updates = await tx.execute<GuestUpdate>(sql`
+        select id, body, created_at::text as at from event_update where event_id = ${eventId} and host_user_id = ${userId}
+        order by created_at desc`);
+      const [link] = await tx.execute<{ version: number; on: boolean }>(sql`
+        select version, token_hash is not null as on from event_group_link where event_id = ${eventId} and host_user_id = ${userId}`);
+      const replies = [...guests, ...groupReplies];
+      const people = (r: GuestResponse) => replies.filter((g) => g.response === r).reduce((n, g) => n + (g.partySize ?? 0), 0);
       return {
         event,
         guests: [...guests],
+        groupReplies: [...groupReplies],
+        questions: [...questions],
+        updates: [...updates],
+        groupLink: link?.on ? groupUrl(siteUrl, await groupToken(env, eventId, link.version)) : null,
         totals: {
           coming: people('yes'),
           maybe: people('maybe'),
-          cantCome: guests.filter((g) => g.response === 'no').length,
+          cantCome: replies.filter((g) => g.response === 'no').length,
           noReply: guests.filter((g) => g.response === null).length,
         },
       };
     }),
   );
+}
+
+/** For the printable page: the event, and the group link (or null when it's off). */
+export async function groupLinkFor(env: ServerEnv, userId: string, eventId: string, siteUrl: string) {
+  return guarded(
+    actingAs(env, asPerson(userId), async (tx) => {
+      const event = await hostEvent(tx, userId, eventId);
+      const [link] = await tx.execute<{ version: number; on: boolean }>(sql`
+        select version, token_hash is not null as on from event_group_link where event_id = ${eventId} and host_user_id = ${userId}`);
+      return { event, link: link?.on ? groupUrl(siteUrl, await groupToken(env, eventId, link.version)) : null };
+    }),
+  );
+}
+
+/** The group link, made or replaced (the old one stops at once). */
+export async function newGroupLink(env: ServerEnv, userId: string, eventId: string): Promise<void> {
+  await guarded(
+    actingAs(env, asPerson(userId), async (tx) => {
+      await hostEvent(tx, userId, eventId);
+      const [link] = await tx.execute<{ version: number }>(sql`
+        select version from event_group_link where event_id = ${eventId} and host_user_id = ${userId} for update`);
+      const version = link ? link.version + 1 : 1;
+      const hash = await tokenHash(await groupToken(env, eventId, version));
+      await tx.execute(
+        link
+          ? sql`update event_group_link set token_hash = decode(${hash}, 'hex'), version = ${version} where event_id = ${eventId}`
+          : sql`insert into event_group_link (event_id, host_user_id, token_hash) values (${eventId}, ${userId}, decode(${hash}, 'hex'))`,
+      );
+    }),
+  );
+}
+
+/** Switches the group link off: it stops at once; replies already sent stay. */
+export async function groupLinkOff(env: ServerEnv, userId: string, eventId: string): Promise<void> {
+  await guarded(
+    actingAs(env, asPerson(userId), (tx) =>
+      tx.execute(sql`update event_group_link set token_hash = null where event_id = ${eventId} and host_user_id = ${userId}`),
+    ),
+  );
+}
+
+/** The host matches a group reply to a guest on their list (or removes it). */
+export async function matchGroupReply(env: ServerEnv, userId: string, eventId: string, replyId: string, guestId: string): Promise<void> {
+  await guarded(
+    actingAs(env, asPerson(userId), async (tx) => {
+      await hostEvent(tx, userId, eventId);
+      await tx.execute(sql`select match_group_reply(${replyId}::uuid, ${guestId}::uuid)`);
+    }),
+  );
+}
+
+export async function removeGroupReply(env: ServerEnv, userId: string, eventId: string, replyId: string): Promise<void> {
+  await guarded(
+    actingAs(env, asPerson(userId), async (tx) => {
+      const done = await tx.execute(sql`
+        delete from group_reply where id = ${replyId} and event_id = ${eventId} and host_user_id = ${userId} returning id`);
+      if (done.length === 0) throw new PlanNotFound();
+    }),
+  );
+}
+
+export async function addQuestion(env: ServerEnv, userId: string, eventId: string, question: string): Promise<void> {
+  await guarded(
+    actingAs(env, asPerson(userId), (tx) =>
+      tx.execute(sql`insert into event_question (id, event_id, host_user_id, question) values (${crypto.randomUUID()}, ${eventId}, ${userId}, ${question})`),
+    ),
+  );
+}
+
+export async function removeQuestion(env: ServerEnv, userId: string, eventId: string, questionId: string): Promise<void> {
+  await guarded(
+    actingAs(env, asPerson(userId), async (tx) => {
+      const done = await tx.execute(sql`
+        delete from event_question where id = ${questionId} and event_id = ${eventId} and host_user_id = ${userId} returning id`);
+      if (done.length === 0) throw new PlanNotFound();
+    }),
+  );
+}
+
+export async function postUpdate(env: ServerEnv, userId: string, eventId: string, body: string): Promise<void> {
+  await guarded(
+    actingAs(env, asPerson(userId), (tx) =>
+      tx.execute(sql`insert into event_update (id, event_id, host_user_id, body) values (${crypto.randomUUID()}, ${eventId}, ${userId}, ${body})`),
+    ),
+  );
+}
+
+export async function removeUpdate(env: ServerEnv, userId: string, eventId: string, updateId: string): Promise<void> {
+  await guarded(
+    actingAs(env, asPerson(userId), async (tx) => {
+      const done = await tx.execute(sql`
+        delete from event_update where id = ${updateId} and event_id = ${eventId} and host_user_id = ${userId} returning id`);
+      if (done.length === 0) throw new PlanNotFound();
+    }),
+  );
+}
+
+/** One line of text from the host's form (a question or an update), tidied. */
+export function readLine(form: FormData, field: string, max: number, empty: string, tooLong: string): { text: string } | { error: string } {
+  const text = String(form.get(field) ?? '')
+    .replace(/\r\n?/g, '\n')
+    .trim();
+  if (!text) return { error: empty };
+  if (text.length > max) return { error: tooLong };
+  return { text };
 }
 
 export function readGuest(form: FormData): { name: string; phone: string | null; email: string | null } | { error: string } {
@@ -280,6 +430,96 @@ export type Invitation = {
   replyBy: 'guest' | 'host' | null;
   timezone: string;
 };
+
+/** What an invitation also shows (part 2): the host's questions with this guest's answers, and the updates. */
+export type InvitationExtras = { questions: (Question & { answer: string | null })[]; updates: GuestUpdate[] };
+
+async function extrasFor(env: ServerEnv, hash: string, browserHash: string | null): Promise<InvitationExtras> {
+  const rows = await withDb(env, (db) =>
+    db.execute<{ kind: 'question' | 'update'; id: string; body: string; answer: string | null; at: string }>(sql`
+      select kind, id, body, answer, at::text as at
+      from invitation_extras(decode(${hash}, 'hex'), ${browserHash ? sql`decode(${browserHash}, 'hex')` : sql`null`})`),
+  );
+  return {
+    questions: rows.filter((r) => r.kind === 'question').map((r) => ({ id: r.id, question: r.body, answer: r.answer })),
+    updates: rows
+      .filter((r) => r.kind === 'update')
+      .map((r) => ({ id: r.id, body: r.body, at: r.at }))
+      .reverse(),
+  };
+}
+
+export async function invitationExtras(env: ServerEnv, token: string): Promise<InvitationExtras> {
+  return extrasFor(env, await tokenHash(token), null);
+}
+
+/** Answers from the form: answer.<question id> fields, each up to 500 characters. */
+export function readAnswers(form: FormData): Record<string, string> | { error: string } {
+  const answers: Record<string, string> = {};
+  for (const [key, value] of form.entries()) {
+    const m = /^answer\.([0-9a-f-]{36})$/.exec(key);
+    if (!m) continue;
+    const text = String(value).replace(/\s+/g, ' ').trim();
+    if (text.length > GUEST_LIMITS.answer) return { error: GUEST_REFUSALS.answerTooLong! };
+    answers[m[1]!] = text;
+  }
+  return answers;
+}
+
+/** A guest's answers by their own link (after their reply). */
+export async function answerInvitation(env: ServerEnv, token: string, answers: Record<string, string>): Promise<void> {
+  if (!TOKEN.test(token) || Object.keys(answers).length === 0) return;
+  const hash = await tokenHash(token);
+  await guarded(
+    withDb(env, (db) => db.execute(sql`select invitation_answers(decode(${hash}, 'hex'), ${JSON.stringify(answers)}::jsonb)`)),
+  );
+}
+
+// ------------------------------------------------------------------ the group link (no account)
+
+/**
+ * G1 by the group link: the invitation without a guest's name, and this browser's own reply
+ * (found by the hash of its random key, kept in a cookie). Null: a wrong, replaced, switched
+ * off or expired link.
+ */
+export async function groupInvitationFor(
+  env: ServerEnv,
+  token: string,
+  browserKey: string | null,
+): Promise<(Invitation & { replyName: string | null; extras: InvitationExtras }) | null> {
+  if (!TOKEN.test(token)) return null;
+  const hash = await tokenHash(token);
+  const browserHash = browserKey ? await tokenHash(browserKey) : await tokenHash('no-browser-key');
+  const [row] = await withDb(env, (db) =>
+    db.execute<Invitation & { replyName: string | null }>(sql`
+      select '' as "guestName", title, event_date::text as date, to_char(start_time, 'HH24:MI') as "startTime",
+             to_char(end_time, 'HH24:MI') as "endTime", town, venue_note as "where", message, host_name as host, status,
+             response, party_size as "partySize", reply_note as note, case when response is null then null else 'guest' end as "replyBy",
+             timezone, reply_name as "replyName"
+      from group_invitation_for(decode(${hash}, 'hex'), decode(${browserHash}, 'hex'))`),
+  );
+  if (!row) return null;
+  return { ...row, extras: await extrasFor(env, hash, browserHash) };
+}
+
+/** G2 by the group link: a reply with a name, or this browser's own changed. */
+export async function replyToGroup(
+  env: ServerEnv,
+  token: string,
+  browserKey: string,
+  reply: { name: string; response: GuestResponse; partySize: number | null; note: string | null },
+  answers: Record<string, string>,
+): Promise<void> {
+  if (!TOKEN.test(token)) throw new PlanNotFound();
+  const [hash, browserHash] = await Promise.all([tokenHash(token), tokenHash(browserKey)]);
+  await guarded(
+    withDb(env, (db) =>
+      db.execute(sql`
+        select group_invitation_reply(decode(${hash}, 'hex'), decode(${browserHash}, 'hex'), ${reply.name}, ${reply.response},
+                                      ${reply.partySize}::smallint, ${reply.note}, ${JSON.stringify(answers)}::jsonb)`),
+    ),
+  );
+}
 
 /** G1: what the guest's own link opens, or null (a wrong, replaced or expired link). */
 export async function invitationFor(env: ServerEnv, token: string): Promise<Invitation | null> {

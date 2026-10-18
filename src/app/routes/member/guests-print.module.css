@@ -1,0 +1,27 @@
+/* A printable invitation: the QR code large and centred; the page's own controls not printed. */
+.sheet {
+  text-align: center;
+}
+
+.qr {
+  width: 100%;
+  max-width: var(--size-qr-print);
+  margin: var(--space-5) auto;
+}
+
+.qr svg {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.link {
+  overflow-wrap: anywhere;
+  font-size: var(--text-small);
+}
+
+@media print {
+  .noPrint {
+    display: none;
+  }
+}

@@ -80,6 +80,13 @@
   overflow-wrap: anywhere;
 }
 
+/* A guest's answers to the host's questions (guests, part 2). */
+.answers {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
 .rowHead {
   display: flex;
   flex-wrap: wrap;
