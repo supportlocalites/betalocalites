@@ -132,7 +132,9 @@ export async function saveReview(
         select id from review where event_vendor_id = ${rowId} and author_user_id = ${userId} for update`);
       if (existing) {
         await tx.execute(sql`
-          update review set rating = ${input.rating}, body = ${input.body}, language_flag = ${flag} where id = ${existing.id}`);
+          update review set rating = ${input.rating}, body = ${input.body},
+                 language_flag = case when status = 'pending' then ${flag} else language_flag end
+          where id = ${existing.id}`);
         return { id: existing.id, created: false };
       }
       // At most 10 reviews a day, so a script can't flood the team's queue.
@@ -311,13 +313,15 @@ export async function listReviews(
   return actingAs(env, { side: 'team', userId: admin.userId }, async (tx) => {
     const cols = sql`r.id, v.display_name as business, v.slug::text as slug, u.display_name as author, r.rating, r.status,
                      r.planned_on_localites as "plannedOnLocalites", r.created_at::text as "createdAt",
-                     r.language_flag as "languageFlag", (r.reply_held_at is not null and r.reply_removed_at is null) as "replyHeld"`;
+                     r.language_flag as "languageFlag",
+                     (r.reply_held_at is not null and r.reply_removed_at is null and r.status = 'published') as "replyHeld"`;
     const waiting = await tx.execute<TeamReviewRow>(sql`
       select ${cols} from review r join vendor v on v.id = r.vendor_id join app_user u on u.id = r.author_user_id
       where r.status = 'pending' order by r.created_at limit 200`);
     const heldReplies = await tx.execute<TeamReviewRow>(sql`
       select ${cols} from review r join vendor v on v.id = r.vendor_id join app_user u on u.id = r.author_user_id
-      where r.reply_held_at is not null and r.reply_removed_at is null order by r.reply_held_at limit 200`);
+      where r.reply_held_at is not null and r.reply_removed_at is null and r.status = 'published'
+      order by r.reply_held_at limit 200`);
     const reported = await tx.execute<TeamReviewRow & { reports: number }>(sql`
       select ${cols}, x.n as reports
       from (select review_id, count(*)::int as n, min(created_at) as first from review_report where status = 'open' group by review_id) x
@@ -366,7 +370,8 @@ export async function teamReview(env: ServerEnv, admin: Admin, id: string): Prom
              r.planned_on_localites as "plannedOnLocalites", r.created_at::text as "createdAt", r.body,
              reviewer_name(r.author_user_id) as "shownAs", r.event_date::text as "eventDate", r.decision_reason as reason,
              r.vendor_reply as reply, r.reply_removed_at is not null as "replyRemoved", r.team_email_status as "emailStatus",
-             r.language_flag as "languageFlag", (r.reply_held_at is not null and r.reply_removed_at is null) as "replyHeld",
+             r.language_flag as "languageFlag",
+             (r.reply_held_at is not null and r.reply_removed_at is null and r.status = 'published') as "replyHeld",
              r.reply_held_reason as "replyHeldReason",
              coalesce(x.vendor_flagged_at is not null and x.flag_outcome is distinct from 'booking_stands', false) as flagged,
              r.updated_at::text as seen

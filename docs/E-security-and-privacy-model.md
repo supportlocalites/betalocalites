@@ -115,7 +115,10 @@ An owner's or manager's save whose words the language check flags is held whole 
 nothing until the team puts it live (as the owner's own save) or declines it; the owner can
 withdraw it. A business's flagged reply to a review is held off its page until the team puts it
 live; only the team can release it (database rule). A review keeps the check's finding for the
-team only. The writer is never told what was found.
+team only. The writer is never told what was found. The words checked (an owner's changed text,
+a review, a reply) are sent to Cloudflare's Workers AI for the check, the same company that
+already carries every page of the site; nothing else about the person goes with them, and the
+privacy policy should say so (PO-07).
 
 There's no "super user" bypass. Admins go through the same checks; their role simply
 grants more, and every admin action is recorded in `audit_log`.

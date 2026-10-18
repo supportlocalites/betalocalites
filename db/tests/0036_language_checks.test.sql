@@ -84,7 +84,7 @@ select pg_temp.expect_equal('put live: the database records when', (
   'published true');
 select pg_temp.expect_code('a decision is final', $q$
   update owner_edit_hold set status = 'withdrawn' where id = '00000000-0000-7000-8000-000000003601'$q$, 'LP171');
-select pg_temp.expect_code('…and its time can''t be changed', $q$
+select pg_temp.expect_code('…and its reason can''t be added afterwards', $q$
   update owner_edit_hold set decision_reason = 'later' where id = '00000000-0000-7000-8000-000000003601'$q$, 'LP100');
 insert into owner_edit_hold (id, vendor_id, user_id, base, submitted, changes, flag_reason) values
   ('00000000-0000-7000-8000-000000003602', '00000000-0000-7000-8000-0000000036c1', '00000000-0000-7000-8000-0000000036a3',
@@ -96,6 +96,10 @@ select pg_temp.expect_equal('withdrawn by the owner: nobody else is recorded as 
   from owner_edit_hold where id = '00000000-0000-7000-8000-000000003602'), 'withdrawn none none');
 select pg_temp.expect_code('a held save can''t be deleted', $q$
   delete from owner_edit_hold$q$, '42501');
+reset role;
+select pg_temp.expect_code('what was saved can''t be rewritten, even by the database owner (the rule, not only the rights)', $q$
+  update owner_edit_hold set submitted = '{"tagline": "nice"}' where id = '00000000-0000-7000-8000-000000003602'$q$, 'LP100');
+set local role app_server;
 
 -- ------------------------------------------------------------------ a review's finding
 select pg_temp.act('person', '00000000-0000-7000-8000-0000000036a1');

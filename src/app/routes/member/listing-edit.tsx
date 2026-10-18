@@ -63,7 +63,7 @@ export async function action({ request, params, context }: Route.ActionArgs) {
   if (fields.intent === 'withdraw') {
     try {
       const withdrawn = await withdrawHeldEdit(env, member, params.slug);
-      return redirect(`/vendors/${params.slug}/edit?${withdrawn ? 'withdrawn' : 'saved'}=1`);
+      return redirect(`/vendors/${params.slug}/edit${withdrawn ? '?withdrawn=1' : ''}`);
     } catch (err) {
       if (err instanceof NotOwner) throw data({ reason: 'not_owner' }, { status: 404 });
       throw err;

@@ -93,6 +93,10 @@ type Decided = { vendorId: string; business: string; userId: string; name: strin
 async function decide(env: ServerEnv, admin: Admin, id: string, decision: 'published' | 'declined', reason: string | null) {
   return withDb(env, (db) =>
     db.transaction(async (tx): Promise<Decided> => {
+      // The listing first, then the hold: the same order as the owner's withdraw, so the two
+      // can't wait on each other.
+      await tx.execute(sql`
+        select 1 from vendor where id = (select vendor_id from owner_edit_hold where id = ${id}) for update`);
       const [h] = await tx.execute<HeldEdit & { business: string; name: string; email: string | null; changes: ChangeSet }>(sql`
         select h.id, h.vendor_id as "vendorId", h.user_id as "userId", h.base, h.submitted, h.changes,
                v.display_name as business, coalesce(u.given_name, u.display_name) as name,

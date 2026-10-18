@@ -57,13 +57,13 @@ export function normalise(text: string): string[] {
   return [...words, ...disguised];
 }
 
-/** The list's matches, each once, in the order found. Also "f*ck"-style words with stars. */
+/** The list's matches, each once, in the order found. Also "f*ck"-style words with stars (two real letters at least, so "*****" stars aren't a word). */
 export function listMatches(texts: string[]): string[] {
   const found: string[] = [];
   for (const word of texts.flatMap(normalise)) {
     const hit = WORDS.has(word)
       ? word
-      : word.includes('*') && word.length >= 3
+      : word.includes('*') && (word.match(/[a-z]/g) ?? []).length >= 2
         ? OFFENSIVE_WORDS.find((w) => w.length === word.length && [...word].every((c, i) => c === '*' || c === w[i]))
         : undefined;
     if (hit && !found.includes(hit)) found.push(hit);

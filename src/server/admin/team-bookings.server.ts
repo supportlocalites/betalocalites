@@ -83,7 +83,8 @@ export async function teamMenuCounts(
              (select count(*) from moderation_report where status = 'open')::int as "openReports",
              ((select count(*) from review where status = 'pending')
                + (select count(distinct review_id) from review_report where status = 'open')
-               + (select count(*) from review where reply_held_at is not null and reply_removed_at is null))::int as "waitingReviews",
+               + (select count(*) from review where reply_held_at is not null and reply_removed_at is null
+                  and status = 'published'))::int as "waitingReviews",
              (select count(*) from owner_edit_hold where status = 'waiting')::int as "heldChanges"`);
     return {
       openFlags: Number(n?.openFlags ?? 0),

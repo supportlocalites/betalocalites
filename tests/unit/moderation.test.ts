@@ -14,6 +14,14 @@ describe('the word list (D-50)', () => {
     expect(listMatches(['Great cakes! Call 705-555-0100, $45 each.'])).toEqual([]);
     expect(listMatches(['Cock-a-doodle farm visits with a pussy cat'])).toEqual([]);
   });
+  it('doesn’t take star ratings or dividers for a word', () => {
+    expect(listMatches(['***** would recommend', '5/5 ***', '* * *'])).toEqual([]);
+  });
+  it('leaves out words with everyday meanings in business text', () => {
+    expect(
+      listMatches(['Spic and span cleaning, Maine Coon kittens, garlic redskin potatoes, Van Dyke Landscaping, gypsy jazz, prick the dough']),
+    ).toEqual([]);
+  });
   it('names each match once', () => {
     expect(listMatches(['shit shit', 'SHIT'])).toEqual(['shit']);
   });

@@ -284,7 +284,8 @@ export async function saveOwnerEdits(
       const vendorId = v.id;
       const [count] = await tx.execute<{ n: number; waiting: boolean }>(sql`
         select ((select count(*) from owner_change where vendor_id = ${vendorId} and created_at > now() - interval '1 day')
-                + (select count(*) from owner_edit_hold where vendor_id = ${vendorId} and created_at > now() - interval '1 day'))::int as n,
+                + (select count(*) from owner_edit_hold where vendor_id = ${vendorId} and status <> 'published'
+                   and created_at > now() - interval '1 day'))::int as n,
                exists (select 1 from owner_edit_hold where vendor_id = ${vendorId} and status = 'waiting') as waiting`);
       if (count?.waiting) throw new OwnerRefused(WAITING_MESSAGE);
       if ((count?.n ?? 0) >= SAVES_PER_DAY) {

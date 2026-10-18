@@ -50,7 +50,7 @@ Every release and every database migration, in order. Appended before each deplo
 **Migrations applied:** `0036_language_checks.sql`
 **Destructive?** No. A new table, new empty columns on reviews, a replaced read function that
 answers the same for every reply not held, two more kinds of email.
-**Tests run:** database checks 36 of 36 files (0036: 23 checks); unit tests 189 of 189 (8 new);
+**Tests run:** database checks 36 of 36 files (0036: 24 checks); unit tests 191 of 191 (10 new);
 browser suites language check 40 of 40, owner editing 55 of 55, reviews 62 of 62, admin access
 43 of 43, business teams 38 of 38, analytics 51 of 51, look checks 448 of 448.
 **Security tests:** the owner, another owner and someone not on the team can't put a held save
@@ -61,6 +61,11 @@ deleted; a decision is final.
 checker is slow; otherwise none.
 **How to roll back:** remove the `ai` binding and the check from the edit and review pages with the
 next update; the table and columns can stay (empty).
+**Independent review before push:** no way round the hold. Fixed from it: star rows ("*****")
+read as a hidden word; everyday words removed from the list (spic and span, Maine Coon, redskin
+potatoes, Van Dyke, gypsy jazz, prick the dough and others); the team's decision and the owner's
+withdraw now lock in the same order; a re-saved decided review no longer errors; held replies of
+removed reviews no longer wait; the privacy model says the words go to Cloudflare's AI.
 **Approved by:** the product owner, D-50 (17 October 2026).
 
 ### 2026-10-18 — Users and roles, the audit log, How it works, For businesses
