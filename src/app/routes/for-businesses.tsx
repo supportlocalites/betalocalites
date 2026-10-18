@@ -1,6 +1,6 @@
 import { Link } from 'react-router';
 import { SiteHeader } from '@/components/SiteHeader';
-import { pageMeta } from '@/lib/meta';
+import { shareMeta } from '@/lib/meta';
 import type { Route } from './+types/for-businesses';
 import styles from './info.module.css';
 
@@ -9,8 +9,8 @@ import styles from './info.module.css';
  * its page, in the words of A §6. Only what is built (D-03, D-33, D-35, D-40, ADR-029, 0015);
  * claiming is free, as each unclaimed page says; nothing about paid plans (not decided).
  */
-export const meta: Route.MetaFunction = () =>
-  pageMeta('For businesses', 'Claim your business on Localites and hear from people planning events in Orillia and nearby.');
+export const meta: Route.MetaFunction = ({ matches }) =>
+  shareMeta(matches, '/for-businesses', 'For businesses', 'Claim your business on Localites and hear from people planning events in Orillia and nearby.');
 
 export default function ForBusinesses() {
   return (

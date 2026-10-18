@@ -8,15 +8,23 @@ import { VendorPage } from '@/components/VendorPage';
 import { cookieHeaders, viewTrack } from '@/server/activity.server';
 import { hasSessionCookie } from '@/server/auth/session.server';
 import { isUuid } from '@/lib/ids.mjs';
-import { pageMeta } from '@/lib/meta';
+import { pageMeta, shareMeta } from '@/lib/meta';
 import { findRenamed, getVendor } from '@/server/catalog.server';
 import { withDb } from '@/server/db.server';
 import { publicReviews } from '@/server/reviews.server';
 import type { Route } from './+types/vendor';
 import styles from '@/components/VendorPage.module.css';
 
-export const meta: Route.MetaFunction = ({ loaderData }) =>
-  loaderData ? pageMeta(loaderData.vendor.name, loaderData.vendor.tagline ?? undefined) : pageMeta('Not found');
+export const meta: Route.MetaFunction = ({ loaderData, matches }) =>
+  loaderData
+    ? shareMeta(
+        matches,
+        `/vendors/${loaderData.slug}`,
+        loaderData.vendor.name,
+        loaderData.vendor.tagline ?? `${loaderData.vendor.name} in ${loaderData.vendor.town}, on Localites.`,
+        loaderData.vendor.photos?.[0]?.url ?? loaderData.vendor.profile?.url,
+      )
+    : pageMeta('Not found');
 
 export async function loader({ request, params, context }: Route.LoaderArgs) {
   const { env } = context.get(cloudflareContext);
@@ -31,7 +39,8 @@ export async function loader({ request, params, context }: Route.LoaderArgs) {
   const reviews = await withDb(env, (db) => publicReviews(db, id));
   // A signed note of this page, for counting real visits and taps (ADR-030).
   const { track, setCookie } = await viewTrack(env, request, id);
-  return data({ vendor, reviews, slug: params.slug, signedIn: hasSessionCookie(request), track }, { headers: cookieHeaders(setCookie) });
+  const origin = new URL(request.url).origin;
+  return data({ vendor, reviews, slug: params.slug, signedIn: hasSessionCookie(request), track, origin }, { headers: cookieHeaders(setCookie) });
 }
 
 // The visitor cookie a new browser gets with the page (ADR-030).
@@ -73,7 +82,7 @@ function PlanNotice({ name }: { name: string }) {
   );
 }
 
-export default function VendorProfile({ loaderData: { vendor, reviews, slug, signedIn, track } }: Route.ComponentProps) {
+export default function VendorProfile({ loaderData: { vendor, reviews, slug, signedIn, track, origin } }: Route.ComponentProps) {
   const pageRef = useRef<HTMLElement>(null);
   const location = useLocation();
   const onTap = useVendorActivity(track, pageRef, listPlace(location.state), location.key);
@@ -181,6 +190,17 @@ export default function VendorProfile({ loaderData: { vendor, reviews, slug, sig
               </>
             )}
           </section>
+          <p className="muted">
+            Something wrong with this listing?{' '}
+            <a
+              href={`mailto:supportlocalites@gmail.com?subject=${encodeURIComponent(`Something wrong with ${vendor.name}`)}&body=${encodeURIComponent(
+                `The listing: ${origin}/vendors/${slug}\n\nWhat's wrong:\n`,
+              )}`}
+            >
+              Tell us
+            </a>
+            .
+          </p>
         </VendorPage>
       </main>
     </>

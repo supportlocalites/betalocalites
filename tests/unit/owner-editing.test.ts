@@ -301,4 +301,16 @@ describe('the team’s daily note (review of D-34)', () => {
     expect(part.text).toContain('…and 2 more');
     expect(part.subject).toBe('Owner changes on Localites: 1 business, 3 saves');
   });
+  it('reminds the team of deleted accounts still to finish, with the oldest one’s due date', () => {
+    const todo = { waiting: 2, oldest: '2026-10-01T15:00:00Z' };
+    const withSaves = noteText([{ ...save, undoneBy: null, undoChanges: null }], 0, 'https://x', todo);
+    expect(withSaves.text.split('\n')[0]).toBe(
+      '2 deleted accounts still need their sign-in records removed in Supabase (the oldest by October 31): https://x/admin/account-deletions',
+    );
+    const alone = noteText([], 0, 'https://x', { waiting: 1, oldest: '2026-10-01T15:00:00Z' });
+    expect(alone.subject).toBe('Localites: 1 deleted account to finish');
+    expect(alone.text).toContain('1 deleted account still needs its sign-in record removed');
+    expect(alone.text).toContain('No owner changed a listing since the last note.');
+    expect(noteText([{ ...save, undoneBy: null, undoChanges: null }], 0, 'https://x').text).not.toContain('deleted account');
+  });
 });

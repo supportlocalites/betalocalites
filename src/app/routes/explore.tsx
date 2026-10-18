@@ -2,12 +2,12 @@ import { Link } from 'react-router';
 import { cloudflareContext } from '@/app/context';
 import { SearchBar } from '@/components/SearchBar';
 import { SiteHeader } from '@/components/SiteHeader';
-import { pageMeta } from '@/lib/meta';
+import { shareMeta } from '@/lib/meta';
 import { listCategories } from '@/server/catalog.server';
 import type { Route } from './+types/explore';
 import styles from './explore.module.css';
 
-export const meta: Route.MetaFunction = () => pageMeta('Explore');
+export const meta: Route.MetaFunction = ({ matches }) => shareMeta(matches, '/explore', 'Explore');
 
 export async function loader({ context }: Route.LoaderArgs) {
   return { categories: await listCategories(context.get(cloudflareContext).env) };

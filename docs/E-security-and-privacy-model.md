@@ -423,6 +423,7 @@ Stage 4. Unchanged from revision 1:
 | Link left in browser history | Swapped for a short-lived cookie; address bar shows no token |
 | **Group link** in a group chat or social post (D-08) | Anyone holding it can reply, so it asks for a name, is rate-limited, shows nothing about other guests, and the host can switch it off or replace it at any time. Replies are matched to the guest list by the host. |
 | **QR code** | The same link drawn as a square, with the same protections. A printed code can't be revoked, so a QR for a group link is replaced, not reused, if it leaks. |
+| Link previews (WhatsApp, Facebook, Messages) | A preview robot opening an invitation link gets a plain "You're invited" card with the Localites picture: never the event, the host or the date, and no cookie, so a preview can't count as the guest opening it (18 October 2026) |
 
 ## 6. Conversation and file safety
 
@@ -520,20 +521,40 @@ account exists, and detailed activity records kept for year-over-year reports (D
 | Data | Kept for | Then |
 |---|---|---|
 | Events and event plans (type, date, place, vendors, bookings, guest names and replies) | As long as the host's account exists, with no time limit, so hosts can look back years later | Deleted with the account |
-| Conversations and files | Conversations: up to 3 years after the last message (deleting them then isn't built yet). **Files (D-47, built: migration 0030):** until 30 days after the conversation's event (at least 30 days after sending), or 1 year after sending if it isn't about an event; then deleted nightly and shown as "This file has expired" (kept with a report that covers them) | Deleted. **Built (migration 0025):** when either side leaves (the person deletes their account, or the business stops being claimed), the conversation ends: the other side keeps its copy, nobody can write in it, and a business's later team never sees it |
+| Conversations and files | Conversations: up to 3 years after the last message (**built**, the morning run, migration 0041: with their messages, read markers and file records; not a reported one, which stays with its report). **Files (D-47, built: migration 0030):** until 30 days after the conversation's event (at least 30 days after sending), or 1 year after sending if it isn't about an event; then deleted nightly and shown as "This file has expired" (kept with a report that covers them) | Deleted. **Built (migration 0025):** when either side leaves (the person deletes their account, or the business stops being claimed), the conversation ends: the other side keeps its copy, nobody can write in it, and a business's later team never sees it |
 | When a consumer deletes their account | — | **Built (13 October 2026, migration 0014):** from **Your account → Delete your account**, after typing their email address. At once, in one step in the database: their events, plans (and any flag notes on them) and saved businesses are deleted, so businesses they marked booked no longer see the booking; their name, email and personal details are erased (the account row stays as *"Former Localites member"* because history points at it); they leave any business's team, and a business left with no owner goes back to unclaimed; open claims are withdrawn and their notes erased; they're unlinked from activity and suggestions; the session ends. The team then removes their Supabase sign-in record by hand within 30 days (**Admin → Deleted accounts**; the site doesn't hold Supabase's admin key). A team member can't delete their account until their team role is removed. From Stage 2B, in conversations their messages show as *"Former Localites member"* and their files are deleted (built, migration 0028: unless kept for a report made while they were there). |
 | When a vendor leaves Localites | — | The listing is archived. Consumers keep their copies of conversations, shown as *"This business has left Localites"*. Published reviews stay, without the reply option. |
 | Published reviews | While the listing exists | **Built (migration 0031):** the author is shown as *"A Localites member"* if they delete their account, and a review still waiting is withdrawn; a review only shows while the business is listed |
 | Guest phone numbers and emails (Stage 4) | Until 90 days after the event | Erased (**built**, the morning job, migration 0033). Guest names and their replies stay with the event so the host can look back, as do group-link replies (a name, a reply, a note) and guests' answers to the host's questions (part 2), which may be things like allergies; the guest list goes with the host's account |
 | Detailed activity records (§7a) | No deletion date (D-22), for year-over-year reports | Daily totals are also kept. If the database nears its free limit, older detail moves to archive storage. Unlinked from anyone who deletes their account |
-| Suggested businesses (D-25) | Kept | On a declined suggestion, the phone number or email typed in is erased after 1 year; the count stays for reports |
-| Email delivery log | 1 year | Deleted |
-| Audit log | 2 years | Deleted |
+| Suggested businesses (D-25) | Kept | On a declined suggestion, the phone number or email typed in is erased after 1 year (**built**, migration 0041); the count stays for reports. The "it's listed" email is sent only within a year of the team's decision, since its record is deleted after a year |
+| Email delivery log | 1 year | Deleted (**built**, the morning run, migration 0041) |
+| Audit log | 2 years | Deleted (**built**, migration 0041), except an entry a business page's own history points at (owners' saves, the latest analytics switch), kept as that history. The log stays append-only: only the morning run can delete, and only entries over 2 years old |
 | Words of a message removed after its conversation was reported (migrations 0026, 0027: only messages there when it was reported) | With the report (deleting reports isn't built yet) | Read only by the team, through the report |
 | A file in a conversation reported while it was there, then removed (migration 0028) | With the report (deleting reports isn't built yet) | Opened only by the team, through the report, each look logged |
 | Verification evidence | While verified + 1 year | Deleted; outcome kept |
-| Account deletion request | Within 30 days | As above |
+| Account deletion request | Within 30 days | As above. The team's daily note reminds them of any still waiting, with the oldest one's due date (migration 0044) |
 | Backups | Our own nightly backup, kept 30 days (F §5) | Expire automatically; deleted data is fully gone after 30 days |
+
+**Built (18 October 2026):** each kind of deletion runs on its own each morning, up to 2,000 rows
+of each a run (the rest the next morning); one that fails is logged and the others still run.
+
+**A copy of your information (migration 0043):** **Your account → Download your data** gives the
+signed-in person a file of their information: account and details, events (with the private
+details), plans, guests and replies, saved businesses, conversations, reviews, inquiries,
+suggestions, reports they made, business teams and claims, and the latest 5,000 activity records
+and searches. Activity from a browser someone else has also signed in on is included only when it
+was done signed in as them; searches carry no account, so only those from browsers only they use.
+Left out, as on their own pages: a business's private note about a booking, messages the team hid
+from someone else, a review the team denied (D-51), and a suspension's reason (the lawyer is
+asked, PO-07). It's built by the database for the person acting as themselves only.
+
+**Suspending an account (migration 0042):** the team can suspend an account on **Admin →
+Accounts** (found by the email it signs in with; the email is sent in the form, never the web
+address, and each look-up is recorded). Every signed-in page then sends the person to a page
+saying so, except **Download your data** and **Delete your account**. Not yourself, not a team
+member (remove their role first), not a deleted account; each suspension and lift is in
+`audit_log` with why. A suspension isn't a ban: the person can delete their account and join again.
 
 ## 9. Media and files
 

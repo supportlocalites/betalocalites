@@ -7,6 +7,7 @@ import { runActivityRollup } from '@/server/activity-rollup.server';
 import { runDailyNote } from '@/server/daily-note.server';
 import { closeInterruptedPlanEmails } from '@/server/email-templates.server';
 import { sendPlanSummaries } from '@/server/plan-emails.server';
+import { runScheduledDeletions } from '@/server/retention.server';
 import { cleanUpConversationFiles, expireConversationFiles } from '@/server/conversation-files.server';
 import { cleanUpRemovedPhotos } from '@/server/photos.server';
 import { sendReviewRequests } from '@/server/review-requests.server';
@@ -93,6 +94,13 @@ export default {
       eraseGuestContacts(env).then(
         (n) => console.log('guest contact details erased:', n),
         (err) => console.error('erasing guest contact details failed', err instanceof Error ? err.message : err),
+      ),
+    );
+    // What the privacy policy says we delete after a while (E §8, retention.server.ts).
+    ctx.waitUntil(
+      runScheduledDeletions(env).then(
+        (outcome) => console.log('scheduled deletions:', outcome),
+        (err) => console.error('scheduled deletions failed', err instanceof Error ? err.message : err),
       ),
     );
     // Removed photos whose files couldn't be deleted at the time (photos.server.ts).

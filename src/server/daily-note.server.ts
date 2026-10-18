@@ -7,8 +7,10 @@ import { type ChangeSet, describeChanges, undoableKeys } from './owner-changes';
 /**
  * The team's daily note of owners' changes (D-34, ADR-029), run by Cloudflare's scheduler
  * (wrangler.jsonc triggers). One note a day at most: the day is claimed in team_digest
- * first, and a failed send is retried by the next run (its saves stay pending). Nothing
- * changed: nothing is sent, and the day is recorded as "nothing to report".
+ * first, and a failed send is retried by the next run (its saves stay pending). It also
+ * reminds the team of deleted accounts whose sign-in record still has to be removed by hand
+ * (migration 0044). Nothing to say: nothing is sent, and the day is recorded as "nothing to
+ * report".
  */
 
 const MAX_LISTED = 200;
@@ -37,11 +39,32 @@ const undoWords = (s: Pending) => {
 
 const when = new Intl.DateTimeFormat('en-CA', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit', timeZone: 'America/Toronto' });
 
-/** The note's words, grouped by business (flagged saves first). */
-export function noteText(rows: Pending[], more: number, siteUrl: string): { subject: string; text: string } {
+/** Deleted accounts whose Supabase sign-in record the team still has to remove (E §8). */
+export type ToFinish = { waiting: number; oldest: string | null };
+
+const day = new Intl.DateTimeFormat('en-CA', { month: 'long', day: 'numeric', timeZone: 'America/Toronto' });
+
+/** The reminder's line: how many, and when the oldest is due (30 days after it was asked for). */
+export function finishLine(todo: ToFinish, siteUrl: string): string | null {
+  if (todo.waiting === 0 || !todo.oldest) return null;
+  const due = day.format(new Date(new Date(todo.oldest).getTime() + 30 * 86400000));
+  const what = todo.waiting === 1 ? '1 deleted account still needs its sign-in record' : `${todo.waiting} deleted accounts still need their sign-in records`;
+  return `${what} removed in Supabase (the oldest by ${due}): ${siteUrl}/admin/account-deletions`;
+}
+
+/** The note's words: the reminder first, then owners' saves grouped by business (flagged saves first). */
+export function noteText(rows: Pending[], more: number, siteUrl: string, todo: ToFinish = { waiting: 0, oldest: null }): { subject: string; text: string } {
   const businesses = new Map<string, Pending[]>();
   for (const r of rows) businesses.set(r.vendorId, [...(businesses.get(r.vendorId) ?? []), r]);
+  const reminder = finishLine(todo, siteUrl);
+  if (rows.length === 0) {
+    return {
+      subject: `Localites: ${todo.waiting === 1 ? '1 deleted account' : `${todo.waiting} deleted accounts`} to finish`,
+      text: [reminder ?? '', '', 'No owner changed a listing since the last note.'].join('\n'),
+    };
+  }
   const lines = [
+    ...(reminder ? [reminder, ''] : []),
     'Owners changed these listings since the last note. They are already live. Undo anything that breaks our rules on the listing’s admin page.',
   ];
   for (const [vendorId, saves] of businesses) {
@@ -81,6 +104,7 @@ export async function runDailyNote(env: ServerEnv): Promise<NoteOutcome> {
 
     let listed: Pending[];
     let more: number;
+    let todo: ToFinish;
     try {
       // 2. Every owner save not yet in a note.
       const rows = await db.execute<Pending>(sql`
@@ -105,13 +129,25 @@ export async function runDailyNote(env: ServerEnv): Promise<NoteOutcome> {
       return fail(`The note couldn’t be prepared (${err instanceof Error ? err.message : 'unknown error'}).`);
     }
 
-    if (listed.length === 0) {
+    // The reminder on its own: if it can't be read, the owners' changes still go.
+    try {
+      const [finish] = await db.execute<ToFinish>(sql`select waiting, oldest::text as oldest from deletions_to_finish()`);
+      todo = finish ?? { waiting: 0, oldest: null };
+    } catch (err) {
+      console.error('deleted accounts reminder not read:', err instanceof Error ? err.message : err);
+      todo = { waiting: 0, oldest: null };
+    }
+
+    if (listed.length === 0 && todo.waiting === 0) {
       await db.execute(sql`update team_digest set status = 'empty', change_count = 0 where day = ${claimed.day}::date`);
       return 'empty';
     }
 
     // 3. One email; then mark exactly the saves it listed.
-    const result = await sendEmail(env, { to: TEAM_ADDRESS, ...noteText(listed, more, env.SITE_URL ?? 'https://localites.supportlocalites.workers.dev') });
+    const result = await sendEmail(env, {
+      to: TEAM_ADDRESS,
+      ...noteText(listed, more, env.SITE_URL ?? 'https://localites.supportlocalites.workers.dev', todo),
+    });
     if (!result.sent) return fail(result.reason);
     const ids = `{${listed.map((r) => r.auditId).join(',')}}`;
     await db.transaction(async (tx) => {

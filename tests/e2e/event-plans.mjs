@@ -86,7 +86,9 @@ cookie.m = cookieFor(await twoStepSession(email('m')));
 const SECRETS = [`SECRET-TITLE-${run}`, `SECRET-VENUE-${run}`, `SECRET-NOTE-${run}`];
 const TEAM_NOTE = `TEAM-NOTE-${run}`;
 const FLAG_NOTE = `FLAG-NOTE-${run}`;
-const privateIn = (body) => [...SECRETS, '4321', '4,321', email('a')].filter((s) => body.includes(s));
+// The budget as a number on its own (not inside a random code or another test's name).
+const BUDGET = /(?<![\w-])4,?321(?![\w-])/;
+const privateIn = (body) => [...[...SECRETS, email('a')].filter((s) => body.includes(s)), ...(BUDGET.test(body) ? ['the budget'] : [])];
 const audits = async (action, subject) => (await sql`select count(*)::int as n from audit_log where action = ${action} and subject_id = ${subject}`)[0].n;
 const rowOf = async (eventId, vendorId) =>
   (await sql`select id, status, vendor_flagged_at from event_vendor where event_id = ${eventId} and vendor_id = ${vendorId}`)[0];
@@ -503,7 +505,7 @@ check('the team’s overview lists the business among the most marked booked (or
   r.status === 200 && counts.includes('Planning (team only)') && (r.body.includes(V.name) || businessRows >= 20), String(r.status));
 check('…and the totals by kind of event, with "No type given" as its own row',
   new RegExp(`${RENAMED}</th><td>1</td><td>1</td>`).test(r.body.replace(/<!-- -->/g, '')) && counts.includes('No type given'));
-check('…never who or which event', !r.body.includes(A_NAME) && privateIn(r.body).length === 0);
+check('…never who or which event', !r.body.includes(A_NAME) && privateIn(r.body).length === 0, privateIn(r.body).join() + (r.body.includes(A_NAME) ? ' name' : ''));
 r = await site(`/admin/listings/${V.id}/activity`, { cookie: cookie.m, method: 'POST', form: { intent: 'analytics', enabled: 'on', note: 'E2E: plans' } });
 r = await site(`/vendors/${V.slug}/analytics?period=month`, { cookie: cookie.o });
 const ownPage = words(r.body);

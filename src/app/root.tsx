@@ -6,6 +6,7 @@ import '@fontsource/jost/500.css';
 import '@fontsource/jost/600.css';
 import './globals.css';
 import { Form, isRouteErrorResponse, Link, Links, Meta, Outlet, Scripts, ScrollRestoration } from 'react-router';
+import { SiteFooter } from '@/components/SiteFooter';
 import { SiteHeader } from '@/components/SiteHeader';
 import { pageMeta } from '@/lib/meta';
 import { hasSessionCookie } from '@/server/auth/session.server';
@@ -23,7 +24,8 @@ export const meta: Route.MetaFunction = ({ error }) =>
 
 /** Only what the header needs; reading a cookie costs no network request. */
 export function loader({ request }: Route.LoaderArgs) {
-  return { signedIn: hasSessionCookie(request) };
+  // The site's own address, for link previews (lib/meta.ts shareMeta).
+  return { signedIn: hasSessionCookie(request), origin: new URL(request.url).origin };
 }
 
 /**
@@ -52,7 +54,12 @@ export function Layout({ children }: { children: React.ReactNode }) {
 }
 
 export default function App() {
-  return <Outlet />;
+  return (
+    <>
+      <Outlet />
+      <SiteFooter />
+    </>
+  );
 }
 
 /** Shown for unknown addresses, unlisted businesses and unexpected errors. */

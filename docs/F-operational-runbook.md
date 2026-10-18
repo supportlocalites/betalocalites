@@ -432,6 +432,26 @@ guide this live (PO-03 part 3). Changing the password later is the same two step
 - No two kinds with the same name under one main kind, and no two towns with the same name in
   one region (the page says so plainly).
 
+### Accounts, copies of data and scheduled deletions (migrations 0041–0044)
+
+- **Suspending someone:** **Admin → Accounts**, type the email they sign in with, **Find**, then
+  **Suspend** with a reason (kept in the record, never shown to them). Their next click on any
+  signed-in page shows "Your account is suspended", with the team's email; they can still download
+  their data or delete their account. **Lift the suspension** from the same page, also with a
+  reason. Team members can't be suspended (remove their role on Users and roles first). A
+  suspension isn't a ban: someone who deletes their account can join again with the same email.
+- **Someone asks for a copy of their data:** point them to **Your account → Download your data**.
+  If they can't sign in, check it's really them (reply only to the email address on the account).
+  The team pages can't make the file for someone else (by design), so answer from the team pages
+  or ask a developer for help, within 30 days.
+- **The morning deletions** run with the other morning jobs: email records over a year old, the
+  change log over 2 years (except owners' saves and analytics switches), conversations 3 years
+  after the last message (not reported ones), and declined suggestions' contact details after a
+  year. A kind that fails is logged as "scheduled deletions failed for: …" in Cloudflare's logs and
+  tried again the next morning; the others still run.
+- **Deleted accounts to finish:** the team's daily note now starts with how many still need their
+  Supabase sign-in record removed and the oldest one's due date (30 days after it was asked for).
+
 ## 5. Backups
 
 | Layer | What | Frequency | Retention | Source |
@@ -580,7 +600,13 @@ address on every service account (Supabase, Cloudflare, Resend, Sentry, backups)
 - Dependencies (third-party code libraries) are pinned to exact versions, so a build
   today and a build in six months produce the same result.
 - Automated tooling proposes updates weekly. Security updates are applied within a
-  week; others are batched monthly.
+  week; others are batched monthly. **Built (18 October 2026):** GitHub's Dependabot
+  (`.github/dependabot.yml`) opens a pull request each Monday for package updates (small ones
+  grouped into one) and monthly for the test tools; each runs every test, and nothing reaches
+  the site until it's merged. **One step for the product owner:** in GitHub, open the repository's
+  **Settings → Code security** (called "Advanced Security" on some accounts) and switch on
+  **Dependabot alerts** and **Dependabot security updates**, so security fixes arrive as soon as
+  they're published, not just on Mondays. Free; no keys involved.
 - Adding any new dependency requires a reason in the pull request.
 
 ## 10. Incident communication

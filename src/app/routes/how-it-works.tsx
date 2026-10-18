@@ -1,6 +1,6 @@
 import { Link } from 'react-router';
 import { SiteHeader } from '@/components/SiteHeader';
-import { pageMeta } from '@/lib/meta';
+import { shareMeta } from '@/lib/meta';
 import type { Route } from './+types/how-it-works';
 import styles from './info.module.css';
 
@@ -9,8 +9,8 @@ import styles from './info.module.css';
  * planning an event, in the words of A §6. Only what is built; nothing about payments except
  * that they never go through Localites (D-16, D-24).
  */
-export const meta: Route.MetaFunction = () =>
-  pageMeta('How it works', 'Find local businesses for your event in Orillia and nearby, and talk to them directly.');
+export const meta: Route.MetaFunction = ({ matches }) =>
+  shareMeta(matches, '/how-it-works', 'How it works', 'Find local businesses for your event in Orillia and nearby, and talk to them directly.');
 
 export default function HowItWorks() {
   return (

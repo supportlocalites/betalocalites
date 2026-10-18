@@ -7,15 +7,19 @@ export default [
   route('search', 'routes/search.tsx'),
   route('vendors/:slug', 'routes/vendor.tsx'),
   route('api/health', 'routes/health.ts'),
+  route('robots.txt', 'routes/robots.ts'),
+  route('sitemap.xml', 'routes/sitemap.ts'),
   route('api/activity', 'routes/api-activity.ts'),
   route('suggest', 'routes/suggest.tsx'),
   route('how-it-works', 'routes/how-it-works.tsx'),
   route('for-businesses', 'routes/for-businesses.tsx'),
+  route('help', 'routes/help.tsx'),
   route('join', 'routes/join.tsx'),
   route('sign-in', 'routes/sign-in.tsx'),
   route('two-step', 'routes/two-step.tsx'),
   route('sign-out', 'routes/sign-out.ts'),
   route('goodbye', 'routes/goodbye.tsx'),
+  route('suspended', 'routes/suspended.tsx'),
   // A guest's invitation (Stage 4): no account. /i/<token> swaps the link for a cookie.
   route('i/:token', 'routes/invite-link.ts'),
   route('invite', 'routes/invite.tsx'),
@@ -28,6 +32,8 @@ export default [
   layout('routes/member/layout.tsx', [
     route('account', 'routes/member/account.tsx'),
     route('account/delete', 'routes/member/account-delete.tsx'),
+    route('account/data', 'routes/member/account-data.tsx'),
+    route('account/data/download', 'routes/member/account-data-download.ts'),
     route('vendors/:slug/claim', 'routes/member/claim.tsx'),
     route('vendors/:slug/edit', 'routes/member/listing-edit.tsx'),
     route('vendors/:slug/analytics', 'routes/member/analytics.tsx'),
@@ -102,6 +108,7 @@ export default [
     route('categories', 'routes/admin/categories.tsx'),
     // Users and roles (X10, migration 0035), and the audit log (X11).
     route('team', 'routes/admin/team.tsx'),
+    route('accounts', 'routes/admin/accounts.tsx'),
     route('audit', 'routes/admin/audit.tsx'),
     // Owners' changes the language check held (D-50, migration 0036).
     route('held-changes', 'routes/admin/held-changes.tsx'),

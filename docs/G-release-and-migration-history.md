@@ -31,6 +31,39 @@ Every release and every database migration, in order. Appended before each deplo
 
 ## Releases
 
+### 2026-10-18 — Before-launch tasks, part 1: deletions, suspensions, a copy of your data, help
+
+**Stage:** 1 (screens A6, A7, X22, P9, P4)
+**What changed (plain English):** the deletions the privacy policy promises now run every morning
+(email records after a year, the team's change log after two, conversations three years after the
+last message, a declined suggestion's contact details after a year). The team can suspend an
+account on **Admin → Accounts**; a suspended person sees a page saying so and can still download
+their data or delete their account. **Your account → Download your data** gives anyone a file of
+their information. The team's daily note reminds them of deleted accounts still to finish. A
+**Help** page and a footer on every page; "Something wrong with this listing?" on business pages;
+link previews with a Localites picture (invitation links show only "You're invited"); a site map
+and robots.txt for search engines. GitHub's Dependabot proposes package updates weekly.
+**Migrations applied:** `0041_scheduled_deletions.sql`, `0042_account_suspension.sql`,
+`0043_my_data.sql`, `0044_deletion_reminder.sql`
+**Destructive?** 0041 deletes old records by design, as the privacy policy promises; nothing younger
+than its period. The nightly backups keep 30 days.
+**Tests run:** database checks 44 of 44 files (0041: 15, 0042: 17, 0043: 9, 0044: 4); unit tests 192
+of 192; every browser suite (accounts 32 of 32, help and sharing 18 of 18, look 496 of 496, and the
+rest unchanged).
+**Security tests:** nobody but the morning run can delete from the change log (not the server, not the
+database owner directly); a person, a business, a team-side claim without the role, the
+browser-facing role and the suspended person can't suspend or lift; a suspended person reaches only
+their data and deleting; Download my data gives only the person's own, never someone else's
+activity on a shared computer, a business's private note, a hidden message or a denied review;
+invitation previews show nothing private and set no cookie.
+**Independent review before push:** fixed: a shared family computer could have put one person's
+activity and searches in the other's download; the team's look-up no longer puts the email in the web
+address; each kind of deletion now runs on its own; the data page no longer says "everything".
+**Existing functionality affected:** the "it's listed" email is sent only within a year of the team's
+decision on the suggestion.
+**How to roll back:** with the next update; the deletions can be stopped by removing the morning call.
+**Approved by:** the product owner, 18 October 2026 ("add all of them").
+
 ### 2026-10-18 — Messages in a business's Analytics (D-52); a daily summary of booking emails (D-53)
 
 **Stage:** 2 (screens V10, X18)

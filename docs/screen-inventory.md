@@ -25,7 +25,7 @@ added; quotes, bookings and the concierge queue removed.
 | P6 | How it works | For consumers and for vendors. States plainly that Localites doesn't handle payments. **Built** (`/how-it-works`, linked from Explore): find, talk directly or Inquire, plan, invite guests, say how it went; no money through Localites | 1 |
 | P7 | For vendors | Why join, how claiming works, that it's free. **Built** (`/for-businesses`, linked from Explore): already listed from public details and removal on request (D-03), claiming and how it's checked (D-33, D-35), what an owner can do (ADR-029, 0015), D-40's booked summary; nothing about paid plans (not decided) | 1 |
 | P8 | Claim or remove this listing | From an unclaimed profile. **Built** (`/vendors/<name>/claim`, ADR-028): how you're connected, a note, "I'm allowed to manage this listing"; removal by email to the team | 1 |
-| P9 | Privacy · Terms · Review policy · Contact | | 1 |
+| P9 | Privacy · Terms · Review policy · Contact | **Contact built** as **Help** (`/help`, 18 October 2026): common questions answered from what the site does, and the team's email; a footer on every page links Help, How it works, For businesses, Suggest a business and the email. **Policies drafted** ([docs/legal](./legal/), PO-07); their pages come after the lawyer's review. Link previews (title, description, picture) on public pages; invitation links show robots a plain "You're invited" card | 1 |
 | P10 | 404 / error | Friendly, with a way back | 1 |
 | P11 | Suggest a business | Three questions (name; website; phone or email), then an honest "our team will look into it" (D-25). Signed in: linked to their account, "We'll email you when it's on Localites" (migration 0038) | 1 |
 
@@ -37,6 +37,8 @@ added; quotes, bookings and the concierge queue removed.
 | A2 | "We've emailed you a code" (part of A1; codes, not links, D-32) | 1 |
 | A3 | ~~Reset password~~: not needed, no passwords for the public (D-32). The team's password reset is in the runbook | — |
 | A4 | Account settings, delete my account. **Built** (`/account`; **Delete your account** at `/account/delete`, 13 October 2026, E §8): name, email, personal details (D-36), your businesses and claims, a "Planning" section, **Emails** (turn "How was it?" emails on or off, reviews part 2) and, for owners, **Bookings marked**, sign out; deleting an account comes before launch | 1 |
+| A6 | Download your data | **Built** (`/account/data`, migration 0043): a file of the person's information, from Your account; open even when suspended | 1 |
+| A7 | Account suspended | **Built** (`/suspended`, migration 0042): where a suspended person's signed-in pages send them; how to reach the team, Download your data, Delete your account | 1 |
 | A5 | Switch: "My events" ⇄ "My business" (only shown to people on a vendor team). **Built** (2A) on My events, Saved businesses and My business | 2 |
 
 ## Consumer
@@ -106,6 +108,7 @@ added; quotes, bookings and the concierge queue removed.
 | X16 | Booking flags | Resolve vendor flags. **Read-only list built** (2A, `/admin/booking-flags`, "Booking flags (n)" in the team menu): business, note, who marked it, when; every look recorded. Resolving stays Stage 3 | 3 |
 | X20 | Bookings (team) | **Built** (D-46, `/admin/bookings`, "Bookings (n to check in)" in the team menu): every business marked booked, listed or not, with the person's name and email, the date, the town and guests; taken-down businesses with bookings still to come first ("Check in with these people"), then coming up, then past and cancelled; one business's from its listing page. Every look recorded | 2 |
 | X21 | Held changes | **Built** (`/admin/held-changes`, D-50, migration 0036, "Held changes (n waiting)" in the team menu): owners' saves the language check held, with what changed and what the check found; Put live (as the owner's save) or Decline with a reason the owner is emailed; the last 30 days' decisions | 1 |
+| X22 | Accounts | **Built** (`/admin/accounts`, migration 0042): find an account by email (sent in the form, each look recorded); suspend it with a reason, or lift a suspension; everyone suspended now. Not yourself or a team member | 1 |
 | X17 | Operations report | Listings, claims, conversations, reply rates, reviews | 3 |
 | X18 | Vendor activity reports | One vendor's totals by period (seen in search, views, taps; later saves, inquiries, messages), and the switch that turns on that business's Analytics page (V10, D-37); category-level figures for others (D-22). **Built** (`/admin/activity`, each listing's **Activity** page; the detail by day and the words searched, each look recorded). **Plus "Planning (team only)"** (D-42): saved, added to an event plan and marked booked per business, a top-20 table, and totals by kind of event with "No type given" | 1 |
 | X19 | Suggested businesses | Every suggestion, with likely duplicates; mark added, declined or duplicate; link to the new listing (D-25). Publishing the listing made from it, or marking it a duplicate of a listed business, emails whoever suggested it signed in, once | 1 |
@@ -114,9 +117,9 @@ added; quotes, bookings and the concierge queue removed.
 
 | Stage | Screens |
 |---|---|
-| 1 — Discovery & vendors | 33 |
+| 1 — Discovery & vendors | 36 |
 | 2 — The handshake | 17 |
 | 3 — Feedback & reviews | 6 |
 | 4 — Guests & RSVPs | 8 |
 | 5 — Growth | 1 |
-| **Total** | **65** |
+| **Total** | **68** |

@@ -16,7 +16,7 @@ export type Member = {
   accessToken: string;
 };
 
-type Person = { name: string; firstName: string | null; lastName: string | null; email: string; closed: boolean };
+type Person = { name: string; firstName: string | null; lastName: string | null; email: string; closed: boolean; suspended: boolean };
 
 /**
  * Our own record of a person (app_user), if they've finished joining. With a browser id,
@@ -26,7 +26,8 @@ export async function findPerson(env: ServerEnv, userId: string, visitorId: stri
   const [person] = await withDb(env, (db) =>
     db.execute<Person>(sql`
       ${linkVisitor(visitorId, userId)}select display_name as name, given_name as "firstName", family_name as "lastName", email::text as email,
-             deleted_at is not null as closed
+             deleted_at is not null as closed,
+             exists (select 1 from account_suspension s where s.user_id = app_user.id) as suspended
       from app_user where id = ${userId}`),
   );
   return person ?? null;
@@ -61,6 +62,9 @@ export async function updatePerson(env: ServerEnv, userId: string, names: Names,
   );
 }
 
+/** What a suspended person can still do: get a copy of their data, or delete their account. */
+const OPEN_WHILE_SUSPENDED = new Set(['/account/data', '/account/data/download', '/account/delete']);
+
 /**
  * For pages that need an account (D-27): a live Supabase session and our own record of
  * the person. Anyone else is sent to "Sign in or create an account" and brought back
@@ -73,6 +77,10 @@ export async function memberGate(request: Request, env: ServerEnv): Promise<{ me
   const browser = trackingOn(env) ? await countedBrowser(env, request) : null;
   const person = await findPerson(env, session.user.id, browser?.id ?? null);
   if (!person || person.closed) throw redirect(back, withCookies(undefined, setCookies));
+  // Suspended by the team (migration 0042): only their own data and deleting the account stay open.
+  if (person.suspended && !OPEN_WHILE_SUSPENDED.has(new URL(request.url).pathname)) {
+    throw redirect('/suspended', withCookies(undefined, setCookies));
+  }
   if (browser?.setCookie) setCookies.push(browser.setCookie);
   const member = {
     userId: session.user.id,

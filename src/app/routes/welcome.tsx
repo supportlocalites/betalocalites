@@ -1,10 +1,10 @@
 import { Link } from 'react-router';
 import { Wordmark } from '@/components/Wordmark';
-import { pageMeta } from '@/lib/meta';
+import { shareMeta } from '@/lib/meta';
 import type { Route } from './+types/welcome';
 import styles from './welcome.module.css';
 
-export const meta: Route.MetaFunction = () => pageMeta();
+export const meta: Route.MetaFunction = ({ matches }) => shareMeta(matches, '/');
 
 export default function Welcome() {
   return (

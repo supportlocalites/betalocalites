@@ -168,7 +168,8 @@ export async function suggestionForListing(env: ServerEnv, id: string): Promise<
  * D-25: emails everyone who suggested this business while signed in, once it's published (or
  * now, if it already is), once per suggestion (a database index makes it once even when two
  * team members publish together; a failed email isn't sent again). Never someone who has since
- * deleted their account. At most 50 at a time; any more are emailed the next time it's
+ * deleted their account, nor about a suggestion the team decided on over a year ago (its email
+ * record is deleted after a year, migration 0041, so it couldn't tell). At most 50 at a time; any more are emailed the next time it's
  * published or matched.
  */
 export async function emailSuggesters(env: ServerEnv, vendorId: string, siteUrl: string): Promise<void> {
@@ -180,6 +181,7 @@ export async function emailSuggesters(env: ServerEnv, vendorId: string, siteUrl:
         join vendor v on v.id = s.vendor_id and v.listing_status = 'published'
         join app_user u on u.id = s.suggested_by and u.deleted_at is null
       where s.vendor_id = ${vendorId} and s.status in ('added', 'duplicate')
+        and s.reviewed_at > now() - interval '1 year'
         and not exists (select 1 from notification n
                         where n.kind = 'suggestion_listed' and n.subject_type = 'vendor_suggestion' and n.subject_id = s.id)
       order by s.created_at limit 50`),

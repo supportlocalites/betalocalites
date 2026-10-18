@@ -1,0 +1,27 @@
+# GitHub's free Dependabot (added 18 October 2026, product owner: "add all of them"): once a week
+# it checks the site's code packages, and once a month the GitHub Actions the tests use, and
+# opens a pull request when there's an update. Every pull request runs the full test suite (ci.yml);
+# nothing changes on the site until someone merges it. Small updates come grouped in one pull
+# request to keep the list short. Security fixes also arrive as soon as they're published once
+# "Dependabot alerts" and "Dependabot security updates" are switched on in the repository's
+# Settings → Code security (runbook, F).
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      timezone: America/Toronto
+    open-pull-requests-limit: 5
+    groups:
+      small-updates:
+        update-types: [minor, patch]
+    commit-message:
+      prefix: 'Packages'
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: monthly
+    commit-message:
+      prefix: 'Test tools'

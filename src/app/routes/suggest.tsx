@@ -1,7 +1,7 @@
 import { data, Form, Link, useNavigation } from 'react-router';
 import { cloudflareContext } from '@/app/context';
 import { SiteHeader } from '@/components/SiteHeader';
-import { pageMeta } from '@/lib/meta';
+import { shareMeta } from '@/lib/meta';
 import { suggestionInput } from '@/server/suggestion-input';
 import { hasSessionCookie, loadSession } from '@/server/auth/session.server';
 import { notifyTeam, saveSuggestion } from '@/server/suggestions.server';
@@ -12,7 +12,7 @@ import type { Route } from './+types/suggest';
  * Screen P11: Suggest a business (D-25, ADR-027). Open to everyone, no account. Someone signed
  * in is linked to their suggestion and emailed once the business is listed.
  */
-export const meta: Route.MetaFunction = () => pageMeta('Suggest a business');
+export const meta: Route.MetaFunction = ({ matches }) => shareMeta(matches, '/suggest', 'Suggest a business');
 
 export function loader({ request }: Route.LoaderArgs) {
   const params = new URL(request.url).searchParams;

@@ -112,21 +112,21 @@ on codes (ADR-028).
   review policy and a brief for the lawyer (PO-07), each checked against what the site does.
   Pages for them are built after the lawyer's review.
 - **Added before launch (product owner, 18 October 2026: "add all of them"):**
-  1. scheduled deletions the privacy policy promises (email records 1 year, the team's change log
+  1. ✅ **built 18 October 2026** (migration 0041): scheduled deletions the privacy policy promises (email records 1 year, the team's change log
      2 years, conversations 3 years after the last message, declined suggestions' contact
      details 1 year);
-  2. the team can suspend an account (checked on the server, recorded in `audit_log`);
-  3. **Download my data** on Your account (a person's right to a copy);
-  4. GitHub's automatic alerts and updates for known security problems in the code packages;
+  2. ✅ **built** (migration 0042, Admin → Accounts): the team can suspend an account (checked on the server, recorded in `audit_log`);
+  3. ✅ **built** (migration 0043): **Download my data** on Your account (a person's right to a copy);
+  4. ✅ **built** (`.github/dependabot.yml`; the owner switches on alerts in GitHub's settings, F §9): GitHub's automatic alerts and updates for known security problems in the code packages;
   5. one full security review of the whole site, just before launch;
-  6. a reminder in the team's daily note for the hand-done removal of a deleted account's
+  6. ✅ **built** (migration 0044): a reminder in the team's daily note for the hand-done removal of a deleted account's
      sign-in record;
   7. one "waiting for you" page for the team (held changes, reviews, reports, claims,
      suggestions, inquiries, deleted accounts);
   8. a short team handbook;
-  9. a help and contact page, linked from a footer on every page;
-  10. "Something wrong with this listing?" on each business page;
-  11. previews when a link is shared (title, picture) and a site map for search engines;
+  9. ✅ **built** (`/help`): a help and contact page, linked from a footer on every page;
+  10. ✅ **built**: "Something wrong with this listing?" on each business page;
+  11. ✅ **built** (`/sitemap.xml`, `public/share.png`): previews when a link is shared (title, picture) and a site map for search engines;
   12. a click-through checklist for the product owner to try every feature on their phone.
 - **Built since (13 October 2026):** deleting your own account (0014); a business's team
   (0015); business photos, added by owners and managers, reviewed and removed by the team

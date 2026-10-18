@@ -225,6 +225,10 @@ export default function Account({ loaderData, actionData }: Route.ComponentProps
         )}
 
         <p className={styles.section}>
+          <Link to="/account/data" className="text-link">
+            Download your data
+          </Link>
+          {' · '}
           <Link to="/account/delete" className="text-link">
             Delete your account
           </Link>

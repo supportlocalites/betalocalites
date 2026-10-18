@@ -1,14 +1,18 @@
 import { redirect } from 'react-router';
 import { TOKEN } from '@/server/guests.server';
 import { browserKey, groupCookie, newBrowserKey } from '@/server/invite-cookie.server';
+import { invitePreview } from '@/server/invite-preview.server';
 import type { Route } from './+types/group-link';
 
 /**
  * An event's group link, /g/<token> (Stage 4 part 2, D-08, E §5). Never a page: the token goes
  * into a short-lived cookie (and this browser gets its own random key, so whoever replies can
- * change their reply later), and the guest lands on /group-invite.
+ * change their reply later), and the guest lands on /group-invite. A link-preview robot gets a
+ * plain card instead (a group link is often posted in a group chat).
  */
 export function loader({ request, params }: Route.LoaderArgs) {
+  const preview = invitePreview(request);
+  if (preview) return preview;
   const token = params.token ?? '';
   const valid = TOKEN.test(token);
   const headers = new Headers({
