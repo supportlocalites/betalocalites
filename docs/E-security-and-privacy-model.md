@@ -160,7 +160,8 @@ grants more, and every admin action is recorded in `audit_log`.
 
 ¹ **Built (D-40):** for a booking, the person's name, the date, the town and about how many
 guests. Never the event's name or kind, start time, where, ages, budget, notes, the other
-businesses on the plan, or the person's email. For conversations (not built yet), only if
+businesses on the plan, or the person's email. Since D-53 these come as one summary email
+each morning, one line per change. For conversations (not built yet), only if
 the consumer links the event, and the same summary is expected.
 ² The vendor sees that they were marked booked and the event summary, so they can
 recognise the booking or flag it. When it flags, the team and the person are told; the note
@@ -478,7 +479,7 @@ to sell featured placements.
 
 | Who | Sees |
 |---|---|
-| A business's owner and managers, on its Analytics page, when the team has switched it on (D-37) | Totals for their own business only: seen in search, profile views, website and phone taps; later inquiries, conversations, messages, reply times. **Never who** viewed them. **Not saves, adds to plans or bookings marked** (D-42: team only). They see the people who message them, as part of the conversation, and the people who marked them booked (D-40). |
+| A business's owner and managers, on its Analytics page, when the team has switched it on (D-37) | Totals for their own business only: seen in search, profile views, website and phone taps; inquiries, conversations, messages, replies and typical first reply time (D-52, built). **Never who** viewed them. **Not saves, adds to plans or bookings marked** (D-42: team only). They see the people who message them, as part of the conversation, and the people who marked them booked (D-40). |
 | Other vendors and prospective vendors | Category-level figures, or one vendor's own numbers only with that vendor's permission |
 | The Localites team (platform admins) | The detailed records, to run the service, prepare reports and compare year over year. Every look is recorded in the audit log. **Planning (D-42):** totals only of saves, adds to plans and bookings marked, per business and per kind of event; never who, never which event. |
 | Anyone else | Nothing. Tracking data is never sold. |

@@ -6,6 +6,7 @@ import type { ServerEnv } from '@/server/env';
 import { runActivityRollup } from '@/server/activity-rollup.server';
 import { runDailyNote } from '@/server/daily-note.server';
 import { closeInterruptedPlanEmails } from '@/server/email-templates.server';
+import { sendPlanSummaries } from '@/server/plan-emails.server';
 import { cleanUpConversationFiles, expireConversationFiles } from '@/server/conversation-files.server';
 import { cleanUpRemovedPhotos } from '@/server/photos.server';
 import { sendReviewRequests } from '@/server/review-requests.server';
@@ -78,6 +79,13 @@ export default {
       sendReviewRequests(env).then(
         (outcome) => console.log('review requests:', outcome),
         (err) => console.error('review requests failed', err instanceof Error ? err.message : err),
+      ),
+    );
+    // The morning summary of booking emails (D-53, plan-emails.server.ts); the second run sends the rest.
+    ctx.waitUntil(
+      sendPlanSummaries(env).then(
+        (outcome) => console.log('booking summaries:', outcome),
+        (err) => console.error('booking summaries failed', err instanceof Error ? err.message : err),
       ),
     );
     // Guests' phone numbers and emails, 90 days after the event (D-10, guests.server.ts).

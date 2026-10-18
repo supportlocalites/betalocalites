@@ -209,6 +209,26 @@ check('…never another business’s, nor who (no browser codes, accounts or wor
   // 977 as a number on the page (">977<"), not inside the page's random signed codes, which can contain those digits.
   !s.body.includes('>977<') && !s.body.includes('0000000a0003') && !s.body.includes(ownerVid) && !s.body.includes(ownerA) && !s.body.includes(nothing));
 check('…and not stored by browsers', s.headers.get('cache-control') === 'no-store');
+// D-52: people getting in touch, as totals. Two conversations this year, one answered after 90 minutes.
+const talkers = [await account(`e2e-an-talk1-${run}@example.test`), await account(`e2e-an-talk2-${run}@example.test`)];
+await sql.begin(async (tx) => {
+  await tx`set local session_replication_role = replica`;
+  for (const [i, who] of talkers.entries()) {
+    const [c] = await tx`insert into conversation (consumer_user_id, vendor_id, created_at) values (${who}, ${a.id}, now() - interval '3 hours') returning id`;
+    await tx`insert into message (conversation_id, author_user_id, author_side, body, created_at)
+             values (${c.id}, ${who}, 'consumer', ${`Secret question ${run}`}, now() - interval '3 hours')`;
+    if (i === 0) {
+      await tx`insert into message (conversation_id, author_user_id, author_side, body, created_at)
+               values (${c.id}, ${ownerAId}, 'vendor', 'Hello', now() - interval '90 minutes')`;
+    }
+  }
+});
+s = await site(analytics(a), { cookie: ownerCookie });
+const shown = s.body.replace(/<!-- -->/g, '').replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ');
+check('the owner sees people getting in touch: conversations, messages, replied, typical first reply (D-52)',
+  shown.includes('2 New conversations') && shown.includes('2 Messages from people') && shown.includes('1 of 2 Replied to') && shown.includes('2 hours Typical first reply'),
+  shown.slice(shown.indexOf('New conversations') - 10, shown.indexOf('New conversations') + 400));
+check('…never who, or what was said', !s.body.includes(`Secret question ${run}`) && !s.body.includes(`e2e-an-talk1-${run}`));
 s = await site(`${analytics(a).replace('?', '.data?')}`, { cookie: ownerCookie });
 check('the page’s data address answers the same', s.status === 200 && s.body.includes('42'), String(s.status));
 s = await site('/account', { cookie: ownerCookie });

@@ -211,10 +211,12 @@ cap on message emails, and a cheaper look for new messages (migration 0025); **p
 conversations, a photo or PDF with a message (migration 0028; switched on by PO-20).
 
 **Not built yet in Stage 2:**
-- batched email digests (each planning email is sent on its own, with repeats held back);
+- ~~batched email digests~~ **built 18 October 2026** (D-53, migration 0040): booking emails to
+  a business come as one summary each morning;
 - counting how often featured businesses are shown (D-43: later);
 - counting saves, inquiries, conversations and messages as activity (the D-30 funnel; D-42
-  gives the team planning totals meanwhile);
+  gives the team planning totals meanwhile): **inquiries, conversations, messages and reply
+  time built 18 October 2026** on a business's Analytics page (D-52, migration 0039);
 - ~~suggestions from signed-in people linked to their account~~ **built 18 October 2026**
   (migration 0038): linked from their session, and emailed once when the business is listed;
 - ~~linking a conversation to an event~~: **already built** with messages (choose an event when

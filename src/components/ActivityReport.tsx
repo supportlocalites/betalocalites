@@ -116,6 +116,43 @@ export function ActivityReport({
       note: 'On average, while the page was on screen.',
       compare: null,
     },
+    {
+      label: 'New conversations',
+      value: report.contact.now.conversations.toLocaleString('en-CA'),
+      note: 'People who started a conversation with you on Localites.',
+      compare: report.contact.before ? change(report.contact.now.conversations, report.contact.before.conversations, words.before) : null,
+    },
+    {
+      label: 'Messages from people',
+      value: report.contact.now.messages.toLocaleString('en-CA'),
+      note: 'Messages people sent you, in any conversation (removed ones aren’t counted).',
+      compare: report.contact.before ? change(report.contact.now.messages, report.contact.before.messages, words.before) : null,
+    },
+    {
+      label: 'Replied to',
+      value:
+        report.contact.now.conversations > 0
+          ? `${report.contact.now.replied.toLocaleString('en-CA')} of ${report.contact.now.conversations.toLocaleString('en-CA')}`
+          : '—',
+      note: 'New conversations in this period that you’ve answered.',
+      compare: null,
+    },
+    {
+      label: 'Typical first reply',
+      value: report.contact.now.medianReplyMinutes === null ? '—' : replyTime(report.contact.now.medianReplyMinutes),
+      note: 'How long people usually waited for your first reply (half waited less, half longer).',
+      compare: null,
+    },
+    ...(report.contact.now.inquiries > 0
+      ? [
+          {
+            label: 'Asked about you before you joined',
+            value: report.contact.now.inquiries.toLocaleString('en-CA'),
+            note: 'People who asked our team about your business while it wasn’t on Localites yet.',
+            compare: null,
+          },
+        ]
+      : []),
     ...(has.services
       ? [
           {
@@ -242,4 +279,13 @@ export function ActivityReport({
       </p>
     </>
   );
+}
+
+/** "45 minutes", "3 hours", "2 days": rounded, for a typical reply time. */
+function replyTime(minutes: number): string {
+  if (minutes < 60) return `${Math.max(1, minutes)} ${minutes <= 1 ? 'minute' : 'minutes'}`;
+  const hours = Math.round(minutes / 60);
+  if (hours < 48) return `${hours} ${hours === 1 ? 'hour' : 'hours'}`;
+  const days = Math.round(hours / 24);
+  return `${days} days`;
 }

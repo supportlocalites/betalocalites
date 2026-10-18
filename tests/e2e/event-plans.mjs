@@ -93,6 +93,16 @@ const rowOf = async (eventId, vendorId) =>
 const notes = (subjectId, kind) =>
   sql`select user_id, status from notification where subject_type = 'event_vendor' and subject_id = ${subjectId} and kind = ${kind} order by created_at`;
 const settled = (rows) => rows.length > 0 && rows.every((n) => n.status !== 'queued');
+/** The morning run (D-53): booking emails waiting for the summary go out, one email per person. */
+async function morning() {
+  const before = Date.now();
+  await site('/cdn-cgi/handler/scheduled?cron=0+12+*+*+*');
+  return before;
+}
+const summaryFor = async (who, since) => {
+  const list = await waitFor(() => mail(email(who)), (m) => m.some((x) => x.at > since && x.subject.startsWith('Your Localites bookings')));
+  return list.filter((x) => x.at > since && x.subject.startsWith('Your Localites bookings'));
+};
 const BOOKINGS = `/vendors/${V.slug}/bookings`;
 
 console.log('Planning an event');
@@ -247,9 +257,12 @@ check('…and exactly what it will see (every path to sharing passes this page, 
 r = await site(`${PLAN}/plan/${vRow.id}/book`, { cookie: cookie.a, method: 'POST' });
 check('marking booked goes back to the plan', r.status === 302 && r.location === `${PLAN}?booked=${vRow.id}`, `${r.status} ${r.location}`);
 let told = await waitFor(() => notes(vRow.id, 'marked_booked'), settled);
-check('the owner is emailed, recorded as sent', told.length === 1 && told[0].user_id === ids.o && told[0].status === 'sent', JSON.stringify(told));
-let ownerMail = await waitFor(() => mail(email('o')), (m) => m.length > 0);
-const booked = ownerMail[0] ? `${ownerMail[0].subject}\n${ownerMail[0].body}` : '';
+check('the owner’s email waits for the morning summary (D-53)', told.length === 1 && told[0].user_id === ids.o && told[0].status === 'waiting', JSON.stringify(told));
+let since = await morning();
+let summary = await summaryFor('o', since);
+told = await notes(vRow.id, 'marked_booked');
+check('…the morning run sends it as the summary, recorded as sent', summary.length === 1 && told[0].status === 'sent', `${summary.length} ${JSON.stringify(told)}`);
+const booked = summary[0] ? `${summary[0].subject}\n${summary[0].body}` : '';
 check('the email says who, the date, the town and about how many guests',
   booked.includes(A_NAME) && booked.includes(dayMonth(eventDate)) && booked.includes(orillia.name) && booked.includes('about 15 guests'), booked);
 check('…and nothing private: not the name, kind of event, place, notes, budget, time or A’s email',
@@ -260,14 +273,39 @@ check('the change is recorded by the database: A, as a customer', change?.actor_
 // ------------------------------------------------------------------ 7. Repeats
 r = await site(`${PLAN}/plan/${vRow.id}/unbook`, { cookie: cookie.a, method: 'POST' });
 told = await waitFor(() => notes(vRow.id, 'booking_unmarked'), settled);
-check('un-marking tells the business it’s no longer marked', r.status === 302 && told.length === 1 && told[0].status === 'sent', JSON.stringify(told));
+since = await morning();
+summary = await summaryFor('o', since);
+check('un-marking tells the business it’s no longer marked (next morning)',
+  r.status === 302 && told.length === 1 && summary.length === 1 && summary[0].body.includes('no longer has'), `${JSON.stringify(told)} ${summary.length}`);
+// Marked and un-marked before the morning: nothing to tell (their last word was "no longer booked").
 r = await site(`${PLAN}/plan/${vRow.id}/book`, { cookie: cookie.a, method: 'POST' });
-told = await waitFor(() => notes(vRow.id, 'marked_booked'), (rows) => rows.length === 2 && settled(rows));
-await new Promise((res) => setTimeout(res, 300));
-ownerMail = await mail(email('o'));
+await waitFor(() => notes(vRow.id, 'marked_booked'), (rows) => rows.length === 2 && settled(rows));
+r = await site(`${PLAN}/plan/${vRow.id}/unbook`, { cookie: cookie.a, method: 'POST' });
+await waitFor(() => notes(vRow.id, 'booking_unmarked'), (rows) => rows.length === 2 && settled(rows));
+since = await morning();
+await new Promise((res) => setTimeout(res, 1500));
+const cancelledOut = await sql`select status, failure_reason from notification where subject_id = ${vRow.id} and kind in ('marked_booked', 'booking_unmarked') order by created_at desc limit 2`;
+check('marked and un-marked before the morning: no summary, recorded as cancelled out',
+  (await mail(email('o'))).filter((m) => m.at > since).length === 0 && cancelledOut.every((n) => n.status === 'suppressed' && /Cancelled out/.test(n.failure_reason ?? '')), JSON.stringify(cancelledOut));
+r = await site(`${PLAN}/plan/${vRow.id}/book`, { cookie: cookie.a, method: 'POST' });
+told = await waitFor(() => notes(vRow.id, 'marked_booked'), (rows) => rows.length === 3 && settled(rows));
+since = await morning();
+summary = await summaryFor('o', since);
 // Their last word was "no longer booked", so marking it again is news: they're told (review fix).
 check('marking it again after un-marking tells the business again (its last word was “no longer booked”)',
-  r.status === 302 && told.map((n) => n.status).join() === 'sent,sent' && ownerMail.length === 3, `${told.map((n) => n.status)} ${ownerMail.length}`);
+  r.status === 302 && summary.length === 1 && summary[0].body.includes('marked') && (await notes(vRow.id, 'marked_booked')).at(-1).status === 'sent', `${told.map((n) => n.status)} ${summary.length}`);
+
+const [kept] = await sql`select count(*)::int as n from notification where subject_id = ${vRow.id} and summary_line is not null and status <> 'waiting'`;
+check('…and once sent or cancelled out, the line (with the person’s name) isn’t kept', kept.n === 0, String(kept.n));
+// A line for someone who isn't (or is no longer) on the business's team: dropped at send time.
+const [stale] = await sql`
+  insert into notification (user_id, kind, subject_type, subject_id, status, summary_line)
+  values (${ids.a}, 'marked_booked', 'event_vendor', ${vRow.id}, 'waiting', 'A line for someone who left the team.') returning id`;
+since = await morning();
+const [dropped] = await waitFor(() => sql`select status, failure_reason, summary_line from notification where id = ${stale.id}`, (x) => x[0]?.status !== 'waiting');
+check('someone no longer on the business’s team isn’t sent the summary',
+  dropped?.status === 'suppressed' && /No longer on the business/.test(dropped.failure_reason ?? '') && dropped.summary_line === null &&
+    (await mail(email('a'))).filter((m) => m.at > since && m.subject.startsWith('Your Localites bookings')).length === 0, JSON.stringify(dropped));
 
 // ------------------------------------------------------------------ 8. A business not on Localites yet
 r = await site(`${PLAN}/plan/${uRow.id}/book`, { cookie: cookie.a });
@@ -395,21 +433,29 @@ r = await site(`${PLAN}/edit`, { cookie: cookie.a });
 check('the edit page keeps the hidden kind of event chosen', r.status === 200 && r.body.includes(`value="${typeId}"`), String(r.status));
 r = await site(`${PLAN}/edit`, { cookie: cookie.a, method: 'POST', form: { ...eventForm({ date: movedDate }), intent: 'save' } });
 told = await waitFor(() => notes(vRow.id, 'booked_event_changed'), settled);
-check('changing the date tells the booked business once', r.status === 302 && (await eventState()).date === movedDate && told.map((n) => n.status).join() === 'sent', `${r.status} ${told.map((n) => n.status)}`);
-const changedMail = (await mail(email('o'))).find((m) => m.subject.includes('changed the date or town'));
-check('…with the new date and the old one, and nothing private',
-  changedMail && changedMail.body.includes(dayMonth(movedDate)) && changedMail.body.includes(dayMonth(eventDate)) && privateIn(changedMail.body).length === 0 && !changedMail.body.includes('Garden'));
+check('changing the date: one email waits for the morning', r.status === 302 && (await eventState()).date === movedDate && told.map((n) => n.status).join() === 'waiting', `${r.status} ${told.map((n) => n.status)}`);
 r = await site(`${PLAN}/edit`, { cookie: cookie.a, method: 'POST', form: { ...eventForm({ date: movedDate, townId: otherTown.id }), intent: 'save' } });
 told = await waitFor(() => notes(vRow.id, 'booked_event_changed'), (rows) => rows.length === 2 && settled(rows));
-// A real change is never held back: the business's last email must show the right date and town.
-check('a second change the same day is emailed too (the newest date and town)', r.status === 302 && told.map((n) => n.status).join() === 'sent,sent', told.map((n) => n.status).join());
+since = await morning();
+summary = await summaryFor('o', since);
+const changedMail = summary[0];
+check('…with the new date and the old one, and nothing private',
+  changedMail && changedMail.body.includes(dayMonth(movedDate)) && changedMail.body.includes(dayMonth(eventDate)) && privateIn(changedMail.body).length === 0 && !changedMail.body.includes('Garden'));
+// A real change is never held back: the business's summary shows both, the newest last.
+check('a second change the same day is in the same summary (the newest date and town)',
+  r.status === 302 && summary.length === 1 && changedMail.body.includes(otherTown.name) && (await notes(vRow.id, 'booked_event_changed')).map((n) => n.status).join() === 'sent,sent',
+  told.map((n) => n.status).join());
 r = await site(`${PLAN}/cancel`, { cookie: cookie.a, method: 'POST', form: { intent: 'cancel' } });
 told = await waitFor(() => notes(vRow.id, 'booked_event_cancelled'), settled);
-check('cancelling tells the booked business', r.status === 302 && (await eventState()).status === 'cancelled' && told.map((n) => `${n.user_id === ids.o}:${n.status}`).join() === 'true:sent', JSON.stringify(told));
+since = await morning();
+summary = await summaryFor('o', since);
+told = await notes(vRow.id, 'booked_event_cancelled');
+check('cancelling tells the booked business (in the morning summary)',
+  r.status === 302 && (await eventState()).status === 'cancelled' && told.map((n) => `${n.user_id === ids.o}:${n.status}`).join() === 'true:sent' && summary.length === 1, JSON.stringify(told));
 await new Promise((res) => setTimeout(res, 300));
 check('…but not a business that was only being considered',
   (await sql`select count(*)::int as n from notification where user_id = ${ids.o2}`)[0].n === 0 && (await mail(email('o2'))).length === 0);
-const cancelledMail = (await mail(email('o'))).find((m) => m.subject.includes('cancelled their event'));
+const cancelledMail = summary.find((m) => m.body.includes('cancelled their event'));
 check('…and the email has nothing private', cancelledMail && privateIn(cancelledMail.body).length === 0 && !cancelledMail.body.includes('Garden'));
 r = await site(`${PLAN}/edit`, { cookie: cookie.a });
 check('a cancelled event can’t be edited: the edit page goes back to the plan', [302, 303].includes(r.status) && r.location === PLAN, `${r.status} ${r.location}`);

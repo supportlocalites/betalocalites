@@ -46,7 +46,7 @@ export default function Analytics({ loaderData: { listing, report } }: Route.Com
         <div className="title-rule" aria-hidden="true" />
         <p className="muted">
           How people found and used your page on Localites. You see totals only, never who. Numbers run to the end of
-          yesterday and are updated each morning. Your own visits are left out on browsers where you’ve signed in to
+          yesterday and are updated each morning; conversations and messages are counted up to now. Your own visits are left out on browsers where you’ve signed in to
           Localites, and so are the Localites team’s.
         </p>
         <Form method="get" className="section-gap">

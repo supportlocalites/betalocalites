@@ -28,6 +28,7 @@ import heldEditPublished from '../../emails/held-edit-published.txt?raw';
 import heldEditDeclined from '../../emails/held-edit-declined.txt?raw';
 import replyHeldTeam from '../../emails/reply-held-team.txt?raw';
 import suggestionListed from '../../emails/suggestion-listed.txt?raw';
+import planSummary from '../../emails/plan-summary.txt?raw';
 import { uuidv7 } from '@/lib/ids.mjs';
 import { type Db, withDb } from './db.server';
 import { sendEmail, TEAM_ADDRESS } from './email.server';
@@ -75,6 +76,8 @@ const TEMPLATES = {
   replyHeldTeam,
   // Suggest a business (D-25): the person who suggested it, once it's listed.
   suggestionListed,
+  // The morning summary of booking emails (D-53).
+  planSummary,
 } as const;
 export type TemplateName = keyof typeof TEMPLATES;
 
@@ -147,13 +150,16 @@ const PLAN_EMAIL_KINDS: PlanEmailKind[] = [
   'booking_flagged',
 ];
 
+/** Plan emails that go in the morning summary (D-53) rather than on their own. */
+const SUMMARY_KINDS: PlanEmailKind[] = ['marked_booked', 'booking_unmarked', 'booked_event_cancelled', 'booked_event_changed'];
+
 /**
  * When an email about a plan is held back, so a person's taps can't flood a business's
  * inbox, without ever holding back news the business doesn't have yet:
  *   unless_known_booked: "marked booked" unless the last word they had was already "marked booked";
  *   only_after_marked: "no longer booked" only if the last word they had was "marked booked";
  *   always: every time (a real change of date or town, a cancelled event, a flag).
- * Every rule also has the daily limit per person below.
+ * Every rule also has the daily limit per person below (emails sent on their own only).
  */
 export type RepeatRule = 'unless_known_booked' | 'only_after_marked' | 'always';
 
@@ -175,21 +181,25 @@ export async function emailPersonUnlessRepeat(
   rule: RepeatRule,
   /** A connection the caller already has (a batch of emails shares one). */
   shared?: Db,
-): Promise<'sent' | 'failed' | 'suppressed'> {
+  /** D-53: keep it for the morning summary (this line) instead of sending it now. */
+  summaryLine?: string,
+): Promise<'sent' | 'failed' | 'suppressed' | 'waiting'> {
   const id = uuidv7();
-  const kinds = `{${PLAN_EMAIL_KINDS.join(',')}}`;
+  // The daily limit counts emails sent on their own; lines of the morning summary (one email) don't count.
+  const immediate = `{${PLAN_EMAIL_KINDS.filter((k) => !SUMMARY_KINDS.includes(k)).join(',')}}`;
   const onDb = <T>(fn: (db: Db) => Promise<T>) => (shared ? fn(shared) : withDb(env, fn));
-  // An email still being sent counts as told; one left "queued" by an interrupted run stops
-  // counting after 10 minutes (the nightly run then marks it failed).
-  const told = sql`(n.status = 'sent' or (n.status = 'queued' and n.created_at > now() - interval '10 minutes'))`;
+  // An email still being sent counts as told, as does one waiting for the morning summary (D-53);
+  // one left "queued" by an interrupted run stops counting after 10 minutes (the nightly run
+  // then marks it failed).
+  const told = sql`(n.status in ('sent', 'waiting') or (n.status = 'queued' and n.created_at > now() - interval '10 minutes'))`;
   const [row] = await onDb((db) =>
     db.transaction(async (tx) => {
       await tx.execute(sql`select pg_advisory_xact_lock(hashtextextended(${`localites.plan-email:${to.userId}`}, 0))`);
       return tx.execute<{ status: string }>(sql`
         with why as (
           select case
-            when (select count(*) from notification n
-                  where n.user_id = ${to.userId} and n.kind = any(${kinds}::text[]) and ${told}
+            when ${summaryLine ?? null}::text is null and (select count(*) from notification n
+                  where n.user_id = ${to.userId} and n.kind = any(${immediate}::text[]) and ${told}
                     and n.created_at > now() - interval '1 day') >= ${PLAN_EMAILS_PER_DAY}
               then 'daily limit'
             when ${rule} = 'unless_known_booked' and coalesce((
@@ -205,13 +215,15 @@ export async function emailPersonUnlessRepeat(
                   order by n.created_at desc, n.id desc limit 1), false)
               then 'they weren’t told it was booked'
           end as reason)
-        insert into notification (id, user_id, kind, subject_type, subject_id, status, failure_reason)
+        insert into notification (id, user_id, kind, subject_type, subject_id, status, failure_reason, summary_line)
         select ${id}, ${to.userId}, ${kind}, ${subject.type}, ${subject.id},
-               case when reason is null then 'queued' else 'suppressed' end, reason
+               case when reason is not null then 'suppressed' when ${summaryLine ?? null}::text is not null then 'waiting' else 'queued' end,
+               reason, ${summaryLine ?? null}
         from why
         returning status`);
     }),
   );
+  if (row?.status === 'waiting') return 'waiting';
   if (row?.status !== 'queued') return 'suppressed';
   const result = await sendEmail(env, { to: to.email, ...content, replyTo: TEAM_ADDRESS });
   await onDb((db) =>
@@ -232,7 +244,7 @@ export async function closeInterruptedPlanEmails(env: ServerEnv): Promise<number
   const kinds = `{${[...PLAN_EMAIL_KINDS, 'vendor_joined', 'new_message', 'review_request', 'review_reminder'].join(',')}}`;
   return withDb(env, async (db) => {
     const rows = await db.execute(sql`
-      update notification set status = 'failed', failure_reason = 'Not known whether it was sent: the sending was interrupted.'
+      update notification set status = 'failed', summary_line = null, failure_reason = 'Not known whether it was sent: the sending was interrupted.'
       where status = 'queued' and kind = any(${kinds}::text[]) and created_at < now() - interval '1 hour'
       returning id`);
     const [inquiries] = await db.execute<{ n: number }>(sql`select close_stale_inquiry_emails() as n`);
@@ -240,15 +252,3 @@ export async function closeInterruptedPlanEmails(env: ServerEnv): Promise<number
   });
 }
 
-/** A plan email that wasn't attempted, recorded as failed with why (so the team can follow up). */
-export async function recordNotSent(
-  db: Db,
-  to: { userId: string },
-  kind: PlanEmailKind,
-  subject: { type: 'event_vendor'; id: string },
-  reason: string,
-): Promise<void> {
-  await db.execute(sql`
-    insert into notification (id, user_id, kind, subject_type, subject_id, status, failure_reason)
-    values (${uuidv7()}, ${to.userId}, ${kind}, ${subject.type}, ${subject.id}, 'failed', ${reason})`);
-}

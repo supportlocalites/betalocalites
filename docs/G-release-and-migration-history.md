@@ -31,6 +31,43 @@ Every release and every database migration, in order. Appended before each deplo
 
 ## Releases
 
+### 2026-10-18 — Messages in a business's Analytics (D-52); a daily summary of booking emails (D-53)
+
+**Stage:** 2 (screens V10, X18)
+**What changed (plain English):** a business's own Analytics page now also shows, for the chosen
+period and the one before: new conversations, messages from people, how many conversations it
+replied to, its typical first reply time, and how many people asked about it before it joined.
+Booking emails to a business (marked booked, no longer booked, an event cancelled or changed)
+now wait and go out as one summary per person each morning (about 8 am Toronto; a second run at
+10 am sends any left over; at most 10 a run, oldest first). Someone who has left the business's
+team since isn't sent it. If a summary can't be sent it waits for the next run, for up to two days. A booking marked and un-marked overnight isn't mentioned. The email to
+a person when a business flags their booking still goes at once.
+**Migrations applied:** `0039_contact_totals.sql` (one function, for the server only);
+`0040_plan_summaries.sql` (a "waiting" email status, the summary line, cleared once
+sent; an index; a check, for the server only, that someone is still on the business's team)
+**Destructive?** No.
+**Tests run:** database checks 40 of 40 files (0039: 4 checks; 0040: 11 checks); unit tests 191
+of 191; event planning 145 of 145; analytics 53 of 53; reviews 73 of 73; messages 133 of 133;
+inquiries 41 of 41; look 464 of 464.
+**Security tests:** another business's numbers never appear; the browser-facing role can't read
+the totals; a removed message and a past team's conversations don't count; a waiting email needs
+its line, and an unknown status is refused; someone who left the business's team, staff, or the
+owner of an archived business isn't sent the summary; the browser-facing role can't ask who is on
+a team.
+**Independent review before push:** fixed: someone who left the team between the change and the
+morning would still have been sent it (now checked at send time); a run cut short after sending
+could have sent it twice (now marked "being sent" first, as other emails are); 30 summaries a run
+could exceed Cloudflare's limit with the "How was it?" emails (now 10, oldest first), and a failed
+send now waits for the next run instead of being lost; one person's error no longer stops the
+rest; the line with the person's name is cleared once sent; a line about an event changing is
+dropped if the booking ends up un-marked; summary lines no longer count toward the per-person
+daily email limit (the summary is one email). Also fixed a timing flake in the inquiry test.
+**Existing functionality affected:** booking emails to businesses arrive the next morning instead
+of at once.
+**How to roll back:** with the next update (the status and column can stay; waiting rows would be
+sent or marked not sent by hand).
+**Approved by:** D-52 and D-53 (18 October 2026).
+
 ### 2026-10-18 — An email when a suggested business is listed (D-25)
 
 **Stage:** 2 (screens P11, X19)

@@ -1,0 +1,15 @@
+Subject: Your Localites bookings: {{count}}
+
+Hi {{name}},
+
+Here's what changed on Localites since your last summary:
+
+{{lines}}
+
+These are your customers' own records, to help them keep track. Arrange the details directly with them.
+Localites doesn’t process payments. Arrange payment directly with your customer.
+
+See everyone who has marked you as booked, or tell us if one isn’t right:
+{{link}}
+
+Localites

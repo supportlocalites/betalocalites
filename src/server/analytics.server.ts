@@ -24,6 +24,23 @@ export type Totals = {
 
 export type Row = { value: string; views: number };
 
+/** People getting in touch (D-52, migration 0039): totals only, never who or what was said. */
+export type Contact = {
+  inquiries: number;
+  conversations: number;
+  messages: number;
+  replied: number;
+  /** Median minutes to the business's first reply; null when nothing was replied to. */
+  medianReplyMinutes: number | null;
+};
+
+async function contactTotals(db: Db, vendorId: string, r: Range): Promise<Contact> {
+  const [c] = await db.execute<Contact>(sql`
+    select inquiries, conversations, messages, replied, median_reply_minutes as "medianReplyMinutes"
+    from vendor_contact_totals(${vendorId}::uuid, ${r.from}::date, ${r.to}::date)`);
+  return c ?? { inquiries: 0, conversations: 0, messages: 0, replied: 0, medianReplyMinutes: null };
+}
+
 export type Report = {
   period: Period;
   range: Range;
@@ -42,6 +59,8 @@ export type Report = {
   askedFor: number;
   category: { name: string; browsedName: string; browsed: number; comparison: { businesses: number; average: number; rank: number } | null } | null;
   countedTo: string | null; // the last day counted
+  /** People getting in touch in this period, and the one before (D-52). */
+  contact: { now: Contact; before: Contact | null };
 };
 
 /** Fewer businesses than this in a category: no average or rank, as it could reveal one competitor's numbers. */
@@ -70,7 +89,7 @@ async function totals(db: Db, vendorId: string, r: Range): Promise<Totals> {
 export async function readReport(db: Db, vendorId: string, period: Period, today: string): Promise<Report> {
   const ranges = periodRanges(period, today);
   const r = ranges.now;
-  const [now, [known], breakdown, sources, [asked], [cat]] = await Promise.all([
+  const [now, [known], breakdown, sources, [asked], [cat], contactNow, contactBefore] = await Promise.all([
     totals(db, vendorId, r),
     // Counting began with the first total written (seen in lists is written as it happens).
     db.execute<{ since: string | null; to: string | null }>(sql`
@@ -89,6 +108,10 @@ export async function readReport(db: Db, vendorId: string, period: Period, today
     db.execute<{ id: string; name: string; parentId: string | null }>(sql`
       select c.id, c.name, c.parent_id as "parentId" from vendor_category vc join category c on c.id = vc.category_id
       where vc.vendor_id = ${vendorId} and vc.is_primary`),
+    // Messages are counted as they happen, so the current period runs to the end of today
+    // (page opens are counted each night, up to yesterday).
+    contactTotals(db, vendorId, r.to === today ? { ...r, to: addDays(today, 1) } : r),
+    ranges.before ? contactTotals(db, vendorId, ranges.before) : Promise.resolve(null),
   ]);
   // A comparison only when this period is fully counted (the nightly count has reached its
   // last day) and the other was counted from its first day.
@@ -161,5 +184,6 @@ export async function readReport(db: Db, vendorId: string, period: Period, today
     countedTo: known?.to ?? null,
     countingSince: known?.since ?? null,
     limitedDays: limited.map((d) => d.day),
+    contact: { now: contactNow, before: contactBefore },
   };
 }

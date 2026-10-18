@@ -200,7 +200,7 @@ const joined = await waitFor(() => mailFor(email('a')), (list) => list.some((m) 
 check('when the team approves its claim, the person who asked is emailed that it joined',
   r.status === 302 && joined.some((m) => m.subject === `${U.name} has joined Localites` && m.body.includes(`/vendors/${U.slug}`)), String(r.status));
 row = await waitFor(() => rowOf(U.id, ids.a), (x) => Boolean(x?.notified_joined_at));
-const [told] = await sql`select status from notification where kind = 'vendor_joined' and user_id = ${ids.a}`;
+const [told] = await waitFor(() => sql`select status from notification where kind = 'vendor_joined' and user_id = ${ids.a}`, (x) => x[0]?.status !== 'queued');
 check('…recorded honestly, and marked so they’re told only once', Boolean(row?.notified_joined_at) && told?.status === 'sent', JSON.stringify(told));
 r = await page(`/vendors/${U.slug}/inquire`, { cookie: cookie.a });
 check('the person’s Inquire page now says it joined', words(r.body).includes(`${U.name} has joined Localites.`));
