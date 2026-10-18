@@ -121,13 +121,13 @@ on codes (ADR-028).
   5. one full security review of the whole site, just before launch;
   6. ✅ **built** (migration 0044): a reminder in the team's daily note for the hand-done removal of a deleted account's
      sign-in record;
-  7. one "waiting for you" page for the team (held changes, reviews, reports, claims,
+  7. ✅ **built** (`/admin/waiting`, first in the team menu): one "waiting for you" page for the team (held changes, reviews, reports, claims,
      suggestions, inquiries, deleted accounts);
-  8. a short team handbook;
+  8. ✅ **written** ([team-handbook.md](./team-handbook.md)): a short team handbook;
   9. ✅ **built** (`/help`): a help and contact page, linked from a footer on every page;
   10. ✅ **built**: "Something wrong with this listing?" on each business page;
   11. ✅ **built** (`/sitemap.xml`, `public/share.png`): previews when a link is shared (title, picture) and a site map for search engines;
-  12. a click-through checklist for the product owner to try every feature on their phone.
+  12. ✅ **written** ([owner-phone-checklist.md](./owner-phone-checklist.md)): a click-through checklist for the product owner to try every feature on their phone.
 - **Built since (13 October 2026):** deleting your own account (0014); a business's team
   (0015); business photos, added by owners and managers, reviewed and removed by the team
   (0016, switched on by PO-16); categories and towns for the team (0017).

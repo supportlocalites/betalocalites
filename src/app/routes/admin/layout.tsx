@@ -59,6 +59,9 @@ export default function AdminLayout({ loaderData }: Route.ComponentProps) {
           <span className="label"> Team</span>
         </Link>
         <nav aria-label="Admin" className={styles.nav}>
+          <NavLink to="/admin/waiting" className="text-link">
+            Waiting for you
+          </NavLink>
           <NavLink to="/admin" end className="text-link">
             Listings
           </NavLink>

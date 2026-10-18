@@ -89,7 +89,16 @@ check('…and they can use their account again', r.status === 200, String(r.stat
 r = await post({ intent: 'lift', userId: ids.p, reason: 'Again' });
 check('lifting twice is refused in plain words', r.status === 409 && words(r.body).includes('isn’t suspended'), String(r.status));
 
-// ------------------------------------------------------------------ 5. The morning deletions
+// ------------------------------------------------------------------ 5. Waiting for you
+await sql`insert into vendor_suggestion (business_name, status) values (${`E2E waiting ${run}`}, 'new')`;
+r = await site('/admin/waiting', { cookie: cookie.m });
+check('the team’s Waiting for you lists what’s waiting, oldest first, with links',
+  r.status === 200 && words(r.body).includes('Suggested businesses:') && r.body.includes('href="/admin/suggestions"'), String(r.status));
+check('…counts only, never who', !r.body.includes(`E2E waiting ${run}`) && !r.body.includes(email('p')));
+r = await site('/admin/waiting', { cookie: cookie.p });
+check('a person can’t open it', r.status === 403 || (r.status === 302 && !r.location.startsWith('/admin')), `${r.status} ${r.location}`);
+
+// ------------------------------------------------------------------ 6. The morning deletions
 const [old] = await sql`
   insert into notification (user_id, kind, subject_type, subject_id, status, sent_at, created_at)
   values (${ids.q}, 'new_message', 'conversation', gen_random_uuid(), 'sent', now() - interval '13 months', now() - interval '13 months') returning id`;

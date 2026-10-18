@@ -271,6 +271,7 @@ const PAGES = [
   { who: 'team', path: `/admin/reports/${lookReport.id}`, label: 'Team: one report' },
   { who: 'team', path: '/admin/team', label: 'Team: users and roles' },
   { who: 'team', path: '/admin/accounts', label: 'Team: accounts' },
+  { who: 'team', path: '/admin/waiting', label: 'Team: waiting for you' },
   { who: 'team', path: '/admin/audit', label: 'Team: audit log' },
   { who: 'team', path: '/admin/held-changes', label: 'Team: held changes' },
 ];

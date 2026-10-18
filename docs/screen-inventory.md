@@ -109,6 +109,7 @@ added; quotes, bookings and the concierge queue removed.
 | X20 | Bookings (team) | **Built** (D-46, `/admin/bookings`, "Bookings (n to check in)" in the team menu): every business marked booked, listed or not, with the person's name and email, the date, the town and guests; taken-down businesses with bookings still to come first ("Check in with these people"), then coming up, then past and cancelled; one business's from its listing page. Every look recorded | 2 |
 | X21 | Held changes | **Built** (`/admin/held-changes`, D-50, migration 0036, "Held changes (n waiting)" in the team menu): owners' saves the language check held, with what changed and what the check found; Put live (as the owner's save) or Decline with a reason the owner is emailed; the last 30 days' decisions | 1 |
 | X22 | Accounts | **Built** (`/admin/accounts`, migration 0042): find an account by email (sent in the form, each look recorded); suspend it with a reason, or lift a suspension; everyone suspended now. Not yourself or a team member | 1 |
+| X23 | Waiting for you | **Built** (`/admin/waiting`, first in the team menu): everything waiting for the team, oldest first, each with how many, since when and a link (held changes, reviews, reported reviews, held replies, reports, claims, deleted accounts with their due date, booking flags, check-ins, suggestions, inquiries); counts only, never who | 1 |
 | X17 | Operations report | Listings, claims, conversations, reply rates, reviews | 3 |
 | X18 | Vendor activity reports | One vendor's totals by period (seen in search, views, taps; later saves, inquiries, messages), and the switch that turns on that business's Analytics page (V10, D-37); category-level figures for others (D-22). **Built** (`/admin/activity`, each listing's **Activity** page; the detail by day and the words searched, each look recorded). **Plus "Planning (team only)"** (D-42): saved, added to an event plan and marked booked per business, a top-20 table, and totals by kind of event with "No type given" | 1 |
 | X19 | Suggested businesses | Every suggestion, with likely duplicates; mark added, declined or duplicate; link to the new listing (D-25). Publishing the listing made from it, or marking it a duplicate of a listed business, emails whoever suggested it signed in, once | 1 |
@@ -117,9 +118,9 @@ added; quotes, bookings and the concierge queue removed.
 
 | Stage | Screens |
 |---|---|
-| 1 — Discovery & vendors | 36 |
+| 1 — Discovery & vendors | 37 |
 | 2 — The handshake | 17 |
 | 3 — Feedback & reviews | 6 |
 | 4 — Guests & RSVPs | 8 |
 | 5 — Growth | 1 |
-| **Total** | **68** |
+| **Total** | **69** |

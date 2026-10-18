@@ -58,6 +58,8 @@ and "Booked" that lead to post-event feedback and reviews.
 | [API & Integration Strategy](./api-strategy.md) | Internal contracts, messaging delivery, third-party services |
 | [Testing Strategy](./testing-strategy.md) | What we test and what "done" means |
 | [Design System](./design-system.md) | How Localites looks and behaves on phones and computers (direction G) |
+| [Team handbook](./team-handbook.md) | How to do each job on the team pages, in plain steps |
+| [Try every feature on your phone](./owner-phone-checklist.md) | The owner's click-through checklist on the test site |
 | [Policy drafts](./legal/) | Privacy policy, terms of use, review policy and the brief for the lawyer (PO-07): drafts, not in force |
 | [Launch vendor research](./launch/vendor-research-2026-10-10.md) | Researched Orillia-area businesses for the launch list (PO-08) |
 | [Design archive](./design/README.md) | Every mockup explored (A to H), kept for reference |
