@@ -9,6 +9,7 @@ import { sendEmail, TEAM_ADDRESS } from './email.server';
 import { emailPerson, renderEmail } from './email-templates.server';
 import type { ServerEnv } from './env';
 import { asTeam } from './messages.server';
+import { checkLanguage } from './moderation.server';
 
 /**
  * Reviews (Stage 3, part 1; D-06, D-48, ADR-026, E §4.4 and §4.5; migration 0031). A person
@@ -97,7 +98,7 @@ export async function reviewForm(env: ServerEnv, userId: string, eventId: string
       if (!row) throw new PlanNotFound();
       const [review] = await tx.execute<NonNullable<ReviewForm['review']>>(sql`
         select id, rating, body, status, decision_reason as reason,
-               case when reply_removed_at is null then vendor_reply end as reply
+               case when reply_removed_at is null and reply_held_at is null then vendor_reply end as reply
         from review where event_vendor_id = ${rowId} and author_user_id = ${userId}`);
       return {
         business: { name: row.name, slug: row.slug, listed: row.listed },
@@ -122,12 +123,16 @@ export async function saveReview(
   siteUrl: string,
 ): Promise<{ id: string; created: boolean }> {
   const acting = { side: 'person' as const, userId };
+  // The language check (D-50): reviews already wait for the team; a finding is kept for them to see.
+  const check = await checkLanguage(env, [input.body]);
+  const flag = check.flagged ? check.reason : null;
   const saved = await reviewed(
     actingAs(env, acting, async (tx) => {
       const [existing] = await tx.execute<{ id: string }>(sql`
         select id from review where event_vendor_id = ${rowId} and author_user_id = ${userId} for update`);
       if (existing) {
-        await tx.execute(sql`update review set rating = ${input.rating}, body = ${input.body} where id = ${existing.id}`);
+        await tx.execute(sql`
+          update review set rating = ${input.rating}, body = ${input.body}, language_flag = ${flag} where id = ${existing.id}`);
         return { id: existing.id, created: false };
       }
       // At most 10 reviews a day, so a script can't flood the team's queue.
@@ -136,8 +141,8 @@ export async function saveReview(
       if ((n?.n ?? 0) >= 10) throw new PlanCapped('That’s a lot of reviews for one day. Please add more tomorrow.');
       const id = uuidv7();
       await tx.execute(sql`
-        insert into review (id, event_vendor_id, author_user_id, rating, body)
-        values (${id}, ${rowId}, ${userId}, ${input.rating}, ${input.body})`);
+        insert into review (id, event_vendor_id, author_user_id, rating, body, language_flag)
+        values (${id}, ${rowId}, ${userId}, ${input.rating}, ${input.body}, ${flag})`);
       return { id, created: true };
     }),
   );
@@ -156,6 +161,7 @@ export async function saveReview(
         stars: String(input.rating),
         business: info.business,
         planned: info.planned ? 'planned on Localites' : 'planned outside Localites',
+        flag: flag ? `The language check found something to look at: ${flag}` : '',
         reviewUrl: `${siteUrl}/admin/reviews/${saved.id}`,
       }),
     });
@@ -193,7 +199,8 @@ export async function publicReviews(db: Db, vendorId: string): Promise<PublicRev
 
 // ======================================================================= the business
 
-export type BusinessReview = PublicReview & { canReply: boolean };
+/** replyHeld: the business's own reply, waiting for the team (D-50); then `reply` is null. */
+export type BusinessReview = PublicReview & { canReply: boolean; replyHeld: string | null };
 
 /** V8: the business's published reviews (anyone on its team); owners and managers reply once. */
 export async function businessReviews(env: ServerEnv, userId: string, slug: string) {
@@ -202,7 +209,8 @@ export async function businessReviews(env: ServerEnv, userId: string, slug: stri
       const rows = await tx.execute<Omit<BusinessReview, 'canReply'> & { replied: boolean }>(sql`
         select r.id, r.vendor_reply is not null as replied, r.rating, r.body, reviewer_name(r.author_user_id) as author, false as "livingLocal",
                date_trunc('month', r.event_date)::date::text as "eventMonth", r.planned_on_localites as "plannedOnLocalites",
-               case when r.reply_removed_at is null then r.vendor_reply end as reply
+               case when r.reply_removed_at is null and r.reply_held_at is null then r.vendor_reply end as reply,
+               case when r.reply_removed_at is null and r.reply_held_at is not null then r.vendor_reply end as "replyHeld"
         from review r where r.vendor_id = ${business.id} and r.status = 'published'
         order by r.published_at desc limit 200`);
       const replies = business.role !== 'staff';
@@ -219,16 +227,51 @@ export async function businessReviews(env: ServerEnv, userId: string, slug: stri
   );
 }
 
-/** The business's one reply to a published review (owners and managers; the database checks). */
-export async function replyToReview(env: ServerEnv, userId: string, slug: string, reviewId: string, reply: string): Promise<void> {
-  await reviewed(
+/** Team emails about held replies a day, across the site (Resend's free 100 a day are shared). */
+const HELD_REPLY_EMAILS_PER_DAY = 20;
+
+/**
+ * The business's one reply to a published review (owners and managers; the database checks).
+ * If the language check flags it (D-50), it's held off the business page until the team puts
+ * it live, and the team is emailed (within the day's limit). Returns whether it was held.
+ */
+export async function replyToReview(
+  env: ServerEnv,
+  userId: string,
+  slug: string,
+  reviewId: string,
+  reply: string,
+  siteUrl: string,
+): Promise<{ held: boolean }> {
+  const check = await checkLanguage(env, [reply]);
+  const hold = check.flagged ? check.reason : null;
+  const business = await reviewed(
     asTeam(env, userId, slug, async (tx, business) => {
       if (business.role === 'staff') throw new PlanNotFound();
       const done = await tx.execute(sql`
-        update review set vendor_reply = ${reply} where id = ${reviewId} and vendor_id = ${business.id} returning id`);
+        update review set vendor_reply = ${reply}, reply_held_reason = ${hold}
+        where id = ${reviewId} and vendor_id = ${business.id} returning id`);
       if (done.length === 0) throw new PlanNotFound();
+      return business;
     }),
   );
+  if (!hold) return { held: false };
+  const [today] = await withDb(env, (db) =>
+    db.execute<{ n: number }>(sql`
+      select count(*)::int as n from audit_log where action = 'review.reply_held_email' and created_at > now() - interval '1 day'`),
+  );
+  if ((today?.n ?? 0) < HELD_REPLY_EMAILS_PER_DAY) {
+    const result = await sendEmail(env, {
+      to: TEAM_ADDRESS,
+      ...renderEmail('replyHeldTeam', { business: business.name, reason: hold, url: `${siteUrl}/admin/reviews/${reviewId}` }),
+    });
+    if (result.sent) {
+      await withDb(env, (db) =>
+        audit(db, { actor: null, action: 'review.reply_held_email', subjectType: 'review', subjectId: reviewId, reason: 'sent' }),
+      ).catch((err: unknown) => console.error('held reply email not recorded', err instanceof Error ? err.message : err));
+    }
+  }
+  return { held: true };
 }
 
 export function readReply(form: FormData): { reply: string } | { error: string } {
@@ -249,19 +292,32 @@ export type TeamReviewRow = {
   status: ReviewStatus;
   plannedOnLocalites: boolean;
   createdAt: string;
+  /** What the language check found in the review (D-50), for the team. */
+  languageFlag: string | null;
+  /** A business reply held by the language check, waiting for the team. */
+  replyHeld: boolean;
 };
 
 /** Waiting reviews first (oldest first), then reported ones (part 2), then the latest decided ones. */
 export async function listReviews(
   env: ServerEnv,
   admin: Admin,
-): Promise<{ waiting: TeamReviewRow[]; reported: (TeamReviewRow & { reports: number })[]; recent: TeamReviewRow[] }> {
+): Promise<{
+  waiting: TeamReviewRow[];
+  heldReplies: TeamReviewRow[];
+  reported: (TeamReviewRow & { reports: number })[];
+  recent: TeamReviewRow[];
+}> {
   return actingAs(env, { side: 'team', userId: admin.userId }, async (tx) => {
     const cols = sql`r.id, v.display_name as business, v.slug::text as slug, u.display_name as author, r.rating, r.status,
-                     r.planned_on_localites as "plannedOnLocalites", r.created_at::text as "createdAt"`;
+                     r.planned_on_localites as "plannedOnLocalites", r.created_at::text as "createdAt",
+                     r.language_flag as "languageFlag", (r.reply_held_at is not null and r.reply_removed_at is null) as "replyHeld"`;
     const waiting = await tx.execute<TeamReviewRow>(sql`
       select ${cols} from review r join vendor v on v.id = r.vendor_id join app_user u on u.id = r.author_user_id
       where r.status = 'pending' order by r.created_at limit 200`);
+    const heldReplies = await tx.execute<TeamReviewRow>(sql`
+      select ${cols} from review r join vendor v on v.id = r.vendor_id join app_user u on u.id = r.author_user_id
+      where r.reply_held_at is not null and r.reply_removed_at is null order by r.reply_held_at limit 200`);
     const reported = await tx.execute<TeamReviewRow & { reports: number }>(sql`
       select ${cols}, x.n as reports
       from (select review_id, count(*)::int as n, min(created_at) as first from review_report where status = 'open' group by review_id) x
@@ -270,7 +326,7 @@ export async function listReviews(
     const recent = await tx.execute<TeamReviewRow>(sql`
       select ${cols} from review r join vendor v on v.id = r.vendor_id join app_user u on u.id = r.author_user_id
       where r.status <> 'pending' order by coalesce(r.decided_at, r.updated_at) desc limit 50`);
-    return { waiting: [...waiting], reported: [...reported], recent: [...recent] };
+    return { waiting: [...waiting], heldReplies: [...heldReplies], reported: [...reported], recent: [...recent] };
   });
 }
 
@@ -281,6 +337,8 @@ export type TeamReview = TeamReviewRow & {
   reason: string | null;
   reply: string | null;
   replyRemoved: boolean;
+  /** Why the language check held the reply (D-50); null once live or never held. */
+  replyHeldReason: string | null;
   emailStatus: 'pending' | 'sent' | 'failed';
   /** The business says it wasn't booked (and the team hasn't said the booking stands). */
   flagged: boolean;
@@ -308,6 +366,8 @@ export async function teamReview(env: ServerEnv, admin: Admin, id: string): Prom
              r.planned_on_localites as "plannedOnLocalites", r.created_at::text as "createdAt", r.body,
              reviewer_name(r.author_user_id) as "shownAs", r.event_date::text as "eventDate", r.decision_reason as reason,
              r.vendor_reply as reply, r.reply_removed_at is not null as "replyRemoved", r.team_email_status as "emailStatus",
+             r.language_flag as "languageFlag", (r.reply_held_at is not null and r.reply_removed_at is null) as "replyHeld",
+             r.reply_held_reason as "replyHeldReason",
              coalesce(x.vendor_flagged_at is not null and x.flag_outcome is distinct from 'booking_stands', false) as flagged,
              r.updated_at::text as seen
       from review r join vendor v on v.id = r.vendor_id join app_user u on u.id = r.author_user_id
@@ -328,6 +388,7 @@ export type ReviewDecision =
   | { kind: 'decline'; reason: string; seen: string }
   | { kind: 'remove'; reason: string }
   | { kind: 'remove_reply'; reason: string }
+  | { kind: 'release_reply' }
   | { kind: 'dismiss_reports'; reason: string };
 
 /** The team's decision, recorded in audit_log; the author (and, when published, the business) is emailed after. */
@@ -351,7 +412,10 @@ export async function decideReview(
               : decision.kind === 'remove_reply'
                 ? sql`update review set reply_removed_at = now(), reply_removed_reason = ${decision.reason}
                       where id = ${id} and vendor_reply is not null and reply_removed_at is null returning id`
-                : sql`update review_report set status = 'dismissed', decision_note = ${decision.reason}
+                : decision.kind === 'release_reply'
+                  ? sql`update review set reply_held_reason = null
+                        where id = ${id} and reply_held_at is not null and reply_removed_at is null returning id`
+                  : sql`update review_report set status = 'dismissed', decision_note = ${decision.reason}
                       where review_id = ${id} and status = 'open' returning id`;
       const done = await tx.execute(change);
       if (done.length === 0) throw new PlanRefused('That was already decided, or the review changed. Please look again.');

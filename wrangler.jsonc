@@ -9,6 +9,9 @@
   "compatibility_date": "2026-09-01",
   "compatibility_flags": ["nodejs_compat", "global_fetch_strictly_public"],
   "observability": { "enabled": true },
+  // Cloudflare's AI (Workers AI, free daily allowance): the language check's AI checker (D-50).
+  // Over the allowance it answers with an error and the word list's answer stands; nothing is billed.
+  "ai": { "binding": "AI" },
   // Suggest a business (ADR-027): at most 3 suggestions a minute from one internet
   // address. Cloudflare counts in memory and forgets; addresses are never stored.
   "ratelimits": [

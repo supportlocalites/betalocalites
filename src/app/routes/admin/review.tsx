@@ -47,6 +47,7 @@ export async function action({ params, request, context }: Route.ActionArgs) {
   if (deciding && !/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}(\.\d+)?[+-]\d{2}(:\d{2})?$/.test(seen)) throw data(null, { status: 400 });
   let decision: ReviewDecision;
   if (intent === 'publish') decision = { kind: 'publish', seen };
+  else if (intent === 'release_reply') decision = { kind: 'release_reply' };
   else if (intent === 'decline' || intent === 'remove' || intent === 'remove_reply' || intent === 'dismiss_reports') {
     if (!reason) return data({ error: 'Say why, in a few words. The author is told when a review is declined.' }, { status: 400 });
     decision = intent === 'decline' ? { kind: intent, reason, seen } : { kind: intent, reason };
@@ -83,6 +84,7 @@ export default function TeamReviewPage({ loaderData: { review }, actionData }: R
         <p className="notice">The business says it wasn’t booked for this event, and the team hasn’t said the booking stands.</p>
       )}
       {review.emailStatus === 'failed' && <p className="muted">The email telling the team about this review didn’t go.</p>}
+      {review.languageFlag && <p className="notice">{`The language check found something to look at: ${review.languageFlag}`}</p>}
       <blockquote className={styles.section}>
         <p style={{ whiteSpace: 'pre-wrap' }}>{review.body}</p>
       </blockquote>
@@ -92,6 +94,17 @@ export default function TeamReviewPage({ loaderData: { review }, actionData }: R
           <h2 id="reply">{review.business} replied</h2>
           <p style={{ whiteSpace: 'pre-wrap' }}>{review.reply}</p>
           {review.replyRemoved && <p className="muted">Removed by the team.</p>}
+          {review.replyHeld && (
+            <>
+              <p className="notice">{`Held by the language check, not shown yet: ${review.replyHeldReason ?? ''}`}</p>
+              <Form method="post" className={styles.buttons}>
+                <button type="submit" name="intent" value="release_reply" className="button" disabled={busy}>
+                  Put the reply live
+                </button>
+              </Form>
+              <p className="muted">Or remove it below, with a reason.</p>
+            </>
+          )}
         </section>
       )}
       {actionData?.error && (

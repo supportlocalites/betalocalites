@@ -154,6 +154,11 @@ guide this live (PO-03 part 3). Changing the password later is the same two step
   write `platform_role` directly. If no admin can sign in at all, the console path is
   `grant_first_admin` after ending the old roles in the SQL editor
   (`update platform_role set revoked_at = now() where revoked_at is null;`).
+- **The language check (D-50, ADR-033).** Held owner saves are on **Held changes**; held replies
+  and reviews with a finding on **Reviews**. The word list is `src/server/moderation-words.ts`
+  (add or remove a word with an ordinary update). If the AI checker stops answering (Cloudflare's
+  log says "language check: AI checker unavailable"), the word list still works and nothing is
+  blocked; it usually means the day's free allowance is used up and comes back at midnight UTC.
 - **The audit log** is on the team's **Audit log** page (`/admin/audit`): newest first, by
   who, by kind of record, or one record's history. Each look is recorded too.
 - **Lost phone (authenticator):** in the SQL editor, `delete from auth.mfa_factors where user_id = (select id from auth.users where email = '<email>');`

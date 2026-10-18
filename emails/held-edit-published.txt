@@ -1,0 +1,11 @@
+Subject: Your changes to {{business}} are live
+
+Hi {{name}},
+
+Our team has checked the changes you saved to {{business}}, and they're live now:
+
+{{lines}}
+
+You can edit your listing again at any time.
+
+Localites

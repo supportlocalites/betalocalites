@@ -1,0 +1,13 @@
+Subject: Your changes to {{business}} weren't put live
+
+Hi {{name}},
+
+Our team checked the changes you saved to {{business}} and didn't put them live:
+
+{{lines}}
+
+Why: {{reason}}
+
+Your listing still shows what it did before. You can edit it again at any time. Questions? Reply to this email.
+
+Localites

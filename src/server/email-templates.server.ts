@@ -24,6 +24,10 @@ import reviewReminder from '../../emails/review-reminder.txt?raw';
 import reviewReported from '../../emails/review-reported.txt?raw';
 import reviewRequest from '../../emails/review-request.txt?raw';
 import reviewTeam from '../../emails/review-team.txt?raw';
+import heldEditTeam from '../../emails/held-edit-team.txt?raw';
+import heldEditPublished from '../../emails/held-edit-published.txt?raw';
+import heldEditDeclined from '../../emails/held-edit-declined.txt?raw';
+import replyHeldTeam from '../../emails/reply-held-team.txt?raw';
 import { uuidv7 } from '@/lib/ids.mjs';
 import { type Db, withDb } from './db.server';
 import { sendEmail, TEAM_ADDRESS } from './email.server';
@@ -65,6 +69,11 @@ const TEMPLATES = {
   reviewReported,
   // Guests (Stage 4, D-49).
   guestReplyChanged,
+  // Words held by the language check (D-50).
+  heldEditTeam,
+  heldEditPublished,
+  heldEditDeclined,
+  replyHeldTeam,
 } as const;
 export type TemplateName = keyof typeof TEMPLATES;
 
@@ -101,7 +110,9 @@ export async function emailPerson(
     | 'vendor_joined'
     | 'review_published'
     | 'review_declined'
-    | 'review_for_business',
+    | 'review_for_business'
+    | 'held_edit_published'
+    | 'held_edit_declined',
   subject: { type: string; id: string },
   content: { subject: string; text: string },
 ): Promise<void> {

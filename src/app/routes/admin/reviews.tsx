@@ -36,13 +36,15 @@ function Rows({ rows, label }: { rows: (TeamReviewRow & { reports?: number })[];
             {r.reports ? ` · ${r.reports} open ${r.reports === 1 ? 'report' : 'reports'}` : ''}
           </span>
           <span className="muted">{when.format(new Date(r.createdAt))}</span>
+          {r.languageFlag && <span>{`Language check: ${r.languageFlag}`}</span>}
+          {r.replyHeld && <span>The business’s reply is held by the language check</span>}
         </li>
       ))}
     </ul>
   );
 }
 
-export default function Reviews({ loaderData: { waiting, reported, recent } }: Route.ComponentProps) {
+export default function Reviews({ loaderData: { waiting, heldReplies, reported, recent } }: Route.ComponentProps) {
   return (
     <>
       <h1 className="title-1">Reviews</h1>
@@ -53,6 +55,12 @@ export default function Reviews({ loaderData: { waiting, reported, recent } }: R
       </p>
       <h2 className="title-3 section-gap">Waiting ({waiting.length})</h2>
       {waiting.length === 0 ? <p className="muted">Nothing waiting.</p> : <Rows rows={waiting} label="Waiting reviews" />}
+      {heldReplies.length > 0 && (
+        <>
+          <h2 className="title-3 section-gap">Replies held by the language check ({heldReplies.length})</h2>
+          <Rows rows={heldReplies} label="Reviews with a held reply" />
+        </>
+      )}
       <h2 className="title-3 section-gap">Reported ({reported.length})</h2>
       {reported.length === 0 ? <p className="muted">No open reports.</p> : <Rows rows={reported} label="Reported reviews" />}
       <h2 className="title-3 section-gap">Decided lately</h2>

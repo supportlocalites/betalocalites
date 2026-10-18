@@ -123,6 +123,8 @@ jobs:
           printf 'INVITE_KEY=%s\n' "$(openssl rand -hex 32)" >> .env
           # Business photos, stored in the pretend file storage (tests/e2e/photos.mjs).
           printf 'PHOTO_KEY_ID=e2e-photo-key\nPHOTO_SECRET=e2e-photo-secret-local-only\nPHOTO_REGION=local\nPHOTO_STORAGE_URL=http://127.0.0.1:8787/storage/v1\n' >> .env
+          # The language check's AI checker (D-50): the pretend one; Cloudflare's own AI isn't reached from tests.
+          printf 'MODERATION_URL=http://127.0.0.1:8787/moderation\nCLOUDFLARE_VITE_FORCE_LOCAL=true\n' >> .env
           npm run build
           nohup npx vite preview --port 4173 --strictPort > site.log 2>&1 &
           for i in $(seq 1 60); do

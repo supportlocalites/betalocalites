@@ -67,6 +67,10 @@ export type ServerEnv = {
   PHOTO_REGION?: string;
   /** Local tests only: a pretend file storage on this computer (ignored unless it is localhost). */
   PHOTO_STORAGE_URL?: string;
+  /** Cloudflare's AI (Workers AI, wrangler.jsonc): the language check's AI checker (D-50). */
+  AI?: { run(model: string, input: unknown): Promise<unknown> };
+  /** Local tests only: a pretend AI checker on this computer (ignored unless it is localhost). */
+  MODERATION_URL?: string;
 };
 
 /** Where Cloudflare places the visitor (city level), from the request. Never stored with an address. */

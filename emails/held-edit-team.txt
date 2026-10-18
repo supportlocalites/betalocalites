@@ -1,0 +1,8 @@
+Subject: Changes to {{business}} are waiting for you
+
+{{owner}} saved changes to {{business}}, and the language check found something to look at:
+
+{{reason}}
+
+Nothing is live yet. Read the changes, then put them live or decline them:
+{{url}}

@@ -16,7 +16,9 @@ import { type Photo, readPhotos, readProfilePhoto, toPhotos } from './photo-stor
  * An owner editing their own listing (D-34, ADR-029). Every request checks, in the
  * database, that this person is the business's current owner; nothing from the page is
  * trusted for that. Saves go live at once, are recorded in audit_log (the one record of
- * what changed) with an owner_change row for the team's daily note and undo.
+ * what changed) with an owner_change row for the team's daily note and undo. A save the
+ * language check flagged (D-50) is held instead: nothing is written to the listing until the
+ * team puts it live (owner_edit_hold, migration 0036).
  */
 
 /** Saves one business may make in a day (D-34 keeps edits live; this keeps them reviewable). */
@@ -118,6 +120,8 @@ export async function findOwnedBySlug(db: Db, userId: string, slug: string, lock
 }
 
 export type UndoNotice = { at: string; lines: string[]; reason: string | null };
+/** A save waiting for the team (D-50), or the latest decided in the last 14 days. */
+export type HeldNotice = { at: string; lines: string[]; status: 'waiting' | 'published' | 'declined'; reason: string | null };
 export type OwnedListing = {
   vendorId: string;
   slug: string;
@@ -125,7 +129,11 @@ export type OwnedListing = {
   view: { name: string; town: string; categories: string[]; photos: Photo[]; profile: Photo | null };
   values: OwnerValues;
   undone: UndoNotice[];
+  held: HeldNotice | null;
 };
+
+const WAITING_MESSAGE =
+  'Your last changes are still waiting for our team to check some words. You can save again once they have, or withdraw those changes.';
 
 /**
  * The edit page's data, or a redirect for an old web address, or why not: "archived" (their
@@ -146,7 +154,7 @@ export async function ownedListing(
       return archived ? { archived: true } : null;
     }
     if (v.slug !== slug) return { renamedTo: v.slug };
-    const [services, [where], undos, photos, profile] = await Promise.all([
+    const [services, [where], undos, photos, profile, [held]] = await Promise.all([
       readServices(db, v.id),
       db.execute<{ town: string; categories: string[] }>(sql`
         select m.name as town,
@@ -162,6 +170,14 @@ export async function ownedListing(
         order by oc.undone_at desc limit 5`),
       readPhotos(db, v.id),
       readProfilePhoto(db, v.id),
+      // The business's held save (anyone on its team who edits sees it): the waiting one, or
+      // the latest decision in the last 14 days. Never the team's reasons for holding it.
+      db.execute<{ at: string; changes: ChangeSet; status: HeldNotice['status']; reason: string | null }>(sql`
+        select created_at::text as at, changes, status, decision_reason as reason
+        from owner_edit_hold
+        where vendor_id = ${v.id}
+          and (status = 'waiting' or (status in ('published', 'declined') and decided_at > now() - interval '14 days'))
+        order by (status = 'waiting') desc, created_at desc limit 1`),
     ]);
     const names = new Map(services.map((s) => [s.id, s.name]));
     return {
@@ -181,6 +197,14 @@ export async function ownedListing(
         reason: u.reason,
         lines: describeChanges(u.changes ?? {}, (id) => names.get(id) ?? 'a service'),
       })),
+      held: held
+        ? {
+            at: held.at,
+            status: held.status,
+            reason: held.reason,
+            lines: describeChanges(held.changes ?? {}, (id) => names.get(id) ?? 'a service'),
+          }
+        : null,
     };
   });
 }
@@ -221,18 +245,34 @@ export function rebase(base: OwnerValues, current: Record<string, unknown>): Own
 
 export type SaveResult =
   | { status: 'saved'; auditId: string; flags: ('website' | 'phone')[]; slug: string }
+  | { status: 'held'; holdId: string; slug: string }
   | { status: 'nothing' }
   | { status: 'clash'; current: Record<string, unknown>; nextBase: OwnerValues };
 
+/** The words a save would change (D-50): what the language check reads. */
+export function changedWords(base: OwnerValues, submitted: OwnerValues): string[] {
+  const diff = ownerDiff(base, submitted, () => 'new');
+  if (!diff) return [];
+  return Object.entries(diff.changes)
+    .filter(([key]) => key === 'tagline' || key === 'description' || /:(name|description)$/.test(key))
+    .map(([, c]) => c.to)
+    .filter((t): t is string => typeof t === 'string');
+}
+
 const VENDOR_COLUMNS = { tagline: 'tagline', description: 'description', websiteUrl: 'website_url', publicPhone: 'public_phone' } as const;
 
-/** Saves an owner's edits, all or nothing. Only what they changed is written. */
+/**
+ * Saves an owner's edits, all or nothing. Only what they changed is written. With `hold`
+ * (the language check's reason, D-50), nothing is written to the listing: the save waits for
+ * the team in owner_edit_hold.
+ */
 export async function saveOwnerEdits(
   env: ServerEnv,
   member: Member,
   slug: string,
   base: OwnerValues,
   submitted: OwnerValues,
+  hold: string | null = null,
 ): Promise<SaveResult> {
   return withDb(env, (db) =>
     db.transaction(async (tx) => {
@@ -242,91 +282,155 @@ export async function saveOwnerEdits(
       const v = await findOwnedBySlug(tx, member.userId, slug, true);
       if (!v) throw new NotOwner();
       const vendorId = v.id;
-      const [count] = await tx.execute<{ n: number }>(sql`
-        select count(*)::int as n from owner_change where vendor_id = ${vendorId} and created_at > now() - interval '1 day'`);
+      const [count] = await tx.execute<{ n: number; waiting: boolean }>(sql`
+        select ((select count(*) from owner_change where vendor_id = ${vendorId} and created_at > now() - interval '1 day')
+                + (select count(*) from owner_edit_hold where vendor_id = ${vendorId} and created_at > now() - interval '1 day'))::int as n,
+               exists (select 1 from owner_edit_hold where vendor_id = ${vendorId} and status = 'waiting') as waiting`);
+      if (count?.waiting) throw new OwnerRefused(WAITING_MESSAGE);
       if ((count?.n ?? 0) >= SAVES_PER_DAY) {
         throw new OwnerRefused('You’ve saved a lot of changes today. Please try again tomorrow, or email supportlocalites@gmail.com.');
       }
-
-      const diff = ownerDiff(base, submitted, () => uuidv7());
-      if (!diff) throw new OwnerRefused('Something on the page was out of date. Please reload it and try again.');
-      const { changes, added } = diff;
-      if (Object.keys(changes).length === 0) return { status: 'nothing' };
-
-      const services = await readServices(tx, vendorId);
-      const shownBefore = services.filter((s) => s.isActive).length;
-      const current = flatten(toValues(v, services));
-      const clashes = findClashes(changes, current);
-      if (clashes.length > 0) {
-        // Next time, the owner's version of those fields is compared with today's, so
-        // saving again uses theirs; everything else still compares with what they loaded.
-        const nextBase = rebase(base, Object.fromEntries(clashes.map((k) => [k, current[k] ?? null])));
-        return { status: 'clash', current: Object.fromEntries(clashes.map((k) => [k, current[k] ?? null])), nextBase };
-      }
-
-      // The business's own fields: only the ones the owner changed.
-      const has = (k: keyof typeof VENDOR_COLUMNS) => k in changes;
-      const val = (k: keyof typeof VENDOR_COLUMNS) => (changes[k]?.to ?? null) as string | null;
-      if (Object.keys(VENDOR_COLUMNS).some((k) => has(k as keyof typeof VENDOR_COLUMNS))) {
+      if (hold) {
+        const diff = ownerDiff(base, submitted, () => uuidv7());
+        if (!diff) throw new OwnerRefused('Something on the page was out of date. Please reload it and try again.');
+        if (Object.keys(diff.changes).length === 0) return { status: 'nothing' };
+        const clashes = findClashes(diff.changes, flatten(toValues(v, await readServices(tx, vendorId))));
+        // A clash is answered as for any save (writeEdits finds it again and writes nothing).
+        if (clashes.length > 0) return writeEdits(tx, v, member.userId, base, submitted);
+        const holdId = uuidv7();
         await tx.execute(sql`
-          update vendor set
-            tagline = case when ${has('tagline')} then ${val('tagline')} else tagline end,
-            description = case when ${has('description')} then ${val('description')} else description end,
-            website_url = case when ${has('websiteUrl')} then ${val('websiteUrl')} else website_url end,
-            public_phone = case when ${has('publicPhone')} then ${val('publicPhone')} else public_phone end
-          where id = ${vendorId}`);
+          insert into owner_edit_hold (id, vendor_id, user_id, base, submitted, changes, flag_reason)
+          values (${holdId}, ${vendorId}, ${member.userId}, ${JSON.stringify(base)}::jsonb, ${JSON.stringify(submitted)}::jsonb,
+                  ${JSON.stringify(diff.changes)}::jsonb, ${hold})`);
+        await audit(tx, {
+          actor: member.userId,
+          action: 'vendor.owner_edit_held',
+          subjectType: 'vendor',
+          subjectId: vendorId,
+          reason: hold,
+          changes: diff.changes,
+        });
+        return { status: 'held', holdId, slug: v.slug };
       }
-
-      // Services, each one scoped to this business: an id from elsewhere changes nothing
-      // and stops the whole save.
-      const byService = new Map<string, Record<string, unknown>>();
-      for (const [key, c] of Object.entries(changes)) {
-        const id = serviceIdOf(key);
-        if (!id) continue;
-        const fields = byService.get(id) ?? {};
-        fields[key.split(':')[2]!] = c.to;
-        byService.set(id, fields);
-      }
-      for (const [id, f] of byService) {
-        const price = f.price as { pricingModel: string; priceCents: number | null } | undefined;
-        if (added.includes(id)) {
-          await tx.execute(sql`
-            insert into vendor_service (id, vendor_id, name, description, pricing_model, price_cents, is_active, sort_order)
-            values (${id}, ${vendorId}, ${f.name as string}, ${(f.description as string | undefined) ?? null},
-                    ${price!.pricingModel}, ${price!.priceCents}, ${f.shown as boolean},
-                    (select coalesce(max(sort_order), 0) + 1 from vendor_service where vendor_id = ${vendorId}))`);
-          continue;
-        }
-        const updated = await tx.execute(sql`
-          update vendor_service set
-            name = case when ${'name' in f} then ${(f.name as string | undefined) ?? null} else name end,
-            description = case when ${'description' in f} then ${(f.description as string | null | undefined) ?? null} else description end,
-            pricing_model = case when ${price !== undefined} then ${price?.pricingModel ?? null} else pricing_model end,
-            price_cents = case when ${price !== undefined} then ${price?.priceCents ?? null}::int else price_cents end,
-            is_active = case when ${'shown' in f} then ${(f.shown as boolean | undefined) ?? null}::boolean else is_active end
-          where id = ${id} and vendor_id = ${vendorId} returning id`);
-        if (updated.length === 0) throw new OwnerRefused('Something on the page was out of date. Please reload it and try again.');
-      }
-      const [shown] = await tx.execute<{ n: number }>(sql`
-        select count(*)::int as n from vendor_service where vendor_id = ${vendorId} and is_active`);
-      // Over the limit only by showing more than before (the team may have shown more).
-      if ((shown?.n ?? 0) > MAX_SHOWN_SERVICES && (shown?.n ?? 0) > shownBefore) {
-        throw new OwnerRefused(`You can show up to ${MAX_SHOWN_SERVICES} services. Hide one to add another.`);
-      }
-
-      const flags = riskFlags(changes);
-      const auditId = await audit(tx, {
-        actor: member.userId,
-        action: 'vendor.owner_edit',
-        subjectType: 'vendor',
-        subjectId: vendorId,
-        changes,
-      });
-      await tx.execute(sql`
-        insert into owner_change (audit_id, vendor_id, flags) values (${auditId}, ${vendorId}, ${`{${flags.join(',')}}`}::text[])`);
-      return { status: 'saved', auditId, flags, slug: v.slug };
+      return writeEdits(tx, v, member.userId, base, submitted);
     }),
   );
+}
+
+/**
+ * Writes a save to the listing (inside the caller's transaction, the listing locked): only
+ * what changed, refused on a clash. Recorded as `actor`'s: the owner's own save, or a held
+ * one the team put live (D-50).
+ */
+async function writeEdits(tx: Db, v: Owned, actor: string, base: OwnerValues, submitted: OwnerValues): Promise<SaveResult> {
+  const vendorId = v.id;
+  const diff = ownerDiff(base, submitted, () => uuidv7());
+  if (!diff) throw new OwnerRefused('Something on the page was out of date. Please reload it and try again.');
+  const { changes, added } = diff;
+  if (Object.keys(changes).length === 0) return { status: 'nothing' };
+
+  const services = await readServices(tx, vendorId);
+  const shownBefore = services.filter((s) => s.isActive).length;
+  const current = flatten(toValues(v, services));
+  const clashes = findClashes(changes, current);
+  if (clashes.length > 0) {
+    // Next time, the owner's version of those fields is compared with today's, so
+    // saving again uses theirs; everything else still compares with what they loaded.
+    const nextBase = rebase(base, Object.fromEntries(clashes.map((k) => [k, current[k] ?? null])));
+    return { status: 'clash', current: Object.fromEntries(clashes.map((k) => [k, current[k] ?? null])), nextBase };
+  }
+
+  // The business's own fields: only the ones the owner changed.
+  const has = (k: keyof typeof VENDOR_COLUMNS) => k in changes;
+  const val = (k: keyof typeof VENDOR_COLUMNS) => (changes[k]?.to ?? null) as string | null;
+  if (Object.keys(VENDOR_COLUMNS).some((k) => has(k as keyof typeof VENDOR_COLUMNS))) {
+    await tx.execute(sql`
+      update vendor set
+        tagline = case when ${has('tagline')} then ${val('tagline')} else tagline end,
+        description = case when ${has('description')} then ${val('description')} else description end,
+        website_url = case when ${has('websiteUrl')} then ${val('websiteUrl')} else website_url end,
+        public_phone = case when ${has('publicPhone')} then ${val('publicPhone')} else public_phone end
+      where id = ${vendorId}`);
+  }
+
+  // Services, each one scoped to this business: an id from elsewhere changes nothing
+  // and stops the whole save.
+  const byService = new Map<string, Record<string, unknown>>();
+  for (const [key, c] of Object.entries(changes)) {
+    const id = serviceIdOf(key);
+    if (!id) continue;
+    const fields = byService.get(id) ?? {};
+    fields[key.split(':')[2]!] = c.to;
+    byService.set(id, fields);
+  }
+  for (const [id, f] of byService) {
+    const price = f.price as { pricingModel: string; priceCents: number | null } | undefined;
+    if (added.includes(id)) {
+      await tx.execute(sql`
+        insert into vendor_service (id, vendor_id, name, description, pricing_model, price_cents, is_active, sort_order)
+        values (${id}, ${vendorId}, ${f.name as string}, ${(f.description as string | undefined) ?? null},
+                ${price!.pricingModel}, ${price!.priceCents}, ${f.shown as boolean},
+                (select coalesce(max(sort_order), 0) + 1 from vendor_service where vendor_id = ${vendorId}))`);
+      continue;
+    }
+    const updated = await tx.execute(sql`
+      update vendor_service set
+        name = case when ${'name' in f} then ${(f.name as string | undefined) ?? null} else name end,
+        description = case when ${'description' in f} then ${(f.description as string | null | undefined) ?? null} else description end,
+        pricing_model = case when ${price !== undefined} then ${price?.pricingModel ?? null} else pricing_model end,
+        price_cents = case when ${price !== undefined} then ${price?.priceCents ?? null}::int else price_cents end,
+        is_active = case when ${'shown' in f} then ${(f.shown as boolean | undefined) ?? null}::boolean else is_active end
+      where id = ${id} and vendor_id = ${vendorId} returning id`);
+    if (updated.length === 0) throw new OwnerRefused('Something on the page was out of date. Please reload it and try again.');
+  }
+  const [shown] = await tx.execute<{ n: number }>(sql`
+    select count(*)::int as n from vendor_service where vendor_id = ${vendorId} and is_active`);
+  // Over the limit only by showing more than before (the team may have shown more).
+  if ((shown?.n ?? 0) > MAX_SHOWN_SERVICES && (shown?.n ?? 0) > shownBefore) {
+    throw new OwnerRefused(`You can show up to ${MAX_SHOWN_SERVICES} services. Hide one to add another.`);
+  }
+
+  const flags = riskFlags(changes);
+  const auditId = await audit(tx, {
+    actor,
+    action: 'vendor.owner_edit',
+    subjectType: 'vendor',
+    subjectId: vendorId,
+    changes,
+  });
+  await tx.execute(sql`
+    insert into owner_change (audit_id, vendor_id, flags) values (${auditId}, ${vendorId}, ${`{${flags.join(',')}}`}::text[])`);
+  return { status: 'saved', auditId, flags, slug: v.slug };
+}
+
+/** The owner (or a manager) withdraws the business's waiting held save. False if none was waiting. */
+export async function withdrawHeldEdit(env: ServerEnv, member: Member, slug: string): Promise<boolean> {
+  return withDb(env, (db) =>
+    db.transaction(async (tx) => {
+      const v = await findOwnedBySlug(tx, member.userId, slug, true);
+      if (!v) throw new NotOwner();
+      const [done] = await tx.execute<{ id: string }>(sql`
+        update owner_edit_hold set status = 'withdrawn' where vendor_id = ${v.id} and status = 'waiting' returning id`);
+      if (!done) return false;
+      await audit(tx, { actor: member.userId, action: 'vendor.owner_edit_hold_withdraw', subjectType: 'vendor', subjectId: v.id });
+      return true;
+    }),
+  );
+}
+
+export type HeldEdit = { id: string; vendorId: string; userId: string; base: OwnerValues; submitted: OwnerValues };
+
+/**
+ * The team puts a held save live (D-50), inside the caller's transaction: as the owner's own
+ * save, if they still own or manage the business and nothing they changed has changed since.
+ */
+export async function writeHeldEdit(tx: Db, held: HeldEdit): Promise<SaveResult> {
+  const v = await findOwned(tx, held.userId, { id: held.vendorId }, true);
+  if (!v) throw new OwnerRefused('They no longer own or manage this business. Decline it instead.');
+  const base = baseSchema.safeParse(held.base);
+  const submitted = baseSchema.safeParse(held.submitted);
+  if (!base.success || !submitted.success) throw new OwnerRefused('This held change can’t be read. Decline it instead.');
+  return writeEdits(tx, v, held.userId, base.data, submitted.data);
 }
 
 /**

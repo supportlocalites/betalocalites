@@ -1,0 +1,8 @@
+Subject: A reply from {{business}} is waiting for you
+
+{{business}} replied to a review, and the language check found something to look at:
+
+{{reason}}
+
+The reply isn't shown yet. Read it, then put it live or remove it:
+{{url}}

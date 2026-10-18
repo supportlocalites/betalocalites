@@ -1208,3 +1208,43 @@ only a clear list of the site's secrets without it makes one, and any doubt chan
 If it is ever lost, links stop working and the host makes new ones.
 
 **Cost.** $0: Cloudflare's own crypto and rate limiter (`INVITE_LIMIT`, replies per address).
+
+## ADR-033 — The language check: a word list and Cloudflare's AI checker (D-50)
+
+**Date:** 18 October 2026. **Status:** Accepted (migration 0036).
+
+**Context.** D-50: what business owners save, reviews and businesses' replies are checked for
+offensive language before they show; a flagged owner save is paused and the team emailed. The
+running cost must stay $0 (D-20), and a save must never fail because a checker is down.
+
+**Decision.**
+- **Two checks, on the server** (`src/server/moderation.server.ts`): a word list of strong swearing
+  and slurs, whole words only, with look-alikes ("sh1t", "f*ck") caught; and Cloudflare's Workers
+  AI with Llama Guard 3 (`@cf/meta/llama-guard-3-8b`) through the Worker's `AI` binding, counting
+  only hate, threats and violence, crime, sexual content, self-harm, weapons and defamation
+  (privacy is left out: a business's own phone number trips it). The AI checker gets 4 seconds;
+  if it fails, is slow or the free daily allowance (10,000 "neurons", reset at midnight UTC) is
+  used up, the word list's answer stands and the log says so. On the free plan, Workers AI
+  refuses past the allowance rather than billing.
+- **Only the words that changed** are checked (an owner's short description, About, service
+  names and details), before the database is opened, so a slow checker never holds a lock.
+- **A flagged owner save is held whole** (`owner_edit_hold`): nothing is written to the listing.
+  One waits per business; the owner can withdraw it, and can't save again until it's dealt
+  with. The team puts it live from **Held changes**, which makes the save exactly as an owner's
+  save (only what changed, refused on a clash or if they no longer own or manage the business,
+  recorded as theirs in `audit_log` and `owner_change`, so the daily note and undo work), or
+  declines it with a reason. The owner is emailed either way; the team is emailed when one is
+  held (at most 20 a day).
+- **Reviews** keep the check's finding (`review.language_flag`), set only with the author's
+  words while the review waits; the team sees it in the email and on the review. **A business's
+  reply** the check flags is held (`reply_held_*`): `published_reviews` leaves it out until the
+  team puts it live; the database lets the business set the hold only as it writes its one
+  reply, and only the team release it.
+- The writer is never told which words or why (that would teach getting round it); the team is.
+
+**Not chosen.** A paid moderation service (a running cost, D-20); refusing a save outright (an
+innocent word would block a business with nobody to ask); checking messages (they're private
+between two people, and reports already cover them).
+
+**Tests.** `db/tests/0036_language_checks.test.sql`, `tests/unit/moderation.test.ts`,
+`tests/e2e/language-check.mjs` (with a pretend AI checker in `scripts/e2e/mail-server.mjs`).

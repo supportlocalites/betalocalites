@@ -14,7 +14,11 @@
 //   - /storage/v1/… stands in for Supabase Storage (business photos): PUT and DELETE under
 //     /storage/v1/s3/<bucket>/<path> (only with the test key, signed the S3 way), GET under
 //     /storage/v1/object/public/<bucket>/<path>. GET /storage/files lists what is stored;
-//     POST /storage/fail?on=1 makes storage refuse every change until ?on=0.
+//     POST /storage/fail?on=1 makes storage refuse every change until ?on=0;
+//   - POST /moderation stands in for Cloudflare's AI checker (the language check, D-50, when
+//     the site is pointed here with MODERATION_URL): words containing "pretend-hate" are unsafe
+//     (hate, S10), "pretend-phone" trips only privacy (S7), "pretend-outage" makes it fail;
+//     anything else is safe. GET /moderation/asked lists what it was asked.
 // Usage: node scripts/e2e/mail-server.mjs
 import { readFile } from 'node:fs/promises';
 import http from 'node:http';
@@ -28,6 +32,7 @@ const messages = []; // { to: string[], subject, body, at }
 const TURNSTILE_SECRET = process.env.E2E_TURNSTILE_SECRET ?? 'e2e-turnstile-secret-local-only';
 const EMAIL_KEY = process.env.E2E_EMAIL_KEY ?? 'e2e-email-key-local-only';
 const spent = new Set();
+const asked = []; // what the pretend AI checker was asked (lower case)
 const PHOTO_KEY = process.env.E2E_PHOTO_KEY ?? 'e2e-photo-key';
 const files = new Map(); // "<bucket>/<path>" -> { type, body: Buffer }
 let storageFails = false;
@@ -204,6 +209,22 @@ http
       const [status, reply] = siteverify(body);
       res.writeHead(status, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify(reply));
+    } else if (url.pathname === '/moderation' && req.method === 'POST') {
+      let raw = '';
+      for await (const chunk of req) raw += chunk;
+      const text = String(JSON.parse(raw || '{}').messages?.at(-1)?.content ?? '').toLowerCase();
+      asked.push(text);
+      if (text.includes('pretend-outage')) {
+        res.writeHead(500, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ errors: [{ message: 'daily allowance used up' }] }));
+      } else {
+        const categories = text.includes('pretend-hate') ? ['S10'] : text.includes('pretend-phone') ? ['S7'] : [];
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ response: { safe: categories.length === 0, categories } }));
+      }
+    } else if (url.pathname === '/moderation/asked') {
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify(asked));
     } else if (url.pathname === '/turnstile/checks') {
       res.writeHead(200, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify(checks));

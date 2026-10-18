@@ -116,6 +116,8 @@ on codes (ADR-028).
   0035) and the audit-log page; listing review (X3) isn't planned for now, as owners' changes go
   live with the team's daily note and Undo (D-34).
 - **Pages not built yet:** collections. **Built 18 October 2026:** How it works, For businesses.
+- **Built 18 October 2026 (D-50):** the language check on owners' saves, reviews and replies, with
+  the team's **Held changes** page (migration 0036).
 - **Owner steps waiting:** PO-11 (check and publish the test businesses), PO-14 (switch on
   activity counting).
 

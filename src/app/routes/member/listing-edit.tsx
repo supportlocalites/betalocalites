@@ -8,7 +8,18 @@ import page from '@/components/VendorPage.module.css';
 import { pageMeta } from '@/lib/meta';
 import { tidyLine, tidyParagraphs } from '@/lib/owner-text';
 import { describePrice, type PricingModel } from '@/lib/price';
-import { alertTeam, NotOwner, OwnerRefused, ownedListing, readBase, saveOwnerEdits } from '@/server/owner-listing.server';
+import { emailTeamAboutHold } from '@/server/admin/held-edits.server';
+import { checkLanguage } from '@/server/moderation.server';
+import {
+  alertTeam,
+  changedWords,
+  NotOwner,
+  OwnerRefused,
+  ownedListing,
+  readBase,
+  saveOwnerEdits,
+  withdrawHeldEdit,
+} from '@/server/owner-listing.server';
 import { parseOwnerForm } from '@/server/owner-input';
 import type { Route } from './+types/listing-edit';
 import styles from './listing-edit.module.css';
@@ -16,7 +27,8 @@ import styles from './listing-edit.module.css';
 /**
  * Screen V2: an owner edits their own listing (D-34, ADR-029). The page is laid out like
  * the public business page, with the parts the owner may change as boxes in place; "View
- * as a visitor" shows the real public page with what they've typed. Saves go live at once.
+ * as a visitor" shows the real public page with what they've typed. Saves go live at once,
+ * unless the language check flags the words (D-50): then the save waits for the team.
  */
 export const meta: Route.MetaFunction = ({ loaderData }) => [
   ...pageMeta(loaderData ? `Edit ${loaderData.view.name}` : 'Edit your listing'),
@@ -48,6 +60,16 @@ export async function action({ request, params, context }: Route.ActionArgs) {
   const reply = (p: Problem, status: number) => data(p, { status });
   const refused = (message: string, status = 409) => reply({ kind: 'refused', message, fields, nextBase: fields.base ?? '' }, status);
 
+  if (fields.intent === 'withdraw') {
+    try {
+      const withdrawn = await withdrawHeldEdit(env, member, params.slug);
+      return redirect(`/vendors/${params.slug}/edit?${withdrawn ? 'withdrawn' : 'saved'}=1`);
+    } catch (err) {
+      if (err instanceof NotOwner) throw data({ reason: 'not_owner' }, { status: 404 });
+      throw err;
+    }
+  }
+
   if (env.OWNER_EDIT_LIMIT && !(await env.OWNER_EDIT_LIMIT.limit({ key: member.userId })).success) {
     return refused('That’s a lot of saves in a minute. Please wait a moment, then save again.', 429);
   }
@@ -56,10 +78,20 @@ export async function action({ request, params, context }: Route.ActionArgs) {
   if (!parsed.ok) return reply({ kind: 'invalid', errors: parsed.errors, fields, nextBase: fields.base ?? '' }, 400);
 
   try {
-    const result = await saveOwnerEdits(env, member, params.slug, base, parsed.values);
+    // Checked before anything is written (D-50), and before the database is opened: the AI checker is asked over the network.
+    const check = await checkLanguage(env, changedWords(base, parsed.values));
+    const result = await saveOwnerEdits(env, member, params.slug, base, parsed.values, check.flagged ? check.reason : null);
     if (result.status === 'nothing') return reply({ kind: 'nothing', fields, nextBase: fields.base ?? '' }, 200);
     if (result.status === 'clash') {
       return reply({ kind: 'clash', current: result.current, fields, nextBase: JSON.stringify(result.nextBase) }, 409);
+    }
+    if (result.status === 'held') {
+      ctx.waitUntil(
+        emailTeamAboutHold(env, result.holdId, new URL(request.url).origin).catch((err) =>
+          console.error('held change email not recorded', err instanceof Error ? err.message : err),
+        ),
+      );
+      return redirect(`/vendors/${result.slug}/edit?held=${result.holdId}`);
     }
     if (result.flags.length > 0) {
       ctx.waitUntil(
@@ -149,19 +181,23 @@ const keyFor = (field: string) => {
 export default function EditListing({ loaderData, actionData }: Route.ComponentProps) {
   // A fresh form after each save (the address changes); typed values kept after a problem.
   const [params] = useSearchParams();
-  return <Editor key={params.get('saved') ?? 'start'} loaderData={loaderData} actionData={actionData} saved={params.has('saved')} />;
+  const key = params.get('saved') ?? params.get('held') ?? params.get('withdrawn') ?? 'start';
+  return <Editor key={key} loaderData={loaderData} actionData={actionData} saved={params.has('saved')} withdrawn={params.has('withdrawn')} />;
 }
 
 function Editor({
   loaderData,
   actionData,
   saved,
+  withdrawn,
 }: {
   loaderData: Route.ComponentProps['loaderData'];
   actionData: Route.ComponentProps['actionData'];
   saved: boolean;
+  withdrawn: boolean;
 }) {
-  const { slug, view, values, hidden, undone } = loaderData;
+  const { slug, view, values, hidden, undone, held } = loaderData;
+  const day = (at: string) => new Date(at).toLocaleDateString('en-CA', { month: 'short', day: 'numeric', timeZone: 'America/Toronto' });
   const problem = actionData as Problem | undefined;
   const fields = problem?.fields;
   const base = problem?.nextBase || loaderData.base;
@@ -283,7 +319,32 @@ function Editor({
             {hidden ? 'Your changes are kept as soon as you save.' : 'Changes show to visitors as soon as you save.'} Our team reads every
             change and may change back anything that breaks our rules.
           </p>
-          {saved && !problem && (
+          {held?.status === 'waiting' && (
+            <div className="notice" role="status">
+              <p>
+                {`Thanks. Our team is checking a few words before your changes from ${day(held.at)} go live. We’ll email you when they have. Until then, visitors see your listing as it was.`}
+              </p>
+              <p>{`Waiting: ${held.lines.join('; ')}.`}</p>
+              <Form method="post">
+                <input type="hidden" name="intent" value="withdraw" />
+                <button type="submit" className="button button-secondary" disabled={busy}>
+                  Withdraw these changes
+                </button>
+              </Form>
+            </div>
+          )}
+          {held?.status === 'declined' && (
+            <div className="notice">
+              <p>{`Our team didn’t put live your changes from ${day(held.at)}: ${held.lines.join('; ')}.`}</p>
+              {held.reason && <p>{`Why: ${held.reason}`}</p>}
+            </div>
+          )}
+          {withdrawn && !problem && (
+            <p className="notice" role="status">
+              Withdrawn. Your listing shows what it did before, and you can edit it again.
+            </p>
+          )}
+          {saved && !problem && held?.status !== 'waiting' && (
             <p className="notice" role="status">
               {hidden ? 'Saved. Visitors will see your changes once your listing is shown again.' : 'Saved. Visitors see your changes now.'}{' '}
               {!hidden && (

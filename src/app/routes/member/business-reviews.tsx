@@ -6,14 +6,14 @@ import { isUuid, SLUG } from '@/lib/ids.mjs';
 import { pageMeta } from '@/lib/meta';
 import { TOO_FAST } from '@/lib/plan-terms';
 import { REVIEW_LIMITS } from '@/lib/review-terms';
-import { found, refusal, tooFast } from '@/server/plan-pages.server';
+import { found, refusal, siteUrl, tooFast } from '@/server/plan-pages.server';
 import { businessReviews, readReply, replyToReview } from '@/server/reviews.server';
 import type { Route } from './+types/business-reviews';
 
 /**
  * Screen V8: a business's published reviews (Stage 3; D-06). Anyone on its team reads them;
  * the owner or a manager replies once to each, publicly. Reviews waiting for the Localites
- * team aren't shown to the business.
+ * team aren't shown to the business. A reply the language check flags waits for the team (D-50).
  */
 export const meta: Route.MetaFunction = ({ loaderData }) => [
   ...pageMeta(loaderData ? `Reviews · ${loaderData.business.name}` : 'Reviews'),
@@ -37,8 +37,8 @@ export async function action({ request, params, context }: Route.ActionArgs) {
   const read = readReply(form);
   if ('error' in read) return data({ error: read.error, reviewId }, { status: 400 });
   try {
-    await replyToReview(env, member.userId, params.slug, reviewId, read.reply);
-    return redirect(`/vendors/${params.slug}/reviews?replied=1`);
+    const { held } = await replyToReview(env, member.userId, params.slug, reviewId, read.reply, siteUrl(env, request));
+    return redirect(`/vendors/${params.slug}/reviews?${held ? 'held' : 'replied'}=1`);
   } catch (err) {
     const { error, status } = refusal(err);
     return data({ error, reviewId }, { status });
@@ -66,6 +66,11 @@ export default function BusinessReviews({ loaderData, actionData }: Route.Compon
             Your reply is on your page, under the review.
           </p>
         )}
+        {params.has('held') && (
+          <p className="notice" role="status">
+            Thanks. Our team is checking a few words in your reply before it shows on your page.
+          </p>
+        )}
         <p className="muted">
           These are on your public page. Our team reads every review before it’s published.
           {business.role === 'staff' ? ' The owner or a manager can reply.' : ' You can reply to each review once, publicly.'}
@@ -78,6 +83,14 @@ export default function BusinessReviews({ loaderData, actionData }: Route.Compon
           after={(r) => {
             const review = reviews.find((x) => x.id === r.id);
             const report = <ReportLink to={`/vendors/${business.slug}/reviews/${r.id}/report`} />;
+            if (review?.replyHeld) {
+              return (
+                <>
+                  {report}
+                  <p className="muted">{`Your reply, waiting for our team to check some words: “${review.replyHeld}”`}</p>
+                </>
+              );
+            }
             if (!review?.canReply) return report;
             return (
               <>

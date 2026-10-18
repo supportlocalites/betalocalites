@@ -110,6 +110,13 @@ their account), everyone else on that business's team leaves too and open invita
 cancelled. Limits: 10 people besides the owner, 20 invitations a day. Joining, removing,
 inviting and cancelling are all in `audit_log`.
 
+**Built (18 October 2026, migration 0036, D-50, ADR-033): words are checked before they show.**
+An owner's or manager's save whose words the language check flags is held whole and written to
+nothing until the team puts it live (as the owner's own save) or declines it; the owner can
+withdraw it. A business's flagged reply to a review is held off its page until the team puts it
+live; only the team can release it (database rule). A review keeps the check's finding for the
+team only. The writer is never told what was found.
+
 There's no "super user" bypass. Admins go through the same checks; their role simply
 grants more, and every admin action is recorded in `audit_log`.
 

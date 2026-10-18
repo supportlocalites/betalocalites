@@ -98,5 +98,7 @@ export default [
     // Users and roles (X10, migration 0035), and the audit log (X11).
     route('team', 'routes/admin/team.tsx'),
     route('audit', 'routes/admin/audit.tsx'),
+    // Owners' changes the language check held (D-50, migration 0036).
+    route('held-changes', 'routes/admin/held-changes.tsx'),
   ]),
 ] satisfies RouteConfig;

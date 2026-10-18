@@ -31,6 +31,38 @@ Every release and every database migration, in order. Appended before each deplo
 
 ## Releases
 
+### 2026-10-18 — Words checked before they show (D-50)
+
+**Stage:** 1 and 3 (owner editing, reviews; screen X21)
+**What changed (plain English):**
+- When an owner or manager saves their business page, the words they changed are checked: a list
+  of offensive words, and Cloudflare's AI checker (free within its daily allowance). If either
+  finds something, **the whole save waits**: the page doesn't change, the owner is told it's
+  waiting (and can withdraw it), and the team is emailed. On the new **Held changes** team page,
+  the team puts it live or declines it with a reason; the owner is emailed either way.
+- **Reviews** still wait for the team as before; what the check found is shown to the team in the
+  email and on the review.
+- **A business's reply to a review** that the check flags is kept off its page until the team
+  puts it live (or removes it).
+- If the AI checker is unavailable, the word list's answer stands. Nothing is blocked or charged.
+- An older test of the analytics page sometimes failed at random (it searched for "977" anywhere
+  on the page, including random codes); it now looks for the number as shown.
+**Migrations applied:** `0036_language_checks.sql`
+**Destructive?** No. A new table, new empty columns on reviews, a replaced read function that
+answers the same for every reply not held, two more kinds of email.
+**Tests run:** database checks 36 of 36 files (0036: 23 checks); unit tests 189 of 189 (8 new);
+browser suites language check 40 of 40, owner editing 55 of 55, reviews 62 of 62, admin access
+43 of 43, business teams 38 of 38, analytics 51 of 51, look checks 448 of 448.
+**Security tests:** the owner, another owner and someone not on the team can't put a held save
+live; another person can't withdraw it; the business and the reviewer can't release a held reply;
+nobody but the author (while it waits) sets a review's finding; a held save can't be rewritten or
+deleted; a decision is final.
+**Existing functionality affected:** owners' saves now take up to 4 seconds longer when the AI
+checker is slow; otherwise none.
+**How to roll back:** remove the `ai` binding and the check from the edit and review pages with the
+next update; the table and columns can stay (empty).
+**Approved by:** the product owner, D-50 (17 October 2026).
+
 ### 2026-10-18 — Users and roles, the audit log, How it works, For businesses
 
 **Stage:** 1 (screens X10, X11, P6, P7)
