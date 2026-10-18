@@ -123,8 +123,8 @@ on codes (ADR-028).
      day per person, no duplicates, 20 team emails a day), files capped at 25 MB a day per person,
      reported files let go 90 days after the decision, the health check no longer lists the site's
      settings, the "Where" box now says guests see it, group-link replies limited per connection, an
-     unused database right taken back. **Still open:** the owner's decision on switching on the
-     "are you human" check (D-38) against sign-in code lockouts; live-site backups go to private
+     unused database right taken back. **Still open:** the "are you human" check against sign-in code
+     lockouts (D-38; the owner, 18 October 2026: "not yet", ask again before launch); live-site backups go to private
      storage (step 3); a content security policy; a limit on team password attempts; tighter
      suggestion limits; the older tables still readable by the server without "acting as" rules;
      PDFs aren't checked inside;
