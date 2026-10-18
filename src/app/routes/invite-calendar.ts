@@ -15,7 +15,7 @@ export async function loader({ request, context }: Route.LoaderArgs) {
   const { env } = context.get(cloudflareContext);
   const group = new URL(request.url).pathname.startsWith('/group-invite');
   const token = group ? groupToken(request) : inviteToken(request);
-  const invitation = !token ? null : group ? await groupInvitationFor(env, token, browserKey(request)) : await invitationFor(env, token);
+  const invitation = !token ? null : group ? await groupInvitationFor(env, token, browserKey(request), false) : await invitationFor(env, token);
   if (!token || !invitation || invitation.status === 'cancelled') throw data(null, { status: 404 });
   // The same id each time for this link, so adding it again updates the same entry.
   const uid = (await tokenHash(`calendar:${token}`)).slice(0, 32);

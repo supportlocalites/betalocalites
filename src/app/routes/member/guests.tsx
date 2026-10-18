@@ -28,6 +28,7 @@ import {
   readGuest,
   readLine,
   removeGroupReply,
+  removeUnmatchedReplies,
   removeGuest,
   removeQuestion,
   removeUpdate,
@@ -60,6 +61,7 @@ const BACK: Record<string, string> = {
   'group-off': 'group',
   match: 'list',
   'remove-reply': 'list',
+  'remove-unmatched': 'list',
   'question-add': 'questions',
   'question-remove': 'questions',
   'update-post': 'updates',
@@ -115,6 +117,10 @@ export async function action({ request, params, context }: Route.ActionArgs) {
       await removeGroupReply(env, member.userId, params.id, id('replyId'));
       return back('remove-reply');
     }
+    if (intent === 'remove-unmatched') {
+      await removeUnmatchedReplies(env, member.userId, params.id);
+      return back('remove-unmatched');
+    }
     if (intent === 'question-add') {
       const q = readLine(form, 'question', GUEST_LIMITS.question, GUEST_REFUSALS.question!, GUEST_REFUSALS.questionTooLong!);
       if ('error' in q) return data({ intent, error: q.error }, { status: 400 });
@@ -148,6 +154,7 @@ const SAVED: Record<string, string> = {
   'group-off': 'Group link switched off. It no longer opens; replies already sent stay.',
   match: 'Matched. That guest now shows the reply.',
   'remove-reply': 'Removed.',
+  'remove-unmatched': 'Removed every reply that wasn’t matched to a guest.',
   question: 'Question added. Guests see it on their invitation.',
   'question-removed': 'Question removed, with its answers.',
   update: 'Posted. Guests see it on their invitation.',
@@ -264,7 +271,7 @@ export default function Guests({ loaderData, actionData }: Route.ComponentProps)
             <h2 id="group-replies-title" className="label">
               Replies from the group link, not matched yet ({groupReplies.length})
             </h2>
-            {errorFor('match', 'remove-reply')}
+            {errorFor('match', 'remove-reply', 'remove-unmatched')}
             <p className="muted">Match each one to a guest on your list, so you can see who’s still to reply. They count in the totals either way.</p>
             <ul className={styles.list}>
               {groupReplies.map((r) => (
@@ -311,6 +318,14 @@ export default function Guests({ loaderData, actionData }: Route.ComponentProps)
                 </li>
               ))}
             </ul>
+            {groupReplies.length > 1 && (
+              <Form method="post">
+                <input type="hidden" name="intent" value="remove-unmatched" />
+                <button type="submit" className={styles.textButton} disabled={busy}>
+                  Remove all {groupReplies.length} unmatched replies (if they aren’t from your guests)
+                </button>
+              </Form>
+            )}
           </section>
         )}
 
@@ -480,7 +495,7 @@ export default function Guests({ loaderData, actionData }: Route.ComponentProps)
               {updates.map((u) => (
                 <li key={u.id}>
                   <div className={styles.rowBody}>
-                    <span className={styles.meta}>{longDateWithYear(u.at.slice(0, 10))}</span>
+                    <span className={styles.meta}>{longDateWithYear(u.at)}</span>
                     <p style={{ whiteSpace: 'pre-wrap', overflowWrap: 'anywhere' }}>{u.body}</p>
                     <div className={styles.rowActions}>
                       <a
@@ -552,6 +567,6 @@ function sectionOf(saved: string): string {
   if (saved === 'question' || saved === 'question-removed') return 'questions';
   if (saved === 'update' || saved === 'update-removed') return 'updates';
   // After matching, the reply leaves its section (which may be gone): said above the list.
-  if (saved === 'match' || saved === 'remove-reply') return 'list';
+  if (saved === 'match' || saved === 'remove-reply' || saved === 'remove-unmatched') return 'list';
   return BACK[saved] ?? 'list';
 }

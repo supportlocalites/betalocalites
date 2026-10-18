@@ -119,7 +119,7 @@ export default function Invite({ loaderData, actionData }: Route.ComponentProps)
           <ul className={styles.list}>
             {extras.updates.map((u) => (
               <li key={u.id}>
-                <p className="muted">{longDateWithYear(u.at.slice(0, 10))}</p>
+                <p className="muted">{longDateWithYear(u.at)}</p>
                 <p style={{ whiteSpace: 'pre-wrap', overflowWrap: 'anywhere' }}>{u.body}</p>
               </li>
             ))}

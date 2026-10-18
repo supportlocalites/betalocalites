@@ -116,6 +116,7 @@ export type GroupReplyRow = {
   answers: Answer[];
 };
 export type Question = { id: string; question: string };
+/** at: the day it was posted, in Toronto (yyyy-mm-dd). */
 export type GuestUpdate = { id: string; body: string; at: string };
 
 /**
@@ -142,7 +143,8 @@ export async function guestList(env: ServerEnv, userId: string, eventId: string,
       const questions = await tx.execute<Question>(sql`
         select id, question from event_question where event_id = ${eventId} and host_user_id = ${userId} order by created_at`);
       const updates = await tx.execute<GuestUpdate>(sql`
-        select id, body, created_at::text as at from event_update where event_id = ${eventId} and host_user_id = ${userId}
+        select id, body, (created_at at time zone 'America/Toronto')::date::text as at
+        from event_update where event_id = ${eventId} and host_user_id = ${userId}
         order by created_at desc`);
       const [link] = await tx.execute<{ version: number; on: boolean }>(sql`
         select version, token_hash is not null as on from event_group_link where event_id = ${eventId} and host_user_id = ${userId}`);
@@ -199,9 +201,10 @@ export async function newGroupLink(env: ServerEnv, userId: string, eventId: stri
 /** Switches the group link off: it stops at once; replies already sent stay. */
 export async function groupLinkOff(env: ServerEnv, userId: string, eventId: string): Promise<void> {
   await guarded(
-    actingAs(env, asPerson(userId), (tx) =>
-      tx.execute(sql`update event_group_link set token_hash = null where event_id = ${eventId} and host_user_id = ${userId}`),
-    ),
+    actingAs(env, asPerson(userId), async (tx) => {
+      await hostEvent(tx, userId, eventId);
+      await tx.execute(sql`update event_group_link set token_hash = null where event_id = ${eventId} and host_user_id = ${userId}`);
+    }),
   );
 }
 
@@ -211,6 +214,17 @@ export async function matchGroupReply(env: ServerEnv, userId: string, eventId: s
     actingAs(env, asPerson(userId), async (tx) => {
       await hostEvent(tx, userId, eventId);
       await tx.execute(sql`select match_group_reply(${replyId}::uuid, ${guestId}::uuid)`);
+    }),
+  );
+}
+
+/** Removes every group reply not matched to a guest (a flood of made-up replies, say). */
+export async function removeUnmatchedReplies(env: ServerEnv, userId: string, eventId: string): Promise<void> {
+  await guarded(
+    actingAs(env, asPerson(userId), async (tx) => {
+      await hostEvent(tx, userId, eventId);
+      await tx.execute(sql`
+        delete from group_reply where event_id = ${eventId} and host_user_id = ${userId} and matched_guest_id is null`);
     }),
   );
 }
@@ -437,7 +451,7 @@ export type InvitationExtras = { questions: (Question & { answer: string | null 
 async function extrasFor(env: ServerEnv, hash: string, browserHash: string | null): Promise<InvitationExtras> {
   const rows = await withDb(env, (db) =>
     db.execute<{ kind: 'question' | 'update'; id: string; body: string; answer: string | null; at: string }>(sql`
-      select kind, id, body, answer, at::text as at
+      select kind, id, body, answer, (at at time zone 'America/Toronto')::date::text as at
       from invitation_extras(decode(${hash}, 'hex'), ${browserHash ? sql`decode(${browserHash}, 'hex')` : sql`null`})`),
   );
   return {
@@ -486,6 +500,7 @@ export async function groupInvitationFor(
   env: ServerEnv,
   token: string,
   browserKey: string | null,
+  withExtras = true,
 ): Promise<(Invitation & { replyName: string | null; extras: InvitationExtras }) | null> {
   if (!TOKEN.test(token)) return null;
   const hash = await tokenHash(token);
@@ -499,7 +514,7 @@ export async function groupInvitationFor(
       from group_invitation_for(decode(${hash}, 'hex'), decode(${browserHash}, 'hex'))`),
   );
   if (!row) return null;
-  return { ...row, extras: await extrasFor(env, hash, browserHash) };
+  return { ...row, extras: withExtras ? await extrasFor(env, hash, browserHash) : { questions: [], updates: [] } };
 }
 
 /** G2 by the group link: a reply with a name, or this browser's own changed. */

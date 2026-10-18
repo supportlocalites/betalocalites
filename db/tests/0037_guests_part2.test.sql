@@ -134,12 +134,16 @@ select pg_temp.expect_code('a wrong link can''t answer', $q$
   select invitation_answers(sha256('nope'::bytea), '{}')$q$, 'LP101');
 
 -- ------------------------------------------------------------------ the host sees and matches
+reset role;
+create temp table sam as select id from group_reply where name = 'Sam Smith';
+grant select on sam to app_server;
+set local role app_server;
 select pg_temp.act('person', '00000000-0000-7000-8000-0000000037a2');
 select pg_temp.expect_equal('someone else sees no group replies, questions, answers or updates', (
   select (select count(*) from group_reply) + (select count(*) from event_question) + (select count(*) from guest_answer)
          + (select count(*) from event_update))::text, '0');
-select pg_temp.expect_code('…and can''t match a reply', $q$
-  select match_group_reply((select id from group_reply limit 1), '00000000-0000-7000-8000-0000000037d1')$q$, 'LP101');
+select pg_temp.expect_code('…and can''t match Ann''s reply, even knowing its id', $q$
+  select match_group_reply((select id from pg_temp.sam), '00000000-0000-7000-8000-0000000037d1')$q$, 'LP101');
 select pg_temp.act('person', '00000000-0000-7000-8000-0000000037a1');
 select pg_temp.expect_code('the host can''t change a guest''s group reply', $q$
   update group_reply set response = 'no'$q$, '42501');
@@ -158,6 +162,39 @@ select pg_temp.act('person', '00000000-0000-7000-8000-0000000037a1');
 select pg_temp.expect_equal('a matched reply changed later: the guest follows, answers too', (
   select g.response || ' ' || (select answer from guest_answer a where a.guest_id = g.id)
   from guest g where g.id = '00000000-0000-7000-8000-0000000037d1'), 'no Shellfish');
+
+-- A second reply matched to the same guest: the first goes back to unmatched, so it can't overwrite.
+select pg_temp.act(null, null);
+select group_invitation_reply(pg_temp.h('g1'), pg_temp.h('browser-5'), 'Jo herself', 'yes', 3::smallint, null, '{}');
+select pg_temp.act('person', '00000000-0000-7000-8000-0000000037a1');
+select match_group_reply((select id from group_reply where name = 'Jo herself'), '00000000-0000-7000-8000-0000000037d1');
+select pg_temp.expect_equal('matching a second reply to Jo: hers now, the first unmatched again', (
+  select (select response || ' ' || party_size from guest where id = '00000000-0000-7000-8000-0000000037d1') || ' / ' ||
+         (select coalesce(matched_guest_id::text, 'unmatched') from group_reply where name = 'Sam Smith')), 'yes 3 / unmatched');
+select pg_temp.act(null, null);
+select group_invitation_reply(pg_temp.h('g1'), pg_temp.h('browser-1'), 'Sam Smith', 'maybe', 1::smallint, null, '{}');
+select pg_temp.act('person', '00000000-0000-7000-8000-0000000037a1');
+select pg_temp.expect_equal('…and the first reply changing later no longer touches Jo', (
+  select response from guest where id = '00000000-0000-7000-8000-0000000037d1'), 'yes');
+
+-- The cap counts replies not yet matched: a flood is cleared by removing them.
+reset role;
+insert into group_reply (event_id, host_user_id, browser_hash, name, response)
+  select '00000000-0000-7000-8000-0000000037f1', '00000000-0000-7000-8000-0000000037a1', pg_temp.h('flood-' || n), 'Spam ' || n, 'no'
+  from generate_series(1, 299) n;
+set local role app_server;
+select pg_temp.act(null, null);
+select pg_temp.expect_code('300 unmatched replies: no more', $q$
+  select group_invitation_reply(sha256(convert_to('g1', 'UTF8')), sha256(convert_to('browser-6', 'UTF8')), 'One more', 'no', null, null, '{}')$q$, 'LP176');
+select pg_temp.act('person', '00000000-0000-7000-8000-0000000037a1');
+delete from group_reply where event_id = '00000000-0000-7000-8000-0000000037f1' and matched_guest_id is null;
+select pg_temp.act(null, null);
+select group_invitation_reply(pg_temp.h('g1'), pg_temp.h('browser-6'), 'One more', 'no', null, null, '{}');
+select pg_temp.expect_equal('the host removes the unmatched ones: replies open again', (
+  select reply_name from group_invitation_for(pg_temp.h('g1'), pg_temp.h('browser-6'))), 'One more');
+select pg_temp.act('person', '00000000-0000-7000-8000-0000000037a1');
+select pg_temp.expect_equal('…Jo''s matched reply is kept', (
+  select count(*)::text from group_reply where matched_guest_id = '00000000-0000-7000-8000-0000000037d1'), '1');
 
 -- ------------------------------------------------------------------ switching the link off
 update event_group_link set token_hash = null where event_id = '00000000-0000-7000-8000-0000000037f1';

@@ -47,8 +47,14 @@ Every release and every database migration, in order. Appended before each deplo
   doesn't send them anywhere (D-08); the host can share them from their phone.
 **Migrations applied:** `0037_guests_part2.sql`
 **Destructive?** No. New tables and functions.
-**Tests run:** database checks 37 of 37 files (0037: 34 checks); browser suites guests 47 of 47,
-guests part 2 31 of 31, look checks 464 of 464; unit tests 191 of 191.
+**Tests run:** database checks 37 of 37 files (0037: 39 checks); browser suites guests 47 of 47,
+guests part 2 34 of 34, look checks 464 of 464; unit tests 191 of 191.
+**Independent review before push:** nobody can see or change another person's guests. Fixed from
+it: the 300-reply limit counts only unmatched replies and the host can remove all unmatched at
+once (so a flood can't block the link); matching a second reply to a guest unlinks the first (it
+could otherwise overwrite the guest's reply later); a test that passed for the wrong reason;
+updates dated in Toronto time; less database work for the calendar file; the privacy model says
+answers are kept with the event.
 **Security tests:** another person and the team can't make, see or change the group link,
 questions, updates or replies, or match a reply; a group link's guest never sees anyone else's
 reply or the plan's private notes; a switched-off or replaced link opens nothing; nobody but the

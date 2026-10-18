@@ -8,7 +8,8 @@
 --   2. Group replies: each reply through the group link, with a name. Whoever replied can
 --      change their own reply from the same browser (a random key in a cookie; only its hash is
 --      stored). The host matches a reply to a guest on their list with one tap (the guest then
---      shows that reply) or removes it. At most 300 an event.
+--      shows that reply) or removes it, one or all unmatched at once. At most 300 unmatched an
+--      event (so a flood can be cleared and the link replaced).
 --   3. The host's questions (up to 5 an event, a short answer each, optional to answer): asked
 --      on every invitation; answers are kept with the guest or the group reply.
 --   4. Updates to guests: short notes the host posts ("We've moved to 3 pm"), shown on every
@@ -58,6 +59,7 @@ create table group_reply (
   check (case when response in ('yes', 'maybe') then party_size is not null else party_size is null end)
 );
 create index group_reply_event on group_reply (event_id, created_at);
+create unique index group_reply_one_per_guest on group_reply (matched_guest_id) where matched_guest_id is not null;
 comment on table group_reply is
   'A reply through an event''s group link (D-08): a name, not an account. Only the host reads it.';
 
@@ -206,7 +208,8 @@ grant select on guest_answer to app_server;
 grant select, insert (id, event_id, host_user_id, body), delete on event_update to app_server;
 
 -- The host matches a group reply to a guest on their list: the guest shows that reply (and its
--- answers), as the guest's own. One reply per guest; a guest's earlier reply is replaced.
+-- answers), as the guest's own. One reply per guest: a reply matched to them before goes back to
+-- the unmatched list, so it can never overwrite this one later.
 create function match_group_reply(p_reply uuid, p_guest uuid) returns void
 language plpgsql security definer set search_path = public, extensions, pg_temp as $$
 declare
@@ -230,6 +233,7 @@ begin
                    replied_at = r.updated_at, reply_by = 'guest',
                    first_opened_at = coalesce(first_opened_at, r.created_at)
   where id = p_guest;
+  update group_reply set matched_guest_id = null, matched_at = null where matched_guest_id = p_guest and id <> p_reply;
   delete from guest_answer where guest_id = p_guest;
   update guest_answer set guest_id = p_guest, group_reply_id = null where group_reply_id = p_reply;
   update group_reply set matched_guest_id = p_guest, matched_at = now() where id = p_reply;
@@ -295,9 +299,10 @@ begin
     raise exception 'your name, please' using errcode = 'LP175';
   end if;
   perform pg_advisory_xact_lock(hashtextextended('localites.group-reply:' || ev.id::text, 0));
-  select id into v_id from group_reply where event_id = ev.id and browser_hash = p_browser_hash;
+  -- Locked, so a removal by the host meanwhile can't leave the answers below without their reply.
+  select id into v_id from group_reply where event_id = ev.id and browser_hash = p_browser_hash for update;
   if v_id is null then
-    if (select count(*) from group_reply where event_id = ev.id) >= 300 then
+    if (select count(*) from group_reply where event_id = ev.id and matched_guest_id is null) >= 300 then
       raise exception 'this invitation has had all the replies it can take: ask your host' using errcode = 'LP176';
     end if;
     insert into group_reply (event_id, host_user_id, browser_hash, name, response, party_size, reply_note)

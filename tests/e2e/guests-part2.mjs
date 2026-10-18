@@ -105,6 +105,17 @@ const [tiaReply] = await sql`select id from group_reply where event_id = ${ev.id
 r = await post({ intent: 'remove-reply', replyId: tiaReply.id });
 check('the host removes a reply that isn’t from their guests', r.status === 302 && (await sql`select count(*)::int as n from group_reply where id = ${tiaReply.id}`)[0].n === 0);
 
+for (const n of [1, 2]) {
+  const spam = cookiesFrom(await site(`/g/${groupLink[1]}`));
+  await site('/group-invite', { cookie: spam, method: 'POST', form: { name: `Spam ${n} ${run}`, response: 'yes', partySize: '20' } });
+}
+r = await post({ intent: 'remove-unmatched' }, 'b');
+check('another person can’t clear the replies', r.status === 404, String(r.status));
+r = await post({ intent: 'remove-unmatched' });
+const left = await sql`select name, matched_guest_id is not null as matched from group_reply where event_id = ${ev.id}`;
+check('the host removes all the unmatched replies at once; the matched one stays',
+  r.status === 302 && left.length === 1 && left[0].matched && left[0].name === `Sam ${run}`, JSON.stringify(left));
+
 // ------------------------------------------------------------------ 4. A guest's own link answers too
 r = await site(`${GUESTS}/${jo.id}`, { cookie: cookie.a });
 const joLink = /\/i\/([A-Za-z0-9_-]{43})/.exec(decode(r.body));
@@ -116,6 +127,8 @@ const [joAnswer] = await sql`select answer from guest_answer where guest_id = ${
 check('…she changes her reply and answer by her own link', r.status === 302 && joAnswer?.answer === 'None now', String(r.status));
 
 // ------------------------------------------------------------------ 5. Switching the link off and replacing it
+r = await post({ intent: 'group-off' }, 'b');
+check('another person can’t switch the group link off', r.status === 404 && (await site('/group-invite', { cookie: sam })).status === 200, String(r.status));
 r = await post({ intent: 'group-off' });
 r = await site('/group-invite', { cookie: sam });
 check('switched off: the group link no longer opens', r.status === 404, String(r.status));
