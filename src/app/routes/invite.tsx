@@ -19,6 +19,7 @@ import { calendarLinks } from '@/lib/calendar';
 import { refusal } from '@/server/plan-pages.server';
 import type { Route } from './+types/invite';
 import styles from './member/plan.module.css';
+import { addressKey } from '@/server/visitor.server';
 
 /**
  * Screens G1 to G4: a guest's invitation and reply (Stage 4; D-08, E §4.6 and §5). No account.
@@ -61,8 +62,8 @@ export async function action({ request, context }: Route.ActionArgs) {
   const group = isGroup(request);
   const token = group ? groupToken(request) : inviteToken(request);
   if (!token) throw data(null, { status: 404 });
-  const ip = request.headers.get('CF-Connecting-IP') ?? 'unknown';
-  if (env.INVITE_LIMIT && !(await env.INVITE_LIMIT.limit({ key: ip })).success) {
+  // One home or phone connection counts once, however many addresses it has (security review).
+  if (env.INVITE_LIMIT && !(await env.INVITE_LIMIT.limit({ key: addressKey(request) })).success) {
     return data({ error: 'That’s a lot of replies at once. Please wait a minute and try again.' }, { status: 429 });
   }
   const form = await request.formData();

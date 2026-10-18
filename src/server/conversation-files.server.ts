@@ -92,11 +92,15 @@ export async function checkFileRoom(env: ServerEnv, size: number): Promise<void>
   if (Number(n?.stored ?? 0) + size > FILE_LIMITS.siteBytes) throw new PlanRefused(MESSAGE_REFUSALS.filesFull);
 }
 
-/** The sender's files today (inside their acting step, after lockSender). */
-export async function checkFilesToday(tx: Db, userId: string): Promise<void> {
-  // Every file they sent, whichever side they sent it from (migration 0029).
-  const [n] = await tx.execute<{ n: number }>(sql`select files_sent_today(${userId}::uuid) as n`);
-  if ((n?.n ?? 0) >= FILE_LIMITS.perDay) throw new PlanCapped(MESSAGE_REFUSALS.filesPerDay);
+/** The sender's files today, by count and by size (inside their acting step, after lockSender). */
+export async function checkFilesToday(tx: Db, userId: string, size: number): Promise<void> {
+  // Every file they sent, whichever side they sent it from (migrations 0029, 0045).
+  const [n] = await tx.execute<{ n: number; bytes: string }>(
+    sql`select files_sent_today(${userId}::uuid) as n, files_bytes_sent_today(${userId}::uuid)::text as bytes`,
+  );
+  if ((n?.n ?? 0) >= FILE_LIMITS.perDay || Number(n?.bytes ?? 0) + size > FILE_LIMITS.bytesPerDay) {
+    throw new PlanCapped(MESSAGE_REFUSALS.filesPerDay);
+  }
 }
 
 /** Stores the file under the conversation's own folder; the path, or a plain refusal. */

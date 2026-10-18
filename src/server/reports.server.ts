@@ -4,7 +4,7 @@ import { REPORT_REASONS, type ReportReason } from '@/lib/message-terms';
 import { type Acting, actingAs, errorCode, PlanNotFound, PlanRefused } from './acting.server';
 import { audit } from './admin/audit.server';
 import type { Admin } from './auth/admin.server';
-import type { Db } from './db.server';
+import { type Db, withDb } from './db.server';
 import { sendEmail, TEAM_ADDRESS } from './email.server';
 import { renderEmail } from './email-templates.server';
 import { readPrivateFile } from './photo-store.server';
@@ -61,9 +61,13 @@ export function businessReportTarget(
   return asTeam(env, userId, slug, async (tx, b) => ({ ...(await target(tx, conversationId, messageId, 'business')), vendorId: b.id }));
 }
 
+/** Report emails to the team in a day, across the site (migration 0045); the rest wait on the list. */
+const REPORT_EMAILS_PER_DAY = 20;
+
 /**
  * Saves a report, then emails the team (the report is on the team's list either way) and
- * records whether that email went.
+ * records whether that email went. After 20 report emails in a day, no more are sent that day
+ * (they stay "pending"), so sign-in codes keep their share of the day's emails.
  */
 export async function sendReport(
   env: ServerEnv,
@@ -88,6 +92,9 @@ export async function sendReport(
     }),
   );
   if (!info) return id;
+  // The report is saved: if the count can't be read, the email still goes.
+  const today = await withDb(env, (db) => db.execute<{ n: number }>(sql`select report_emails_today() as n`)).catch(() => []);
+  if ((today[0]?.n ?? 0) >= REPORT_EMAILS_PER_DAY) return id;
   const result = await sendEmail(env, {
     to: TEAM_ADDRESS,
     ...renderEmail('reportTeam', {

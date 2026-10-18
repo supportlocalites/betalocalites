@@ -300,7 +300,7 @@ export async function startConversation(
         const [existing] = await tx.execute<{ id: string }>(sql`
           select id from conversation where consumer_user_id = ${userId} and vendor_id = ${v.id} and ended_at is null`);
         await checkLimits(tx, userId, !existing);
-        if (file) await checkFilesToday(tx, userId);
+        if (file) await checkFilesToday(tx, userId, file.bytes.byteLength);
         const conversationId = existing?.id ?? planned ?? uuidv7();
         if (!existing) {
           await tx.execute(sql`
@@ -423,7 +423,7 @@ export async function personSend(
         actingAs(env, asPerson(userId), async (tx) => {
           await lockSender(tx, userId);
           await checkLimits(tx, userId, false);
-          if (file) await checkFilesToday(tx, userId);
+          if (file) await checkFilesToday(tx, userId, file.bytes.byteLength);
           const { messageId, again } = await writeMessage(tx, conversationId, userId, 'consumer', body, Boolean(file));
           if (file && path) await attachFile(tx, messageId, conversationId, userId, path, file);
           await markRead(tx, conversationId, userId);
@@ -603,7 +603,7 @@ export async function businessReply(
       asTeam(env, userId, slug, async (tx, business) => {
         await lockSender(tx, userId);
         await checkLimits(tx, userId, false);
-        if (file) await checkFilesToday(tx, userId);
+        if (file) await checkFilesToday(tx, userId, file.bytes.byteLength);
         const { messageId, again } = await writeMessage(tx, conversationId, userId, 'vendor', body, Boolean(file));
         if (file && path) await attachFile(tx, messageId, conversationId, userId, path, file);
         await markRead(tx, conversationId, userId);

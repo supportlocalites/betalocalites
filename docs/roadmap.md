@@ -118,7 +118,16 @@ on codes (ADR-028).
   2. ✅ **built** (migration 0042, Admin → Accounts): the team can suspend an account (checked on the server, recorded in `audit_log`);
   3. ✅ **built** (migration 0043): **Download my data** on Your account (a person's right to a copy);
   4. ✅ **built** (`.github/dependabot.yml`; the owner switches on alerts in GitHub's settings, F §9): GitHub's automatic alerts and updates for known security problems in the code packages;
-  5. one full security review of the whole site, just before launch;
+  5. ✅ **first pass done 18 October 2026** (to be repeated just before launch): one full security
+     review of the whole site. No high-severity finding. Fixed (migration 0045): reports capped (10 a
+     day per person, no duplicates, 20 team emails a day), files capped at 25 MB a day per person,
+     reported files let go 90 days after the decision, the health check no longer lists the site's
+     settings, the "Where" box now says guests see it, group-link replies limited per connection, an
+     unused database right taken back. **Still open:** the owner's decision on switching on the
+     "are you human" check (D-38) against sign-in code lockouts; live-site backups go to private
+     storage (step 3); a content security policy; a limit on team password attempts; tighter
+     suggestion limits; the older tables still readable by the server without "acting as" rules;
+     PDFs aren't checked inside;
   6. ✅ **built** (migration 0044): a reminder in the team's daily note for the hand-done removal of a deleted account's
      sign-in record;
   7. ✅ **built** (`/admin/waiting`, first in the team menu): one "waiting for you" page for the team (held changes, reviews, reports, claims,

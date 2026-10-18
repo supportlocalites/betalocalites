@@ -31,6 +31,33 @@ Every release and every database migration, in order. Appended before each deplo
 
 ## Releases
 
+### 2026-10-18 — Before-launch tasks, part 2: Waiting for you, the handbook, and fixes from the whole-site security review
+
+**Stage:** 1 (screen X23; E §6, §8)
+**What changed (plain English):** the team's **Waiting for you** page lists everything waiting, oldest
+first. A team handbook and the owner's phone checklist are written. The first whole-site security
+review found nothing serious (no way to see or change someone else's data); its fixes: reports of
+conversations are limited (10 a day per person, not the same thing twice while open, at most 20 report
+emails to the team a day so sign-in codes keep their share); files in conversations are limited to
+25 MB a day per person; a file kept for a report is let go 90 days after the team closes it; the
+public health check no longer lists the site's settings; the "Where" box on an event now says guests
+see it (they always did); group-link replies are limited per home connection; message forms that
+don't say their size are refused; an unused database right is taken back.
+**Migrations applied:** `0045_security_review_fixes.sql`
+**Destructive?** No. Reported files are deleted only 90 days after the team's decision.
+**Tests run:** database checks 45 of 45 files (0045: 8; 0009 updated to call the unlinking as the
+database owner); unit tests 192 of 192; messages 133 of 133, guests part 2 34 of 34, account deletion
+22 of 22, event planning 145 of 145, accounts 35 of 35, help and sharing 19 of 19, look 504 of 504.
+**Security tests:** an 11th report in a day and a duplicate open report are refused; asking how much
+someone else sent gives nothing; a file is released only after 90 days with no open or recent report;
+the server can't unlink a person directly; a person can't open Waiting for you.
+**Independent review before push:** fixed: two reports sent at the same instant could both slip under
+the limits (one person's reports are now taken one at a time); a failure counting report emails no
+longer shows an error after the report is saved.
+**Existing functionality affected:** none for normal use.
+**How to roll back:** with the next update.
+**Approved by:** the product owner, 18 October 2026 ("add all of them").
+
 ### 2026-10-18 — Before-launch tasks, part 1: deletions, suspensions, a copy of your data, help
 
 **Stage:** 1 (screens A6, A7, X22, P9, P4)

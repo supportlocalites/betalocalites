@@ -194,7 +194,7 @@ people in Quebec.]
 | Suggested businesses | The suggestion is kept; on a declined suggestion, the phone number or email typed in is erased after 1 year |
 | Records of emails sent | 1 year |
 | The team's record of changes (audit log) | 2 years, except changes to a business's page, kept as that page's history while it's listed |
-| A reported message or file | With the report, so the team can look into it [Lawyer: advise a period] |
+| A reported message or file | With the report, so the team can look into it. A file goes 90 days after the team closes the report; the words of a reported message stay with the report [Lawyer: advise a period] |
 | Backups | 30 days |
 
 ## 10. Deleting your account

@@ -174,7 +174,7 @@ export function EventForm({
             {box('ageMin', 'Ages, if it’s for children: from', { inputMode: 'numeric', maxLength: 3 })}
             {box('ageMax', 'to', { inputMode: 'numeric', maxLength: 3 })}
           </div>
-          {box('venueNote', 'Where', { maxLength: PLAN_LIMITS.venue }, 'Only you can see this.')}
+          {box('venueNote', 'Where', { maxLength: PLAN_LIMITS.venue }, 'Your guests see this on their invitation. Businesses never do.')}
           {box('budget', 'Budget', { inputMode: 'decimal', maxLength: 14 }, 'Only you can see this. Localites doesn’t process payments.')}
           <div className="field">
             <label htmlFor="notes" className="field-label">

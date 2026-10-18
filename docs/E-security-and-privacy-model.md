@@ -531,7 +531,7 @@ account exists, and detailed activity records kept for year-over-year reports (D
 | Email delivery log | 1 year | Deleted (**built**, the morning run, migration 0041) |
 | Audit log | 2 years | Deleted (**built**, migration 0041), except an entry a business page's own history points at (owners' saves, the latest analytics switch), kept as that history. The log stays append-only: only the morning run can delete, and only entries over 2 years old |
 | Words of a message removed after its conversation was reported (migrations 0026, 0027: only messages there when it was reported) | With the report (deleting reports isn't built yet) | Read only by the team, through the report |
-| A file in a conversation reported while it was there, then removed (migration 0028) | With the report (deleting reports isn't built yet) | Opened only by the team, through the report, each look logged |
+| A file in a conversation reported while it was there, then removed (migration 0028) | With the report, until 90 days after the team has closed every report on that conversation (migration 0045); then the nightly clean-up deletes it | Opened only by the team, through the report, each look logged |
 | Verification evidence | While verified + 1 year | Deleted; outcome kept |
 | Account deletion request | Within 30 days | As above. The team's daily note reminds them of any still waiting, with the oldest one's due date (migration 0044) |
 | Backups | Our own nightly backup, kept 30 days (F §5) | Expire automatically; deleted data is fully gone after 30 days |

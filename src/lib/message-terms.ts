@@ -18,8 +18,9 @@ export const FILE_LIMITS = {
   photoSide: 2048,
   /** A PDF, as chosen (Localites doesn't change it). */
   pdfBytes: 4 * 1024 * 1024,
-  /** Files one person may send in a day, across all conversations. */
+  /** Files one person may send in a day, across all conversations: by count, and in all (migration 0045). */
   perDay: 20,
+  bytesPerDay: 25 * 1024 * 1024,
   /** All conversation files together (the free plan's 1 GB is shared with business photos). */
   siteBytes: 700 * 1024 * 1024,
   name: 120,
@@ -69,6 +70,9 @@ export const MESSAGE_REFUSALS = {
   LP145: 'Your business isn’t listed on Localites at the moment, so messages are paused until it is.',
   LP146: 'This person has left Localites, so no new messages can be sent.',
   LP147: 'Write a message or add a file first.',
+  notReceived: 'That didn’t come through. Please try again.',
+  LP182: 'You’ve sent the most reports allowed in a day. If something urgent is happening, email supportlocalites@gmail.com.',
+  LP183: 'You’ve already reported this. Our team will look at it.',
   empty: 'Write a message first.',
   tooLong: 'Please keep your message under 5,000 characters.',
   conversationsPerDay: 'You’ve started a lot of conversations today. Please try again tomorrow.',

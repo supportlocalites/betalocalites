@@ -10,6 +10,7 @@ import { filesOn, MAX_FILE_UPLOAD, readAttachment } from '@/server/conversation-
 import { emailAboutMessage, readBody, startConversation, startPage } from '@/server/messages.server';
 import { afterwards, found, refusal, siteUrl, todayIso, tooFast } from '@/server/plan-pages.server';
 import type { Route } from './+types/message-start';
+import { discardBody } from '@/server/discard-body';
 
 /**
  * Screen C9: message a business that has joined Localites (Stage 2B, D-13). One
@@ -34,8 +35,11 @@ export async function action({ request, params, context }: Route.ActionArgs) {
   if (!SLUG.test(params.slug)) throw data(null, { status: 404 });
   const member = context.get(memberContext);
   const { env, ctx } = context.get(cloudflareContext);
-  if (Number(request.headers.get('content-length') ?? 0) > MAX_FILE_UPLOAD) {
-    return data({ error: MESSAGE_REFUSALS.pdfTooBig }, { status: 413 });
+  // Browsers always say how big a form is; one that doesn't isn't read either (security review).
+  const size = request.headers.get('content-length');
+  if (size === null || !/^\d{1,9}$/.test(size) || Number(size) > MAX_FILE_UPLOAD) {
+    await discardBody(request);
+    return data({ error: size === null ? MESSAGE_REFUSALS.notReceived : MESSAGE_REFUSALS.pdfTooBig }, { status: size === null ? 411 : 413 });
   }
   const form = await request.formData();
   const file = await readAttachment(form.get('file'));

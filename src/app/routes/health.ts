@@ -1,7 +1,6 @@
 import { sql } from 'drizzle-orm';
 import { cloudflareContext } from '@/app/context';
 import { connection, withDb } from '@/server/db.server';
-import type { ServerEnv } from '@/server/env';
 import type { Route } from './+types/health';
 
 /**
@@ -32,17 +31,12 @@ function explain(err: unknown): { database: string; detail: string } {
   return { database: 'error', detail: code ? `Database error code ${code}.` : 'Unexpected error; see the Cloudflare logs.' };
 }
 
-/** Names (never values) of the settings the running site can see on Cloudflare. */
-function settingNames(env: ServerEnv): string[] {
-  return Object.keys(env)
-    .filter((k) => /^[A-Z][A-Z0-9_]*$/.test(k) && k !== 'ASSETS')
-    .sort();
-}
-
 export async function loader({ context }: Route.LoaderArgs) {
   const { env } = context.get(cloudflareContext);
   const headers = { 'Cache-Control': 'no-store' };
-  const about = { build: import.meta.env.LOCALITES_BUILD ?? 'unknown', settingsSeen: settingNames(env) };
+  // Not the names of the site's settings: they'd tell anyone which protections are switched off
+  // (whole-site security review, 18 October 2026).
+  const about = { build: import.meta.env.LOCALITES_BUILD ?? 'unknown' };
   let via = 'none';
   try {
     via = connection(env).via;

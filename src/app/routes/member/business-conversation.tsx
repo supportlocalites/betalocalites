@@ -11,6 +11,7 @@ import { businessChange, businessReply, businessThread, emailAboutMessage, readB
 import { afterwards, found, refusal, siteUrl, tooFast } from '@/server/plan-pages.server';
 import type { Route } from './+types/business-conversation';
 import styles from './messages.module.css';
+import { discardBody } from '@/server/discard-body';
 
 /**
  * Screen V7: one conversation, as the business's team (Stage 2B). Anyone on the team
@@ -34,8 +35,11 @@ export async function action({ request, params, context }: Route.ActionArgs) {
   const member = context.get(memberContext);
   const { env, ctx } = context.get(cloudflareContext);
   // A file is at most 4 MB: anything clearly bigger is refused before it's read.
-  if (Number(request.headers.get('content-length') ?? 0) > MAX_FILE_UPLOAD) {
-    return data({ error: MESSAGE_REFUSALS.pdfTooBig }, { status: 413 });
+  // Browsers always say how big a form is; one that doesn't isn't read either (security review).
+  const size = request.headers.get('content-length');
+  if (size === null || !/^\d{1,9}$/.test(size) || Number(size) > MAX_FILE_UPLOAD) {
+    await discardBody(request);
+    return data({ error: size === null ? MESSAGE_REFUSALS.notReceived : MESSAGE_REFUSALS.pdfTooBig }, { status: size === null ? 411 : 413 });
   }
   const form = await request.formData();
   const intent = String(form.get('intent') ?? '');

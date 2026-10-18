@@ -69,4 +69,8 @@ check('the site map lists the public pages and listed businesses', r.status === 
 check('…never a draft, an invitation or a signed-in page',
   !r.body.includes(draft.slug) && !r.body.includes('/i/') && !r.body.includes('/events') && !r.body.includes('/admin'));
 
+r = await site('/api/health');
+check('the public health check says whether the site works, never which settings it has',
+  r.status === 200 && r.body.includes('"database":"ok"') && !r.body.includes('settingsSeen') && !r.body.includes('SUPABASE'), r.body.slice(0, 200));
+
 await finish('help and sharing');

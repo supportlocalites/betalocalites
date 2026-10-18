@@ -224,7 +224,9 @@ begin
     select sum(profile_views)::text from vendor_daily_stats where vendor_id = '00000000-0000-7000-8000-0000000009c1' and day = '2025-11-01'), '6');
 end $$;
 
--- 6. Unlinking a person keeps every count.
+-- 6. Unlinking a person keeps every count. Only account deletion calls it, as the database
+--    owner (since migration 0045 the server can't call it directly).
+reset role;
 do $$
 begin
   perform unlink_person('00000000-0000-7000-8000-0000000009a1');
