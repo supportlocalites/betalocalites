@@ -59,10 +59,12 @@ claim their page, reply to messages and reviews, and see totals about their page
 ## Things to know about the drafts
 
 - Each draft was written from what the site actually does, and checked against its code.
-- A few promises are marked **(to be built before launch)**: automatic deletion of old
-  conversations, email records, the team's change log and declined suggestions' contact
-  details; a "Download my data" button; and the team's ability to suspend an account. These
-  will be built before the policies are published.
+- Everything the drafts promise is built and tested on the test site, including automatic
+  deletion of old conversations, email records, the team's change log and declined
+  suggestions' contact details; a "Download your data" button; and the team's ability to
+  suspend an account.
+- The data download leaves out a review the team denied and the reason for a suspension (see
+  question 7, and the Privacy Policy §11).
 - The owner will confirm the operator's legal name and mailing address.
 
 ## Contact

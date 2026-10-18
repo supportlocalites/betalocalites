@@ -2,8 +2,8 @@
 
 > **DRAFT for legal review (PO-07). Not in force.** Written 18 October 2026 from what the site
 > actually does on that date. Items in **[square brackets]** are open questions for the lawyer
-> or details still to fill in. Items marked **(to be built before launch)** describe things
-> the site doesn't do yet.
+> or details still to fill in. Updated 18 October 2026: everything this draft describes is now
+> built and tested on the test site.
 
 **Last updated:** [date of publication]
 
@@ -119,8 +119,8 @@ supportlocalites@gmail.com.
 - If a business marks a booking as "this isn't right", we'll look into it fairly and tell
   the person involved.
 - We may limit, suspend or close an account that breaks these terms, puts others at risk, or
-  misuses the site. **(The team's suspend switch is to be built before launch.)** Where it's
-  safe to, we'll tell you why.
+  misuses the site. A suspended account can still download its data or be deleted. You can
+  ask us why by emailing supportlocalites@gmail.com.
 - You can stop using Localites and delete your account at any time.
 
 ## 10. Disclaimers and limits

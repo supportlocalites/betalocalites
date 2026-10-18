@@ -2,8 +2,8 @@
 
 > **DRAFT for legal review (PO-07). Not in force.** Written 18 October 2026 from what the site
 > actually does on that date. Items in **[square brackets]** are open questions for the lawyer
-> or details still to fill in. Items marked **(to be built before launch)** are promises the
-> site doesn't keep yet; they must work before this policy is published.
+> or details still to fill in. Updated 18 October 2026: everything this draft promises is now
+> built and tested on the test site.
 
 **Last updated:** [date of publication]
 
@@ -188,12 +188,12 @@ people in Quebec.]
 | Events, plans, guest names and replies | As long as your account exists, so you can look back at past events |
 | Guests' email addresses and phone numbers | Until 90 days after the event, then erased |
 | Files in conversations | Until 30 days after the conversation's event (at least 30 days after sending), or 1 year after sending if the conversation isn't about an event |
-| Conversations | Up to 3 years after the last message **(to be built before launch)** |
+| Conversations | Up to 3 years after the last message, then deleted with their messages (unless reported: then kept with the report) |
 | Published reviews | While the business is listed |
 | Detailed activity records | With no set end date, for year-over-year reports. When you delete your account, they stay but are no longer linked to you. [Lawyer: please confirm this is acceptable, or advise a period.] |
-| Suggested businesses | The suggestion is kept; on a declined suggestion, the phone number or email typed in is erased after 1 year **(to be built before launch)** |
-| Records of emails sent | 1 year **(to be built before launch)** |
-| The team's record of changes (audit log) | 2 years **(to be built before launch)** |
+| Suggested businesses | The suggestion is kept; on a declined suggestion, the phone number or email typed in is erased after 1 year |
+| Records of emails sent | 1 year |
+| The team's record of changes (audit log) | 2 years, except changes to a business's page, kept as that page's history while it's listed |
 | A reported message or file | With the report, so the team can look into it [Lawyer: advise a period] |
 | Backups | 30 days |
 
@@ -217,8 +217,10 @@ backups are gone within 30 days.
 
 - **See and change your details** on **Your account**.
 - **Turn off "How was it?" emails** on **Your account**.
-- **Ask for a copy** of the personal information we hold about you: **Download my data** on
-  **Your account (to be built before launch)**, or email supportlocalites@gmail.com.
+- **Ask for a copy** of the personal information we hold about you: **Download your data** on
+  **Your account** gives you a file straight away, or email supportlocalites@gmail.com for
+  anything it doesn't include. [Lawyer: the file leaves out a review the team denied (D-51) and
+  the reason for a suspension; please advise whether it must include them.]
 - **Ask us to correct** anything that's wrong.
 - **Delete your account** at any time (section 10).
 - **Complain:** contact us first. If you're not satisfied, you can contact the Office of the
