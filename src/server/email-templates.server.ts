@@ -16,7 +16,6 @@ import inquiryTeam from '../../emails/inquiry-team.txt?raw';
 import vendorJoined from '../../emails/vendor-joined.txt?raw';
 import newMessage from '../../emails/new-message.txt?raw';
 import reportTeam from '../../emails/report-team.txt?raw';
-import reviewDeclined from '../../emails/review-declined.txt?raw';
 import reviewForBusiness from '../../emails/review-for-business.txt?raw';
 import guestReplyChanged from '../../emails/guest-reply-changed.txt?raw';
 import reviewPublished from '../../emails/review-published.txt?raw';
@@ -62,7 +61,6 @@ const TEMPLATES = {
   // Reviews (Stage 3).
   reviewTeam,
   reviewPublished,
-  reviewDeclined,
   reviewForBusiness,
   reviewRequest,
   reviewReminder,

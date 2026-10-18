@@ -1,9 +1,0 @@
-Subject: About your review of {{business}}
-
-Hi {{name}},
-
-Thank you for reviewing {{business}}. Our team didn't publish it, because: {{reason}}
-
-If you have questions, reply to this email.
-
-Localites

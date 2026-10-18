@@ -351,7 +351,7 @@ after the 60 days; at most 20 a day across the site. Each person can turn them o
 | Record | Visitor | Author | The reviewed vendor | Other vendors | Admin |
 |---|---|---|---|---|---|
 | Published review + vendor reply | R | R | R | R | R |
-| Pending / declined review | — | R; edit while pending | — | — | R; publish / decline with reason |
+| Pending / declined review | — | R; edit while pending (a declined one isn't shown to its author at all, D-51) | — | — | R; approve / deny (no reason needed, D-51) |
 | Write a review | — | C if eligible (§4.5) | — | — | — |
 | Vendor reply | — | — | Owner/manager C, once | — | R; remove for policy breach |
 | Remove a published review | — | — | — | — | With a reason, logged |

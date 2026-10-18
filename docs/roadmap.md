@@ -302,7 +302,8 @@ profiles · vendor reply (once) · rating summary (from 3 reviews).
 **Built, part 1 (14 October 2026, migration 0031).** Review form (stars and words) from
 "Plan an event"; eligibility per D-06; the team emailed each new review and deciding it on
 **Admin → Reviews** (publish, decline with a reason, remove, remove a reply); the person
-emailed when it is published or declined, the business when it is published; reviews on
+emailed when it is published (not when denied: D-51, approved or denied from the team's email
+with no reason needed, leaving its author no trace), the business when it is published; reviews on
 the business page with "Sarah M." and Living Local (D-48); one reply from the owner or a
 manager; the average from 3 reviews. **Built, part 2 (migration 0032):** the morning-after
 "How was it?" email and one reminder a week later (events from the previous 60 days asked

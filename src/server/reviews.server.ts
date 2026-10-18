@@ -55,7 +55,7 @@ export function readReview(form: FormData): { rating: number; body: string } | {
 export type ReviewStatus = 'pending' | 'published' | 'declined' | 'removed' | 'withdrawn';
 
 /** Whether a booking can be reviewed now, and why not. */
-export type CanReview = 'yes' | 'not_booked' | 'not_yet' | 'closed' | 'flagged' | 'own' | 'unlisted';
+export type CanReview = 'yes' | 'not_booked' | 'not_yet' | 'closed' | 'flagged' | 'own' | 'unlisted' | 'not_open';
 
 /** The same rules as the database's (enforce_review_rules), to say so on the page before anyone tries. */
 export const CAN_REVIEW = sql`case
@@ -100,12 +100,14 @@ export async function reviewForm(env: ServerEnv, userId: string, eventId: string
         select id, rating, body, status, decision_reason as reason,
                case when reply_removed_at is null and reply_held_at is null then vendor_reply end as reply
         from review where event_vendor_id = ${rowId} and author_user_id = ${userId}`);
+      // A review the team denied isn't shown to its author, and the booking can't be reviewed again (D-51).
+      const denied = review?.status === 'declined';
       return {
         business: { name: row.name, slug: row.slug, listed: row.listed },
         event: { name: row.eventName, date: row.date },
-        can: row.can,
+        can: denied ? 'not_open' : row.can,
         until: row.until,
-        review: review ?? null,
+        review: denied ? null : (review ?? null),
       };
     }),
   );
@@ -164,7 +166,8 @@ export async function saveReview(
         business: info.business,
         planned: info.planned ? 'planned on Localites' : 'planned outside Localites',
         flag: flag ? `The language check found something to look at: ${flag}` : '',
-        reviewUrl: `${siteUrl}/admin/reviews/${saved.id}`,
+        approveUrl: `${siteUrl}/admin/reviews/${saved.id}?choose=approve`,
+        denyUrl: `${siteUrl}/admin/reviews/${saved.id}?choose=deny`,
       }),
     });
     await actingAs(env, acting, (tx) =>
@@ -456,27 +459,24 @@ export async function emailAboutDecision(
       slug: string;
       vendorId: string;
       rating: number;
-      reason: string | null;
       deleted: boolean;
     }>(sql`
       select u.id as "authorId", u.email::text as email, coalesce(u.given_name, u.display_name) as name,
              reviewer_name(u.id) as "shownAs", v.display_name as business, v.slug::text as slug, v.id as "vendorId",
-             r.rating, r.decision_reason as reason, u.deleted_at is not null as deleted
+             r.rating, u.deleted_at is not null as deleted
       from review_for_email(${id}::uuid) r join app_user u on u.id = r.author_user_id join vendor v on v.id = r.vendor_id`),
   );
-  if (!r) return;
+  // A denied review isn't mentioned to its author at all (D-51): no email, nothing on their pages.
+  if (!r || outcome !== 'published') return;
   if (!r.deleted) {
     await emailPerson(
       env,
       { userId: r.authorId, email: r.email },
-      outcome === 'published' ? 'review_published' : 'review_declined',
+      'review_published',
       { type: 'review', id },
-      outcome === 'published'
-        ? renderEmail('reviewPublished', { name: r.name, business: r.business, shownAs: r.shownAs, link: `${siteUrl}/vendors/${r.slug}` })
-        : renderEmail('reviewDeclined', { name: r.name, business: r.business, reason: r.reason ?? '' }),
+      renderEmail('reviewPublished', { name: r.name, business: r.business, shownAs: r.shownAs, link: `${siteUrl}/vendors/${r.slug}` }),
     );
   }
-  if (outcome !== 'published') return;
   const team = await actingAs(env, asTeamMember, (db) =>
     db.execute<{ id: string; email: string; name: string }>(sql`
       select id, email, name from review_business_contacts(${id}::uuid)`),

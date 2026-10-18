@@ -31,6 +31,27 @@ Every release and every database migration, in order. Appended before each deplo
 
 ## Releases
 
+### 2026-10-18 — Approve or deny reviews from the email (D-51)
+
+**Stage:** 3 (screens X15, C11)
+**What changed (plain English):** the team's email about each new review has an **Approve** link
+and a **Deny** link. Each opens the review on the team pages (signed in) with one button to
+confirm. Denying needs no reason. The author of a denied review isn't emailed, and nothing about
+it shows on their pages: their event plan doesn't mention it or offer to review that booking
+again. The team pages and the audit log keep the record. The "your review wasn't published"
+email is gone.
+**Migrations applied:** none (a denied review is recorded with the reason "Denied by the team").
+**Destructive?** No.
+**Tests run:** reviews 73 of 73 (11 new), language check 40 of 40, event planning 141 of 141, look
+checks 448 of 448; unit tests 191 of 191; database checks 36 of 36 files.
+**Security tests:** the email's links refuse anyone not on the team (403); a denied author sending the form
+directly gets the plain "can't be reviewed" (independent review); a denied review is
+shown neither to its author nor to the public.
+**Existing functionality affected:** declined reviews made before today are hidden from their
+authors the same way.
+**How to roll back:** with the next update.
+**Approved by:** the product owner, D-51 (18 October 2026).
+
 ### 2026-10-18 — Words checked before they show (D-50)
 
 **Stage:** 1 and 3 (owner editing, reviews; screen X21)

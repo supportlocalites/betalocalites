@@ -36,7 +36,9 @@ export async function action({ request, params, context }: Route.ActionArgs) {
   if ('error' in read) return data({ error: read.error }, { status: 400 });
   try {
     // The booking must belong to this event (and to this person: the database checks that).
-    await found(reviewForm(env, member.userId, params.id, params.rowId));
+    const form = await found(reviewForm(env, member.userId, params.id, params.rowId));
+    // A denied review leaves no trace (D-51): the same answer as any booking that can't be reviewed.
+    if (form.can === 'not_open') return data({ error: CANT.not_open }, { status: 409 });
     const saved = await saveReview(env, member.userId, params.rowId, read, siteUrl(env, request));
     return redirect(`/events/${params.id}/review/${params.rowId}?${saved.created ? 'sent' : 'changed'}=1`);
   } catch (err) {
@@ -52,6 +54,7 @@ const CANT: Record<string, string> = {
   flagged: 'The business says it wasn’t booked for this event. Our team will look at it; you can review it if they confirm it was.',
   own: 'You can’t review your own business.',
   unlisted: 'This business isn’t listed on Localites at the moment.',
+  not_open: 'This booking can’t be reviewed.',
 };
 
 export default function Review({ loaderData: { form }, actionData }: Route.ComponentProps) {
@@ -118,10 +121,10 @@ export default function Review({ loaderData: { form }, actionData }: Route.Compo
             )}
           </>
         )}
-        {(review?.status === 'declined' || review?.status === 'removed') && (
+        {review?.status === 'removed' && (
           <p className="notice" role="status">
-            {review.status === 'declined' ? 'Our team didn’t publish your review' : 'Our team removed your review'}
-            {review.reason ? `, because: ${review.reason}` : '.'} If you have questions, email supportlocalites@gmail.com.
+            Our team removed your review{review.reason ? `, because: ${review.reason}` : '.'} If you have questions, email
+            supportlocalites@gmail.com.
           </p>
         )}
         {!review && can !== 'yes' && <p>{CANT[can]}</p>}

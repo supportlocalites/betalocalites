@@ -393,8 +393,10 @@ export async function eventPlan(env: ServerEnv, userId: string, eventId: string)
                  ev.booked_at::text as "bookedAt",
                  -- A flag counts only for the current marking (the person may un-mark and mark again).
                  case when ev.vendor_flagged_at >= ev.booked_at then ev.vendor_flagged_at::text end as "flaggedAt",
-                 ${CAN_REVIEW} as "canReview",
-                 (select r.status from review r where r.event_vendor_id = ev.id and r.author_user_id = ${userId}) as review,
+                 -- A review the team denied isn't shown to its author, and can't be written again (D-51).
+                 case when exists (select 1 from review r where r.event_vendor_id = ev.id and r.author_user_id = ${userId}
+                                     and r.status = 'declined') then 'not_open' else ${CAN_REVIEW} end as "canReview",
+                 (select nullif(r.status, 'declined') from review r where r.event_vendor_id = ev.id and r.author_user_id = ${userId}) as review,
                  ${LIST_PHOTO_COLUMNS}
           from event_vendor ev join vendor v on v.id = ev.vendor_id join event e on e.id = ev.event_id
           ${LIST_PHOTO}

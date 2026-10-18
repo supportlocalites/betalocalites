@@ -1,5 +1,6 @@
 // Reviews (Stage 3, parts 1 and 2; D-06, D-48, ADR-026, migrations 0031 and 0032): a person reviews a business they
-// booked, after the event; the team publishes or declines every review; the business replies once;
+// booked, after the event; the team approves or denies every review (from the email's links, D-51:
+// a denied review leaves its author no trace); the business replies once;
 // the public sees published reviews only, the author as "Sarah M."; nobody else writes or reads
 // what they shouldn't; reports of a review; "How was it?" emails and turning them off. The site reaches the database as app_server, so its rules are really tested.
 //
@@ -106,8 +107,6 @@ for (const [who, c] of [['a person', cookie.a], ['a business owner', cookie.o]])
   r = await page(`/admin/reviews/${rev.id}`, { cookie: c });
   check(`${who}: the team’s review page is refused (403)`, r.status === 403 && !r.body.includes(BODY), String(r.status));
 }
-r = await page(`/admin/reviews/${rev.id}`, { cookie: cookie.m, method: 'POST', form: { intent: 'decline', reason: '' } });
-check('declining needs a reason', r.status === 400, String(r.status));
 r = await page(`/admin/reviews/${rev.id}`, { cookie: cookie.m, method: 'POST', form: { intent: 'publish', seen: staleSeen } });
 check('words changed since the team read them: not published, "look again"',
   r.status === 409 && (await sql`select status from review where id = ${rev.id}`)[0].status === 'pending', String(r.status));
@@ -239,7 +238,46 @@ check('turned off: no more "How was it?" emails',
 r = await page('/account', { cookie: cookie.b, method: 'POST', form: { intent: 'emails', reviewRequests: 'on' } });
 check('…and back on', r.status === 302 && (await sql`select review_requests from email_choice where user_id = ${ids.b}`)[0]?.review_requests === true, String(r.status));
 
-// ------------------------------------------------------------------ 5. Wording (D-16, D-24)
+// ------------------------------------------------------------------ 6. Approve or deny from the email (D-51)
+const bDeny = await bEvent(4);
+const beforeDeny = Date.now();
+r = await page(`/events/${bDeny.id}/review/${bDeny.row}`, { cookie: cookie.b, method: 'POST', form: { rating: '2', body: `Not for us ${run}` } });
+const [denyRev] = await sql`select id from review where event_vendor_id = ${bDeny.row}`;
+const denyMail = await waitFor(
+  async () => (await mailFor('supportlocalites@gmail.com')).filter((m) => m.at > beforeDeny && m.subject === `New review of ${V.name} to check`),
+  (l) => l.length > 0,
+);
+check('the team’s email has an Approve and a Deny link to the review',
+  denyMail.length === 1 && denyMail[0].body.includes(`/admin/reviews/${denyRev.id}?choose=approve`) && denyMail[0].body.includes(`/admin/reviews/${denyRev.id}?choose=deny`));
+r = await page(`/admin/reviews/${denyRev.id}?choose=deny`, { cookie: cookie.b });
+check('the Deny link is no use to anyone not on the team (403)', r.status === 403, String(r.status));
+r = await page(`/admin/reviews/${denyRev.id}?choose=deny`, { cookie: cookie.m });
+check('the Deny link opens the review with one button to confirm', r.status === 200 && words(r.body).includes('Deny this review?') && words(r.body).includes(`Not for us ${run}`) && !/value="publish"/.test(r.body));
+r = await page(`/admin/reviews/${denyRev.id}?choose=approve`, { cookie: cookie.m });
+check('the Approve link likewise', r.status === 200 && words(r.body).includes('Approve this review?') && !/value="decline"/.test(r.body));
+const seenDeny = /name="seen" value="([^"]+)"/.exec(r.body)?.[1] ?? '';
+r = await page(`/admin/reviews/${denyRev.id}`, { cookie: cookie.m, method: 'POST', form: { intent: 'decline', seen: seenDeny } });
+const [denied] = await sql`select status, decision_reason from review where id = ${denyRev.id}`;
+check('the team denies it, no reason needed (recorded for the team)', r.status === 302 && denied.status === 'declined' && denied.decision_reason === 'Denied by the team', String(r.status));
+check('…in the audit log', (await sql`select count(*)::int as n from audit_log where action = 'review.decline' and subject_id = ${denyRev.id}`)[0].n === 1);
+await new Promise((res) => setTimeout(res, 1500));
+check('its author isn’t emailed', (await mailFor(email('b'))).filter((m) => m.at > beforeDeny && /review/i.test(m.subject)).length === 0);
+r = await page(`/events/${bDeny.id}`, { cookie: cookie.b });
+check('…their event plan shows nothing about it, and doesn’t offer to review again',
+  r.status === 200 && !words(r.body).includes('Your review') && !r.body.includes(`/review/${bDeny.row}`));
+r = await page(`/events/${bDeny.id}/review/${bDeny.row}`, { cookie: cookie.b });
+check('…the review page shows neither the review nor that it was denied',
+  r.status === 200 && !words(r.body).includes(`Not for us ${run}`) && !/didn’t publish|declined|denied/i.test(words(r.body)) && !r.body.includes('name="body"'));
+r = await page(`/events/${bDeny.id}/review/${bDeny.row}`, { cookie: cookie.b, method: 'POST', form: { rating: '5', body: `Second try ${run}` } });
+check('…sending the form anyway gets the plain "can’t be reviewed", never a hint the team looked at it',
+  r.status === 409 && words(r.body).includes('This booking can’t be reviewed') && !/looked at it/.test(words(r.body)) &&
+    (await sql`select body from review where id = ${denyRev.id}`)[0].body === `Not for us ${run}`, String(r.status));
+r = await page(`/vendors/${V.slug}`);
+check('…and the public never sees it', !r.body.includes(`Not for us ${run}`));
+r = await page(`/admin/reviews/${rev.id}`, { cookie: cookie.m, method: 'POST', form: { intent: 'remove', reason: '' } });
+check('removing a published review still needs a reason', r.status === 400, String(r.status));
+
+// ------------------------------------------------------------------ 7. Wording (D-16, D-24)
 const banned = /book now|booking confirmed|deposit|checkout|pay now|payment received/i;
 const wrong = seen.filter((s) => banned.test(words(s.body)));
 check('no page suggests paying through Localites', wrong.length === 0, wrong.map((s) => s.path).join(', '));

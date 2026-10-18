@@ -4,5 +4,10 @@ Subject: New review of {{business}} to check
 
 {{flag}}
 
-Read it, then publish or decline it (it isn't shown to anyone until you do):
-{{reviewUrl}}
+It isn't shown to anyone until you approve it. Read it, then:
+
+Approve (it's published): {{approveUrl}}
+
+Deny (it isn't, and its author isn't told): {{denyUrl}}
+
+Each opens the review on the team pages, signed in, with one button to confirm.

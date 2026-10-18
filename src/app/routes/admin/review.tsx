@@ -18,17 +18,25 @@ import type { Route } from './+types/review';
 import styles from './admin.module.css';
 
 /**
- * One review (X14): publish or decline it while it waits (a reason for declining, which the
- * author is told); remove a published review, or the business's reply, for breaking the
- * rules (with a reason); read its reports and close them, keeping the review (part 2).
- * Never edit it. Every decision is in audit_log.
+ * One review (X14): approve or deny it while it waits, opened from the team's email with the
+ * choice made (?choose=approve or deny), one button to confirm; denying needs no reason and
+ * its author is never told (D-51). Remove a published review, or the business's reply, for
+ * breaking the rules (with a reason); read its reports and close them, keeping the review
+ * (part 2). Never edit it. Every decision is in audit_log.
  */
 export const meta: Route.MetaFunction = () => [...pageMeta('Review · Team'), { name: 'robots', content: 'noindex' }];
 
-export async function loader({ params, context }: Route.LoaderArgs) {
+/** What a denied review records (the database keeps a reason for every decline); only the team sees it. */
+const DENIED = 'Denied by the team';
+
+export async function loader({ params, request, context }: Route.LoaderArgs) {
   if (!isUuid(params.id)) throw data(null, { status: 404 });
   const { env } = context.get(cloudflareContext);
-  return { review: await found(teamReview(env, context.get(adminContext), params.id)) };
+  const choose = new URL(request.url).searchParams.get('choose');
+  return {
+    review: await found(teamReview(env, context.get(adminContext), params.id)),
+    choose: choose === 'approve' || choose === 'deny' ? choose : null,
+  };
 }
 
 export async function action({ params, request, context }: Route.ActionArgs) {
@@ -48,9 +56,10 @@ export async function action({ params, request, context }: Route.ActionArgs) {
   let decision: ReviewDecision;
   if (intent === 'publish') decision = { kind: 'publish', seen };
   else if (intent === 'release_reply') decision = { kind: 'release_reply' };
-  else if (intent === 'decline' || intent === 'remove' || intent === 'remove_reply' || intent === 'dismiss_reports') {
-    if (!reason) return data({ error: 'Say why, in a few words. The author is told when a review is declined.' }, { status: 400 });
-    decision = intent === 'decline' ? { kind: intent, reason, seen } : { kind: intent, reason };
+  else if (intent === 'decline') decision = { kind: 'decline', reason: reason || DENIED, seen };
+  else if (intent === 'remove' || intent === 'remove_reply' || intent === 'dismiss_reports') {
+    if (!reason) return data({ error: 'Say why, in a few words.' }, { status: 400 });
+    decision = { kind: intent, reason };
   } else throw data(null, { status: 400 });
   try {
     const { notify } = await found(decideReview(env, admin, params.id, decision));
@@ -65,7 +74,7 @@ export async function action({ params, request, context }: Route.ActionArgs) {
 const when = new Intl.DateTimeFormat('en-CA', { dateStyle: 'medium', timeStyle: 'short', timeZone: 'America/Toronto' });
 const REPORT_STATUS = { open: 'Open', actioned: 'Review removed', dismissed: 'Closed, review kept' } as const;
 
-export default function TeamReviewPage({ loaderData: { review }, actionData }: Route.ComponentProps) {
+export default function TeamReviewPage({ loaderData: { review, choose }, actionData }: Route.ComponentProps) {
   const busy = useNavigation().state === 'submitting';
   return (
     <>
@@ -115,26 +124,38 @@ export default function TeamReviewPage({ loaderData: { review }, actionData }: R
 
       {review.status === 'pending' && (
         <section className={styles.section} aria-labelledby="decide">
-          <h2 id="decide">Decide</h2>
-          <Form method="post">
-            <input type="hidden" name="intent" value="publish" />
-            <input type="hidden" name="seen" value={review.seen} />
-            <button type="submit" className="button button-primary" disabled={busy}>
-              Publish
-            </button>
-          </Form>
-          <Form method="post" className={styles.statusPanel}>
-            <input type="hidden" name="seen" value={review.seen} />
-            <div className={`field ${styles.reasonField}`}>
-              <label htmlFor="reason" className="field-label">
-                Or decline it: why (the author is told)
-              </label>
-              <input id="reason" name="reason" className="input" maxLength={REVIEW_LIMITS.reason} required />
-            </div>
-            <button type="submit" name="intent" value="decline" className="button button-secondary" disabled={busy}>
-              Decline
-            </button>
-          </Form>
+          <h2 id="decide">{choose === 'approve' ? 'Approve this review?' : choose === 'deny' ? 'Deny this review?' : 'Decide'}</h2>
+          <p className="muted">
+            Approved, it’s published on the business’s page and its author is emailed. Denied, it isn’t published, and its author isn’t
+            told or shown anything.
+          </p>
+          <div className={styles.buttons}>
+            {choose !== 'deny' && (
+              <Form method="post">
+                <input type="hidden" name="intent" value="publish" />
+                <input type="hidden" name="seen" value={review.seen} />
+                <button type="submit" className="button button-primary" disabled={busy}>
+                  Approve
+                </button>
+              </Form>
+            )}
+            {choose !== 'approve' && (
+              <Form method="post">
+                <input type="hidden" name="intent" value="decline" />
+                <input type="hidden" name="seen" value={review.seen} />
+                <button type="submit" className={choose === 'deny' ? 'button button-primary' : 'button button-secondary'} disabled={busy}>
+                  Deny
+                </button>
+              </Form>
+            )}
+          </div>
+          {choose && (
+            <p>
+              <Link to={`/admin/reviews/${review.id}`} className="text-link">
+                {choose === 'approve' ? 'Or deny it instead' : 'Or approve it instead'}
+              </Link>
+            </p>
+          )}
         </section>
       )}
       {review.reports.length > 0 && (
