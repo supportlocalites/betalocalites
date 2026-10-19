@@ -391,17 +391,39 @@ export async function messageAllPage(env: ServerEnv, userId: string, eventId: st
   );
 }
 
+/** "Message all" from the shortlist bar (D-57, step 3): the shortlisted businesses on Localites, listed. */
+export async function shortlistMessagePage(env: ServerEnv, userId: string): Promise<MessageAllPage['businesses']> {
+  return talked(
+    actingAs(env, asPerson(userId), async (tx) => [
+      ...(await tx.execute<MessageAllPage['businesses'][number]>(sql`
+        select v.slug::text as slug, v.display_name as name
+        from shortlist s join vendor v on v.id = s.vendor_id
+        where s.user_id = ${userId} and v.listing_status = 'published' and v.claim_status = 'claimed'
+          and not exists (select 1 from vendor_member m where m.vendor_id = v.id and m.user_id = ${userId} and m.ended_at is null)
+        order by s.created_at`)),
+    ]),
+  );
+}
+
 export type MessageAllResult = { sent: Written[]; sentTo: string[]; notSent: { name: string; why: string }[] };
 
 /**
- * Sends the same words to each chosen business on the event's Considering list (at most
+ * Sends the same words to each chosen business on the event's Considering list, or on the
+ * person's shortlist (then not about an event) (at most
  * messageAllMax), each in its own conversation about this event, one at a time through
  * startConversation, so every limit and rule is the same as messaging them one by one. One
  * refused (blocked, say) doesn't stop the rest; the day's limit stops what's left.
  */
-export async function messageAll(env: ServerEnv, userId: string, eventId: string, slugs: string[], body: string): Promise<MessageAllResult> {
-  const page = await messageAllPage(env, userId, eventId);
-  const chosen = page.businesses.filter((b) => slugs.includes(b.slug));
+export async function messageAll(
+  env: ServerEnv,
+  userId: string,
+  from: { eventId: string } | 'shortlist',
+  slugs: string[],
+  body: string,
+): Promise<MessageAllResult> {
+  const businesses = from === 'shortlist' ? await shortlistMessagePage(env, userId) : (await messageAllPage(env, userId, from.eventId)).businesses;
+  const eventId = from === 'shortlist' ? null : from.eventId;
+  const chosen = businesses.filter((b) => slugs.includes(b.slug));
   if (chosen.length === 0) throw new PlanRefused('Choose at least one business.');
   if (chosen.length > MESSAGE_LIMITS.messageAllMax)
     throw new PlanRefused(`Choose up to ${MESSAGE_LIMITS.messageAllMax} businesses at a time.`);

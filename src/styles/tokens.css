@@ -132,6 +132,11 @@
   --text-event-title: clamp(36px, 7vw, 64px);
   /* The labels beside When, Where and Host on an invitation. */
   --size-fact-label: 64px;
+  /* Maps (D-57): never shorter than this; in the dark look the map's tiles are turned dark. */
+  --size-map-min: 220px;
+  --size-map-wide: 640px;
+  --size-map-phone: 320px;
+  --filter-map-dark: invert(0.92) hue-rotate(180deg) saturate(0.6) brightness(0.9);
   --size-qr: 200px;
   /* A printed invitation's QR code (guests, part 2): large enough to scan from across a table. */
   --size-qr-print: 288px;

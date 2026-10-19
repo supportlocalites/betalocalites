@@ -537,6 +537,9 @@ function Editor({
                     <h2 id="contact" className="label">
                       Contact
                     </h2>
+                    <p className="muted">
+                      <Link to={`/vendors/${slug}/address`}>Your address and pin on the map</Link>
+                    </p>
                     <div className={styles.spot}>
                       <label htmlFor="websiteUrl" className={styles.spotLabel}>
                         Website (your Visit website button)

@@ -2,7 +2,9 @@ import { useRef, useState } from 'react';
 import { data, Form, Link, useLocation, useSubmit } from 'react-router';
 import { cloudflareContext } from '@/app/context';
 import { useListActivity } from '@/components/ActivityTracker';
-import { BrowseCard } from '@/components/BrowseCard';
+import { BrowseCard, ChoiceButtons, Cost } from '@/components/BrowseCard';
+import { PinMap } from '@/components/PinMap';
+import { APPROXIMATE, ON_MAP_NOTE } from '@/lib/address';
 import { ShortlistBar } from '@/components/ShortlistBar';
 import { SiteHeader } from '@/components/SiteHeader';
 import { cleanText } from '@/lib/clean-text';
@@ -27,10 +29,13 @@ export async function loader({ request, context }: Route.LoaderArgs) {
   const filters = readFilters(params, cleanText);
   const userId = hasSessionCookie(request) ? await signedInUserId(request, env) : null;
   const found = await browse(env, userId, filters);
+  // Each row, or the map's list, is counted as a list seen (ADR-030).
   const { tracks, setCookie } = await listTracks(
     env,
     request,
-    found.rails.map((r) => ({ words: filters.q.trim(), category: r.slug, ids: r.items.map((c) => c.id) })),
+    filters.view === 'map'
+      ? [{ words: filters.q.trim(), category: null, ids: found.onMap.map((c) => c.id) }]
+      : found.rails.map((r) => ({ words: filters.q.trim(), category: r.slug, ids: r.items.map((c) => c.id) })),
   );
   return data(
     {
@@ -40,6 +45,8 @@ export async function loader({ request, context }: Route.LoaderArgs) {
       kinds: found.kinds,
       shortlist: found.shortlist,
       rails: found.rails.map((r, i) => ({ ...r, track: tracks[i] ?? null })),
+      onMap: found.onMap,
+      mapTrack: filters.view === 'map' ? (tracks[0] ?? null) : null,
     },
     { headers: cookieHeaders(setCookie) },
   );
@@ -80,10 +87,87 @@ function Rail({ rail, signedIn }: { rail: Loaded['rails'][number]; signedIn: boo
   );
 }
 
+/** The map (D-57, step 3): the matching businesses listed beside it, pins for those that shared an address. */
+function MapView({
+  items,
+  signedIn,
+  track,
+  visit,
+}: {
+  items: Loaded['onMap'];
+  signedIn: boolean;
+  track: Loaded['mapTrack'];
+  visit: string;
+}) {
+  const ref = useRef<HTMLUListElement>(null);
+  const [first] = useState(track);
+  useListActivity(first?.token ?? null, ref, visit);
+  const pinned = items.filter((c) => c.lat !== null && c.lng !== null);
+  const townOnly = items.length - pinned.length;
+  if (items.length === 0) {
+    return (
+      <div className={styles.empty}>
+        <p>No businesses match yet. Try fewer filters or a broader word.</p>
+      </div>
+    );
+  }
+  return (
+    <div className={styles.mapView}>
+      <section aria-label="Results" className={styles.mapList}>
+        <p className={styles.mapCount}>
+          <strong>{items.length}</strong> {items.length === 1 ? 'business' : 'businesses'}
+        </p>
+        <ul ref={ref} className={styles.mapItems}>
+          {items.map((c, i) => (
+            <li key={c.id} className={`${styles.mapItem} ${c.lat === null ? styles.townOnly : ''}`} data-pos={i + 1}>
+              <Link to={`/vendors/${c.slug}`} state={first ? { pos: i + 1, list: first.list } : undefined} className={styles.mapLink}>
+                <span className={styles.mapPhoto}>
+                  {c.photo ? <img src={c.photo} alt="" loading="lazy" /> : <span>{c.name.split(' ')[0]}</span>}
+                </span>
+                <span className={styles.mapWords}>
+                  <span className={styles.mapWhere}>
+                    {[c.kind, c.town, c.lat === null ? 'listed by its town' : c.approximate ? 'approximate location' : 'on the map'].join(' · ')}
+                  </span>
+                  <span className={styles.mapName}>{c.name}</span>
+                  <span className={styles.mapMeta}>
+                    <Cost level={c.cost} />
+                    {c.average != null ? ` ★ ${c.average.toFixed(1)} (${c.reviews})` : ''}
+                  </span>
+                </span>
+              </Link>
+              <ChoiceButtons card={c} signedIn={signedIn} />
+            </li>
+          ))}
+        </ul>
+      </section>
+      <section aria-label="Map" className={styles.mapSide}>
+        <PinMap
+          pins={pinned.map((c) => ({ lat: c.lat!, lng: c.lng!, name: c.name, href: `/vendors/${c.slug}`, approximate: c.approximate }))}
+          label={`Map of ${pinned.length} of these businesses`}
+          className={styles.mapBox}
+        />
+        <p className={styles.mapNote}>
+          {ON_MAP_NOTE}
+          {townOnly > 0 ? ` ${townOnly} more ${townOnly === 1 ? 'is' : 'are'} listed by ${townOnly === 1 ? 'its' : 'their'} town.` : ''}
+          {pinned.some((c) => c.approximate) ? ` A soft circle marks an ${APPROXIMATE.toLowerCase()}.` : ''}
+        </p>
+      </section>
+    </div>
+  );
+}
+
 export default function Explore({ loaderData }: Route.ComponentProps) {
-  const { filters, towns, kinds, rails, shortlist, signedIn } = loaderData;
+  const { filters, towns, kinds, rails, shortlist, signedIn, onMap, mapTrack } = loaderData;
+  const viewLink = (view: 'rows' | 'map') => {
+    const next = new URLSearchParams(location.search);
+    if (view === 'map') next.set('view', 'map');
+    else next.delete('view');
+    const q = next.toString();
+    return `/explore${q ? `?${q}` : ''}`;
+  };
   const submit = useSubmit();
-  const visit = useLocation().key;
+  const location = useLocation();
+  const visit = location.key;
   const filtered = Boolean(filters.q || filters.town || filters.cost || filters.minRating || filters.sort !== 'match');
   // Choosing from a list shows the results at once (the Show button stays for typing, and without scripts).
   const onChange = (e: React.ChangeEvent<HTMLFormElement>) => {
@@ -172,6 +256,7 @@ export default function Explore({ loaderData }: Route.ComponentProps) {
               ))}
             </select>
           </div>
+          {filters.view === 'map' && <input type="hidden" name="view" value="map" />}
           <div className={styles.actions}>
             <button type="submit" className="button button-primary">
               Show
@@ -184,6 +269,15 @@ export default function Explore({ loaderData }: Route.ComponentProps) {
           </div>
         </Form>
 
+        <nav aria-label="View" className={styles.views}>
+          <Link to={viewLink('rows')} className={styles.view} aria-current={filters.view === 'rows' ? 'page' : undefined} preventScrollReset>
+            List
+          </Link>
+          <Link to={viewLink('map')} className={styles.view} aria-current={filters.view === 'map' ? 'page' : undefined} preventScrollReset>
+            Map
+          </Link>
+        </nav>
+
         <nav aria-label="Kinds of business" className={styles.kinds}>
           {kinds.map((k) => (
             <Link key={k.slug} to={`/search?category=${k.slug}`} className={styles.kind}>
@@ -193,7 +287,9 @@ export default function Explore({ loaderData }: Route.ComponentProps) {
           ))}
         </nav>
 
-        {rails.length === 0 ? (
+        {filters.view === 'map' ? (
+          <MapView items={onMap} signedIn={signedIn} track={mapTrack} visit={visit} />
+        ) : rails.length === 0 ? (
           <div className={styles.empty}>
             <p>No businesses match yet. Localites is new and businesses are still being added, so try fewer filters or a broader word.</p>
             <Link to={`/suggest${filters.q ? `?q=${encodeURIComponent(filters.q)}` : ''}`} className="text-link">

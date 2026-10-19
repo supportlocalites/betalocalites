@@ -508,3 +508,13 @@ p.contact {
   text-underline-offset: var(--underline-offset);
   overflow-wrap: anywhere;
 }
+
+.where {
+  height: var(--size-map-min);
+  margin-bottom: var(--space-2);
+}
+
+.near {
+  margin: 0;
+  font-size: var(--text-small);
+}

@@ -1,3 +1,4 @@
+import { type Address, addressWords } from '@/lib/address';
 import { describePrice } from '@/lib/price';
 import type { OwnerValues, Price } from './owner-input';
 
@@ -146,11 +147,13 @@ const LABEL: Record<string, string> = {
   description: 'About',
   websiteUrl: 'Website',
   publicPhone: 'Phone',
+  address: 'Address',
 };
 
 const cut = (s: string, n = 120) => (s.length > n ? `${s.slice(0, n - 1)}…` : s);
 const shown = (v: unknown) => {
   if (v === null || v === undefined || v === '') return '(empty)';
+  if (typeof v === 'object' && v && 'hidden' in v && 'street' in v) return addressWords(v as Address);
   if (typeof v === 'object' && v && 'pricingModel' in v) {
     const p = v as Price;
     return describePrice(p.pricingModel, p.priceCents) ?? 'no price shown';

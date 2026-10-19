@@ -1,3 +1,5 @@
+import type { Address } from '@/lib/address';
+import { readAddress } from '../address.server';
 import { sql } from 'drizzle-orm';
 import { uuidv7 } from '@/lib/ids.mjs';
 import type { Admin } from '../auth/admin.server';
@@ -116,6 +118,8 @@ export type ListingDetail = VendorRecord & {
   history: HistoryRow[];
   /** $ to $$$, as the team judges it (D-56); null until set. */
   costLevel: number | null;
+  /** The business's address and pin (0054). */
+  address: Address;
 };
 
 async function readVendor(
@@ -165,7 +169,7 @@ export async function readListing(db: Db, id: string): Promise<ListingDetail | n
       order by a.created_at desc limit 30`),
   ]);
   const [cost] = await db.execute<{ costLevel: number | null }>(sql`select cost_level as "costLevel" from vendor where id = ${id}`);
-  return { id, ...vendor, services: [...services], history: [...history], costLevel: cost?.costLevel ?? null };
+  return { id, ...vendor, services: [...services], history: [...history], costLevel: cost?.costLevel ?? null, address: await readAddress(db, id) };
 }
 
 async function assertSlugFree(db: Db, slug: string, vendorId: string | null) {

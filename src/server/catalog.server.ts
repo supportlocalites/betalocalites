@@ -1,3 +1,4 @@
+import type { Address } from '@/lib/address';
 import { and, asc, eq, sql } from 'drizzle-orm';
 import { category, municipality, vendor, vendorCategory, vendorService } from '@/db/generated/schema';
 import { type Db, withDb } from './db.server';
@@ -95,6 +96,8 @@ export type VendorProfile = {
   categories: string[];
   /** $ to $$$, set by our team (D-56). */
   cost: number | null;
+  /** Its address and pin (0054); the number only when it isn't hidden. */
+  address: Address;
   services: { name: string; description: string | null }[];
   photos: Photo[];
   /** The square profile photo, if the business has one. */
@@ -115,6 +118,13 @@ export async function getVendor(env: ServerEnv, slug: string): Promise<VendorPro
         publicPhone: vendor.publicPhone,
         claimStatus: vendor.claimStatus,
         cost: sql<number | null>`${vendor}.cost_level`,
+        // A hidden number is never kept (0054), so it can't show here.
+        street: sql<string | null>`${vendor}.address_street`,
+        number: sql<string | null>`case when ${vendor}.hide_address_number then null else ${vendor}.address_number end`,
+        hidden: sql<boolean>`${vendor}.hide_address_number`,
+        lat: sql<number | null>`${vendor}.map_lat`,
+        lng: sql<number | null>`${vendor}.map_lng`,
+        approximate: sql<boolean>`${vendor}.map_approximate`,
       })
       .from(vendor)
       .innerJoin(municipality, eq(municipality.id, vendor.primaryMunicipalityId))
@@ -150,6 +160,7 @@ export async function getVendor(env: ServerEnv, slug: string): Promise<VendorPro
       claimed: v.claimStatus === 'claimed',
       categories: cats.map((c) => c.name),
       cost: v.cost,
+      address: { street: v.street, number: v.number, hidden: v.hidden, lat: v.lat, lng: v.lng, approximate: v.approximate },
       services,
       photos: toPhotos(env, photos),
       profile: toPhotos(env, profile)[0] ?? null,

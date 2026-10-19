@@ -1,6 +1,8 @@
 import { type ReactNode, useState } from 'react';
 import type { Frame } from '@/lib/photo-frame';
+import { type Address, APPROXIMATE, directionsUrl, streetLine } from '@/lib/address';
 import { Cost, COST_WORDS } from './BrowseCard';
+import { PinMap } from './PinMap';
 import { PhotoViewer } from './PhotoViewer';
 import { SquarePhoto } from './SquarePhoto';
 import styles from './VendorPage.module.css';
@@ -27,6 +29,8 @@ export type VendorView = {
   services: { name: string; description: string | null }[];
   /** $ to $$$, set by our team (D-56); none until it's set. */
   cost?: number | null;
+  /** Its address and pin (D-56, 0054); none: its town only. */
+  address?: Address;
   /** The page photos in order: the first leads the page. Each has the business's own description. */
   photos?: VendorPhoto[];
   /** The square profile photo beside the name (and in lists), if the business has one. */
@@ -263,7 +267,24 @@ export function VendorPage({
             <h2 id="where" className="label">
               Where
             </h2>
-            <p className={styles.place}>{vendor.town}</p>
+            {vendor.address?.lat != null && vendor.address.lng != null && (
+              <PinMap
+                pins={[{ lat: vendor.address.lat, lng: vendor.address.lng, name: vendor.name, approximate: vendor.address.approximate }]}
+                label={`Map showing where ${vendor.name} is${vendor.address.approximate ? ', approximately' : ''}`}
+                className={styles.where}
+              />
+            )}
+            <p className={styles.place}>
+              {[vendor.address ? streetLine(vendor.address) : null, vendor.town].filter(Boolean).join(', ')}
+            </p>
+            {vendor.address?.approximate && <p className={`muted ${styles.near}`}>{`${APPROXIMATE}: the business shares only its street.`}</p>}
+            {vendor.address?.street ? (
+              <a href={directionsUrl(vendor.address, vendor.town)} className={styles.contactLink} target="_blank" rel="noopener noreferrer">
+                Directions
+              </a>
+            ) : (
+              <p className={`muted ${styles.near}`}>Not on the map: this business hasn’t shared an address.</p>
+            )}
             <h2 id="contact" className={`label ${styles.cardGap}`}>
               Contact
             </h2>

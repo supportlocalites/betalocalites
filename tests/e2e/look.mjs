@@ -210,11 +210,18 @@ check('set-up: search finds the business, so its result row is looked at', found
 // Browse local signed in (D-57): one business on the shortlist, so its bar shows; a cost set.
 await sql`insert into shortlist (user_id, vendor_id) values (${ids.person}, ${W.id}) on conflict do nothing`;
 await sql`update vendor set cost_level = 2 where id = ${V.id}`;
+// Step 3: one business at its address, one with its number hidden (an approximate pin).
+await sql`update vendor set address_street = 'Mississaga Street', address_number = '10', map_lat = 44.6083, map_lng = -79.4197 where id = ${V.id}`;
+await sql`update vendor set address_street = 'Lakeshore Road', hide_address_number = true, map_lat = 44.611, map_lng = -79.412, map_approximate = true
+  where id = ${W.id}`;
 const PAGES = [
   { who: null, path: '/', label: 'Welcome' },
   { who: null, path: '/explore', label: 'Explore' },
   { who: 'person', path: '/explore', label: 'Browse local, with a shortlist' },
   { who: 'person', path: '/shortlist', label: 'Your shortlist' },
+  { who: null, path: '/explore?view=map', label: 'Browse local, the map' },
+  { who: 'person', path: '/shortlist/message', label: 'Message your shortlist' },
+  { who: 'person', path: `/events/${eventId}/message-all`, label: 'Message the businesses for an event' },
   { who: null, path: `/search?q=${run}`, label: 'Search results' },
   { who: null, path: `/vendors/${V.slug}`, label: 'A business page' },
   { who: null, path: `/vendors/${V.slug}`, label: 'The photo viewer', open: 'section[aria-label=Photos] a >> nth=0', dialog: true },
@@ -247,6 +254,7 @@ const PAGES = [
   { who: 'owner', path: '/business', label: 'Your business' },
   { who: 'owner', path: `/vendors/${V.slug}/edit`, label: 'Editing a listing' },
   { who: 'owner', path: `/vendors/${V.slug}/name`, label: 'Changing the business’s name' },
+  { who: 'owner', path: `/vendors/${V.slug}/address`, label: 'The business’s address' },
   { who: 'owner', path: `/vendors/${V.slug}/photos`, label: 'Photos (owner)' },
   {
     who: 'owner',

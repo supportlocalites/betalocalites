@@ -39,6 +39,8 @@ export default [
     route('vendors/:slug/claim', 'routes/member/claim.tsx'),
     route('vendors/:slug/edit', 'routes/member/listing-edit.tsx'),
     route('vendors/:slug/name', 'routes/member/business-name.tsx'),
+    // The business's address and its pin on the map (D-56, migration 0054).
+    route('vendors/:slug/address', 'routes/member/business-address.tsx'),
     route('vendors/:slug/analytics', 'routes/member/analytics.tsx'),
     route('vendors/:slug/photos', 'routes/member/photos.tsx'),
     // Planning an event (slice 2A; D-13, D-39–D-43, ADR-022, ADR-031). The side comes from
@@ -64,6 +66,7 @@ export default [
     route('saved', 'routes/member/saved.tsx'),
     // The shortlist (D-57): the + on Browse local; also where the card buttons post.
     route('shortlist', 'routes/member/shortlist.tsx'),
+    route('shortlist/message', 'routes/member/shortlist-message.tsx'),
     route('vendors/:slug/add', 'routes/member/vendor-add.tsx'),
     // Inquire, for a business not on Localites yet (C10, ADR-024).
     route('vendors/:slug/inquire', 'routes/member/inquire.tsx'),

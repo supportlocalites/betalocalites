@@ -46,10 +46,10 @@ export async function namePage(env: ServerEnv, userId: string, slug: string): Pr
   });
 }
 
-type Run = { id: string; slug: string; name: string; role: 'owner' | 'manager' };
+export type Run = { id: string; slug: string; name: string; role: 'owner' | 'manager' };
 
 /** The business, if this person owns or manages it and it isn't archived; by an old web address too. */
-async function findRun(db: Db, userId: string, slug: string, lock: boolean): Promise<Run | null> {
+export async function findRun(db: Db, userId: string, slug: string, lock: boolean): Promise<Run | null> {
   const [v] = await db.execute<Run>(sql`
     select v.id, v.slug::text as slug, v.display_name as name, m.role
     from vendor v

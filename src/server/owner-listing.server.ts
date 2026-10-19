@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { uuidv7 } from '@/lib/ids.mjs';
 import { PRICING_MODELS } from '@/lib/listing-status';
 import { describePrice } from '@/lib/price';
+import { readAddress } from './address.server';
 import { audit } from './admin/audit.server';
 import type { Member } from './auth/member.server';
 import { type Db, withDb } from './db.server';
@@ -78,7 +79,7 @@ export async function readCurrent(db: Db, vendorId: string): Promise<{ flat: Rec
   const services = await readServices(db, vendorId);
   return {
     // The business's name too: an owner can change it (M20, D-54), so the team can undo it.
-    flat: v ? { name: v.name, ...flatten(toValues(v, services)) } : {},
+    flat: v ? { name: v.name, address: await readAddress(db, vendorId), ...flatten(toValues(v, services)) } : {},
     names: new Map(services.map((s) => [s.id, s.name])),
   };
 }
@@ -464,7 +465,7 @@ export async function alertTeam(env: ServerEnv, auditId: string, siteUrl: string
       return send ? r : null;
     });
     if (!row) return;
-    const lines = describeChanges(row.changes, () => 'a service').filter((l) => /^(Website|Phone|Business name):/.test(l));
+    const lines = describeChanges(row.changes, () => 'a service').filter((l) => /^(Website|Phone|Business name|Address):/.test(l));
     const what = lines.map((l) => l.split(':')[0]!.toLowerCase()).join(' and ');
     const result = await sendEmail(env, {
       to: TEAM_ADDRESS,

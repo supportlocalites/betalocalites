@@ -16,7 +16,18 @@ import { smallPhotoUrl } from './photo-store.server';
 /** Businesses in one row; "See all" opens the kind's full list. */
 export const PER_RAIL = 12;
 
-export type BrowseFilters = { q: string; town: string | null; cost: 1 | 2 | 3 | null; minRating: 4 | null; sort: Sort };
+export type BrowseFilters = {
+  q: string;
+  town: string | null;
+  cost: 1 | 2 | 3 | null;
+  minRating: 4 | null;
+  sort: Sort;
+  /** The rows by kind, or the map with its list (D-57, step 3). */
+  view: 'rows' | 'map';
+};
+
+/** The most businesses the map shows at once. */
+export const ON_MAP_MAX = 200;
 
 export type BrowseCard = {
   id: string;
@@ -33,9 +44,13 @@ export type BrowseCard = {
   shortlisted: boolean;
 };
 export type BrowseRail = { slug: string; name: string; total: number; items: BrowseCard[] };
+/** On the map view: each business with its kind, and its pin if it shared an address. */
+export type MapCard = BrowseCard & { kind: string; lat: number | null; lng: number | null; approximate: boolean };
 export type ShortlistItem = { slug: string; name: string; kind: string; photo: string | null };
 export type Browse = {
   rails: BrowseRail[];
+  /** The map view's businesses (empty on the rows view). */
+  onMap: MapCard[];
   towns: { slug: string; name: string }[];
   kinds: CategorySummary[];
   shortlist: ShortlistItem[];
@@ -43,6 +58,9 @@ export type Browse = {
 
 type Row = Omit<BrowseCard, 'photo' | 'average'> & {
   average: string | number | null;
+  lat: number | null;
+  lng: number | null;
+  approximate: boolean;
   photoPath: string | null;
   railSlug: string;
   railName: string;
@@ -79,7 +97,8 @@ async function readBrowse(db: Db, f: BrowseFilters, userId: string | null): Prom
                extensions.word_similarity(${q}, v.display_name) as similar,
                -- Read as the person (RLS): only their own; signed out, nobody's.
                exists (select 1 from saved_vendor s where s.user_id = ${me}::uuid and s.vendor_id = v.id) as saved,
-               exists (select 1 from shortlist s where s.user_id = ${me}::uuid and s.vendor_id = v.id) as shortlisted
+               exists (select 1 from shortlist s where s.user_id = ${me}::uuid and s.vendor_id = v.id) as shortlisted,
+               v.map_lat as lat, v.map_lng as lng, v.map_approximate as approximate
         from vendor v
         join municipality mu on mu.id = v.primary_municipality_id
         join lateral (
@@ -101,17 +120,44 @@ async function readBrowse(db: Db, f: BrowseFilters, userId: string | null): Prom
           and (${f.cost}::int is null or v.cost_level = ${f.cost})
           and (${f.minRating}::int is null or r.average >= ${f.minRating})
       )
-      select id, slug, name, tagline, town, cost, reviews, average, "photoPath", saved, shortlisted, "railSlug", "railName", total
+      ${
+        f.view === 'map'
+          ? sql`
+      select id, slug, name, tagline, town, cost, reviews, average, "photoPath", saved, shortlisted, "railSlug", "railName",
+             count(*) over ()::int as total, lat, lng, approximate
+      from matched m order by m.lat is null, ${order} limit ${ON_MAP_MAX}`
+          : sql`
+      select id, slug, name, tagline, town, cost, reviews, average, "photoPath", saved, shortlisted, "railSlug", "railName", total,
+             lat, lng, approximate
       from (
         select m.*, row_number() over (partition by m."railSlug" order by ${order}) as pos,
                count(*) over (partition by m."railSlug")::int as total
         from matched m) x
       where pos <= ${PER_RAIL}
-      order by rail_order, "railName", pos`),
+      order by rail_order, "railName", pos`
+      }`),
     db.execute<{ slug: string; name: string }>(sql`
       select slug::text as slug, name from municipality where is_active order by sort_order, name`),
     readCategories(db),
   ]);
+  const card = (r: Row): BrowseCard => ({
+    id: r.id,
+    slug: r.slug,
+    name: r.name,
+    tagline: r.tagline,
+    town: r.town,
+    cost: r.cost,
+    reviews: r.reviews,
+    average: r.average == null ? null : Number(r.average),
+    photo: r.photoPath,
+    saved: r.saved,
+    shortlisted: r.shortlisted,
+  });
+  const shortlist = userId ? await readShortlist(db, userId) : [];
+  if (f.view === 'map') {
+    const onMap = rows.map((r) => ({ ...card(r), kind: r.railName, lat: r.lat, lng: r.lng, approximate: r.approximate }));
+    return { rails: [], onMap, towns: [...towns], kinds, shortlist };
+  }
   const rails: BrowseRail[] = [];
   for (const r of rows) {
     let rail = rails.at(-1);
@@ -119,22 +165,9 @@ async function readBrowse(db: Db, f: BrowseFilters, userId: string | null): Prom
       rail = { slug: r.railSlug, name: r.railName, total: r.total, items: [] };
       rails.push(rail);
     }
-    rail.items.push({
-      id: r.id,
-      slug: r.slug,
-      name: r.name,
-      tagline: r.tagline,
-      town: r.town,
-      cost: r.cost,
-      reviews: r.reviews,
-      average: r.average == null ? null : Number(r.average),
-      photo: r.photoPath,
-      saved: r.saved,
-      shortlisted: r.shortlisted,
-    });
+    rail.items.push(card(r));
   }
-  const shortlist = userId ? await readShortlist(db, userId) : [];
-  return { rails, towns: [...towns], kinds, shortlist };
+  return { rails, onMap: [], towns: [...towns], kinds, shortlist };
 }
 
 /** The person's shortlist, listed businesses only, in the order they added them (as the person). */
@@ -162,6 +195,7 @@ export async function browse(env: ServerEnv, userId: string | null, f: BrowseFil
     towns: result.towns,
     kinds: result.kinds,
     rails: result.rails.map((rail) => ({ ...rail, items: rail.items.map((c) => ({ ...c, photo: url(c.photo) })) })),
+    onMap: result.onMap.map((c) => ({ ...c, photo: url(c.photo) })),
     shortlist: result.shortlist.map((s) => ({ ...s, photo: url(s.photo) })),
   };
 }
@@ -177,5 +211,6 @@ export function readFilters(params: URLSearchParams, clean: (s: string) => strin
     cost: cost === 1 || cost === 2 || cost === 3 ? cost : null,
     minRating: params.get('rating') === '4' ? 4 : null,
     sort: SORTS.includes(sort) ? sort : 'match',
+    view: params.get('view') === 'map' ? 'map' : 'rows',
   };
 }

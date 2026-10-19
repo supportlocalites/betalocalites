@@ -17,6 +17,8 @@ export type ServerEnv = {
   RESEND_API_KEY?: string;
   /** Local tests only: a pretend email service on this computer (ignored unless it is localhost). */
   EMAIL_API_URL?: string;
+  /** Local tests only: a pretend address search on this computer (ignored unless it is localhost), see address.server.ts. */
+  GEOCODE_URL?: string;
   /** Local tests only: seconds an email about a new message waits (normally 18; see emailAboutMessage). */
   MESSAGE_EMAIL_WAIT_SECONDS?: string;
   /** Suggest a business: a per-address limit kept by Cloudflare, never stored (wrangler.jsonc). */

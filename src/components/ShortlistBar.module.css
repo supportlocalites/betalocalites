@@ -95,9 +95,23 @@
   cursor: pointer;
 }
 
-.go {
+.message {
   flex: none;
   margin-left: auto;
+  display: flex;
+  align-items: center;
+  min-height: var(--size-icon-button);
+  padding-inline: var(--space-4);
+  border: var(--hairline) solid var(--color-bar-line);
+  color: var(--color-on-bar);
+  font-size: var(--text-button);
+  letter-spacing: var(--tracking-button);
+  text-transform: uppercase;
+  text-decoration: none;
+}
+
+.go {
+  flex: none;
   display: flex;
   align-items: center;
   min-height: var(--size-icon-button);
@@ -122,7 +136,7 @@
     display: flex;
   }
 
-  .go {
+  .message {
     margin-left: 0;
   }
 }

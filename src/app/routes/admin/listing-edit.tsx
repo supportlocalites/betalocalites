@@ -1,3 +1,5 @@
+import { APPROXIMATE, readAddressForm, streetLine } from '@/lib/address';
+import { AddressRefused, setTeamAddress } from '@/server/address.server';
 import { data, Form, Link, redirect, type ShouldRevalidateFunctionArgs, useNavigation } from 'react-router';
 import { adminContext, cloudflareContext } from '@/app/context';
 import { ListingFields, type ListingValues } from '@/components/admin/ListingFields';
@@ -157,6 +159,18 @@ export async function action({ params, request, context }: Route.ActionArgs) {
       await setCostLevel(env, admin, params.id, level);
       return back('cost');
     }
+    if (intent === 'address') {
+      const read = readAddressForm(form);
+      if ('error' in read) return data({ intent, errors: { address: read.error } }, { status: 400 });
+      try {
+        await setTeamAddress(env, admin, params.id, read.value);
+      } catch (err) {
+        if (err instanceof AddressRefused && err.message !== 'not found') return data({ intent, errors: { address: err.message } }, { status: 409 });
+        if (err instanceof AddressRefused) throw data(null, { status: 404 });
+        throw err;
+      }
+      return back('address');
+    }
     if (intent === 'status') {
       const to = String(form.get('to') ?? '') as ListingStatus;
       if (!(to in STATUS_LABEL)) return data({ intent, errors: { form: 'Choose what to do with the listing.' } }, { status: 400 });
@@ -201,6 +215,7 @@ const SAVED: Record<string, string> = {
   created: 'Draft saved. Nobody sees it until you publish it.',
   details: 'Details saved.',
   cost: 'Cost guide saved.',
+  address: 'Address saved.',
   service: 'Services saved.',
   published: 'Published: it’s now on Localites.',
   unpublished: 'Hidden: it no longer shows on Localites.',
@@ -402,6 +417,46 @@ export default function EditListing({ loaderData, actionData: rawResult }: Route
           </select>
           <button type="submit" className="button button-secondary" disabled={busy}>
             Save cost
+          </button>
+        </Form>
+      </section>
+
+      <section className={styles.section} aria-labelledby="address-heading">
+        <h2 id="address-heading">Address and map</h2>
+        <p className="muted">
+          {streetLine(listing.address)
+            ? `Shows as ${streetLine(listing.address)}${listing.address.hidden ? ' (number hidden by the business)' : ''}. `
+            : 'Only the town shows, and it isn’t on the map. '}
+          {listing.address.lat === null
+            ? listing.address.street
+              ? 'Not found on the map: listed by its town.'
+              : ''
+            : listing.address.approximate
+              ? `Pin near the street (“${APPROXIMATE}”).`
+              : 'Pin at the address.'}{' '}
+          The owner or a manager can change it too.
+        </p>
+        <Form method="post" className={styles.buttons}>
+          <input type="hidden" name="intent" value="address" />
+          <label htmlFor="team-street" className="field-label">
+            Street
+          </label>
+          <input id="team-street" name="street" className="input" maxLength={120} defaultValue={listing.address.street ?? ''} />
+          <label htmlFor="team-number" className="field-label">
+            Number
+          </label>
+          <input id="team-number" name="number" className="input" maxLength={13} defaultValue={listing.address.number ?? ''} />
+          <label className="field-hint">
+            <input type="checkbox" name="hideNumber" value="yes" defaultChecked={listing.address.hidden} /> Hide the number (never shown or
+            kept; the pin is near the street)
+          </label>
+          {actionData?.intent === 'address' && actionData.errors && 'address' in actionData.errors && (
+            <p className="field-error" role="alert">
+              {String(actionData.errors.address)}
+            </p>
+          )}
+          <button type="submit" className="button button-secondary" disabled={busy}>
+            Save address
           </button>
         </Form>
       </section>

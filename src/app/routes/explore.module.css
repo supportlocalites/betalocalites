@@ -227,3 +227,161 @@
     flex: 1 1 var(--size-search-min);
   }
 }
+
+/* ------------------------------------------------------------------ List or Map (D-57, step 3) */
+
+.views {
+  display: flex;
+  gap: var(--space-2);
+  margin-top: var(--space-4);
+}
+
+.view {
+  min-height: var(--size-icon-button);
+  display: inline-flex;
+  align-items: center;
+  padding: 0 var(--space-5);
+  border: var(--hairline) solid var(--color-line);
+  color: var(--color-ink);
+  font-size: var(--text-button);
+  letter-spacing: var(--tracking-button);
+  text-transform: uppercase;
+  text-decoration: none;
+}
+
+.view[aria-current='page'] {
+  background: var(--color-ink);
+  border-color: var(--color-ink);
+  color: var(--color-on-ink);
+}
+
+/* Phones: the map first, its list under it. Computers: the list beside a large map. */
+.mapView {
+  display: flex;
+  flex-direction: column-reverse;
+  gap: var(--space-6);
+  margin-top: var(--space-6);
+}
+
+@media (min-width: 1000px) {
+  .mapView {
+    display: grid;
+    grid-template-columns: minmax(0, 2fr) minmax(0, 3fr);
+    align-items: start;
+  }
+
+  .mapSide {
+    position: sticky;
+    top: var(--space-6);
+  }
+
+  .mapSide .mapBox {
+    height: var(--size-map-wide);
+  }
+}
+
+.mapList {
+  min-width: 0;
+}
+
+.mapCount {
+  margin: 0 0 var(--space-3);
+  font-size: var(--text-label);
+  letter-spacing: var(--tracking-label);
+  text-transform: uppercase;
+  color: var(--color-gold-ink);
+}
+
+.mapItems {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: var(--space-3);
+}
+
+.mapItem {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3);
+  background: var(--color-surface);
+  border: var(--hairline) solid var(--color-line-soft);
+}
+
+/* Listed by its town only: no pin on the map, so a dashed edge. */
+.townOnly {
+  background: transparent;
+  border-style: dashed;
+  border-color: var(--color-line);
+}
+
+.mapLink {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  gap: var(--space-3);
+  color: var(--color-ink);
+  text-decoration: none;
+}
+
+.mapPhoto {
+  flex: none;
+  width: var(--size-thumb);
+  height: var(--size-thumb);
+  background: var(--color-tint);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  font-family: var(--font-display);
+  font-style: italic;
+  color: var(--color-ink-soft);
+}
+
+.mapPhoto img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.mapWords {
+  display: grid;
+  gap: var(--space-1);
+  min-width: 0;
+  align-content: center;
+}
+
+.mapWhere {
+  font-size: var(--text-label);
+  letter-spacing: var(--tracking-label);
+  text-transform: uppercase;
+  color: var(--color-gold-ink);
+}
+
+.mapName {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: var(--text-title-3);
+  overflow-wrap: anywhere;
+}
+
+.mapLink:hover .mapName {
+  text-decoration: underline;
+}
+
+.mapMeta {
+  font-size: var(--text-small);
+  color: var(--color-ink-soft);
+}
+
+.mapBox {
+  height: var(--size-map-phone);
+}
+
+.mapNote {
+  margin: var(--space-2) 0 0;
+  font-size: var(--text-small);
+  color: var(--color-ink-soft);
+}

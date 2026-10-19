@@ -18,7 +18,10 @@
 //   - POST /moderation stands in for Cloudflare's AI checker (the language check, D-50, when
 //     the site is pointed here with MODERATION_URL): words containing "pretend-hate" are unsafe
 //     (hate, S10), "pretend-phone" trips only privacy (S7), "pretend-outage" makes it fail;
-//     anything else is safe. GET /moderation/asked lists what it was asked.
+//     anything else is safe. GET /moderation/asked lists what it was asked;
+//   - GET /geocode stands in for OpenStreetMap's address search (Nominatim, when the site is
+//     pointed here with GEOCODE_URL): a street with "Nowhere" isn't found; any other is in
+//     Orillia, a little further along for each number. GET /geocode/asked lists what it was asked.
 // Usage: node scripts/e2e/mail-server.mjs
 import { readFile } from 'node:fs/promises';
 import http from 'node:http';
@@ -32,6 +35,7 @@ const messages = []; // { to: string[], subject, body, at }
 const TURNSTILE_SECRET = process.env.E2E_TURNSTILE_SECRET ?? 'e2e-turnstile-secret-local-only';
 const EMAIL_KEY = process.env.E2E_EMAIL_KEY ?? 'e2e-email-key-local-only';
 const spent = new Set();
+const geocodes = [];
 const asked = []; // what the pretend AI checker was asked (lower case)
 const PHOTO_KEY = process.env.E2E_PHOTO_KEY ?? 'e2e-photo-key';
 const files = new Map(); // "<bucket>/<path>" -> { type, body: Buffer }
@@ -222,6 +226,16 @@ http
         res.writeHead(200, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ response: { safe: categories.length === 0, categories } }));
       }
+    } else if (url.pathname === '/geocode' && req.method === 'GET') {
+      const street = url.searchParams.get('street') ?? '';
+      geocodes.push({ street, city: url.searchParams.get('city'), agent: req.headers['user-agent'] ?? null });
+      const n = Number(/^(\d+)/.exec(street)?.[1] ?? 0);
+      const found = street.toLowerCase().includes('nowhere') ? [] : [{ lat: String(44.6083 + n / 100000), lon: String(-79.41971 - n / 100000) }];
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify(found));
+    } else if (url.pathname === '/geocode/asked') {
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify(geocodes));
     } else if (url.pathname === '/moderation/asked') {
       res.writeHead(200, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify(asked));
