@@ -107,7 +107,7 @@ export async function reviewForm(env: ServerEnv, userId: string, eventId: string
         until: string;
         opensAt: string | null;
       }>(sql`
-        select vendor_name_then(v.id, ev.created_at) as name, v.slug::text as slug, v.listing_status = 'published' as listed,
+        select v.display_name as name, v.slug::text as slug, v.listing_status = 'published' as listed,
                p.title as "eventName", e.event_date::text as date, ${CAN_REVIEW} as can,
                ((event_ends_at(e) + interval '60 days') at time zone e.timezone)::date::text as until,
                case when ev.booked_after_event then (ev.booked_at + interval '24 hours')::text end as "opensAt"

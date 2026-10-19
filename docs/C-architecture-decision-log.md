@@ -887,7 +887,9 @@ typed, before saving. One **Save changes** button; changes are live at once.
   and the old one keeps working; it's an owner save like any other (`audit_log` and
   `owner_change`, flagged `name`, so the team gets a "check now" email and can undo it). The
   database keeps every former name (`vendor_former_name`, migration 0051), and a customer's
-  earlier conversations, plans and reviews show "New name (dba Former name)". When the team
+  earlier conversations, plans and reviews show today's name with no "(dba …)" (the owner,
+  19 October 2026: "if we run into an issue with too many name changes we will focus on it
+  then"; `vendor_name_then` is kept in the database but no longer used). When the team
   renames a business, its owner is emailed.
 - **Only the owner, checked on every request in the database:** an active `owner`
   membership of a listing that isn't archived. Anyone else (including team admins, who use

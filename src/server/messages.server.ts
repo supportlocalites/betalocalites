@@ -238,7 +238,7 @@ export async function myConversations(env: ServerEnv, userId: string): Promise<C
         Omit<ConversationCard, 'photo' | 'snippet'> &
           ListPhotoColumns & { listed: boolean; lastBody: string | null; lastRemoved: boolean; lastHidden: boolean }
       >(sql`
-        select c.id, v.slug::text as "vendorSlug", vendor_name_then(v.id, c.created_at) as "vendorName", c.last_message_at::text as "lastMessageAt",
+        select c.id, v.slug::text as "vendorSlug", v.display_name as "vendorName", c.last_message_at::text as "lastMessageAt",
                c.status <> 'open' as blocked, ${LEFT} as left, not ${LEFT} and v.listing_status <> 'published' as paused,
                ${REJOINED} as rejoined,
                v.listing_status = 'published' as listed,
@@ -382,7 +382,7 @@ export async function personThread(env: ServerEnv, userId: string, conversationI
           version: string;
         } & ListPhotoColumns
       >(sql`
-        select c.id, c.status, c.event_id as "eventId", v.slug::text as slug, vendor_name_then(v.id, c.created_at) as name,
+        select c.id, c.status, c.event_id as "eventId", v.slug::text as slug, v.display_name as name,
                ${LEFT} as left, v.listing_status = 'published' as listed, ${REJOINED} as rejoined,
                -- C6 (D-54): the person now runs (or works for) the business they wrote to.
                exists (select 1 from vendor_member m where m.vendor_id = v.id and m.user_id = ${userId} and m.ended_at is null) as "yourTeam",

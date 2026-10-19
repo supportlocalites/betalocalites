@@ -123,7 +123,7 @@ on codes (ADR-028).
   5. businesses, in two parts: ✅ **part 1 built 19 October 2026** (migration 0050): hand over or
      leave a team, hide a page, take a business off Localites, the two hats of an owner who also
      plans events, suggestion limits (B6, M18, C6, M22); part 2: ✅ **built 19 October 2026**:
-     rename with "(dba former name)" (migration 0051, M20) and a readable data download with what
+     rename (migration 0051, M20; no "(dba …)" after the owner's 19 October call) and a readable data download with what
      someone did for a business (migration 0052, M21). D-54 is complete.
 - **Added before launch (product owner, 18 October 2026: "add all of them"):**
   1. ✅ **built 18 October 2026** (migration 0041): scheduled deletions the privacy policy promises (email records 1 year, the team's change log

@@ -5,7 +5,7 @@ Hi {{name}},
 Our team changed your business's name on Localites from "{{from}}" to "{{business}}". Its page is now at:
 {{link}}
 
-Old links to your page keep working. Your customers' earlier conversations, event plans and reviews show the new name with the old one after it, like "{{business}} (dba {{from}})".
+Old links to your page keep working, and everything on Localites now shows the new name.
 
 If this isn't right, reply to this email.
 

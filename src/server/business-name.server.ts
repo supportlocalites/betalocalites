@@ -13,7 +13,8 @@ import { SAVES_PER_DAY } from './owner-listing.server';
  * the team). Owner only, checked in the database on every request; at most once in
  * NAME_CHANGE_DAYS (a change the team undid doesn't count). The web address follows the new name and the old one keeps working
  * (vendor_slug_history). The database keeps every former name (vendor_former_name, migration
- * 0051), so things from before show "New name (dba Former name)". Recorded in audit_log with
+ * 0051) for the owner's name page and the team; everything shows today's name, with no
+ * "(dba …)" (the owner, 19 October 2026). Recorded in audit_log with
  * an owner_change flagged 'name': the team gets a "check now" email and can undo it.
  */
 

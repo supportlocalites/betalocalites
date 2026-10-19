@@ -139,7 +139,8 @@ doesn't count), and the language check reads it first; no web or email addresses
 address follows the new name; the old address, and old links to Message, Add to event, Inquire
 and Claim, go on to the new one (for a listed business, as the public page already did). The
 database keeps every former name; a customer's earlier conversations, event plans and review
-page show "New name (dba Former name)". The team gets a "Check now" email, sees "Business name:
+page show "New name (dba Former name)" (removed the same day, the owner: everything now shows
+just the new name; `vendor_name_then` stays in the database, unused). The team gets a "Check now" email, sees "Business name:
 old → new" in the owner's changes and the daily note, and can undo it (the web address stays the
 new one). When the team renames a business, its owner is emailed the old and new names.
 **Migrations applied:** `0051_business_names.sql`

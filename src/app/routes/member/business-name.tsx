@@ -95,7 +95,7 @@ export default function BusinessName({ loaderData, actionData }: Route.Component
           <>
             <ul className="section-gap">
               <li>Your page’s web address changes to match. Old links to your page keep working.</li>
-              <li>{`Your customers’ earlier conversations, event plans and reviews show the new name with the old one after it, like “New name (dba ${name})”.`}</li>
+              <li>Everything on Localites shows the new name, including your customers’ earlier conversations, event plans and reviews.</li>
               <li>Emails already sent keep the old name.</li>
               <li>Our team sees the change and can put the old name back if it isn’t right.</li>
               <li>{`You can change the name once every ${NAME_CHANGE_DAYS} days.`}</li>

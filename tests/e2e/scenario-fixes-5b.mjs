@@ -1,7 +1,7 @@
 // Scenario-test fixes, round 5 part 2 (D-54, migration 0051): a business's owner changes its name
 // (M20): only the owner, through the language check, once in 30 days; the web address follows and
-// old links (the page, message, add) keep working; older conversations show "New name (dba Old
-// name)"; the team is told, sees it in the owner's changes and can undo it; when the team renames
+// old links (the page, message, add) keep working; older conversations show just the new
+// name (no "dba", the owner, 19 October 2026); the team is told, sees it in the owner's changes and can undo it; when the team renames
 // a business, its owner is emailed. The database's own rules are checked in db/tests/0051.
 //
 // Usage: npm run test:e2e
@@ -104,9 +104,9 @@ check('…and the owner’s own pages', r.status === 302 && r.location === `/ven
 r = await site(`/vendors/nothing-here-${run}/add`, { cookie: cookie.a });
 check('a web address no business ever had is still “not found”', r.status === 404, String(r.status));
 
-console.log('\nOlder things show the old name too');
+console.log('\nOlder things show just the new name (no “dba”, the owner, 19 October 2026)');
 r = await site('/messages', { cookie: cookie.a });
-check('the customer’s earlier conversation shows “New name (dba Old name)”', words(r.body).includes(`${NEW} (dba ${V.name})`));
+check('the customer’s earlier conversation shows just the new name', words(r.body).includes(NEW) && !words(r.body).includes('(dba'));
 r = await site(`/vendors/${now.slug}`, { cookie: cookie.a });
 check('the business’s page shows just the new name', words(r.body).includes(NEW) && !words(r.body).includes('(dba'));
 
@@ -146,7 +146,7 @@ const told = await waitFor(
   (list) => list.length > 0,
 );
 check('…and its owner is emailed, with the old and new names', told.length === 1 && told[0].subject.includes(`${TEAM_NAME} has a new name`)
-  && told[0].body.includes(`(dba ${W.name})`), told.map((m) => m.subject).join(' | '));
+  && told[0].body.includes(`"${W.name}" to "${TEAM_NAME}"`) && !told[0].body.includes('(dba'), told.map((m) => m.subject).join(' | '));
 
 console.log('\nDownload your data (M21)');
 // The owner's own event, with words that look like code, and a message they wrote for the business.
