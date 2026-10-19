@@ -572,7 +572,16 @@ and searches. Activity from a browser someone else has also signed in on is incl
 was done signed in as them; searches carry no account, so only those from browsers only they use.
 Left out, as on their own pages: a business's private note about a booking, messages the team hid
 from someone else, a review the team denied (D-51), and a suspension's reason (the lawyer is
-asked, PO-07). It's built by the database for the person acting as themselves only.
+asked, PO-07). It's built by the database for the person acting as themselves only. **Since
+migration 0052 (M21, D-54)** it also has **what they did for a business** they're or were on the
+team of: their places on the team, messages they wrote for it, changes they saved to its page
+(their own saves, from the change log), replies they wrote to reviews, photos they added and
+"wasn't booked" notes they left; never the customer's side, the reviews themselves, who a booking
+was for, invitations they sent (other people's emails), or what others on the team did. It comes
+two ways: a **readable copy** (a page saved to open in any browser, everything typed escaped; the
+database first keeps the newest 500 activity records and searches; an account with very much
+information is told to use the data file instead, to stay within the site's time limit) and the
+**data file** (JSON, a line at a time).
 
 **Suspending an account (migration 0042):** the team can suspend an account on **Admin →
 Accounts** (found by the email it signs in with; the email is sent in the form, never the web

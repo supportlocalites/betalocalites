@@ -33,7 +33,7 @@ account (password and authenticator app); a computer or second browser helps for
 - [ ] Ask your guests a question and post an update; see them on the invitation.
 - [ ] **Print** the group link's QR code page (or just look at it); scan the code with your camera.
 - [ ] **Review** the business you marked booked (it waits for the team).
-- [ ] **Your account → Download your data**: the file downloads.
+- [ ] **Your account → Download your data**: both the readable copy and the data file download; the readable copy opens in your browser.
 
 ## 3. As a business owner, 20 minutes (your own email)
 

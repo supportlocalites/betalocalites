@@ -227,7 +227,8 @@ backups are gone within 30 days.
 - **See and change your details** on **Your account**.
 - **Turn off "How was it?" emails** on **Your account**.
 - **Ask for a copy** of the personal information we hold about you: **Download your data** on
-  **Your account** gives you a file straight away, or email supportlocalites@gmail.com for
+  **Your account** gives you a readable copy and a data file straight away, including what you
+  did for a business you're on the team of, or email supportlocalites@gmail.com for
   anything it doesn't include. [Lawyer: the file leaves out a review the team denied (D-51) and
   the reason for a suspension; please advise whether it must include them.]
 - **Ask us to correct** anything that's wrong.

@@ -37,7 +37,7 @@ added; quotes, bookings and the concierge queue removed.
 | A2 | "We've emailed you a code" (part of A1; codes, not links, D-32) | 1 |
 | A3 | ~~Reset password~~: not needed, no passwords for the public (D-32). The team's password reset is in the runbook | — |
 | A4 | Account settings, delete my account. **Built** (`/account`; **Delete your account** at `/account/delete`, 13 October 2026, E §8): name, email, personal details (D-36), your businesses and claims, a "Planning" section, **Emails** (turn "How was it?" emails on or off, reviews part 2) and, for owners, **Bookings marked**, sign out; deleting an account comes before launch | 1 |
-| A6 | Download your data | **Built** (`/account/data`, migration 0043): a file of the person's information, from Your account; open even when suspended | 1 |
+| A6 | Download your data | **Built** (`/account/data`, migration 0043): a file of the person's information, from Your account; open even when suspended. Since migration 0052 (M21, D-54): a readable copy and the data file, with what they did for a business | 1 |
 | A7 | Account suspended | **Built** (`/suspended`, migration 0042): where a suspended person's signed-in pages send them; how to reach the team, Download your data, Delete your account | 1 |
 | A5 | Switch: "My events" ⇄ "My business" (only shown to people on a vendor team). **Built** (2A) on My events, Saved businesses and My business | 2 |
 

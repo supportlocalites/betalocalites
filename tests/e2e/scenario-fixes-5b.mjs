@@ -148,4 +148,27 @@ const told = await waitFor(
 check('…and its owner is emailed, with the old and new names', told.length === 1 && told[0].subject.includes(`${TEAM_NAME} has a new name`)
   && told[0].body.includes(`(dba ${W.name})`), told.map((m) => m.subject).join(' | '));
 
+console.log('\nDownload your data (M21)');
+// The owner's own event, with words that look like code, and a message they wrote for the business.
+const [ev] = await sql`insert into event (host_user_id, event_date, start_time, municipality_id) values (${ids.o}, current_date + 9, '13:00', ${town.id}) returning id`;
+await sql`insert into event_private (event_id, host_user_id, title, notes) values (${ev.id}, ${ids.o}, ${`O party ${run}`}, ${'<script>alert(1)</script> & more'})`;
+const [conv] = await sql`select id from conversation where vendor_id = ${V.id} and consumer_user_id = ${ids.a}`;
+r = await site(`/vendors/${(await row(V.id)).slug}/messages/${conv.id}`, { cookie: cookie.o, method: 'POST', form: { intent: 'send', body: `Owner reply ${run}` } });
+const ownerReply = await sql`select 1 from message where conversation_id = ${conv.id} and author_user_id = ${ids.o} and author_side = 'vendor'`;
+check('the owner writes to a customer for the business', ownerReply.length === 1, String(r.status));
+r = await site('/account/data', { cookie: cookie.o });
+check('the page offers a readable copy and the data file', r.body.includes('href="/account/data/download?readable"') && r.body.includes('href="/account/data/download"'));
+r = await site('/account/data/download?readable', { cookie: cookie.o });
+check('the readable copy is a page to save', r.status === 200 && (r.headers.get('content-type') ?? '').startsWith('text/html')
+  && /attachment; filename="localites-my-data-\d{4}-\d{2}-\d{2}\.html"/.test(r.headers.get('content-disposition') ?? ''), `${r.status} ${r.headers.get('content-disposition')}`);
+check('…with headings, their event, and what they did for the business', r.body.includes('<h2>Your events</h2>') && r.body.includes(`O party ${run}`)
+  && r.body.includes('<h2>What you did for your businesses</h2>') && r.body.includes(`Owner reply ${run}`) && r.body.includes('Business name: “'));
+check('…words that look like code are shown as words, never run', !r.body.includes('<script>') && r.body.includes('&lt;script&gt;alert(1)&lt;/script&gt; &amp; more'));
+check('…never the customer’s side', !r.body.includes(`Hello from before ${run}`) && !r.body.includes(email('a')));
+r = await site('/account/data/download', { cookie: cookie.o });
+check('the data file is laid out a line at a time, and has the business section too', r.status === 200 && r.body.split('\n').length > 20
+  && JSON.parse(r.body).for_your_businesses?.[0]?.messages_you_wrote?.some((m) => m.message === `Owner reply ${run}`));
+r = await site('/account/data/download?readable');
+check('signed out: no readable copy', r.status === 302 && r.location.startsWith('/join'), `${r.status} ${r.location}`);
+
 await finish('scenario fix (round 5b)');

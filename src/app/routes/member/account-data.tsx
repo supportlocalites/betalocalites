@@ -19,17 +19,26 @@ export default function AccountData() {
         <div className="title-rule" aria-hidden="true" />
         <p>
           You can have a copy of your information on Localites, including your account and details, your events, plans and guests, saved
-          businesses, conversations, reviews, inquiries, suggestions, reports, business teams and claims, and the latest record of how you’ve
-          used Localites.
-        </p>
-        <p className="muted">
-          It comes as one file you can open with a text editor. Files sent in conversations are listed by name; download those from the
-          conversation itself. For anything else we hold, email supportlocalites@gmail.com.
+          businesses, conversations, reviews, inquiries, suggestions, reports, business teams and claims, what you did for a business
+          you’re or were on the team of (messages you wrote for it, changes you saved to its page, replies to reviews, photos and notes),
+          and the latest record of how you’ve used Localites.
         </p>
         <p>
-          <a href="/account/data/download" className="button" download>
-            Download my data
+          <a href="/account/data/download?readable" className="button" download>
+            Download a readable copy
           </a>
+        </p>
+        <p className="muted">
+          A page that opens in any web browser, with headings and tables, that you can read or print. Very long lists show 500 of their entries (your most recent activity and searches).
+        </p>
+        <p>
+          <a href="/account/data/download" className="button button-secondary" download>
+            Download the data file
+          </a>
+        </p>
+        <p className="muted">
+          Everything, in a standard format (JSON) other apps can read. Files sent in conversations are listed by name; download those from
+          the conversation itself. For anything else we hold, email supportlocalites@gmail.com.
         </p>
         <p>
           <Link to="/account" className="text-link">

@@ -25,7 +25,7 @@ console.log('Accounts');
 
 // ------------------------------------------------------------------ 1. Download my data
 let r = await site('/account/data', { cookie: cookie.p });
-check('Your account offers Download your data', r.status === 200 && words(r.body).includes('Download my data'), String(r.status));
+check('Your account offers Download your data', r.status === 200 && words(r.body).includes('Download a readable copy'), String(r.status));
 r = await site('/account/data/download', { cookie: cookie.p });
 let file = r.body;
 check('the file is the person’s own: account, event, private notes',

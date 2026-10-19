@@ -31,6 +31,39 @@ Every release and every database migration, in order. Appended before each deplo
 
 ## Releases
 
+### 2026-10-19 — Fixes from the scenario tests, round 5 part 2b: a readable data download (D-54)
+
+**Stage:** 1 (E §8, privacy policy §11)
+**What changed (plain English):** **Your account → Download your data** (M21) now offers **a
+readable copy** (a page saved to your device that opens in any web browser, with headings, tables
+and dates in words, to read or print; everything typed shows as words, never runs; the newest 500
+activity records and searches, with how many there are in all) and **the data file** (as before,
+now laid out a line at a time). Both now include **what you did for a business** you're or were
+on the team of: your places on the team, messages you wrote for it, changes you saved to its page
+(in plain words in the readable copy), replies you wrote to reviews, photos you added and
+"wasn't booked" notes you left. Never the customer's side, the reviews themselves, who a booking
+was for, invitations you sent, or what others on the team did. An account with a great deal of
+information is told to use the data file (or email us for a readable copy), so the copy stays
+within the site's 10 ms limit; a typical account takes about 1 ms to make.
+**Migrations applied:** `0052_my_data_readable.sql`
+**Destructive?** No: the old function is renamed (no longer callable by the site) and a new one
+added; both read only.
+**Tests run:** every database check file (0052: 7, 0043: 9); unit tests 207 of 207;
+`scenario-fixes-5b.mjs` 36 of 36 (8 new for this); accounts 35 of 35; look 512 of 512.
+**Security tests:** an owner's file has their own messages for the business, page changes,
+reply, photo and note, never another team member's messages, the customer's words, review, name,
+email or event, nor a team change; someone who left and rejoined gets the business once with both
+times; a customer gets no business section and never the business's private note; only the
+person acting as themselves (not the business or team side); the site can't call the old
+function; signed out gets no copy; words that look like code are escaped.
+**Independent review before push:** nothing serious; fixed before push: "500 of N" instead of
+"the newest 500" for lists not in newest-first order; a removed message no longer shows its file's
+name; a lower size cut-off for the readable copy; the copy can't be read as anything but a page.
+**Known:** a save held for the team's check shows as held even after the team put it live.
+**Existing functionality affected:** the data file's layout (same information, more lines).
+**How to roll back:** with the next update.
+**Approved by:** the product owner, 19 October 2026 (D-54, "approve").
+
 ### 2026-10-19 — Fixes from the scenario tests, round 5 part 2a: changing a business's name (D-54)
 
 **Stage:** 1 (E §3, ADR-029)
@@ -45,7 +78,7 @@ old → new" in the owner's changes and the daily note, and can undo it (the web
 new one). When the team renames a business, its owner is emailed the old and new names.
 **Migrations applied:** `0051_business_names.sql`
 **Destructive?** No: one new table, two functions, a trigger, two checks widened.
-**Tests run:** database checks 51 of 51 files (0051: 14); unit tests 200 of 200; new browser suite
+**Tests run:** every database check file (0051: 14); unit tests 200 of 200; new browser suite
 `scenario-fixes-5b.mjs` 28 of 28; owner editing 55 of 55, admin access 43 of 43, messages 133 of
 133, event planning 145 of 145, reviews 73 of 73, business teams 39 of 39, round 5a's suite 36
 of 36, round 3's suite 27 of 27, look 512 of 512.
