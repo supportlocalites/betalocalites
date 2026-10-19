@@ -161,8 +161,8 @@ on codes (ADR-028).
 - **Pages not built yet:** collections. **Built 18 October 2026:** How it works, For businesses.
 - **Built 18 October 2026 (D-50):** the language check on owners' saves, reviews and replies, with
   the team's **Held changes** page (migration 0036).
-- **Owner steps waiting:** PO-11 (check and publish the test businesses), PO-14 (switch on
-  activity counting).
+- **Owner steps waiting:** PO-11 (check and publish the test businesses; parked). PO-14 (activity
+  counting) done 19 October 2026.
 
 **Outcome.** A real, public directory of local event vendors, useful to a parent on its
 own, with the admin tools to build it. **Local businesses claim their listings** so

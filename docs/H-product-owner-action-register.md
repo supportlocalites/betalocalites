@@ -1,6 +1,10 @@
 # H — Product Owner Action Register
 
-**Last updated:** 2026-10-19 (revision 44: D-54 complete, the readable data download; revision 43: D-54 round 5 part 2a built, changing a business's name; revision 42: D-54 round 5 part 1 built, stepping back from a business; revision 41: D-54 round 4 built, events and guests; revision 40: D-54 round 3 built, deleting conversations and editing messages; revision 39: D-54 round 2 built, reviews and booking notes; revision 38: D-54, fixes from the scenario tests, round 1 built; revision 37: PO-07 policy drafts ready; twelve tasks added before launch; revision 36: D-52, businesses see their messages in Analytics; D-53, a daily summary of booking emails; revision 35: D-51, approve or deny reviews from the email; revision 34: D-50, words checked before they show; revision 33: D-49, the host changes replies, guests emailed, add to calendar; revision 32: D-48, reviewer names and the Living Local badge; revision 31: D-47, end dates for photos and files; revision 30: PO-20 done, files in conversations on; revision 29: PO-20, switch on files in conversations; revision 28: PO-11 and D-12 parked by you; revision 27: PO-15 done, planning works on the test site; revision 26: PO-16 done, business photos on; revision 25: PO-18 done, nightly backups on; revision 24: PO-19 and PO-06 done, alerts reach you; messages fixed after two reviews; revision 23: messages and reports; revision 22: Inquire built, D-04 and D-05; revision 21: D-46, the team sees every booking; a business taken down can't be newly booked; revision 20: D-45, square profile photo and whole page photos; revision 19: business photos built, PO-16 to switch them on; revision 18: D-44, bookings marked before a business joined; revision 17: D-39 revised to D-43, "Plan an event" built)
+**Last updated:** 2026-10-19 (revision 45: PO-14 done, activity counting on; revision 44: D-54 complete, the readable data download; revision 43: D-54 round 5 part 2a built, changing a business's name; revision 42: D-54 round 5 part 1 built, stepping back from a business; revision 41: D-54 round 4 built, events and guests; revision 40: D-54 round 3 built, deleting conversations and editing messages; revision 39: D-54 round 2 built, reviews and booking notes; revision 38: D-54, fixes from the scenario tests, round 1 built; revision 37: PO-07 policy drafts ready; twelve tasks added before launch; revision 36: D-52, businesses see their messages in Analytics; D-53, a daily summary of booking emails; revision 35: D-51, approve or deny reviews from the email; revision 34: D-50, words checked before they show; revision 33: D-49, the host changes replies, guests emailed, add to calendar; revision 32: D-48, reviewer names and the Living Local badge; revision 31: D-47, end dates for photos and files; revision 30: PO-20 done, files in conversations on; revision 29: PO-20, switch on files in conversations; revision 28: PO-11 and D-12 parked by you; revision 27: PO-15 done, planning works on the test site; revision 26: PO-16 done, business photos on; revision 25: PO-18 done, nightly backups on; revision 24: PO-19 and PO-06 done, alerts reach you; messages fixed after two reviews; revision 23: messages and reports; revision 22: Inquire built, D-04 and D-05; revision 21: D-46, the team sees every booking; a business taken down can't be newly booked; revision 20: D-45, square profile photo and whole page photos; revision 19: business photos built, PO-16 to switch them on; revision 18: D-44, bookings marked before a business joined; revision 17: D-39 revised to D-43, "Plan an event" built)
+
+**Revision 45 changes:** PO-14 is done (you, 19 October 2026): activity counting is on. Numbers
+appear on the team's Activity pages and owners' Analytics pages the morning after the first
+visits. Next: a full redesign of the site, guided by your images.
 
 **Revision 44 changes:** your M21 is built, and with it all of D-54: **Download your data** now
 gives a readable copy (a page that opens in any web browser, with headings and tables, to read or
@@ -153,7 +157,6 @@ Recorded from your messages of 9 and 10 October 2026. These now shape every docu
 | # | What | Blocks | Your effort |
 |---|---|---|---|
 | **ADR-005** | ✅ CPU time 8 ms with React Router (passes). A day after the speed improvements go live, glance at **Metrics** once more: CPU time, and whether any "Exceeded CPU" errors appear | Nothing; a final check | 2 min |
-| **PO-14** | Switch on activity counting: add one secret in Cloudflare (steps below) | Any numbers on the team's Activity pages and the owners' Analytics pages | 3 min |
 
 **How to respond:** reply in the conversation with decision numbers and your choice,
 e.g. *"Median 6 ms, P99 20 ms, no errors."* "I don't understand
@@ -1137,7 +1140,7 @@ as new senders often do), signed up, claimed a Test Vendor listing, and received
 
 ---
 
-### PO-14 — Switch on activity counting (D-22, D-30, ADR-030)
+### ✅ PO-14 — Switch on activity counting (D-22, D-30, ADR-030): done (19 October 2026)
 **When:** Now (the site isn't public yet, so early numbers just help us check it). **Cost:**
 $0. **Time:** about 3 minutes.
 **Why:** Localites only counts visits and taps when the website has a secret "activity key"
