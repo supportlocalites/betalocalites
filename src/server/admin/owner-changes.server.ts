@@ -103,6 +103,9 @@ export async function listOwnerChanges(db: Db, vendorId: string): Promise<{ card
 }
 
 const VENDOR_COLUMNS: Record<string, string> = {
+  // The name (M20, D-54): the database keeps the one it replaces (vendor_name_kept); the web
+  // address stays the new one, and the old one keeps working.
+  name: 'display_name',
   tagline: 'tagline',
   description: 'description',
   websiteUrl: 'website_url',

@@ -239,6 +239,7 @@ const PAGES = [
   { who: 'person', path: `/messages/${conversationId}/report`, label: 'Report a conversation' },
   { who: 'owner', path: '/business', label: 'Your business' },
   { who: 'owner', path: `/vendors/${V.slug}/edit`, label: 'Editing a listing' },
+  { who: 'owner', path: `/vendors/${V.slug}/name`, label: 'Changing the business’s name' },
   { who: 'owner', path: `/vendors/${V.slug}/photos`, label: 'Photos (owner)' },
   {
     who: 'owner',

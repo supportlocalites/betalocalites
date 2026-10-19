@@ -68,15 +68,17 @@ const toValues = (
 /** Today's owner-editable values as flat keys, with service names (for the team's tools). */
 export async function readCurrent(db: Db, vendorId: string): Promise<{ flat: Record<string, unknown>; names: Map<string, string> }> {
   const [v] = await db.execute<{
+    name: string;
     tagline: string | null;
     description: string | null;
     websiteUrl: string | null;
     publicPhone: string | null;
   }>(sql`
-    select tagline, description, website_url as "websiteUrl", public_phone as "publicPhone" from vendor where id = ${vendorId}`);
+    select display_name as name, tagline, description, website_url as "websiteUrl", public_phone as "publicPhone" from vendor where id = ${vendorId}`);
   const services = await readServices(db, vendorId);
   return {
-    flat: v ? flatten(toValues(v, services)) : {},
+    // The business's name too: an owner can change it (M20, D-54), so the team can undo it.
+    flat: v ? { name: v.name, ...flatten(toValues(v, services)) } : {},
     names: new Map(services.map((s) => [s.id, s.name])),
   };
 }
@@ -462,7 +464,7 @@ export async function alertTeam(env: ServerEnv, auditId: string, siteUrl: string
       return send ? r : null;
     });
     if (!row) return;
-    const lines = describeChanges(row.changes, () => 'a service').filter((l) => /^(Website|Phone):/.test(l));
+    const lines = describeChanges(row.changes, () => 'a service').filter((l) => /^(Website|Phone|Business name):/.test(l));
     const what = lines.map((l) => l.split(':')[0]!.toLowerCase()).join(' and ');
     const result = await sendEmail(env, {
       to: TEAM_ADDRESS,
@@ -472,7 +474,7 @@ export async function alertTeam(env: ServerEnv, auditId: string, siteUrl: string
         '',
         ...lines,
         '',
-        'It’s already live. If it looks wrong (another website, a number that isn’t theirs), undo it on the listing’s admin page:',
+        'It’s already live. If it looks wrong (another website, a number or a name that isn’t theirs), undo it on the listing’s admin page:',
         `${siteUrl}/admin/listings/${row.vendorId}#owner-changes`,
       ].join('\n'),
     });

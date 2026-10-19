@@ -130,7 +130,24 @@ export async function action({ params, request, context }: Route.ActionArgs) {
       if (!parsed.success) return data({ intent, errors: fieldErrors(parsed.error), values: raw }, { status: 400 });
       const loaded = readLoadedListing(String(form.get('loaded') ?? ''));
       if (!loaded) return data({ intent, errors: { form: OUT_OF_DATE }, values: raw }, { status: 400 });
-      await updateListing(env, admin, params.id, parsed.data, loaded);
+      const renamed = await updateListing(env, admin, params.id, parsed.data, loaded);
+      if (renamed?.owner) {
+        const owner = renamed.owner;
+        later(
+          emailPerson(
+            env,
+            owner,
+            'business_renamed',
+            { type: 'vendor', id: params.id },
+            renderEmail('businessRenamed', {
+              name: owner.name,
+              business: renamed.to,
+              from: renamed.from,
+              link: `${siteUrl(env, request)}/vendors/${renamed.slug}`,
+            }),
+          ),
+        );
+      }
       return back('details');
     }
     if (intent === 'status') {

@@ -15,7 +15,7 @@ export * from '@/lib/claim-terms';
 const oneLine = (s: string) => s.replace(/\s+/g, ' ').trim();
 
 // Bare web addresses ("evil-site.com/login") too: email apps turn them into links.
-const WEB_ADDRESS = /[a-z0-9-]{2,}\.(com|ca|net|org|io|co|info|biz|xyz|app|dev|me|us|uk|link|site|online|shop|store|top|ly|gl|to|cc|ru|cn)\b/i;
+export const WEB_ADDRESS = /[a-z0-9-]{2,}\.(com|ca|net|org|io|co|info|biz|xyz|app|dev|me|us|uk|link|site|online|shop|store|top|ly|gl|to|cc|ru|cn)\b/i;
 
 const namePart = (empty: string, part: string) =>
   z

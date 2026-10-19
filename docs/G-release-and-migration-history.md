@@ -31,6 +31,41 @@ Every release and every database migration, in order. Appended before each deplo
 
 ## Releases
 
+### 2026-10-19 — Fixes from the scenario tests, round 5 part 2a: changing a business's name (D-54)
+
+**Stage:** 1 (E §3, ADR-029)
+**What changed (plain English):** the owner's edit page has **Change your business's name**
+(M20). Only the owner (a manager is told so), at most once in 30 days (a change the team undid
+doesn't count), and the language check reads it first; no web or email addresses. The page's web
+address follows the new name; the old address, and old links to Message, Add to event, Inquire
+and Claim, go on to the new one (for a listed business, as the public page already did). The
+database keeps every former name; a customer's earlier conversations, event plans and review
+page show "New name (dba Former name)". The team gets a "Check now" email, sees "Business name:
+old → new" in the owner's changes and the daily note, and can undo it (the web address stays the
+new one). When the team renames a business, its owner is emailed the old and new names.
+**Migrations applied:** `0051_business_names.sql`
+**Destructive?** No: one new table, two functions, a trigger, two checks widened.
+**Tests run:** database checks 51 of 51 files (0051: 14); unit tests 200 of 200; new browser suite
+`scenario-fixes-5b.mjs` 28 of 28; owner editing 55 of 55, admin access 43 of 43, messages 133 of
+133, event planning 145 of 145, reviews 73 of 73, business teams 39 of 39, round 5a's suite 36
+of 36, round 3's suite 27 of 27, look 512 of 512.
+**Security tests:** a manager, a customer and another business's owner can't rename it; the site
+can't write, change or delete a former name itself (database checks); a flagged name, a web
+address and the same name are refused; a second rename within 30 days is refused; old links
+to the page, Add to event, Message and the owner's edit page go on to the new address, and an
+address no business had stays "not found". Old Inquire and Claim links use the same redirect but
+weren't tried separately.
+**Independent review before push:** nothing serious; fixed before push: a change the team undid
+no longer blocks the owner for 30 days; two businesses renamed alike at the same moment can't take
+one address; who may rename is checked before the language check is asked; plainer words on the
+page and in the email. **Known:** inside the site, following an old link already on an open page
+(without reloading) still shows "not found"; opening it fresh works. Saved businesses and other
+lists show just today's name.
+**Existing functionality affected:** the team's undo can now put a name back; the team's "check
+now" email also covers a new name.
+**How to roll back:** with the next update.
+**Approved by:** the product owner, 19 October 2026 (D-54).
+
 ### 2026-10-19 — Fixes from the scenario tests, round 5 part 1: stepping back from a business (D-54)
 
 **Stage:** 1, 2B (E §3)

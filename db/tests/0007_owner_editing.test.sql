@@ -53,7 +53,7 @@ select pg_temp.expect_reject('a save recorded twice',
 select pg_temp.expect_reject('a save with no audit record behind it',
   $q$insert into owner_change (audit_id, vendor_id) values ('00000000-0000-7000-8000-0000000007ff', '00000000-0000-7000-8000-0000000007c1')$q$);
 select pg_temp.expect_reject('an unknown flag (the flags check, on a new record)',
-  $q$insert into owner_change (audit_id, vendor_id, flags) values ('00000000-0000-7000-8000-0000000007d4', '00000000-0000-7000-8000-0000000007c1', '{name}')$q$);
+  $q$insert into owner_change (audit_id, vendor_id, flags) values ('00000000-0000-7000-8000-0000000007d4', '00000000-0000-7000-8000-0000000007c1', '{colour}')$q$);
 select pg_temp.expect_reject('an alert marked failed with no reason',
   $q$update owner_change set alert_status = 'failed' where audit_id = '00000000-0000-7000-8000-0000000007d3'$q$);
 select pg_temp.expect_reject('an alert for a save with nothing to check',

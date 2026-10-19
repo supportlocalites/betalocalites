@@ -248,8 +248,21 @@ export async function createListing(
  * an owner can also change is written only if the team member changed it, and refused if
  * the owner changed it too since the page loaded (`loaded`).
  */
-export async function updateListing(env: ServerEnv, admin: Admin, id: string, edited: ListingInput, loaded: LoadedListing): Promise<void> {
-  await withDb(env, (db) =>
+export type TeamRename = {
+  from: string;
+  to: string;
+  slug: string;
+  owner: { userId: string; name: string; email: string } | null;
+};
+
+export async function updateListing(
+  env: ServerEnv,
+  admin: Admin,
+  id: string,
+  edited: ListingInput,
+  loaded: LoadedListing,
+): Promise<TeamRename | null> {
+  return withDb(env, (db) =>
     db.transaction(async (tx) => {
       const before = await readVendor(tx, id, true);
       if (!before) throw new ListingConflict('form', 'This listing no longer exists.');
@@ -285,6 +298,13 @@ export async function updateListing(env: ServerEnv, admin: Admin, id: string, ed
           sessionRef: admin.sessionId,
         });
       }
+      // A new name: the owner is told (M20, D-54). The database keeps the old one (vendor_name_kept).
+      if (input.name === before.name) return null;
+      const [owner] = await tx.execute<{ userId: string; name: string; email: string }>(sql`
+        select u.id as "userId", u.display_name as name, u.email::text as email
+        from vendor_member m join app_user u on u.id = m.user_id and u.deleted_at is null
+        where m.vendor_id = ${id} and m.role = 'owner' and m.ended_at is null`);
+      return { from: before.name, to: input.name, slug: input.slug, owner: owner ?? null };
     }),
   );
 }

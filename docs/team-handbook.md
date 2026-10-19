@@ -38,6 +38,11 @@ Every review waits for a person before it shows (D-51).
   goes live as the owner's own save), or **Decline** with a reason the owner is emailed.
 - **The daily note** lists owners' changes that went live. Look for anything that breaks the rules,
   and any new website or phone number marked CHECK. Undo a change from the listing's team page.
+- **A business's new name (M20, D-54):** owners can change their business's name themselves, once
+  every 30 days. You get a "Check now" email; if the new name isn't really theirs (another
+  business's name, say), undo the "Business name" change on the listing's team page with the reason
+  (they're emailed). Its web address stays the new one; the old one keeps working. When you rename
+  a business yourself, its owner is emailed the old and new names.
 
 ## Reports of conversations and messages (Reports page)
 

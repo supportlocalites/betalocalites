@@ -422,7 +422,8 @@ function Editor({
                     }
                   >
                     <p className={`muted ${styles.teamOnly}`}>
-                      Your business name, town and type of business are set by our team.{' '}
+                      <Link to={`/vendors/${slug}/name`}>Change your business’s name</Link>. Your town and type of business are set by our
+                      team.{' '}
                       <a href={`mailto:supportlocalites@gmail.com?subject=${encodeURIComponent(`Change to ${view.name}`)}`}>
                         Email us to change them
                       </a>

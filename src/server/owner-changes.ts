@@ -141,6 +141,7 @@ export function planUndo(changes: ChangeSet, current: Record<string, unknown>): 
 // ------------------------------------------------------------------ plain words
 
 const LABEL: Record<string, string> = {
+  name: 'Business name',
   tagline: 'Short description',
   description: 'About',
   websiteUrl: 'Website',

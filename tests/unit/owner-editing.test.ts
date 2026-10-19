@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { addressProblem } from '@/lib/owner-text';
+import { readName } from '@/server/business-name.server';
 import { noteText } from '@/server/daily-note.server';
 import { describeChanges, findClashes, flatten, ownerDiff, planUndo, riskFlags } from '@/server/owner-changes';
 import { type OwnerValues, parseOwnerForm } from '@/server/owner-input';
@@ -312,5 +313,28 @@ describe('the team’s daily note (review of D-34)', () => {
     expect(alone.text).toContain('1 deleted account still needs its sign-in record removed');
     expect(alone.text).toContain('No owner changed a listing since the last note.');
     expect(noteText([{ ...save, undoneBy: null, undoChanges: null }], 0, 'https://x').text).not.toContain('deleted account');
+  });
+});
+
+describe('an owner changes the business’s name (M20, D-54)', () => {
+  it('reads a name tidily, and refuses blanks, web or email addresses and very long names', () => {
+    expect(readName('  Sweet​   Treats  ')).toEqual({ name: 'Sweet Treats' });
+    expect(readName('   ')).toHaveProperty('error');
+    expect(readName('ㅤ')).toHaveProperty('error');
+    expect(readName('Cakes at cakes.com')).toHaveProperty('error');
+    expect(readName('www.cakes')).toHaveProperty('error');
+    expect(readName('me@cakes')).toHaveProperty('error');
+    expect(readName('<b>Cakes</b>')).toHaveProperty('error');
+    expect(readName('x'.repeat(121))).toHaveProperty('error');
+    expect(readName('x'.repeat(120))).toEqual({ name: 'x'.repeat(120) });
+  });
+
+  it('says it plainly for the team, and the team can undo it while it still holds', () => {
+    const changes = { name: { from: 'Sweet Treats', to: 'Sweet Treats Bakery' } };
+    expect(describeChanges(changes, () => '')).toEqual(['Business name: “Sweet Treats” → “Sweet Treats Bakery”']);
+    expect(planUndo(changes, { name: 'Sweet Treats Bakery' })).toEqual([
+      { key: 'name', restore: 'Sweet Treats', possible: true, now: 'Sweet Treats Bakery' },
+    ]);
+    expect(planUndo(changes, { name: 'Renamed again' })[0]?.possible).toBe(false);
   });
 });

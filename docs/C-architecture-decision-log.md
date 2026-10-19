@@ -2,7 +2,7 @@
 
 **Status:** Accepted (D-00, 10 October 2026). ADR-022 accepted with D-13; ADR-025 accepted
 with D-24.
-**Last updated:** 2026-10-13 (revision 11: ADR-031)
+**Last updated:** 2026-10-19 (revision 12: ADR-029 changed by D-54, owners change their business's name; revision 11: ADR-031)
 
 Each entry records a significant technical decision: what we chose, why, what we
 rejected, what it costs, and what would make us reconsider. Once approved, entries are
@@ -878,9 +878,17 @@ typed, before saving. One **Save changes** button; changes are live at once.
 
 - **Owners can change:** short description, About, website, phone, and services (name,
   details, how the price is shown and the amount, show or hide, add new ones).
-- **Team only, shown as plain text:** business name (the usual way to pose as another
-  business, and what the claim was checked against), web address, town and categories
+- **Team only, shown as plain text:** web address, town and categories
   (they decide where it appears in search), email, and status. "Email us to change them."
+- **Changed by D-54 (M20, 19 October 2026): the business name.** It was team only (the usual
+  way to pose as another business, and what the claim was checked against). Now the **owner**
+  (not a manager) changes it on its own page, `/vendors/<name>/name`: at most once in 30 days
+  (a change the team undid doesn't count), after the language check; the web address follows
+  and the old one keeps working; it's an owner save like any other (`audit_log` and
+  `owner_change`, flagged `name`, so the team gets a "check now" email and can undo it). The
+  database keeps every former name (`vendor_former_name`, migration 0051), and a customer's
+  earlier conversations, plans and reviews show "New name (dba Former name)". When the team
+  renames a business, its owner is emailed.
 - **Only the owner, checked on every request in the database:** an active `owner`
   membership of a listing that isn't archived. Anyone else (including team admins, who use
   the team page) gets "You can't edit this listing". Every service write is scoped to the

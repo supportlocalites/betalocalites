@@ -1,0 +1,12 @@
+Subject: {{business}} has a new name on Localites
+
+Hi {{name}},
+
+Our team changed your business's name on Localites from "{{from}}" to "{{business}}". Its page is now at:
+{{link}}
+
+Old links to your page keep working. Your customers' earlier conversations, event plans and reviews show the new name with the old one after it, like "{{business}} (dba {{from}})".
+
+If this isn't right, reply to this email.
+
+Localites

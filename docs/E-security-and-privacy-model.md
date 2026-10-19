@@ -58,8 +58,11 @@ concierge role and inquiry/quote/booking records.
   business, enforced by the database.
 - **Owners editing (ADR-029):** only a business's current owner (an active owner
   membership, checked in the database on every request, never from the page) can open or
-  save its edit page; the name, web address, town, categories and email aren't editable by
-  owners; every service write is scoped to the business; only changed fields are written,
+  save its edit page; the web address, town, categories and email aren't editable by
+  owners; the name is, by the owner only (not managers), once in 30 days, after the language
+  check, recorded and undoable as any owner save (M20, D-54, migration 0051: the database keeps
+  every former name, read only by the site; old web addresses send people on only to a listed
+  business, as the public page does; renames are made one at a time so two can't take one address); every service write is scoped to the business; only changed fields are written,
   so a save can't reverse a team change; every save is in `audit_log` and the team can undo
   it or remove the owner. Proven by `tests/e2e/owner-editing.mjs` (45 checks).
 - **Email processors:** Supabase sends sign-in codes through Resend (PO-13), and our own

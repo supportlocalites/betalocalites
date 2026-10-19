@@ -443,7 +443,7 @@ export async function eventPlan(env: ServerEnv, userId: string, eventId: string)
       if (!e) throw new PlanNotFound();
       const rows = (
         await tx.execute<Omit<PlanRow, 'photo'> & ListPhotoColumns>(sql`
-          select ev.id as "rowId", v.id as "vendorId", v.slug::text as slug, v.display_name as name, ${MAIN_CATEGORY} as category,
+          select ev.id as "rowId", v.id as "vendorId", v.slug::text as slug, vendor_name_then(v.id, ev.created_at) as name, ${MAIN_CATEGORY} as category,
                  v.claim_status = 'claimed' as claimed, v.listing_status = 'published' as listed, ev.status,
                  ev.booked_at::text as "bookedAt",
                  -- A flag counts only for the current marking (the person may un-mark and mark again).

@@ -122,8 +122,8 @@ on codes (ADR-028).
      list, limits and name matching, a cancellation notice, a lighter guest page (M10–M13, C10, B9);
   5. businesses, in two parts: ✅ **part 1 built 19 October 2026** (migration 0050): hand over or
      leave a team, hide a page, take a business off Localites, the two hats of an owner who also
-     plans events, suggestion limits (B6, M18, C6, M22); part 2: rename with "(dba former name)" and
-     a readable data download (M20, M21).
+     plans events, suggestion limits (B6, M18, C6, M22); part 2: ✅ **rename with "(dba former
+     name)" built 19 October 2026** (migration 0051, M20), and a readable data download (M21).
 - **Added before launch (product owner, 18 October 2026: "add all of them"):**
   1. ✅ **built 18 October 2026** (migration 0041): scheduled deletions the privacy policy promises (email records 1 year, the team's change log
      2 years, conversations 3 years after the last message, declined suggestions' contact

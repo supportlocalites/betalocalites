@@ -36,6 +36,7 @@ export default [
     route('account/data/download', 'routes/member/account-data-download.ts'),
     route('vendors/:slug/claim', 'routes/member/claim.tsx'),
     route('vendors/:slug/edit', 'routes/member/listing-edit.tsx'),
+    route('vendors/:slug/name', 'routes/member/business-name.tsx'),
     route('vendors/:slug/analytics', 'routes/member/analytics.tsx'),
     route('vendors/:slug/photos', 'routes/member/photos.tsx'),
     // Planning an event (slice 2A; D-13, D-39–D-43, ADR-022, ADR-031). The side comes from
