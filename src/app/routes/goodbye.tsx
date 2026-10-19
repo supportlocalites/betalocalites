@@ -13,7 +13,7 @@ export default function Goodbye() {
       <main className="page narrow">
         <h1 className="title-1">Your account is deleted</h1>
         <div className="title-rule" aria-hidden="true" />
-        <p>Your events, plans, saved businesses and personal details have been deleted, and you’re signed out.</p>
+        <p>Your events, plans, favourites, shortlist and personal details have been deleted, and you’re signed out.</p>
         <p className="muted">
           You can still browse Localites without an account. If you have any questions, email supportlocalites@gmail.com.
         </p>

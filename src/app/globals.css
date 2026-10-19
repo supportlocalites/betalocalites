@@ -74,6 +74,11 @@ img {
   overflow-wrap: anywhere;
 }
 
+/* On a narrow page (a form, a short list), a little smaller, so a long name fits in a few lines. */
+.narrow .title-1 {
+  font-size: var(--text-page-title-narrow);
+}
+
 .title-2 {
   font-size: var(--text-title-2);
   font-weight: 700;

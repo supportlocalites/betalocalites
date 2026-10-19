@@ -4,7 +4,7 @@
   gap: var(--space-2);
   background: var(--color-surface);
   border: var(--hairline) solid var(--color-line);
-  border-radius: var(--radius-pill);
+  border-radius: 0;
   padding-inline: var(--space-4) var(--space-1);
   padding-block: var(--space-1);
   max-width: var(--size-search-max);
@@ -31,5 +31,5 @@
 
 .submit {
   min-height: var(--size-icon-button);
-  border-radius: var(--radius-pill);
+  border-radius: 0;
 }

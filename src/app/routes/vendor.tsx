@@ -89,7 +89,7 @@ function PlanNotice({ name }: { name: string }) {
   const added = event('added');
   const already = event('already');
   const message = params.has('saved')
-    ? { text: 'Saved. Only you can see your saved businesses.', link: '/saved', label: 'See saved' }
+    ? { text: 'Saved as a favourite. Only you can see your favourites.', link: '/saved', label: 'See your favourites' }
     : added
       ? { text: 'Added to your event as Considering.', link: `/events/${added}`, label: 'See your plan' }
       : already

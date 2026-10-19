@@ -1,97 +1,58 @@
-import { data, Form, Link, redirect, useNavigation, useSearchParams } from 'react-router';
+import { useRef } from 'react';
+import { Link } from 'react-router';
 import { cloudflareContext, memberContext } from '@/app/context';
+import { CardGrid } from '@/components/BrowseCard';
+import { ShortlistBar } from '@/components/ShortlistBar';
 import { SideSwitch } from '@/components/SideSwitch';
 import { SiteHeader } from '@/components/SiteHeader';
-import { SLUG } from '@/lib/ids.mjs';
 import { pageMeta } from '@/lib/meta';
-import { TOO_FAST } from '@/lib/plan-terms';
-import { savedVendors, unsaveVendor } from '@/server/events.server';
-import { refusal, tooFast } from '@/server/plan-pages.server';
+import { browse } from '@/server/browse.server';
+import { savedVendors } from '@/server/events.server';
 import type { Route } from './+types/saved';
-import { SquarePhoto } from '@/components/SquarePhoto';
-import styles from './plan.module.css';
+import styles from '../explore.module.css';
 
-/** Screen C6: the person's saved businesses. Private: businesses aren't told (B §4). */
-export const meta: Route.MetaFunction = () => [...pageMeta('Saved businesses'), { name: 'robots', content: 'noindex' }];
+/**
+ * Screen C6: the person's favourites (the bookmark, D-57), as the same cards as Browse local:
+ * the bookmark takes one off, + adds it to the shortlist. Private: businesses aren't told (B §4).
+ */
+export const meta: Route.MetaFunction = () => [...pageMeta('Your favourites'), { name: 'robots', content: 'noindex' }];
 
 export async function loader({ context }: Route.LoaderArgs) {
   const member = context.get(memberContext);
-  return savedVendors(context.get(cloudflareContext).env, member.userId);
-}
-
-export async function action({ request, context }: Route.ActionArgs) {
-  const member = context.get(memberContext);
   const { env } = context.get(cloudflareContext);
-  const form = await request.formData();
-  const slug = String(form.get('slug') ?? '');
-  if (form.get('intent') !== 'unsave' || !SLUG.test(slug)) throw data(null, { status: 400 });
-  if (await tooFast(env, member.userId)) return data({ error: TOO_FAST }, { status: 429 });
-  try {
-    await unsaveVendor(env, member.userId, slug);
-  } catch (err) {
-    const { error, status } = refusal(err);
-    return data({ error }, { status });
-  }
-  return redirect('/saved?removed=1');
+  const [found, { onTeam }] = await Promise.all([
+    browse(env, member.userId, { q: '', town: null, cost: null, minRating: null, sort: 'new', view: 'list', savedOnly: true }),
+    savedVendors(env, member.userId),
+  ]);
+  return { favourites: found.onMap, shortlist: found.shortlist, onTeam };
 }
 
-export default function Saved({ loaderData, actionData }: Route.ComponentProps) {
-  const { saved, onTeam } = loaderData;
-  const busy = useNavigation().state !== 'idle';
-  const removed = useSearchParams()[0].has('removed') && !actionData;
+export default function Saved({ loaderData }: Route.ComponentProps) {
+  const { favourites, shortlist, onTeam } = loaderData;
+  const ref = useRef<HTMLUListElement>(null);
   return (
     <>
       <SiteHeader />
-      <main className="page narrow">
+      <main className={`page ${shortlist.length > 0 ? styles.withBar : ''}`}>
         {onTeam && <SideSwitch current="events" />}
-        <h1 className="title-1">Saved businesses</h1>
+        <h1 className="title-1">Your favourites</h1>
         <div className="title-rule" aria-hidden="true" />
-        {actionData?.error && (
-          <p className="notice" role="alert">
-            {actionData.error}
-          </p>
-        )}
-        {removed && (
-          <p className="notice" role="status">
-            Removed from your saved businesses.
-          </p>
-        )}
-        <p className="muted">Only you can see this list. Businesses aren’t told when you save them.</p>
-        {saved.length === 0 ? (
-          <p>Nothing saved yet. Tap Save on any business’s page to keep it here.</p>
+        <p className="muted">Only you can see this list. Businesses aren’t told when you save them as a favourite.</p>
+        {favourites.length === 0 ? (
+          <p>No favourites yet. Tap the bookmark on any business to keep it here.</p>
         ) : (
-          <ul className={styles.list}>
-            {saved.map((s) => (
-              <li key={s.slug} className={styles.withPhoto}>
-                <SquarePhoto photo={s.photo} alt="" />
-                <div className={styles.rowBody}>
-                  <span className={styles.name}>
-                    <Link to={`/vendors/${s.slug}`}>{s.name}</Link>
-                  </span>
-                  <span className={styles.meta}>{[s.category, s.town].filter(Boolean).join(' · ')}</span>
-                  <div className={styles.rowActions}>
-                    <Link to={`/vendors/${s.slug}/add`} className="text-link">
-                      Add to event
-                    </Link>
-                    <Form method="post">
-                      <input type="hidden" name="intent" value="unsave" />
-                      <input type="hidden" name="slug" value={s.slug} />
-                      <button type="submit" className={styles.textButton} disabled={busy}>
-                        Remove
-                      </button>
-                    </Form>
-                  </div>
-                </div>
-              </li>
-            ))}
-          </ul>
+          <CardGrid items={favourites} signedIn listId={null} listRef={ref} />
         )}
         <p className="section-gap">
+          <Link to="/explore" className="text-link">
+            Browse local
+          </Link>{' '}
           <Link to="/events" className="text-link">
             My events
           </Link>
         </p>
       </main>
+      <ShortlistBar items={shortlist} />
     </>
   );
 }

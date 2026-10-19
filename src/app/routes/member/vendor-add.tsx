@@ -75,9 +75,9 @@ export default function AddToEvent({ loaderData, actionData, params }: Route.Com
   const done = actionData
     ? null
     : query.has('saved')
-      ? 'Saved. Only you can see your saved businesses.'
+      ? 'Saved as a favourite. Only you can see your favourites.'
       : query.has('unsaved')
-        ? 'Removed from your saved businesses.'
+        ? 'Removed from your favourites.'
         : null;
   const busy = nav.state !== 'idle';
   const free = events.filter((e) => e.status === null);
@@ -165,23 +165,23 @@ export default function AddToEvent({ loaderData, actionData, params }: Route.Com
 
         <section aria-labelledby="save" className={styles.section}>
           <h2 id="save" className="label">
-            Save for later
+            Favourites
           </h2>
           {errorFor(['save', 'unsave'])}
           <Form method="post" className={styles.rowActions}>
             {vendor.saved ? (
               <>
-                <span>Saved.</span>
+                <span>One of your favourites.</span>
                 <input type="hidden" name="intent" value="unsave" />
                 <button type="submit" className={styles.textButton} disabled={busy}>
-                  Remove from saved
+                  Remove from favourites
                 </button>
               </>
             ) : (
               <>
                 <input type="hidden" name="intent" value="save" />
                 <button type="submit" className="button button-secondary" disabled={busy}>
-                  Save
+                  Save as favourite
                 </button>
               </>
             )}

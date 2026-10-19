@@ -229,9 +229,9 @@ check('adding it again says it’s already there', r.status === 302 && r.locatio
 r = await site(`/vendors/${V.slug}/add`, { cookie: cookie.a, method: 'POST', form: { intent: 'save', return: 'profile' } });
 check('Save from the business’s page', r.status === 302 && r.location === `/vendors/${V.slug}?saved=1` && (await savesOfV()) === 1, `${r.status} ${r.location}`);
 r = await site(`/vendors/${V.slug}?saved=1`, { cookie: cookie.a });
-check('the business page says it’s saved and private', words(r.body).includes('Saved. Only you can see your saved businesses.'));
+check('the business page says it’s saved and private', words(r.body).includes('Saved as a favourite. Only you can see your favourites.'));
 r = await site('/saved', { cookie: cookie.a });
-check('Saved businesses lists it', r.status === 200 && words(r.body).includes(V.name));
+check('Your favourites lists it', r.status === 200 && words(r.body).includes(V.name));
 for (const v of [Y, U]) await site(`/vendors/${v.slug}/add`, { cookie: cookie.a, method: 'POST', form: { intent: 'add', eventId } });
 const vRow = await rowOf(eventId, V.id);
 const yRow = await rowOf(eventId, Y.id);
@@ -555,7 +555,7 @@ r = await site(`/events/${bEvent}/plan/${tRow.id}/unbook`, { cookie: cookie.b, m
 check('…and sent anyway, it’s refused (back to the plan) and stays booked',
   [302, 303].includes(r.status) && r.location === `/events/${bEvent}` && (await rowOf(bEvent, T.id))?.status === 'booked', `${r.status} ${r.location}`);
 r = await site('/saved', { cookie: cookie.b });
-check('Saved businesses doesn’t show a business that isn’t listed', r.status === 200 && !words(r.body).includes(T2.name), String(r.status));
+check('Your favourites doesn’t show a business that isn’t listed', r.status === 200 && !words(r.body).includes(T2.name), String(r.status));
 r = await site('/admin/bookings', { cookie: cookie.m });
 const team = words(r.body);
 check('the team’s menu counts the bookings to check in about', r.status === 200 && /Bookings \(\d+ to check in\)/.test(team), String(r.status));

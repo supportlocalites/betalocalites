@@ -238,7 +238,7 @@ const PAGES = [
   { who: 'person', path: '/events/new', label: 'Plan an event' },
   { who: 'person', path: `/events/${eventId}`, label: 'An event plan' },
   { who: 'person', path: `/events/${eventId}/edit`, label: 'Editing an event' },
-  { who: 'person', path: '/saved', label: 'Saved businesses' },
+  { who: 'person', path: '/saved', label: 'Your favourites' },
   { who: 'person', path: `/vendors/${V.slug}/add`, label: 'Add to an event' },
   { who: 'person', path: `/vendors/${W.slug}/inquire`, label: 'Inquire' },
   { who: 'person', path: `/events/${pastEvent.id}/review/${pastRow.id}`, label: 'Review a business' },

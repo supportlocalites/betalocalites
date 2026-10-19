@@ -179,3 +179,24 @@ export function BrowseCard({
     </li>
   );
 }
+
+/** Cards in a grid that wraps (search results, favourites): the same card as Browse local's rows. */
+export function CardGrid({
+  items,
+  signedIn,
+  listId,
+  listRef,
+}: {
+  items: (Card & { kind: string })[];
+  signedIn: boolean;
+  listId: string | null;
+  listRef?: React.Ref<HTMLUListElement>;
+}) {
+  return (
+    <ul className={styles.grid} ref={listRef}>
+      {items.map((c, i) => (
+        <BrowseCard key={c.id} card={c} kind={c.kind} signedIn={signedIn} pos={i + 1} listId={listId} />
+      ))}
+    </ul>
+  );
+}

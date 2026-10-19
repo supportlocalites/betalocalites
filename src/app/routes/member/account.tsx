@@ -126,10 +126,10 @@ export default function Account({ loaderData, actionData }: Route.ComponentProps
             </Link>{' '}
             ·{' '}
             <Link to="/saved" className="text-link">
-              Saved businesses
+              Your favourites
             </Link>
           </p>
-          <p className="muted">Only you can see your saved businesses. {EVENTS_PRIVATE}</p>
+          <p className="muted">Only you can see your favourites. {EVENTS_PRIVATE}</p>
         </section>
 
         <section aria-labelledby="emails-title" className={styles.section} id="emails">

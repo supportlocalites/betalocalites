@@ -22,8 +22,12 @@ export type BrowseFilters = {
   cost: 1 | 2 | 3 | null;
   minRating: 4 | null;
   sort: Sort;
-  /** The rows by kind, or the map with its list (D-57, step 3). */
-  view: 'rows' | 'map';
+  /** The rows by kind, the map with its list (D-57, step 3), or one plain list (search results, favourites). */
+  view: 'rows' | 'map' | 'list';
+  /** One kind of business (its own page), by its web address. */
+  category?: string | null;
+  /** Only the person's favourites (the bookmark). */
+  savedOnly?: boolean;
 };
 
 /** The most businesses the map shows at once. */
@@ -62,8 +66,8 @@ type Row = Omit<BrowseCard, 'photo' | 'average'> & {
   lng: number | null;
   approximate: boolean;
   photoPath: string | null;
-  railSlug: string;
-  railName: string;
+  railSlug: string | null;
+  railName: string | null;
   total: number;
 };
 
@@ -101,10 +105,11 @@ async function readBrowse(db: Db, f: BrowseFilters, userId: string | null): Prom
                v.map_lat as lat, v.map_lng as lng, v.map_approximate as approximate
         from vendor v
         join municipality mu on mu.id = v.primary_municipality_id
-        join lateral (
+        -- Its main kind; one with no kind (or a hidden one) still shows in a plain list, not in a row.
+        left join lateral (
           select coalesce(c.parent_id, c.id) as top_id from vendor_category vc join category c on c.id = vc.category_id
           where vc.vendor_id = v.id order by vc.is_primary desc, c.name limit 1) pc on true
-        join category top on top.id = pc.top_id and top.is_active
+        left join category top on top.id = pc.top_id and top.is_active
         left join lateral vendor_rating(v.id) r on true
         ${CARD_PHOTO}
         where v.listing_status = 'published'
@@ -119,20 +124,24 @@ async function readBrowse(db: Db, f: BrowseFilters, userId: string | null): Prom
           and (${f.town}::text is null or mu.slug = ${f.town})
           and (${f.cost}::int is null or v.cost_level = ${f.cost})
           and (${f.minRating}::int is null or r.average >= ${f.minRating})
+          and (${f.category ?? null}::text is null or exists (
+                select 1 from vendor_category vc join category c on c.id = vc.category_id left join category p on p.id = c.parent_id
+                where vc.vendor_id = v.id and (c.slug = ${f.category ?? null} or p.slug = ${f.category ?? null})))
+          and (not ${f.savedOnly === true} or exists (select 1 from saved_vendor s where s.user_id = ${me}::uuid and s.vendor_id = v.id))
       )
       ${
-        f.view === 'map'
+        f.view !== 'rows'
           ? sql`
       select id, slug, name, tagline, town, cost, reviews, average, "photoPath", saved, shortlisted, "railSlug", "railName",
              count(*) over ()::int as total, lat, lng, approximate
-      from matched m order by m.lat is null, ${order} limit ${ON_MAP_MAX}`
+      from matched m order by ${f.view === 'map' ? sql`m.lat is null, ` : sql``}${order} limit ${ON_MAP_MAX}`
           : sql`
       select id, slug, name, tagline, town, cost, reviews, average, "photoPath", saved, shortlisted, "railSlug", "railName", total,
              lat, lng, approximate
       from (
         select m.*, row_number() over (partition by m."railSlug" order by ${order}) as pos,
                count(*) over (partition by m."railSlug")::int as total
-        from matched m) x
+        from matched m where m."railSlug" is not null) x
       where pos <= ${PER_RAIL}
       order by rail_order, "railName", pos`
       }`),
@@ -154,12 +163,13 @@ async function readBrowse(db: Db, f: BrowseFilters, userId: string | null): Prom
     shortlisted: r.shortlisted,
   });
   const shortlist = userId ? await readShortlist(db, userId) : [];
-  if (f.view === 'map') {
-    const onMap = rows.map((r) => ({ ...card(r), kind: r.railName, lat: r.lat, lng: r.lng, approximate: r.approximate }));
+  if (f.view !== 'rows') {
+    const onMap = rows.map((r) => ({ ...card(r), kind: r.railName ?? '', lat: r.lat, lng: r.lng, approximate: r.approximate }));
     return { rails: [], onMap, towns: [...towns], kinds, shortlist };
   }
   const rails: BrowseRail[] = [];
   for (const r of rows) {
+    if (!r.railSlug || !r.railName) continue; // never: the rows' query leaves these out
     let rail = rails.at(-1);
     if (!rail || rail.slug !== r.railSlug) {
       rail = { slug: r.railSlug, name: r.railName, total: r.total, items: [] };
@@ -212,5 +222,6 @@ export function readFilters(params: URLSearchParams, clean: (s: string) => strin
     minRating: params.get('rating') === '4' ? 4 : null,
     sort: SORTS.includes(sort) ? sort : 'match',
     view: params.get('view') === 'map' ? 'map' : 'rows',
+    category: null,
   };
 }

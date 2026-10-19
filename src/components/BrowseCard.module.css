@@ -230,3 +230,17 @@
   background: var(--color-gold-fill);
   color: var(--color-on-gold);
 }
+
+/* Cards that wrap onto new lines (search results, favourites). */
+.grid {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(var(--size-card), 1fr));
+  gap: var(--space-4);
+}
+
+.grid > .card {
+  width: auto;
+}

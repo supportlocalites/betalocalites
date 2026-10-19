@@ -18,26 +18,29 @@ export async function loader({ context }: Route.LoaderArgs) {
   return { ...(await myEvents(env, member.userId)), today: todayIso() };
 }
 
-const planWords = (c: EventCard) =>
-  c.booked + c.considering === 0
-    ? 'Nothing on the plan yet'
-    : [c.booked ? `${c.booked} booked` : '', c.considering ? `${c.considering} considering` : ''].filter(Boolean).join(' · ');
-
 function Cards({ cards, today }: { cards: EventCard[]; today: string }) {
   return (
-    <ul className={styles.list}>
+    <ul className={styles.eventCards}>
       {cards.map((c) => {
         const when = c.status === 'planning' ? whenWords(c.date, today) : null;
         return (
           <li key={c.id}>
-            <Link to={`/events/${c.id}`} className={styles.cardLink}>
-              {c.typeName && <span className="label">{c.typeName}</span>}
-              <span className={styles.name}>{c.name}</span>
-              <span className={styles.meta}>
+            <Link to={`/events/${c.id}`} className={`${styles.eventCard} ${c.status === 'cancelled' ? styles.eventCancelled : ''}`}>
+              <span className={styles.evKind}>{[c.typeName, c.status === 'cancelled' ? 'Cancelled' : when].filter(Boolean).join(' · ')}</span>
+              <span className={styles.eventName}>{c.name}</span>
+              <span className={styles.evText}>
                 {[shortDate(c.date, today), timeRange(c.startTime, c.endTime), c.town].filter(Boolean).join(' · ')}
-                {when ? ` · ${when}` : ''}
               </span>
-              <span className={styles.meta}>{c.status === 'cancelled' ? 'Cancelled' : planWords(c)}</span>
+              {c.status !== 'cancelled' && (
+                <span className={styles.eventCounts}>
+                  <span>
+                    <strong>{String(c.booked).padStart(2, '0')}</strong> booked
+                  </span>
+                  <span>
+                    <strong>{String(c.considering).padStart(2, '0')}</strong> considering
+                  </span>
+                </span>
+              )}
             </Link>
           </li>
         );
@@ -53,7 +56,7 @@ export default function MyEvents({ loaderData }: Route.ComponentProps) {
   return (
     <>
       <SiteHeader />
-      <main className="page narrow">
+      <main className="page">
         {onTeam && <SideSwitch current="events" />}
         <h1 className="title-1">My events</h1>
         <div className="title-rule" aria-hidden="true" />
@@ -113,7 +116,7 @@ export default function MyEvents({ loaderData }: Route.ComponentProps) {
 
         <p className="section-gap">
           <Link to="/saved" className="text-link">
-            Saved businesses ({savedCount})
+            Your favourites ({savedCount})
           </Link>
         </p>
       </main>

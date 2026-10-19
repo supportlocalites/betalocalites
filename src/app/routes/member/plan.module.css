@@ -596,3 +596,64 @@
   font-size: var(--text-small);
   line-height: var(--leading-body);
 }
+
+/* My events (D-58's look): each event a card, with its numbers. */
+.eventCards {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(var(--size-card), 1fr));
+  gap: var(--space-4);
+}
+
+.eventCard {
+  display: grid;
+  gap: var(--space-2);
+  align-content: start;
+  height: 100%;
+  padding: var(--space-5);
+  background: var(--color-surface);
+  border: var(--hairline) solid var(--color-line-soft);
+  border-top: var(--hairline) solid var(--color-gold);
+  color: var(--color-ink);
+  text-decoration: none;
+}
+
+.eventCard:hover .eventName {
+  text-decoration: underline;
+  text-underline-offset: var(--underline-offset);
+}
+
+.eventCancelled {
+  background: transparent;
+  border-style: dashed;
+  border-color: var(--color-line);
+}
+
+.eventName {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: var(--text-title-2);
+  line-height: 1.15;
+  overflow-wrap: anywhere;
+}
+
+.eventCounts {
+  display: flex;
+  gap: var(--space-5);
+  margin-top: var(--space-2);
+  font-size: var(--text-label);
+  letter-spacing: var(--tracking-label);
+  text-transform: uppercase;
+  color: var(--color-ink-soft);
+}
+
+.eventCounts strong {
+  display: block;
+  font-family: var(--font-display);
+  font-size: var(--text-title-2);
+  font-weight: 400;
+  letter-spacing: 0;
+  color: var(--color-ink);
+}

@@ -65,7 +65,7 @@ export default function DeleteAccount({ loaderData, actionData }: Route.Componen
           <>
             <p>This can’t be undone. When you delete your account:</p>
             <ul>
-              <li>your events, your plans for them and your saved businesses are deleted, and the invitations you sent guests stop working;</li>
+              <li>your events, your plans for them, your favourites and your shortlist are deleted, and the invitations you sent guests stop working;</li>
               <li>your name, email address and personal details are erased;</li>
               <li>if you run a business on Localites, you leave its team; if you were its only owner, it goes back to unclaimed;</li>
               <li>any claim you’re waiting on is withdrawn;</li>

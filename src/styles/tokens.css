@@ -47,6 +47,7 @@
   --text-title-1: 30px;
   /* A page's own heading (the approved design, D-55 to D-58): large, in the display face. */
   --text-page-title: clamp(32px, 6vw, 48px);
+  --text-page-title-narrow: clamp(28px, 5vw, 36px);
   --text-title-2: 26px;
   --text-title-3: 18px;
   --text-body: 15px;
