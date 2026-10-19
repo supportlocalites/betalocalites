@@ -70,7 +70,7 @@ check('the group link is swapped for cookies (the link and this browser’s own 
 r = await site('/group-invite', { cookie: sam });
 let text = words(r.body);
 check('the group invitation: the event, the host’s first name, the update and the question, a name box',
-  r.status === 200 && text.includes(TITLE) && text.includes('Ann invites you') && text.includes(`We moved to 3 pm ${run}`) &&
+  r.status === 200 && text.includes(TITLE) && text.includes('Host Ann') && text.includes(`We moved to 3 pm ${run}`) &&
     text.includes('Any allergies?') && r.body.includes('name="name"'), String(r.status));
 check('…never the plan’s private notes, or other guests', !text.includes(`Secret notes ${run}`) && !text.includes('Grandma Jo') && !text.includes('Uncle Rob'));
 r = await site('/group-invite', { cookie: sam, method: 'POST', form: { name: ' ', response: 'yes', partySize: '2' } });

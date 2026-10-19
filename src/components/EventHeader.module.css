@@ -1,0 +1,118 @@
+/* The top of an event's pages (D-58): a band with what it is and when, its name, three numbers,
+   and the tabs. Tokens only. */
+
+.evBand {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3) var(--space-6);
+  padding: var(--space-4) var(--space-5);
+  background: var(--color-surface);
+  border: var(--hairline) solid var(--color-line-soft);
+}
+
+.evBandWords {
+  display: grid;
+  gap: var(--space-1);
+  min-width: 0;
+}
+
+.evKind {
+  margin: 0;
+  font-size: var(--text-label);
+  letter-spacing: var(--tracking-label);
+  text-transform: uppercase;
+  color: var(--color-gold-ink);
+}
+
+.evKind a {
+  color: inherit;
+}
+
+.evSummary {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.evEdit {
+  min-height: var(--size-icon-button);
+  display: inline-flex;
+  align-items: center;
+  padding: 0 var(--space-4);
+  border: var(--hairline) solid var(--color-gold);
+  color: var(--color-ink);
+  font-size: var(--text-button);
+  letter-spacing: var(--tracking-button);
+  text-transform: uppercase;
+  text-decoration: none;
+}
+
+.evHero {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: var(--space-6);
+  margin-top: var(--space-6);
+}
+
+.evTitle {
+  margin: var(--space-2) 0 0;
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: var(--text-event-title);
+  line-height: 1.05;
+  overflow-wrap: anywhere;
+}
+
+.evStats {
+  margin: 0;
+  display: flex;
+  gap: var(--space-8);
+}
+
+.evStats div {
+  display: flex;
+  flex-direction: column-reverse;
+  gap: var(--space-1);
+}
+
+.evStats dd {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: var(--text-title-1);
+}
+
+.evStats dt {
+  font-size: var(--text-label);
+  letter-spacing: var(--tracking-label);
+  text-transform: uppercase;
+  color: var(--color-ink-soft);
+}
+
+.evTabs {
+  display: flex;
+  gap: var(--space-6);
+  margin-top: var(--space-6);
+  border-bottom: var(--hairline) solid var(--color-line);
+  overflow-x: auto;
+}
+
+.evTabs a {
+  min-height: var(--size-icon-button);
+  display: inline-flex;
+  align-items: center;
+  border-bottom: var(--mark-current) solid transparent;
+  margin-bottom: calc(-1 * var(--hairline));
+  color: var(--color-ink);
+  font-size: var(--text-button);
+  letter-spacing: var(--tracking-button);
+  text-transform: uppercase;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.evTabs a[aria-current='page'] {
+  border-bottom-color: var(--color-gold);
+}

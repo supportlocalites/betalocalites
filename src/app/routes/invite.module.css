@@ -1,0 +1,215 @@
+/* A guest's invitation (D-58): a card in a gold frame, centred, in both looks. Tokens only. */
+
+.page {
+  max-width: var(--size-form-narrow);
+  margin: 0 auto;
+  padding: var(--space-3);
+}
+
+.frame {
+  position: relative;
+  border: var(--hairline) solid var(--color-gold);
+  padding: var(--space-5) var(--space-5) var(--space-7);
+  display: grid;
+  gap: var(--space-6);
+}
+
+.theme {
+  position: absolute;
+  top: var(--space-3);
+  right: var(--space-3);
+}
+
+.top {
+  text-align: center;
+  padding-top: var(--space-8);
+}
+
+.label {
+  display: block;
+  margin: 0;
+  font-size: var(--text-label);
+  font-weight: 400;
+  letter-spacing: var(--tracking-label);
+  text-transform: uppercase;
+  color: var(--color-gold-ink);
+}
+
+.title {
+  margin: var(--space-4) 0 0;
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: var(--text-event-title);
+  line-height: 1.05;
+  overflow-wrap: anywhere;
+}
+
+.rule {
+  width: var(--space-12);
+  height: var(--hairline);
+  background: var(--color-gold);
+  margin: var(--space-4) auto;
+}
+
+.message {
+  margin: 0;
+  font-family: var(--font-display);
+  font-style: italic;
+  font-size: var(--text-title-3);
+  line-height: var(--leading-body);
+  color: var(--color-ink-soft);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.facts {
+  margin: 0;
+  padding-top: var(--space-5);
+  border-top: var(--hairline) solid var(--color-line);
+  display: grid;
+  gap: var(--space-3);
+}
+
+.facts div {
+  display: flex;
+  gap: var(--space-3);
+}
+
+.facts dt {
+  flex: none;
+  width: var(--size-fact-label);
+  padding-top: var(--space-1);
+  font-size: var(--text-label);
+  letter-spacing: var(--tracking-label);
+  text-transform: uppercase;
+  color: var(--color-gold-ink);
+}
+
+.facts dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.facts a {
+  color: var(--color-ink);
+}
+
+.section {
+  display: grid;
+  gap: var(--space-4);
+  padding-top: var(--space-5);
+  border-top: var(--hairline) solid var(--color-line);
+}
+
+.ask {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: var(--text-title-2);
+}
+
+/* Yes, Maybe, Can't come: three boxes; the chosen one is filled. */
+.choices {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--space-2);
+}
+
+.choice {
+  position: relative;
+  min-height: var(--size-button);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-2);
+  border: var(--hairline) solid var(--color-line);
+  background: var(--color-surface);
+  text-align: center;
+  font-size: var(--text-small);
+  cursor: pointer;
+}
+
+.choice input {
+  position: absolute;
+  opacity: 0;
+  inset: 0;
+  margin: 0;
+  cursor: pointer;
+}
+
+.choice:has(input:checked) {
+  background: var(--color-ink);
+  border-color: var(--color-ink);
+  color: var(--color-on-ink);
+}
+
+.choice:has(input:focus-visible) {
+  outline: var(--focus-ring) solid var(--color-ink);
+  outline-offset: var(--focus-ring);
+}
+
+.number {
+  max-width: var(--size-thumb);
+}
+
+.send {
+  min-height: var(--size-button);
+  border: 0;
+  background: var(--color-ink);
+  color: var(--color-on-ink);
+  font: inherit;
+  font-weight: 500;
+  font-size: var(--text-button);
+  letter-spacing: var(--tracking-button);
+  text-transform: uppercase;
+  cursor: pointer;
+}
+
+.small {
+  margin: 0;
+  font-size: var(--text-small);
+  color: var(--color-ink-soft);
+}
+
+.calendar {
+  margin: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1) var(--space-4);
+}
+
+.calendar a {
+  color: var(--color-ink);
+  min-height: var(--size-icon-button);
+  display: inline-flex;
+  align-items: center;
+}
+
+.updates {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: var(--space-4);
+}
+
+.update {
+  margin: 0;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.sent {
+  margin: 0;
+  text-align: center;
+  font-size: var(--text-small);
+  color: var(--color-ink-soft);
+}
+
+.brand {
+  font-family: var(--font-display);
+  font-weight: 700;
+  color: var(--color-ink);
+}

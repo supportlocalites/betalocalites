@@ -364,6 +364,65 @@ export async function startConversation(
   }
 }
 
+export type MessageAllPage = {
+  event: { id: string; name: string; date: string };
+  /** The businesses on the event's Considering list that are on Localites and listed, in the order added. */
+  businesses: { slug: string; name: string }[];
+};
+
+/** "Message all" on an event's Considering list (D-58): the person's own event, still being planned. */
+export async function messageAllPage(env: ServerEnv, userId: string, eventId: string): Promise<MessageAllPage> {
+  return talked(
+    actingAs(env, asPerson(userId), async (tx) => {
+      const [event] = await tx.execute<MessageAllPage['event']>(sql`
+        select e.id, p.title as name, e.event_date::text as date
+        from event e join event_private p on p.event_id = e.id
+        where e.id = ${eventId} and e.host_user_id = ${userId} and e.status = 'planning' and event_ends_at(e) >= now()`);
+      if (!event) throw new PlanNotFound();
+      const businesses = await tx.execute<MessageAllPage['businesses'][number]>(sql`
+        select v.slug::text as slug, v.display_name as name
+        from event_vendor ev join vendor v on v.id = ev.vendor_id
+        where ev.event_id = ${eventId} and ev.host_user_id = ${userId} and ev.status = 'considering'
+          and v.listing_status = 'published' and v.claim_status = 'claimed'
+          and not exists (select 1 from vendor_member m where m.vendor_id = v.id and m.user_id = ${userId} and m.ended_at is null)
+        order by ev.created_at`);
+      return { event, businesses: [...businesses] };
+    }),
+  );
+}
+
+export type MessageAllResult = { sent: Written[]; sentTo: string[]; notSent: { name: string; why: string }[] };
+
+/**
+ * Sends the same words to each chosen business on the event's Considering list (at most
+ * messageAllMax), each in its own conversation about this event, one at a time through
+ * startConversation, so every limit and rule is the same as messaging them one by one. One
+ * refused (blocked, say) doesn't stop the rest; the day's limit stops what's left.
+ */
+export async function messageAll(env: ServerEnv, userId: string, eventId: string, slugs: string[], body: string): Promise<MessageAllResult> {
+  const page = await messageAllPage(env, userId, eventId);
+  const chosen = page.businesses.filter((b) => slugs.includes(b.slug));
+  if (chosen.length === 0) throw new PlanRefused('Choose at least one business.');
+  if (chosen.length > MESSAGE_LIMITS.messageAllMax)
+    throw new PlanRefused(`Choose up to ${MESSAGE_LIMITS.messageAllMax} businesses at a time.`);
+  const result: MessageAllResult = { sent: [], sentTo: [], notSent: [] };
+  for (const [i, b] of chosen.entries()) {
+    try {
+      result.sent.push(await startConversation(env, userId, b.slug, { body, eventId }));
+      result.sentTo.push(b.name);
+    } catch (err) {
+      if (err instanceof PlanCapped) {
+        for (const rest of chosen.slice(i)) result.notSent.push({ name: rest.name, why: err.message });
+        break;
+      }
+      if (err instanceof PlanRefused) result.notSent.push({ name: b.name, why: err.message });
+      else if (err instanceof PlanNotFound) result.notSent.push({ name: b.name, why: 'It can’t be messaged at the moment.' });
+      else throw err;
+    }
+  }
+  return result;
+}
+
 export type PersonThread = {
   id: string;
   vendor: { slug: string; name: string; photo: ListPhoto | null; left: boolean; paused: boolean; rejoined: boolean; yourTeam: boolean };

@@ -9,6 +9,8 @@ export const MESSAGE_LIMITS = {
   conversationsPerDay: 30, // 20 until D-56 (the owner, 19 October 2026)
   /** Messages one person may send in a day, across all conversations. */
   messagesPerDay: 200,
+  /** Businesses one "Message all" sends to at once (D-58): each is its own conversation and email. */
+  messageAllMax: 10,
 } as const;
 
 /** Files in conversations (migration 0028): one photo or PDF per message. */

@@ -306,3 +306,293 @@
     width: auto;
   }
 }
+
+/* ------------------------------------------------------------------ an event's page (D-58) */
+
+.evGrid {
+  display: grid;
+  gap: var(--space-8);
+  margin-top: var(--space-6);
+}
+
+@media (min-width: 1000px) {
+  .evGrid {
+    grid-template-columns: minmax(0, 1fr) var(--size-event-side);
+    gap: var(--space-12);
+  }
+
+  .evSide {
+    position: sticky;
+    top: var(--space-6);
+    align-self: start;
+  }
+}
+
+.evMain {
+  display: grid;
+  gap: var(--space-8);
+  align-content: start;
+  min-width: 0;
+}
+
+.evSection {
+  display: grid;
+  gap: var(--space-4);
+}
+
+.evHead {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-3);
+}
+
+.evHead h2 {
+  margin: 0;
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: var(--text-title-2);
+}
+
+.evCount {
+  font-size: var(--text-small);
+  color: var(--color-gold-ink);
+}
+
+.evRule {
+  flex: 1;
+  align-self: center;
+  height: var(--hairline);
+  background: var(--color-line);
+}
+
+.evAll {
+  font-size: var(--text-label);
+  letter-spacing: var(--tracking-label);
+  text-transform: uppercase;
+  color: var(--color-ink);
+  min-height: var(--size-icon-button);
+  display: inline-flex;
+  align-items: center;
+}
+
+.evCards {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: var(--space-3);
+}
+
+@media (min-width: 700px) {
+  .evCards {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+.evCard {
+  display: flex;
+  gap: var(--space-4);
+  padding: var(--space-4);
+  background: var(--color-surface);
+  border: var(--hairline) solid var(--color-line-soft);
+  min-width: 0;
+}
+
+.evCard .evPhoto {
+  flex: none;
+  width: var(--size-thumb);
+  height: var(--size-thumb);
+}
+
+.evCardBody {
+  display: grid;
+  gap: var(--space-1);
+  align-content: start;
+  min-width: 0;
+  flex: 1;
+}
+
+.evKind {
+  font-size: var(--text-label);
+  letter-spacing: var(--tracking-label);
+  text-transform: uppercase;
+  color: var(--color-gold-ink);
+}
+
+.evName {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: var(--text-title-3);
+  overflow-wrap: anywhere;
+}
+
+.evName a {
+  color: inherit;
+  text-decoration: none;
+}
+
+.evName a:hover {
+  text-decoration: underline;
+}
+
+.evText {
+  margin: 0;
+  font-size: var(--text-small);
+  color: var(--color-ink-soft);
+}
+
+.evLinks {
+  margin: var(--space-1) 0 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 var(--space-4);
+  font-size: var(--text-small);
+}
+
+.evLinks a {
+  color: var(--color-ink);
+  min-height: var(--size-icon-button);
+  display: inline-flex;
+  align-items: center;
+}
+
+.evButtons {
+  display: flex;
+  gap: var(--space-2);
+  margin-top: var(--space-2);
+}
+
+.evBook,
+.evRemove {
+  min-height: var(--size-icon-button);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: var(--hairline) solid var(--color-line);
+  background: transparent;
+  color: var(--color-ink);
+  font: inherit;
+  font-size: var(--text-button);
+  letter-spacing: var(--tracking-button);
+  text-transform: uppercase;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.evBook {
+  padding: 0 var(--space-4);
+  border-color: var(--color-gold);
+}
+
+.evRemove {
+  width: var(--size-icon-button);
+  font-size: var(--text-title-3);
+}
+
+.evFind {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: var(--space-3);
+}
+
+@media (min-width: 700px) {
+  .evFind {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+.evFindTile {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  padding: var(--space-4);
+  border: var(--hairline) dashed var(--color-line);
+  color: var(--color-ink);
+  text-decoration: none;
+}
+
+.evPlus {
+  width: var(--size-icon-button);
+  height: var(--size-icon-button);
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: var(--hairline) solid var(--color-line);
+  font-size: var(--text-title-3);
+}
+
+.evFindWords {
+  display: grid;
+  gap: var(--space-1);
+}
+
+/* Your guests, beside the plan: dark in both looks, like the planning panel on a business's page. */
+.evGuests {
+  display: grid;
+  gap: var(--space-3);
+  padding: var(--space-6);
+  background: var(--color-bar);
+  color: var(--color-on-bar);
+  border-top: var(--hairline) solid var(--color-gold);
+}
+
+.evGuestsLabel {
+  margin: 0;
+  font-size: var(--text-label);
+  letter-spacing: var(--tracking-label);
+  text-transform: uppercase;
+  color: var(--color-bar-gold-ink);
+}
+
+.evGuestsTitle {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: var(--text-title-1);
+}
+
+.evTally {
+  margin: 0;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--space-2);
+}
+
+.evTally div {
+  display: flex;
+  flex-direction: column-reverse;
+  gap: var(--space-1);
+  padding: var(--space-2) var(--space-3);
+  border: var(--hairline) solid var(--color-bar-line);
+}
+
+.evTally dd {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: var(--text-title-3);
+}
+
+.evTally dt {
+  font-size: var(--text-small);
+}
+
+.evGuestsButton {
+  min-height: var(--size-button-short);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--color-gold-fill);
+  color: var(--color-on-gold);
+  font-size: var(--text-button);
+  letter-spacing: var(--tracking-button);
+  text-transform: uppercase;
+  text-decoration: none;
+}
+
+.evGuestsNote {
+  margin: 0;
+  font-size: var(--text-small);
+  line-height: var(--leading-body);
+}

@@ -7,19 +7,18 @@ import { REVIEW_STATUS_WORDS } from '@/lib/review-terms';
 import {
   budgetWords,
   FEATURED_LINE,
-  guestsWords,
   longDate,
   NO_PAYMENTS_PERSON,
   NO_TYPE_IDEAS,
   nextStep,
   STATUS_WORDS,
-  timeRange,
   whenWords,
 } from '@/lib/plan-terms';
 import { TOO_FAST } from '@/lib/plan-terms';
 import { deleteCancelledEvent, eventPlan, type PlanRow } from '@/server/events.server';
 import { found, refusal, todayIso, tooFast } from '@/server/plan-pages.server';
 import type { Route } from './+types/event-plan';
+import { EventTabs, EventTop } from '@/components/EventHeader';
 import { SquarePhoto } from '@/components/SquarePhoto';
 import styles from './plan.module.css';
 
@@ -38,7 +37,10 @@ export async function loader({ params, context }: Route.LoaderArgs) {
   if (!isUuid(params.id)) throw data(null, { status: 404 });
   const member = context.get(memberContext);
   const { env } = context.get(cloudflareContext);
-  return { plan: await found(eventPlan(env, member.userId, params.id)), today: todayIso() };
+  return {
+    plan: await found(eventPlan(env, member.userId, params.id)),
+    today: todayIso(),
+  };
 }
 
 /** M10 (D-54): deleting a cancelled event, from its plan (which can say why not, yet). */
@@ -77,14 +79,15 @@ function useNotice(rows: PlanRow[]): string | null {
   const added = params.get('added') ? rows.find((r) => r.slug === params.get('added')) : undefined;
   if (params.has('copied')) {
     const n = Number(params.get('copied')) || 0;
-    return n > 0
-      ? `Copy saved, with ${n === 1 ? 'its business' : `${n} businesses`} as Considering. They aren’t told.`
-      : 'Copy saved.';
+    return n > 0 ? `Copy saved, with ${n === 1 ? 'its business' : `${n} businesses`} as Considering. They aren’t told.` : 'Copy saved.';
   }
   // From the shortlist (D-57).
   if (params.has('moved')) {
     const n = Number(params.get('moved')) || 0;
-    const what = n > 0 ? `Added ${n === 1 ? '1 business' : `${n} businesses`} from your shortlist as Considering. They aren’t told.` : 'Those businesses were already on this event.';
+    const what =
+      n > 0
+        ? `Added ${n === 1 ? '1 business' : `${n} businesses`} from your shortlist as Considering. They aren’t told.`
+        : 'Those businesses were already on this event.';
     return params.has('created') ? `Event saved. ${what}` : what;
   }
   if (params.has('created')) return added ? `Event saved. Added ${added.name} as Considering. They aren’t told.` : 'Event saved.';
@@ -119,7 +122,12 @@ export default function EventPlan({ loaderData, actionData }: Route.ComponentPro
   const booked = rows.filter((r) => r.status === 'booked');
   const considering = rows.filter((r) => r.status === 'considering');
   const removed = rows.filter((r) => r.status === 'removed');
-  const step = nextStep({ cancelled, passed: event.passed, considering: considering.length, booked: booked.length });
+  const step = nextStep({
+    cancelled,
+    passed: event.passed,
+    considering: considering.length,
+    booked: booked.length,
+  });
   const when = cancelled
     ? 'You cancelled this event.'
     : event.passed
@@ -133,297 +141,343 @@ export default function EventPlan({ loaderData, actionData }: Route.ComponentPro
   ];
   const shownPrivate = privateRows.filter(([, v]) => v);
 
+  // "Message all" (D-58): the businesses on Localites that can be messaged now.
+  const messageable = considering.filter((r) => r.claimed && r.listed);
+  const bookedOn = (at: string | null) =>
+    at
+      ? new Date(at).toLocaleDateString('en-CA', {
+          month: 'long',
+          day: 'numeric',
+          timeZone: 'America/Toronto',
+        })
+      : null;
+  const ideaTiles = open && !event.passed && ideas ? ideas.categories : [];
+
   return (
     <>
       <SiteHeader />
-      <main className="page narrow">
+      <main className="page">
         {notice && (
           <p className="notice" role="status">
             {notice}
           </p>
         )}
-        {event.typeName && <p className="label">{event.typeName}</p>}
-        <h1 className="title-1">{event.name}</h1>
-        <div className="title-rule" aria-hidden="true" />
-        <p>
-          {[longDate(event.date, today), timeRange(event.startTime, event.endTime), event.town, guestsWords(event.guests)]
-            .filter(Boolean)
-            .join(' · ')}
-        </p>
-        <p className="muted">{when}</p>
-        <p>
-          {open && (
-            <>
-              <Link to={`${base}/edit`} className="text-link">
-                Edit details
-              </Link>
-              {' · '}
-            </>
-          )}
-          <Link to={`${base}/guests`} className="text-link">
-            Guests and invitations
-          </Link>
-        </p>
+        <EventTop
+          event={event}
+          today={today}
+          booked={booked.length}
+          considering={considering.length}
+          coming={plan.guestTotals.coming}
+          canEdit={open}
+        />
+        <EventTabs base={base} on="businesses" coming={plan.guestTotals.coming} />
 
-        {booked.length > 0 && (
-          <section aria-labelledby="booked" className={styles.section}>
-            <h2 id="booked" className="label">
-              Booked
-            </h2>
-            <ul className={styles.list}>
-              {booked.map((r) => (
-                <li key={r.rowId} className={r.listed ? styles.withPhoto : undefined}>
-                  {r.listed && <SquarePhoto photo={r.photo} alt="" />}
-                  <div className={styles.rowBody}>
-                    <div className={styles.rowHead}>
-                      <BusinessName row={r} />
-                      {/* M10 (D-54): a cancelled event's booking was, not is. */}
-                      <span className={styles.pill}>{cancelled ? 'You’d marked this booked' : STATUS_WORDS.booked}</span>
-                    </div>
-                    {r.category && <span className={styles.meta}>{r.category}</span>}
-                    {!r.listed && <span className={styles.meta}>No longer listed on Localites. It stays here as your own record.</span>}
-                    {r.flaggedAt && <span className={styles.flagged}>{r.name} says it isn’t booked for this event.</span>}
-                    {r.review && r.review !== 'withdrawn' ? (
-                      <Link to={`${base}/review/${r.rowId}`} className="text-link">
-                        {REVIEW_STATUS_WORDS[r.review]}
-                      </Link>
-                    ) : (
-                      (r.canReview === 'yes' || r.canReview === 'grace') && (
-                        <Link to={`${base}/review/${r.rowId}`} className="text-link">
-                          {r.canReview === 'grace' ? `Review ${r.name} (opens 24 hours after you marked it)` : `Review ${r.name}`}
-                        </Link>
-                      )
-                    )}
-                    {open && (
-                      <details className={styles.change}>
-                        <summary>Change this</summary>
-                        <div className={styles.rowActions}>
+        <div className={styles.evGrid}>
+          <div className={styles.evMain}>
+            <p className="muted">{when}</p>
+
+            {booked.length > 0 && (
+              <section aria-labelledby="booked" className={styles.evSection}>
+                <SectionHead id="booked" title="Booked" count={booked.length} />
+                <ul className={styles.evCards}>
+                  {booked.map((r) => (
+                    <li key={r.rowId} className={styles.evCard}>
+                      {r.listed ? <SquarePhoto photo={r.photo} alt="" size="profile" className={styles.evPhoto} /> : null}
+                      <div className={styles.evCardBody}>
+                        <span className={styles.evKind}>
+                          {[r.category, cancelled ? 'You’d marked this booked' : STATUS_WORDS.booked].filter(Boolean).join(' · ')}
+                        </span>
+                        <h3 className={styles.evName}>
+                          <BusinessName row={r} />
+                        </h3>
+                        {!r.listed ? (
+                          <p className={styles.evText}>No longer listed on Localites. It stays here as your own record.</p>
+                        ) : (
+                          bookedOn(r.bookedAt) && (
+                            <p className={styles.evText}>
+                              {`You marked this booked on ${bookedOn(r.bookedAt)}.`}
+                              {r.claimed ? ' They see your date, town and number of guests, never your event’s name.' : ''}
+                            </p>
+                          )
+                        )}
+                        {r.flaggedAt && <p className={styles.flagged}>{r.name} says it isn’t booked for this event.</p>}
+                        {r.review && r.review !== 'withdrawn' ? (
+                          <Link to={`${base}/review/${r.rowId}`} className="text-link">
+                            {REVIEW_STATUS_WORDS[r.review]}
+                          </Link>
+                        ) : (
+                          (r.canReview === 'yes' || r.canReview === 'grace') && (
+                            <Link to={`${base}/review/${r.rowId}`} className="text-link">
+                              {r.canReview === 'grace' ? `Review ${r.name} (opens 24 hours after you marked it)` : `Review ${r.name}`}
+                            </Link>
+                          )
+                        )}
+                        <p className={styles.evLinks}>
+                          {r.claimed && r.listed && <Link to={`/vendors/${r.slug}/message`}>Message</Link>}
                           {/* Un-marked, one that's no longer listed would vanish and couldn't be marked again. */}
-                          {r.listed && (
-                            <Link to={`${base}/plan/${r.rowId}/unbook`} className="text-link">
-                              Un-mark as booked
-                            </Link>
-                          )}
-                          <Link to={`${base}/plan/${r.rowId}/remove`} className="text-link">
-                            Remove from this event
-                          </Link>
-                        </div>
-                      </details>
-                    )}
-                  </div>
-                </li>
-              ))}
-            </ul>
-          </section>
-        )}
-
-        {considering.length > 0 && (
-          <section aria-labelledby="considering" className={styles.section}>
-            <h2 id="considering" className="label">
-              Considering
-            </h2>
-            <ul className={styles.list}>
-              {considering.map((r) => (
-                <li key={r.rowId} className={styles.withPhoto}>
-                  <SquarePhoto photo={r.photo} alt="" />
-                  <div className={styles.rowBody}>
-                    <div className={styles.rowHead}>
-                      <BusinessName row={r} />
-                      <span className={styles.pill}>{STATUS_WORDS.considering}</span>
-                    </div>
-                    {r.category && <span className={styles.meta}>{r.category}</span>}
-                    {!r.claimed && <span className={styles.meta}>Not on Localites yet</span>}
-                    {open && (
-                      <div className={styles.rowActions}>
-                        <Link to={`${base}/plan/${r.rowId}/book`} className="button button-primary">
-                          Mark as booked
-                        </Link>
-                        <Form method="post" action={`${base}/plan/${r.rowId}/remove`}>
-                          <button type="submit" className={styles.textButton}>
-                            Remove
-                          </button>
-                        </Form>
+                          {open && r.listed && <Link to={`${base}/plan/${r.rowId}/unbook`}>Not booked after all</Link>}
+                          {open && <Link to={`${base}/plan/${r.rowId}/remove`}>Remove from this event</Link>}
+                        </p>
                       </div>
-                    )}
-                  </div>
-                </li>
-              ))}
-            </ul>
-          </section>
-        )}
-
-        {removed.length > 0 && (
-          <details className={`${styles.section} ${styles.more}`}>
-            <summary>Removed ({removed.length})</summary>
-            <ul className={styles.list}>
-              {removed.map((r) => (
-                <li key={r.rowId} className={styles.withPhoto}>
-                  <SquarePhoto photo={r.photo} alt="" />
-                  <div className={styles.rowBody}>
-                    <BusinessName row={r} />
-                    {r.category && <span className={styles.meta}>{r.category}</span>}
-                    {open && (
-                      <div className={styles.rowActions}>
-                        <Form method="post" action={`${base}/plan/${r.rowId}/readd`}>
-                          <button type="submit" className={styles.textButton}>
-                            Put back
-                          </button>
-                        </Form>
-                      </div>
-                    )}
-                  </div>
-                </li>
-              ))}
-            </ul>
-          </details>
-        )}
-
-        <section aria-labelledby="next" className={styles.section}>
-          <h2 id="next" className="label">
-            What’s next
-          </h2>
-          {step === 'empty' && (
-            <>
-              <p>Find businesses for your event.</p>
-              <div className={styles.actions}>
-                <Link to="/explore" className="button button-secondary">
-                  Browse local
-                </Link>
-              </div>
-            </>
-          )}
-          {step === 'considering' && (
-            <p>
-              Contact the businesses you’re considering directly: their phone number and website are on their page. When you’ve arranged
-              something, tap Mark as booked.
-            </p>
-          )}
-          {step === 'settled' && <p>Everything you’ve marked is here. Arrange the details directly with each business.</p>}
-          {step === 'passed' && <p>This event has passed.</p>}
-          {step === 'cancelled' && (
-            // M10, C10 (D-54): tell guests, start again from a copy, or delete it.
-            <>
-              <p>You cancelled this event. The businesses you’d marked booked were told.</p>
-              <div className={styles.actions}>
-                <Link to={`${base}/tell-guests`} className="button button-secondary">
-                  Let your guests know
-                </Link>
-                <Link to={`/events/new?copy=${event.id}`} className="button button-secondary">
-                  Copy this event
-                </Link>
-              </div>
-              <details open={Boolean(actionData?.error)}>
-                <summary className="text-link">Delete this event</summary>
-                <p className="muted">
-                  Its plan, guest list, replies, questions and updates are deleted, and your guests’ links stop working (they won’t see
-                  that it was cancelled). This can’t be undone.
-                </p>
-                {actionData?.error && (
-                  <p className="notice" role="alert">
-                    {actionData.error}
-                  </p>
-                )}
-                <Form method="post">
-                  <input type="hidden" name="intent" value="delete" />
-                  <button type="submit" className="button button-secondary">
-                    Yes, delete it
-                  </button>
-                </Form>
-              </details>
-            </>
-          )}
-        </section>
-
-        {open && !event.passed && (
-          <section aria-labelledby="ideas" className={styles.section}>
-            {ideas ? (
-              <>
-                <h2 id="ideas" className="label">
-                  {ideas.heading}
-                </h2>
-                {ideas.featured.length > 0 && (
-                  <>
-                    <h3 className={styles.name}>Featured</h3>
-                    <p className={styles.small}>{FEATURED_LINE}</p>
-                    <ul className={styles.featured}>
-                      {ideas.featured.map((f) => (
-                        <li key={f.slug} className={styles.featuredCard}>
-                          <SquarePhoto photo={f.photo} alt="" />
-                          <span className="label">Featured</span>
-                          <Link to={`/vendors/${f.slug}`} className={styles.name}>
-                            {f.name}
-                          </Link>
-                          <span className={styles.meta}>{[f.category, f.town].filter(Boolean).join(' · ')}</span>
-                          {f.onPlan ? (
-                            <span className={styles.meta}>On your plan</span>
-                          ) : (
-                            <Link to={`/vendors/${f.slug}/add`} className="text-link">
-                              Add to event
-                            </Link>
-                          )}
-                        </li>
-                      ))}
-                    </ul>
-                  </>
-                )}
-                {ideas.categories.length > 0 && (
-                  <>
-                    <h3 className={styles.name}>Businesses people often need</h3>
-                    <ul className={styles.ideaLinks}>
-                      {ideas.categories.map((c) => (
-                        <li key={c.slug}>
-                          <Link to={`/search?category=${encodeURIComponent(c.slug)}`} className="text-link">
-                            {c.name}
-                          </Link>
-                        </li>
-                      ))}
-                    </ul>
-                  </>
-                )}
-                {ideas.featured.length === 0 && ideas.categories.length === 0 && (
-                  <p>
-                    <Link to="/explore" className="text-link">
-                      Browse local
-                    </Link>
-                  </p>
-                )}
-              </>
-            ) : (
-              <>
-                <h2 id="ideas" className="label">
-                  Ideas
-                </h2>
-                <p className="muted">
-                  <Link to={`${base}/edit`}>{NO_TYPE_IDEAS}</Link>
-                </p>
-              </>
+                    </li>
+                  ))}
+                </ul>
+              </section>
             )}
-          </section>
-        )}
 
-        {shownPrivate.length > 0 && (
-          <section aria-labelledby="private" className={styles.section}>
-            <h2 id="private" className="label">
-              Only you can see this
-            </h2>
-            <dl className={styles.private}>
-              {shownPrivate.map(([label, value]) => (
-                <div key={label} className={styles.privateRow}>
-                  <dt>{label}</dt>
-                  <dd>{value}</dd>
+            {considering.length > 0 && (
+              <section aria-labelledby="considering" className={styles.evSection}>
+                <SectionHead
+                  id="considering"
+                  title="Considering"
+                  count={considering.length}
+                  after={
+                    open && messageable.length > 1 ? (
+                      <Link to={`${base}/message-all`} className={styles.evAll}>
+                        Message all {messageable.length}
+                      </Link>
+                    ) : null
+                  }
+                />
+                <ul className={styles.evCards}>
+                  {considering.map((r) => (
+                    <li key={r.rowId} className={styles.evCard}>
+                      <SquarePhoto photo={r.photo} alt="" size="profile" className={styles.evPhoto} />
+                      <div className={styles.evCardBody}>
+                        <span className={styles.evKind}>{r.category ?? STATUS_WORDS.considering}</span>
+                        <h3 className={styles.evName}>
+                          <BusinessName row={r} />
+                        </h3>
+                        {!r.claimed && <p className={styles.evText}>Not on Localites yet</p>}
+                        {open && (
+                          <div className={styles.evButtons}>
+                            <Link to={`${base}/plan/${r.rowId}/book`} className={styles.evBook}>
+                              Mark booked
+                            </Link>
+                            <Form method="post" action={`${base}/plan/${r.rowId}/remove`}>
+                              <button
+                                type="submit"
+                                className={styles.evRemove}
+                                aria-label={`Remove ${r.name} from this event`}
+                                title="Remove from this event"
+                              >
+                                ×
+                              </button>
+                            </Form>
+                          </div>
+                        )}
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              </section>
+            )}
+
+            {removed.length > 0 && (
+              <details className={`${styles.section} ${styles.more}`}>
+                <summary>Removed ({removed.length})</summary>
+                <ul className={styles.list}>
+                  {removed.map((r) => (
+                    <li key={r.rowId} className={styles.withPhoto}>
+                      <SquarePhoto photo={r.photo} alt="" />
+                      <div className={styles.rowBody}>
+                        <BusinessName row={r} />
+                        {r.category && <span className={styles.meta}>{r.category}</span>}
+                        {open && (
+                          <div className={styles.rowActions}>
+                            <Form method="post" action={`${base}/plan/${r.rowId}/readd`}>
+                              <button type="submit" className={styles.textButton}>
+                                Put back
+                              </button>
+                            </Form>
+                          </div>
+                        )}
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              </details>
+            )}
+
+            {step !== 'settled' && (
+              <section aria-labelledby="next" className={styles.evSection}>
+                <h2 id="next" className="label">
+                  What’s next
+                </h2>
+                {step === 'empty' && (
+                  <>
+                    <p>Find businesses for your event.</p>
+                    <div className={styles.actions}>
+                      <Link to="/explore" className="button button-secondary">
+                        Browse local
+                      </Link>
+                    </div>
+                  </>
+                )}
+                {step === 'considering' && (
+                  <p>
+                    Message the businesses you’re considering, or contact them directly from their page. When you’ve arranged something, tap
+                    Mark booked.
+                  </p>
+                )}
+                {step === 'passed' && <p>This event has passed.</p>}
+                {step === 'cancelled' && (
+                  // M10, C10 (D-54): tell guests, start again from a copy, or delete it.
+                  <>
+                    <p>You cancelled this event. The businesses you’d marked booked were told.</p>
+                    <div className={styles.actions}>
+                      <Link to={`${base}/tell-guests`} className="button button-secondary">
+                        Let your guests know
+                      </Link>
+                      <Link to={`/events/new?copy=${event.id}`} className="button button-secondary">
+                        Copy this event
+                      </Link>
+                    </div>
+                    <details open={Boolean(actionData?.error)}>
+                      <summary className="text-link">Delete this event</summary>
+                      <p className="muted">
+                        Its plan, guest list, replies, questions and updates are deleted, and your guests’ links stop working (they won’t
+                        see that it was cancelled). This can’t be undone.
+                      </p>
+                      {actionData?.error && (
+                        <p className="notice" role="alert">
+                          {actionData.error}
+                        </p>
+                      )}
+                      <Form method="post">
+                        <input type="hidden" name="intent" value="delete" />
+                        <button type="submit" className="button button-secondary">
+                          Yes, delete it
+                        </button>
+                      </Form>
+                    </details>
+                  </>
+                )}
+              </section>
+            )}
+
+            {open && !event.passed && (
+              <section aria-labelledby="ideas" className={styles.evSection}>
+                <SectionHead id="ideas" title="Still to find" />
+                {ideas ? (
+                  <>
+                    <p className="muted">{ideas.heading}</p>
+                    {ideaTiles.length > 0 && (
+                      <ul className={styles.evFind}>
+                        {ideaTiles.map((c) => (
+                          <li key={c.slug}>
+                            <Link to={`/search?category=${encodeURIComponent(c.slug)}`} className={styles.evFindTile}>
+                              <span aria-hidden="true" className={styles.evPlus}>
+                                +
+                              </span>
+                              <span className={styles.evFindWords}>
+                                <span className={styles.evKind}>{c.name}</span>
+                                <span>Find one</span>
+                              </span>
+                            </Link>
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                    {ideas.featured.length > 0 && (
+                      <>
+                        <h3 className={styles.name}>Featured</h3>
+                        <p className={styles.small}>{FEATURED_LINE}</p>
+                        <ul className={styles.featured}>
+                          {ideas.featured.map((f) => (
+                            <li key={f.slug} className={styles.featuredCard}>
+                              <SquarePhoto photo={f.photo} alt="" />
+                              <span className="label">Featured</span>
+                              <Link to={`/vendors/${f.slug}`} className={styles.name}>
+                                {f.name}
+                              </Link>
+                              <span className={styles.meta}>{[f.category, f.town].filter(Boolean).join(' · ')}</span>
+                              {f.onPlan ? (
+                                <span className={styles.meta}>On your plan</span>
+                              ) : (
+                                <Link to={`/vendors/${f.slug}/add`} className="text-link">
+                                  Add to event
+                                </Link>
+                              )}
+                            </li>
+                          ))}
+                        </ul>
+                      </>
+                    )}
+                    {ideas.featured.length === 0 && ideas.categories.length === 0 && (
+                      <p>
+                        <Link to="/explore" className="text-link">
+                          Browse local
+                        </Link>
+                      </p>
+                    )}
+                  </>
+                ) : (
+                  <p className="muted">
+                    <Link to={`${base}/edit`}>{NO_TYPE_IDEAS}</Link>
+                  </p>
+                )}
+              </section>
+            )}
+
+            {shownPrivate.length > 0 && (
+              <section aria-labelledby="private" className={styles.evSection}>
+                <h2 id="private" className="label">
+                  Only you can see this
+                </h2>
+                <dl className={styles.private}>
+                  {shownPrivate.map(([label, value]) => (
+                    <div key={label} className={styles.privateRow}>
+                      <dt>{label}</dt>
+                      <dd>{value}</dd>
+                    </div>
+                  ))}
+                </dl>
+              </section>
+            )}
+
+            <p className={styles.footer}>{NO_PAYMENTS_PERSON}</p>
+          </div>
+
+          <aside aria-label="Your guests" className={styles.evSide}>
+            <div className={styles.evGuests}>
+              <p className={styles.evGuestsLabel}>Your guests</p>
+              <p className={styles.evGuestsTitle}>{`${plan.guestTotals.coming} coming`}</p>
+              <dl className={styles.evTally}>
+                <div>
+                  <dt>replied yes</dt>
+                  <dd>{plan.guestTotals.yes}</dd>
                 </div>
-              ))}
-            </dl>
-          </section>
-        )}
-
-        <p className={styles.footer}>{NO_PAYMENTS_PERSON}</p>
-        <p>
-          <Link to="/events" className="text-link">
-            My events
-          </Link>
-        </p>
+                <div>
+                  <dt>can’t come</dt>
+                  <dd>{plan.guestTotals.cantCome}</dd>
+                </div>
+                <div>
+                  <dt>waiting</dt>
+                  <dd>{plan.guestTotals.waiting}</dd>
+                </div>
+              </dl>
+              <Link to={`${base}/guests`} className={styles.evGuestsButton}>
+                {plan.guestTotals.invited > 0 ? 'Guests and invitations' : 'Invite guests'}
+              </Link>
+              <p className={styles.evGuestsNote}>
+                Guests see the name, date, time and place, and your message. Never your budget, notes or other guests.
+              </p>
+            </div>
+          </aside>
+        </div>
       </main>
     </>
+  );
+}
+
+function SectionHead({ id, title, count, after }: { id: string; title: string; count?: number; after?: React.ReactNode }) {
+  return (
+    <div className={styles.evHead}>
+      <h2 id={id}>{title}</h2>
+      {count !== undefined && <span className={styles.evCount}>{count}</span>}
+      <span aria-hidden="true" className={styles.evRule} />
+      {after}
+    </div>
   );
 }

@@ -526,6 +526,43 @@ check('a file past its end date: both sides are told it has expired', words(r.bo
 got = await getFile(`/messages/${firstWithFile}/files/${startFile?.id}`, cookie.p);
 check('…and it can no longer be opened', got.status === 404, String(got.status));
 
+// ------------------------------------------------------------------ 5e. Message all (D-58)
+for (const b of [V, W, U]) {
+  await page(`/vendors/${b.slug}/add`, { cookie: cookie.a, method: 'POST', form: { intent: 'add', eventId: aEvent } });
+}
+const ALL = `/events/${aEvent}/message-all`;
+r = await page(`/events/${aEvent}`, { cookie: cookie.a });
+check('the event offers “Message all 2”: the two on Localites, not the one that isn’t', words(r.body).includes('Message all 2') && r.body.includes(`href="${ALL}"`));
+r = await page(ALL, { cookie: cookie.n });
+check('someone else can’t open another person’s Message all', r.status === 404, String(r.status));
+r = await page(ALL, { cookie: cookie.n, method: 'POST', form: { body: 'Hello all', slug: V.slug } });
+check('…or send from it', r.status === 404, String(r.status));
+r = await page(ALL, { cookie: cookie.a });
+text = words(r.body);
+check('the person sees who it goes to', r.status === 200 && text.includes(V.name) && text.includes(W.name) && !text.includes(U.name), String(r.status));
+r = await page(ALL, { cookie: cookie.a, method: 'POST', form: { body: 'Hello all', slug: U.slug } });
+check('a business not on Localites can’t be chosen', r.status === 409 && words(r.body).includes('Choose at least one business.'), String(r.status));
+const countFrom = async () => (await sql`select count(*)::int as n from message where author_user_id = ${ids.a}`)[0].n;
+let before5e = await countFrom();
+const ALL_WORDS = `Are you free that day? ${run}`;
+r = await page(ALL, { cookie: cookie.a, method: 'POST', form: [['body', ALL_WORDS], ['slug', V.slug], ['slug', W.slug]] });
+const toW = await sql`select c.id, c.event_id from conversation c where c.consumer_user_id = ${ids.a} and c.vendor_id = ${W.id} and c.ended_at is null`;
+check('Message all sends to each, in its own conversation about the event',
+  r.status === 200 && words(r.body).includes(`Sent to ${V.name}, ${W.name}`) && (await countFrom()) === before5e + 2 && toW[0]?.event_id === aEvent,
+  `${r.status} ${(await countFrom()) - before5e}`);
+const [vConv] = await sql`select event_id from conversation where id = ${conversationId}`;
+check('…the one already there gets it, now about this event', vConv.event_id === aEvent && (await messagesIn(conversationId)).at(-1)?.body === ALL_WORDS);
+r = await page(BIZ_THREAD, { cookie: cookie.o });
+check('…and each business sees only its own (never who else was messaged)', words(r.body).includes(ALL_WORDS) && !words(r.body).includes(W.name));
+await page(BIZ_THREAD, { cookie: cookie.g, method: 'POST', form: { intent: 'block' } });
+before5e = await countFrom();
+r = await page(ALL, { cookie: cookie.a, method: 'POST', form: [['body', `Second note ${run}`], ['slug', V.slug], ['slug', W.slug]] });
+text = words(r.body);
+check('a business that blocked them is skipped, said plainly; the rest still go',
+  r.status === 200 && text.includes(`Sent to ${W.name}`) && text.includes(`${V.name}: This conversation is blocked`) && (await countFrom()) === before5e + 1,
+  `${r.status} ${text.slice(text.indexOf('Not sent'), text.indexOf('Not sent') + 120)}`);
+await page(BIZ_THREAD, { cookie: cookie.o, method: 'POST', form: { intent: 'unblock' } });
+
 // ------------------------------------------------------------------ 6. Leaving
 await sql`update vendor_member set ended_at = now() where vendor_id = ${V.id} and user_id = ${ids.s}`;
 r = await page(BIZ_THREAD, { cookie: cookie.s });

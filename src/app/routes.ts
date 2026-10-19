@@ -50,6 +50,8 @@ export default [
     route('events/:id/edit', 'routes/member/event-edit.tsx'),
     route('events/:id/cancel', 'routes/member/event-cancel.tsx'),
     route('events/:id/tell-guests', 'routes/member/event-tell-guests.tsx'),
+    // "Message all" on an event's Considering list (D-58).
+    route('events/:id/message-all', 'routes/member/event-message-all.tsx'),
     route('events/:id/plan/:rowId/:change', 'routes/member/plan-change.tsx'),
     // Reviewing a business booked for the event (C11, Stage 3).
     route('events/:id/review/:rowId', 'routes/member/review.tsx'),

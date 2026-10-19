@@ -127,6 +127,11 @@
   --size-form-wide: 760px;
   /* The conversations list beside an open conversation (Messages, D-58). */
   --size-inbox: 380px;
+  /* An event's page (D-58): the guests column beside the plan, and the event's name. */
+  --size-event-side: 340px;
+  --text-event-title: clamp(36px, 7vw, 64px);
+  /* The labels beside When, Where and Host on an invitation. */
+  --size-fact-label: 64px;
   --size-qr: 200px;
   /* A printed invitation's QR code (guests, part 2): large enough to scan from across a table. */
   --size-qr-print: 288px;

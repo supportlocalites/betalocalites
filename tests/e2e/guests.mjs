@@ -75,7 +75,7 @@ check('the link swaps itself for a cookie and the address bar shows /invite', r.
 r = await site('/invite', { cookie: jar });
 let text = words(r.body);
 check('the invitation: Jo’s name, the event, the date and time, where, the host’s first name',
-  r.status === 200 && text.includes(`Hi Grandma Jo ${run}`) && text.includes(TITLE) && text.includes('Our backyard') && text.includes('Ann invites you') && text.includes('14:00'),
+  r.status === 200 && text.includes(`You’re invited, Grandma Jo ${run}`) && text.includes(TITLE) && text.includes('Our backyard') && text.includes('Host Ann') && text.includes('14:00'),
   String(r.status));
 check('…never the budget, notes, other guests, or the host’s last name',
   // "$500", not "500": the run's random code (in the event's name) can contain those digits.
@@ -131,7 +131,7 @@ check('…Rob is emailed: what changed, and his own link to change it back',
   robMail.length === 1 && robMail[0].subject.includes('Ann updated your reply') && robMail[0].body.includes('Coming (4 people)') && robMail[0].body.includes(`/i/${robToken}`) && !robMail[0].body.includes(email('a')));
 r = await site(`/i/${robToken}`);
 r = await site('/invite', { cookie: cookieValue(r) });
-check('…and his invitation says Ann set it', words(r.body).includes('Ann set your reply to: Yes, I’ll be there (4 people)'));
+check('…and his invitation says the host set it', words(r.body).includes('The host set your reply to: Yes, I’ll be there (4 people)'));
 r = await site(`${GUESTS}/${jo.id}`, { cookie: cookie.a, method: 'POST', form: { intent: 'set-reply', response: 'no' } });
 check('a guest with no email: changed, not emailed', r.status === 302 && r.location.endsWith('?changed=not_emailed'), r.location);
 r = await site(`${GUESTS}/${rob.id}`, { cookie: cookie.b, method: 'POST', form: { intent: 'set-reply', response: 'no' } });

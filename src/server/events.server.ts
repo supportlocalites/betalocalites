@@ -429,6 +429,8 @@ export type EventPlan = {
   /** Null when no kind of event was chosen (C3 then shows NO_TYPE_IDEAS). */
   ideas: Ideas | null;
   onTeam: boolean;
+  /** The host's guests in short (D-58): people coming, replies, and those still to reply. */
+  guestTotals: { coming: number; yes: number; cantCome: number; waiting: number; invited: number };
 };
 
 export async function eventPlan(env: ServerEnv, userId: string, eventId: string): Promise<EventPlan> {
@@ -503,8 +505,21 @@ export async function eventPlan(env: ServerEnv, userId: string, eventId: string)
         guests: e.guests,
         typeId: e.typeId,
       };
+      // As on the guest list: replies through the group link not yet matched to a guest count too.
+      const [g] = await tx.execute<EventPlan['guestTotals']>(sql`
+        with r as (
+          select response, party_size from guest where event_id = ${eventId} and host_user_id = ${userId}
+          union all
+          select response, party_size from group_reply where event_id = ${eventId} and host_user_id = ${userId} and matched_guest_id is null)
+        select coalesce(sum(party_size) filter (where response = 'yes'), 0)::int as coming,
+               (count(*) filter (where response = 'yes'))::int as yes,
+               (count(*) filter (where response = 'no'))::int as "cantCome",
+               (select count(*) from guest where event_id = ${eventId} and host_user_id = ${userId} and response is null)::int as waiting,
+               (select count(*) from guest where event_id = ${eventId} and host_user_id = ${userId})::int as invited
+        from r`);
+      const guestTotals = g ?? { coming: 0, yes: 0, cantCome: 0, waiting: 0, invited: 0 };
       const { venueNote, ageMin, ageMax, budgetCents, notes } = e;
-      return { event, private: { venueNote, ageMin, ageMax, budgetCents, notes }, rows, ideas, onTeam: e.onTeam };
+      return { event, private: { venueNote, ageMin, ageMax, budgetCents, notes }, rows, ideas, onTeam: e.onTeam, guestTotals };
     }),
   );
 }

@@ -1,6 +1,7 @@
 import { data, Form, Link, redirect, useNavigation, useSearchParams } from 'react-router';
 import { cloudflareContext, memberContext } from '@/app/context';
 import { CopyAndShare } from '@/components/CopyAndShare';
+import { EventTabs } from '@/components/EventHeader';
 import { SiteHeader } from '@/components/SiteHeader';
 import {
   CONTACT_KEPT,
@@ -254,7 +255,8 @@ export default function Guests({ loaderData, actionData }: Route.ComponentProps)
             ← {event.name}
           </Link>
         </p>
-        <h1 className="title-1">Guests</h1>
+        <EventTabs base={`/events/${event.id}`} on="guests" coming={totals.coming} />
+        <h1 className="title-1 section-gap">Guests</h1>
         <div className="title-rule" aria-hidden="true" />
         <p className="muted">
           {event.name} · {longDate(event.date, today)} · {event.town}

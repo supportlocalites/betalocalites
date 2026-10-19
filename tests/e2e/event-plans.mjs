@@ -211,8 +211,8 @@ check('the featured business is shown, labelled, with the line saying the team p
   plan.includes('Featured') && plan.includes('Featured businesses are promoted by the Localites team.') && r.body.includes(`href="/vendors/${V.slug}"`) && r.body.includes(`href="/vendors/${V.slug}/add"`));
 check('an ended, an expired and an unpublished placement aren’t shown', ![W.name, X.name, Z.name].some((n) => plan.includes(n)));
 check('the team’s note is never shown to the person', !r.body.includes(TEAM_NOTE));
-check('"Businesses people often need" links to search by the suggested kinds',
-  plan.includes('Businesses people often need') && suggested.every((c) => r.body.includes(`href="/search?category=${c.slug}"`)));
+check('"Still to find" links to search by the suggested kinds (D-58)',
+  plan.includes('Still to find') && suggested.every((c) => r.body.includes(`href="/search?category=${c.slug}"`)));
 r = await site('/events/new', { cookie: cookie.a, method: 'POST', form: { intent: 'create', title: 'No kind given', typeId: 'none', date: eventDate, townId: orillia.id } });
 const plainEventId = /^\/events\/([0-9a-f-]{36})/.exec(r.location)?.[1];
 r = await site(`/events/${plainEventId}`, { cookie: cookie.a });
