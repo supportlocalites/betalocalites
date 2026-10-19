@@ -46,6 +46,7 @@ export default [
     route('events/:id', 'routes/member/event-plan.tsx'),
     route('events/:id/edit', 'routes/member/event-edit.tsx'),
     route('events/:id/cancel', 'routes/member/event-cancel.tsx'),
+    route('events/:id/tell-guests', 'routes/member/event-tell-guests.tsx'),
     route('events/:id/plan/:rowId/:change', 'routes/member/plan-change.tsx'),
     // Reviewing a business booked for the event (C11, Stage 3).
     route('events/:id/review/:rowId', 'routes/member/review.tsx'),

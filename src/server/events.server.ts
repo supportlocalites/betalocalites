@@ -326,6 +326,52 @@ export async function updateEvent(env: ServerEnv, userId: string, eventId: strin
   );
 }
 
+/** M10 (D-54): deletes a cancelled event, with its plan, guests, replies, questions and updates. */
+export async function deleteCancelledEvent(env: ServerEnv, userId: string, eventId: string): Promise<void> {
+  await planned(actingAs(env, asPerson(userId), (tx) => tx.execute(sql`select delete_cancelled_event(${eventId}::uuid)`)));
+}
+
+/**
+ * M10 (D-54): what "Copy this event" starts from: the event's details, and the businesses on
+ * its plan that are still listed (added to the copy as Considering, never marked booked).
+ */
+export async function copySource(env: ServerEnv, userId: string, eventId: string): Promise<{ values: EventValues; slugs: string[] }> {
+  return planned(
+    actingAs(env, asPerson(userId), async (tx) => {
+      const e = await readEvent(tx, userId, eventId, false);
+      if (!e) throw new PlanNotFound();
+      const rows = await tx.execute<{ slug: string }>(sql`
+        select v.slug::text as slug from event_vendor ev join vendor v on v.id = ev.vendor_id
+        where ev.event_id = ${eventId} and ev.host_user_id = ${userId} and ev.status in ('considering', 'booked')
+          and v.listing_status = 'published'
+        order by ev.created_at limit 30`);
+      return { values: eventValues(e), slugs: rows.map((r) => r.slug) };
+    }),
+  );
+}
+
+/**
+ * M10 (D-54): a copy's businesses, from the cancelled event, in one statement: those still
+ * listed, as Considering (the database's rules apply to each). Returns how many were added.
+ */
+export async function copyBusinesses(env: ServerEnv, userId: string, fromId: string, toId: string): Promise<number> {
+  return planned(
+    actingAs(env, asPerson(userId), async (tx) => {
+      const added = await tx.execute(sql`
+        insert into event_vendor (id, event_id, host_user_id, vendor_id)
+        select gen_random_uuid(), ${toId}::uuid, ${userId}::uuid, ev.vendor_id
+        from event_vendor ev join vendor v on v.id = ev.vendor_id
+        where ev.event_id = ${fromId} and ev.host_user_id = ${userId} and ev.status in ('considering', 'booked')
+          and v.listing_status = 'published'
+        order by ev.created_at
+        limit ${PLAN_LIMITS.vendorsPerEvent}
+        on conflict (event_id, vendor_id) do nothing
+        returning id`);
+      return added.length;
+    }),
+  );
+}
+
 /** Cancels an event (final in 2A). Returns a notice for each booked business to tell. Already cancelled: nothing to do. */
 export async function cancelEvent(env: ServerEnv, userId: string, eventId: string): Promise<BookingNotice[]> {
   return planned(

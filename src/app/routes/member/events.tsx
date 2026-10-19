@@ -1,4 +1,4 @@
-import { Link } from 'react-router';
+import { Link, useSearchParams } from 'react-router';
 import { cloudflareContext, memberContext } from '@/app/context';
 import { SideSwitch } from '@/components/SideSwitch';
 import { SiteHeader } from '@/components/SiteHeader';
@@ -49,6 +49,7 @@ function Cards({ cards, today }: { cards: EventCard[]; today: string }) {
 export default function MyEvents({ loaderData }: Route.ComponentProps) {
   const { upcoming, past, cancelled, savedCount, onTeam, today } = loaderData;
   const none = upcoming.length + past.length + cancelled.length === 0;
+  const deleted = useSearchParams()[0].has('deleted');
   return (
     <>
       <SiteHeader />
@@ -56,6 +57,11 @@ export default function MyEvents({ loaderData }: Route.ComponentProps) {
         {onTeam && <SideSwitch current="events" />}
         <h1 className="title-1">My events</h1>
         <div className="title-rule" aria-hidden="true" />
+        {deleted && (
+          <p className="notice" role="status">
+            The cancelled event is deleted.
+          </p>
+        )}
         {none ? (
           <>
             <p>

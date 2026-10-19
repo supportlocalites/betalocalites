@@ -2,7 +2,7 @@ import { sql } from 'drizzle-orm';
 import { GUEST_LIMITS, GUEST_REFUSALS, type GuestResponse, RESPONSE_WORDS } from '@/lib/guest-terms';
 import { longDateWithYear } from '@/lib/plan-terms';
 import { actingAs, errorCode, PlanCapped, PlanNotFound, PlanRefused } from './acting.server';
-import { sendEmail } from './email.server';
+import { sendEmail, sendEmails } from './email.server';
 import { renderEmail } from './email-templates.server';
 import { type Db, withDb } from './db.server';
 import type { ServerEnv } from './env';
@@ -48,12 +48,15 @@ export const TOKEN = /^[A-Za-z0-9_-]{43}$/;
 
 export const invitesOn = (env: ServerEnv) => Boolean(env.INVITE_KEY && env.INVITE_KEY.length >= 32);
 
-async function linkToken(env: ServerEnv, guestId: string, version: number): Promise<string> {
+async function inviteKey(env: ServerEnv): Promise<CryptoKey> {
   if (!invitesOn(env)) throw new PlanRefused(GUEST_REFUSALS.noKey!);
-  const key = await crypto.subtle.importKey('raw', new TextEncoder().encode(env.INVITE_KEY), { name: 'HMAC', hash: 'SHA-256' }, false, [
-    'sign',
-  ]);
-  return base64url(await crypto.subtle.sign('HMAC', key, new TextEncoder().encode(`localites-invite:${guestId}:${version}`)));
+  return crypto.subtle.importKey('raw', new TextEncoder().encode(env.INVITE_KEY), { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']);
+}
+
+/** key: made once for many links (pasting a list); otherwise each call makes its own. */
+async function linkToken(env: ServerEnv, guestId: string, version: number, key?: CryptoKey): Promise<string> {
+  const k = key ?? (await inviteKey(env));
+  return base64url(await crypto.subtle.sign('HMAC', k, new TextEncoder().encode(`localites-invite:${guestId}:${version}`)));
 }
 
 /** The event's group link (D-08): made like a guest's link, from the event's id and version. */
@@ -133,7 +136,7 @@ export async function guestList(env: ServerEnv, userId: string, eventId: string,
                g.reply_note as note, g.replied_at::text as "repliedAt",
                coalesce((select json_agg(json_build_object('question', q.question, 'answer', a.answer) order by q.created_at)
                          from guest_answer a join event_question q on q.id = a.question_id where a.guest_id = g.id), '[]') as answers
-        from guest g where g.event_id = ${eventId} and g.host_user_id = ${userId} order by g.created_at, g.id`);
+        from guest g where g.event_id = ${eventId} and g.host_user_id = ${userId} order by g.created_at, g.name, g.id`);
       const groupReplies = await tx.execute<GroupReplyRow>(sql`
         select r.id, r.name, r.response, r.party_size as "partySize", r.reply_note as note, r.updated_at::text as at,
                coalesce((select json_agg(json_build_object('question', q.question, 'answer', a.answer) order by q.created_at)
@@ -316,6 +319,61 @@ export async function addGuest(
   return id;
 }
 
+/** M12 (D-54): names pasted one per line, tidied; blank lines and repeats dropped. */
+export function readNames(form: FormData): { names: string[] } | { error: string } {
+  const lines = String(form.get('names') ?? '')
+    .split(/\r\n?|\n/)
+    .map((l) => l.replace(/\s+/g, ' ').trim())
+    .filter(Boolean);
+  if (lines.length === 0) return { error: GUEST_REFUSALS.names! };
+  if (lines.length > GUEST_LIMITS.pastePerTime) return { error: GUEST_REFUSALS.tooManyNames! };
+  const tooLong = lines.find((l) => l.length > GUEST_LIMITS.name);
+  if (tooLong) return { error: `${GUEST_REFUSALS.nameTooLong!} (“${tooLong.slice(0, 30)}…”)` };
+  const seen = new Set<string>();
+  const names = lines.filter((l) => {
+    const k = l.toLocaleLowerCase('en-CA');
+    if (seen.has(k)) return false;
+    seen.add(k);
+    return true;
+  });
+  return { names };
+}
+
+/**
+ * M12 (D-54): adds pasted names, all in one go (no contact details: those are added one at a
+ * time). Names already on the list are skipped; anything past the 300-guest limit isn't added.
+ */
+export async function addGuests(
+  env: ServerEnv,
+  userId: string,
+  eventId: string,
+  names: string[],
+): Promise<{ added: number; alreadyThere: number; noRoom: number }> {
+  const key = await inviteKey(env);
+  return guarded(
+    actingAs(env, asPerson(userId), async (tx) => {
+      await hostEvent(tx, userId, eventId);
+      // The event locked, so two pastes at once (a double tap, two tabs) add each name once.
+      await tx.execute(sql`select id from event where id = ${eventId} and host_user_id = ${userId} for update`);
+      const existing = await tx.execute<{ name: string }>(sql`select name from guest where event_id = ${eventId} and host_user_id = ${userId}`);
+      const there = new Set(existing.map((g) => g.name.toLocaleLowerCase('en-CA')));
+      const fresh = names.filter((n) => !there.has(n.toLocaleLowerCase('en-CA')));
+      const adding = fresh.slice(0, Math.max(0, GUEST_LIMITS.perEvent - existing.length));
+      if (adding.length > 0) {
+        const ids = adding.map(() => crypto.randomUUID());
+        const hashes = await Promise.all(ids.map(async (id) => tokenHash(await linkToken(env, id, 1, key))));
+        // One statement for them all (the rows as JSON, so any name passes through safely).
+        const rows = JSON.stringify(ids.map((id, i) => ({ id, name: adding[i], hash: hashes[i] })));
+        await tx.execute(sql`
+          insert into guest (id, event_id, host_user_id, name, token_hash)
+          select x.id, ${eventId}::uuid, ${userId}::uuid, x.name, decode(x.hash, 'hex')
+          from jsonb_to_recordset(${rows}::jsonb) as x(id uuid, name text, hash text)`);
+      }
+      return { added: adding.length, alreadyThere: names.length - fresh.length, noRoom: fresh.length - adding.length };
+    }),
+  );
+}
+
 export async function removeGuest(env: ServerEnv, userId: string, eventId: string, guestId: string): Promise<void> {
   await guarded(
     actingAs(env, asPerson(userId), async (tx) => {
@@ -421,6 +479,79 @@ export async function hostSetReply(
     ),
   ).catch((err: unknown) => console.error('guest email outcome not recorded', err instanceof Error ? err.message : err));
   return result.sent ? 'emailed' : 'email_failed';
+}
+
+/** How many guests an event has (M11: after a change of date, time or place, offer to tell them). */
+export async function guestCount(env: ServerEnv, userId: string, eventId: string): Promise<number> {
+  const [n] = await guarded(
+    actingAs(env, asPerson(userId), (tx) =>
+      tx.execute<{ n: number }>(sql`select count(*)::int as n from guest where event_id = ${eventId} and host_user_id = ${userId}`),
+    ),
+  );
+  return n?.n ?? 0;
+}
+
+/** C10 (D-54): what the "Let your guests know" step needs: the event, and who could be emailed. */
+export async function cancelNoticeInfo(env: ServerEnv, userId: string, eventId: string) {
+  return guarded(
+    actingAs(env, asPerson(userId), async (tx) => {
+      const event = await hostEvent(tx, userId, eventId);
+      const [n] = await tx.execute<{ guests: number; toEmail: number; emailed: number }>(sql`
+        select count(*)::int as guests,
+               count(*) filter (where g.email is not null and not exists (
+                 select 1 from guest_email x where x.guest_id = g.id and x.kind = 'event_cancelled'
+                   and (x.status = 'sent' or (x.status = 'queued' and x.created_at > now() - interval '10 minutes'))))::int as "toEmail",
+               count(*) filter (where exists (
+                 select 1 from guest_email x where x.guest_id = g.id and x.kind = 'event_cancelled' and x.status = 'sent'))::int as emailed
+        from guest g where g.event_id = ${eventId} and g.host_user_id = ${userId}`);
+      const [host] = await tx.execute<{ name: string | null }>(sql`select given_name as name from app_user where id = ${userId}`);
+      return { event, host: host?.name ?? null, guests: n?.guests ?? 0, toEmail: n?.toEmail ?? 0, emailed: n?.emailed ?? 0 };
+    }),
+  );
+}
+
+/**
+ * C10 (D-54): emails the guests of a cancelled event who have an email address, as the host
+ * asked, within the database's limits (cancel_notice_emails). Each email's outcome is recorded.
+ */
+export async function sendCancelNotices(
+  env: ServerEnv,
+  userId: string,
+  eventId: string,
+): Promise<{ sent: number; failed: number; heldBack: number }> {
+  const due = await guarded(
+    actingAs(env, asPerson(userId), async (tx) => {
+      const event = await hostEvent(tx, userId, eventId);
+      const rows = await tx.execute<{ emailId: string | null; email: string | null; guest: string | null; heldBack: number | null }>(sql`
+        select email_id as "emailId", email, guest_name as guest, held_back as "heldBack" from cancel_notice_emails(${eventId}::uuid)`);
+      const [host] = await tx.execute<{ name: string | null }>(sql`select given_name as name from app_user where id = ${userId}`);
+      return { event, rows: [...rows], host: host?.name ?? 'Your host' };
+    }),
+  );
+  // At most 20 emails, sent together in one request (all or none), and recorded in one visit to
+  // the database: the free plan allows 50 outside calls per request.
+  const toSend = due.rows.filter((r): r is typeof r & { emailId: string; email: string } => Boolean(r.emailId && r.email));
+  const result = await sendEmails(
+    env,
+    toSend.map((r) => ({
+      to: r.email,
+      ...renderEmail('guestEventCancelled', { host: due.host, guest: r.guest ?? '', title: due.event.name, date: longDateWithYear(due.event.date) }),
+    })),
+  );
+  if (toSend.length > 0) {
+    await actingAs(env, asPerson(userId), async (tx) => {
+      for (const r of toSend) {
+        await tx.execute(
+          result.sent
+            ? sql`update guest_email set status = 'sent', sent_at = now() where id = ${r.emailId}`
+            : sql`update guest_email set status = 'failed', failure_reason = ${result.reason} where id = ${r.emailId}`,
+        );
+      }
+    }).catch((err: unknown) => console.error('guest email outcomes not recorded', err instanceof Error ? err.message : err));
+  }
+  const outcomes = toSend.map(() => ({ sent: result.sent }));
+  const sent = outcomes.filter((o) => o.sent).length;
+  return { sent, failed: outcomes.length - sent, heldBack: due.rows.find((r) => r.heldBack !== null)?.heldBack ?? 0 };
 }
 
 // ======================================================================= the guest (no account)

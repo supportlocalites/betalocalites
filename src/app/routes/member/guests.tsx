@@ -4,6 +4,7 @@ import { CopyAndShare } from '@/components/CopyAndShare';
 import { SiteHeader } from '@/components/SiteHeader';
 import {
   CONTACT_KEPT,
+  changeUpdateText,
   GROUP_LINK_SAYS,
   GUEST_LIMITS,
   GUEST_REFUSALS,
@@ -14,9 +15,10 @@ import {
 } from '@/lib/guest-terms';
 import { isUuid } from '@/lib/ids.mjs';
 import { pageMeta } from '@/lib/meta';
-import { longDate, longDateWithYear, TOO_FAST } from '@/lib/plan-terms';
+import { longDate, longDateWithYear, timeRange, TOO_FAST } from '@/lib/plan-terms';
 import {
   addGuest,
+  addGuests,
   addQuestion,
   type Answer,
   groupLinkOff,
@@ -27,6 +29,7 @@ import {
   postUpdate,
   readGuest,
   readLine,
+  readNames,
   removeGroupReply,
   removeUnmatchedReplies,
   removeGuest,
@@ -57,6 +60,7 @@ export async function loader({ params, request, context }: Route.LoaderArgs) {
 
 /** Each form's intent, and where the page returns to after it. */
 const BACK: Record<string, string> = {
+  'add-many': 'list',
   'group-new': 'group',
   'group-off': 'group',
   match: 'list',
@@ -87,6 +91,13 @@ export async function action({ request, params, context }: Route.ActionArgs) {
       if ('error' in input) return data({ intent, error: input.error }, { status: 400 });
       const guestId = await addGuest(env, member.userId, params.id, input);
       return redirect(`/events/${params.id}/guests/${guestId}?added=1`);
+    }
+    // M12 (D-54): names pasted one per line.
+    if (intent === 'add-many') {
+      const read = readNames(form);
+      if ('error' in read) return data({ intent, error: read.error }, { status: 400 });
+      const r = await addGuests(env, member.userId, params.id, read.names);
+      return redirect(`/events/${params.id}/guests?pasted=${r.added}&there=${r.alreadyThere}&full=${r.noRoom}#list`);
     }
     if (intent === 'remove') {
       await removeGuest(env, member.userId, params.id, id('guestId'));
@@ -161,6 +172,17 @@ const SAVED: Record<string, string> = {
   'update-removed': 'Update removed.',
 };
 
+/** A name, whatever its case or spacing (M13: a group reply that may be a guest already on the list). */
+const nameKey = (n: string) => n.replace(/\s+/g, ' ').trim().toLocaleLowerCase('en-CA');
+
+/** Long lists show this many until "Show all" (B9, D-54: a 300-guest page stays quick). */
+const FIRST_GUESTS = 100;
+const FIRST_REPLIES = 50;
+/** With more guests than this, a reply's "This is…" list opens one reply at a time (B9). */
+const INLINE_MATCH = 30;
+/** Group replies, not yet matched, at which the host is warned (M13; the limit is 300). */
+const NEAR_LIMIT = 250;
+
 function Answers({ answers }: { answers: Answer[] }) {
   if (answers.length === 0) return null;
   return (
@@ -192,6 +214,37 @@ export default function Guests({ loaderData, actionData }: Route.ComponentProps)
     ) : null;
   const groupText = groupLink ? groupShareText(event.name, longDateWithYear(event.date), groupLink) : '';
   const unreplied = guests.filter((g) => g.response === null);
+  // M13 (D-54): any guest can be matched, those still to reply first.
+  const matchChoices = [...unreplied, ...guests.filter((g) => g.response !== null)];
+  const matching = params.get('match');
+  const shownGuests = params.has('all') ? guests : guests.slice(0, FIRST_GUESTS);
+  // The reply being matched always shows, wherever it is in the list (B9).
+  const shownReplies =
+    params.get('replies') === 'all'
+      ? groupReplies
+      : groupReplies.filter((r, i) => i < FIRST_REPLIES || r.id === matching);
+  // Guests by name, looked up once (M13): a name two guests share isn't offered as a one-tap match.
+  const byName = new Map<string, (typeof guests)[number] | null>();
+  for (const g of guests) {
+    const k = nameKey(g.name);
+    byName.set(k, byName.has(k) ? null : g);
+  }
+  /** A link to this page with one setting changed, keeping the others (B9). */
+  const withParam = (key: string, value: string, hash: string) => {
+    const next = new URLSearchParams(params);
+    for (const k of ['saved', 'removed', 'pasted', 'there', 'full', 'changed']) next.delete(k);
+    next.set(key, value);
+    return `?${next.toString()}#${hash}`;
+  };
+  const pasted = params.has('pasted')
+    ? [
+        `Added ${Number(params.get('pasted')) || 0} ${Number(params.get('pasted')) === 1 ? 'guest' : 'guests'}.`,
+        Number(params.get('there')) > 0 ? `${params.get('there')} already on your list.` : '',
+        Number(params.get('full')) > 0 ? `${params.get('full')} not added: an event can have up to ${GUEST_LIMITS.perEvent} guests.` : '',
+      ]
+        .filter(Boolean)
+        .join(' ')
+    : null;
   return (
     <>
       <SiteHeader />
@@ -209,6 +262,11 @@ export default function Guests({ loaderData, actionData }: Route.ComponentProps)
         {params.has('removed') && (
           <p className="notice" role="status">
             Removed. Their link no longer works.
+          </p>
+        )}
+        {pasted && (
+          <p className="notice" role="status">
+            {pasted} Send each guest their invitation from the list.
           </p>
         )}
         {event.status === 'cancelled' && <p className="notice">This event was cancelled. Guests who open their link are told.</p>}
@@ -232,7 +290,7 @@ export default function Guests({ loaderData, actionData }: Route.ComponentProps)
             <p className="muted">No guests yet. Add the first one below.</p>
           ) : (
             <ul className={styles.list}>
-              {guests.map((g) => (
+              {shownGuests.map((g) => (
                 <li key={g.id}>
                   <div className={styles.rowBody}>
                     <div className={styles.rowHead}>
@@ -264,6 +322,13 @@ export default function Guests({ loaderData, actionData }: Route.ComponentProps)
               ))}
             </ul>
           )}
+          {shownGuests.length < guests.length && (
+            <p>
+              <Link to={withParam('all', '1', 'list')} className="text-link">
+                Show all {guests.length} guests
+              </Link>
+            </p>
+          )}
         </section>
 
         {groupReplies.length > 0 && (
@@ -272,10 +337,22 @@ export default function Guests({ loaderData, actionData }: Route.ComponentProps)
               Replies from the group link, not matched yet ({groupReplies.length})
             </h2>
             {errorFor('match', 'remove-reply', 'remove-unmatched')}
-            <p className="muted">Match each one to a guest on your list, so you can see who’s still to reply. They count in the totals either way.</p>
+            {groupReplies.length >= NEAR_LIMIT && (
+              <p className="notice" role="status">
+                The group link has {groupReplies.length} replies not matched to a guest, close to the limit of 300. If it was shared
+                somewhere public, make a new group link (the old one stops working) and remove the replies that aren’t from your
+                guests.
+              </p>
+            )}
+            <p className="muted">
+              Match each one to a guest on your list, so you can see who’s still to reply. They count in the totals either way. Matching
+              to a guest who already replied replaces their reply.
+            </p>
             <ul className={styles.list}>
-              {groupReplies.map((r) => (
-                <li key={r.id}>
+              {shownReplies.map((r) => {
+                const twin = byName.get(nameKey(r.name)) ?? null;
+                return (
+                <li key={r.id} id={`reply-${r.id}`}>
                   <div className={styles.rowBody}>
                     <div className={styles.rowHead}>
                       <span className={styles.name}>{r.name}</span>
@@ -285,7 +362,24 @@ export default function Guests({ loaderData, actionData }: Route.ComponentProps)
                     </div>
                     {r.note && <span className={styles.meta}>“{r.note}”</span>}
                     <Answers answers={r.answers} />
-                    {guests.length > 0 && event.status === 'planning' && (
+                    {/* M13 (D-54): the same name as a guest already on the list. */}
+                    {twin && (
+                      <span className={styles.meta}>
+                        Same name as {twin.name} on your list
+                        {twin.response ? `, who already replied (${RESPONSE_WORDS[twin.response]}). Matching replaces their reply with this one.` : '.'}
+                      </span>
+                    )}
+                    {twin && !twin.response && event.status === 'planning' && (
+                      <Form method="post" className={styles.rowActions}>
+                        <input type="hidden" name="intent" value="match" />
+                        <input type="hidden" name="replyId" value={r.id} />
+                        <input type="hidden" name="guestId" value={twin.id} />
+                        <button type="submit" className="button button-secondary" disabled={busy}>
+                          Match to {twin.name}
+                        </button>
+                      </Form>
+                    )}
+                    {guests.length > 0 && event.status === 'planning' && (guests.length <= INLINE_MATCH || matching === r.id ? (
                       <Form method="post" className={styles.rowActions}>
                         <input type="hidden" name="intent" value="match" />
                         <input type="hidden" name="replyId" value={r.id} />
@@ -296,9 +390,9 @@ export default function Guests({ loaderData, actionData }: Route.ComponentProps)
                           <option value="" disabled>
                             This is…
                           </option>
-                          {(unreplied.length > 0 ? unreplied : guests).map((g) => (
+                          {matchChoices.map((g) => (
                             <option key={g.id} value={g.id}>
-                              {g.name}
+                              {g.response ? `${g.name} (already replied: ${RESPONSE_WORDS[g.response]})` : g.name}
                             </option>
                           ))}
                         </select>
@@ -306,7 +400,12 @@ export default function Guests({ loaderData, actionData }: Route.ComponentProps)
                           Match
                         </button>
                       </Form>
-                    )}
+                    ) : (
+                      // B9 (D-54): with a long list, the choices load for one reply at a time.
+                      <Link to={withParam('match', r.id, `reply-${r.id}`)} className="text-link">
+                        {twin ? 'Match to someone else' : 'Match to a guest'}
+                      </Link>
+                    ))}
                     <Form method="post">
                       <input type="hidden" name="intent" value="remove-reply" />
                       <input type="hidden" name="replyId" value={r.id} />
@@ -316,8 +415,16 @@ export default function Guests({ loaderData, actionData }: Route.ComponentProps)
                     </Form>
                   </div>
                 </li>
-              ))}
+                );
+              })}
             </ul>
+            {shownReplies.length < groupReplies.length && (
+              <p>
+                <Link to={withParam('replies', 'all', 'group-replies')} className="text-link">
+                  Show all {groupReplies.length} replies
+                </Link>
+              </p>
+            )}
             {groupReplies.length > 1 && (
               <Form method="post">
                 <input type="hidden" name="intent" value="remove-unmatched" />
@@ -360,6 +467,27 @@ export default function Guests({ loaderData, actionData }: Route.ComponentProps)
                 Add guest
               </button>
             </Form>
+            {/* M12 (D-54): many names at once, straight from phone notes or a spreadsheet. */}
+            <details className="section-gap">
+              <summary className="text-link">Add many guests at once</summary>
+              {errorFor('add-many')}
+              <Form method="post">
+                <input type="hidden" name="intent" value="add-many" />
+                <div className="field">
+                  <label htmlFor="names" className="field-label">
+                    Names, one per line
+                  </label>
+                  <p className="field-hint" id="names-hint">
+                    Paste them from your notes or a spreadsheet. Names already on your list are skipped. You can add a phone number or
+                    email to anyone afterwards by adding them one at a time.
+                  </p>
+                  <textarea id="names" name="names" className="input" aria-describedby="names-hint" required />
+                </div>
+                <button type="submit" className="button button-secondary" disabled={busy || !on}>
+                  Add these guests
+                </button>
+              </Form>
+            </details>
           </section>
         )}
 
@@ -472,6 +600,13 @@ export default function Guests({ loaderData, actionData }: Route.ComponentProps)
           </h2>
           {notice('updates')}
           {errorFor('update-post', 'update-remove')}
+          {params.has('changed') && open && (
+            // M11 (D-54): the host changed when or where; a ready-made update to post.
+            <p className="notice" role="status">
+              You changed when or where {event.name} is. Guests aren’t told automatically: post an update below (we’ve written one you
+              can change), then share it with them.
+            </p>
+          )}
           <p className="muted">
             A short note, such as “We’ve moved to 3 pm”, shown at the top of every invitation. Localites doesn’t send it to anyone: share
             it from your phone if you like.
@@ -483,7 +618,19 @@ export default function Guests({ loaderData, actionData }: Route.ComponentProps)
                 <label htmlFor="update-body" className="field-label">
                   New update
                 </label>
-                <textarea id="update-body" name="body" className="input" maxLength={GUEST_LIMITS.update} required />
+                <textarea
+                  id="update-body"
+                  name="body"
+                  className="input"
+                  maxLength={GUEST_LIMITS.update}
+                  required
+                  key={params.has('changed') ? 'changed' : 'blank'}
+                  defaultValue={
+                    params.has('changed')
+                      ? changeUpdateText(event.name, longDateWithYear(event.date), timeRange(event.startTime, null), event.town)
+                      : ''
+                  }
+                />
               </div>
               <button type="submit" className="button button-secondary" disabled={busy}>
                 Post update

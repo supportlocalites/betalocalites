@@ -32,7 +32,7 @@ console.log('Guests');
 let r = await site(`/events/${ev.id}`, { cookie: cookie.a });
 check('the event plan links to Guests', r.status === 200 && r.body.includes(GUESTS), String(r.status));
 r = await site(GUESTS, { cookie: cookie.a });
-check('the guest list says plainly who sees what', r.status === 200 && words(r.body).includes('Only you see your guest list') && words(r.body).includes('Localites never contacts your guests'));
+check('the guest list says plainly who sees what', r.status === 200 && words(r.body).includes('Only you see your guest list') && words(r.body).includes('Localites emails a guest only if you change their reply or ask us to tell them the event is cancelled'));
 for (const [who, c] of [['another person', cookie.b], ['the team', cookie.m]]) {
   r = await site(GUESTS, { cookie: c });
   check(`${who}: someone else’s guest list is "not found"`, r.status === 404, String(r.status));

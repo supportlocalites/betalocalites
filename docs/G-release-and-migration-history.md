@@ -31,6 +31,51 @@ Every release and every database migration, in order. Appended before each deplo
 
 ## Releases
 
+### 2026-10-19 — Fixes from the scenario tests, round 4 of 5: events and guests (D-54)
+
+**Stage:** 2A and 4 (E §4.6, §5)
+**What changed (plain English):** a cancelled event offers **Copy this event** (the same details
+and businesses, as Considering, never marked booked; not the guest list) and **Delete this
+event** (with its plan, guests, replies, questions and updates; a day after cancelling when a
+business was booked, so its cancellation notice goes first), and says "You'd marked this
+booked". Changing an event's date, time or place, when it has guests, goes to a ready-made update
+for them to post and share; calendar files now update the entry when added again. Guests can be
+pasted one per line (up to 150 at a time; repeats and names already on the list skipped; up to
+300 in all). A group-link
+reply with the same name as a guest says so, with a one-tap match; any guest can be chosen; the
+host is warned at 250 unmatched replies. Long guest pages show the first 100 guests and 50
+replies, and the "This is…" choices load one reply at a time when there are over 30 guests.
+After cancelling, **Let your guests know** gives words to send by text or WhatsApp and, if the
+host asks, emails the guests who have an email address (once each, up to 20 per event in all, up
+to 20 guest emails a day per host, within the site's 30-a-day guest email limit and 2 a day to
+one address; an email that failed can be tried again).
+**Migrations applied:** `0049_scenario_fixes_4.sql`
+**Destructive?** Only as the host chooses: deleting a cancelled event. Guests' email records now
+outlive their guest (so the limits keep counting them) and are deleted after a year.
+**Tests run:** database checks 49 of 49 files (0049: 16); unit tests 198 of 198; new browser suite
+`scenario-fixes-4.mjs` 28 of 28; guests 47 of 47, guests part 2 34 of 34, event planning 145 of
+145, round 1's suite 10 of 10, look 504 of 504.
+**Security tests:** only the host copies, deletes, or emails the guests of their own event
+(another person, a business or the team is refused); a planned event can't be deleted this way;
+the email limits hold after deleting guests or the event; no email once the event's date has
+passed.
+**Independent review before push:** two serious findings fixed: deleting a cancelled event
+deleted the email records the daily limits count, so the limits could be reset in a loop
+(they now stay, without the guest, for a year); and deleting straight after cancelling could stop
+the businesses' cancellation notice (deleting now waits a day after cancelling when a business was
+booked). Also fixed: a failed email can be sent again, and the page no longer says "no addresses"
+after a failure; the 20 per event counts every click, and each host has a daily limit; the one-tap
+match is offered only for a guest who hasn't replied and whose name isn't shared, and the page says
+matching replaces a reply; pasting adds the names in one step, locked against a double tap (up to
+150 at a time); the same-name check and copying an event's businesses are each done in one pass;
+guests pasted together list in name order; "Show all" and "Match" keep each other; clearer words on
+deleting (guests' links stop working) and on the email limits. Known: a deleted event's bookings
+drop out of the team's planning totals, as for a deleted account.
+**Existing functionality affected:** cancelling now goes to "Let your guests know"; the guest
+list's promise now says when Localites emails guests.
+**How to roll back:** with the next update.
+**Approved by:** the product owner, 19 October 2026 (D-54).
+
 ### 2026-10-19 — Fixes from the scenario tests, round 3 of 5: deleting conversations, editing messages (D-54)
 
 **Stage:** 2B (E §4.3, §6)

@@ -7,6 +7,7 @@ import { pageMeta } from '@/lib/meta';
 import { tellWords, TOO_FAST } from '@/lib/plan-terms';
 import { dateWindow, parseEventForm } from '@/server/event-input';
 import { eventForEdit, eventFormOptions, updateEvent } from '@/server/events.server';
+import { guestCount } from '@/server/guests.server';
 import { sendBookingNotices } from '@/server/plan-emails.server';
 import { afterwards, formFields, found, refusal, siteUrl, todayIso, tooFast } from '@/server/plan-pages.server';
 import type { Route } from './+types/event-edit';
@@ -58,6 +59,11 @@ export async function action({ request, params, context }: Route.ActionArgs) {
   } catch (err) {
     const { error, status } = refusal(err);
     return data({ error, errors: {} as EventFormErrors, fields }, { status });
+  }
+  // M11 (D-54): when or where changed, and there are guests: offer them an update, ready-made.
+  const moved = (['date', 'startTime', 'endTime', 'townId', 'venueNote'] as const).some((k) => stored.values[k] !== parsed.values[k]);
+  if (moved && (await guestCount(env, member.userId, params.id).catch(() => 0)) > 0) {
+    return redirect(`/events/${params.id}/guests?changed=1#updates`);
   }
   return redirect(`/events/${params.id}?saved=1`);
 }

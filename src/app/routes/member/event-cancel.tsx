@@ -10,7 +10,10 @@ import { afterwards, found, refusal, siteUrl, tooFast } from '@/server/plan-page
 import type { Route } from './+types/event-cancel';
 import styles from './plan.module.css';
 
-/** Cancelling an event: final in 2A. The businesses marked booked are told (D-40); no one else. */
+/**
+ * Cancelling an event: final in 2A. The businesses marked booked are told (D-40); guests aren't
+ * told automatically, but the host can let them know next (C10, D-54).
+ */
 export const meta: Route.MetaFunction = ({ loaderData }) => [
   ...pageMeta(loaderData ? `Cancel ${loaderData.title}?` : 'Cancel your event'),
   { name: 'robots', content: 'noindex' },
@@ -40,7 +43,7 @@ export async function action({ request, params, context }: Route.ActionArgs) {
     const { error, status } = refusal(err);
     return data({ error }, { status });
   }
-  return redirect(`/events/${params.id}?cancelled=1`);
+  return redirect(`/events/${params.id}/tell-guests?cancelled=1`);
 }
 
 export default function CancelEvent({ loaderData, actionData }: Route.ComponentProps) {
@@ -60,6 +63,7 @@ export default function CancelEvent({ loaderData, actionData }: Route.ComponentP
         {tell.map((line) => (
           <p key={line}>{line}</p>
         ))}
+        <p>Your guests aren’t told automatically: next, you can send them a message, or have us email the ones whose email you added.</p>
         <p>You can’t undo this. The plan stays here for your records.</p>
         <Form method="post" className={styles.actions}>
           <input type="hidden" name="intent" value="cancel" />

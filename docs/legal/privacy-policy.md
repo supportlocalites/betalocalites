@@ -50,7 +50,8 @@ keep it, and the choices you have. It applies to localites.ca and the emails we 
   questions you ask, which might include things like allergies). A guest who replies through
   a group link gives their name.
 - **If you add someone's contact details, please make sure they're happy for you to.** We
-  email a guest in only one case: when you change their reply, we tell them what changed.
+  email a guest in only two cases: when you change their reply, we tell them what changed; and
+  when you cancel an event and ask us to, we tell them it's cancelled.
 
 ### When you contact a business
 - **Messages and files** you send in a conversation (photos and PDFs), and the business's
@@ -145,8 +146,8 @@ keep it, and the choices you have. It applies to localites.ca and the emails we 
 - **News you asked for:** that a business you inquired about or suggested is now on
   Localites.
 - **About a booking a business says isn't right:** when the business tells us, and our team's
-  decision (to you and to the business); and to guests whose reply their host changed
-  (section 3).
+  decision (to you and to the business); and to guests whose reply their host changed, or
+  whose event their host cancelled and asked us to tell them (section 3).
 
 We don't send newsletters or marketing emails. [Lawyer: please confirm these all count as
 transactional under Canada's anti-spam law (CASL), in particular the "How was it?" email and

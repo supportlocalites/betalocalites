@@ -8,6 +8,8 @@ export const GUEST_LIMITS = {
   message: 1000,
   note: 500,
   perEvent: 300,
+  /** Names pasted in one go (M12): more can be pasted again. */
+  pastePerTime: 150,
   partySize: 20,
   questions: 5,
   question: 200,
@@ -26,7 +28,7 @@ export const RESPONSE_CHOICES: Record<GuestResponse, string> = { yes: 'Yes, I’
 
 /** Said plainly to the host, above the list. */
 export const GUESTS_PROMISE =
-  'Only you see your guest list. Each guest gets their own link: it shows them the invitation and their own reply, never anyone else’s. Localites never contacts your guests; you send the links from your own phone or email.';
+  'Only you see your guest list. Each guest gets their own link: it shows them the invitation and their own reply, never anyone else’s. You send the links from your own phone or email; Localites emails a guest only if you change their reply or ask us to tell them the event is cancelled.';
 
 /** What a guest sees, as the host's page says it. */
 export const GUESTS_SEE =
@@ -40,6 +42,9 @@ export const GUEST_REFUSALS: Record<string, string> = {
   LP102: 'This event was cancelled, so it can’t be changed.',
   LP161: 'Guests can’t be added once the event is over.',
   LP162: 'An event can have up to 300 guests.',
+  names: 'Paste or type the names, one per line.',
+  tooManyNames: 'Please paste up to 150 names at a time. You can paste the rest after.',
+  LP191: 'This event’s date has passed, so we don’t email its guests.',
   LP163: 'Phone numbers and emails aren’t kept after 90 days.',
   LP164: 'Replies are closed: the event is over.',
   LP165: 'How many are coming? From 1 to 20.',
@@ -79,3 +84,11 @@ export const GROUP_LINK_SAYS =
 export function shareText(guest: string, title: string, date: string, link: string): string {
   return `Hi ${guest}, you’re invited to ${title} on ${date}. Please let me know if you can come: ${link}`;
 }
+
+/** After cancelling (C10, D-54): words for the host to send guests themselves. */
+export const cancelShareText = (title: string, date: string, host: string | null) =>
+  `Sorry, ${title} on ${date} is cancelled.${host ? ` From ${host}` : ''}`;
+
+/** After the host changes when or where (M11, D-54): a ready-made update, for them to change as they like. */
+export const changeUpdateText = (title: string, date: string, time: string | null, town: string) =>
+  `Change of plans: ${title} is now on ${date}${time ? ` at ${time}` : ''}, in ${town}. If you added it to your calendar, add it again from this invitation to update it.`;

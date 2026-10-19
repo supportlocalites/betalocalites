@@ -18,6 +18,7 @@ import newMessage from '../../emails/new-message.txt?raw';
 import reportTeam from '../../emails/report-team.txt?raw';
 import reviewForBusiness from '../../emails/review-for-business.txt?raw';
 import guestReplyChanged from '../../emails/guest-reply-changed.txt?raw';
+import guestEventCancelled from '../../emails/guest-event-cancelled.txt?raw';
 import reviewPublished from '../../emails/review-published.txt?raw';
 import reviewReminder from '../../emails/review-reminder.txt?raw';
 import reviewReported from '../../emails/review-reported.txt?raw';
@@ -71,8 +72,9 @@ const TEMPLATES = {
   reviewRequest,
   reviewReminder,
   reviewReported,
-  // Guests (Stage 4, D-49).
+  // Guests (Stage 4, D-49), and a cancelled event when the host asks (D-54).
   guestReplyChanged,
+  guestEventCancelled,
   // Words held by the language check (D-50).
   heldEditTeam,
   heldEditPublished,

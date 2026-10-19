@@ -385,11 +385,15 @@ cancelled event says so. Up to 300 guests an event.
 
 **The host changes a reply (D-49, migration 0034).** Only through `host_set_reply()`, as the
 host of that guest's event; the reply records that the host set it and the guest's
-invitation says so. **Localites emails the guest** (the one case it does, amending D-08) only
+invitation says so. **Localites emails the guest** (one of the two cases it does, amending D-08) only
 if the host gave their email and the event isn't over: what changed and the guest's own link,
 never the host's email; at most 10 a day per host, 3 a day per guest, 2 a day to one address
 and 30 a day across the site, the rest recorded as held back (only a fingerprint of the
-address is kept) and the host told to tell the guest themselves (`guest_email`, readable only by the host). **Add to
+address is kept) and the host told to tell the guest themselves (`guest_email`, readable only by the host).
+**A cancelled event (D-54, migration 0049).** When the host asks, after cancelling, Localites
+emails the guests who have an email address that the event is cancelled (`cancel_notice_emails()`):
+once per guest, at most 20 per event, within the same 30-a-day site limit and 2 a day to one
+address; the rest are counted for the host to tell themselves. **Add to
 calendar:** links for Google, Outlook.com, Microsoft 365 and Yahoo are made on the page and go
 nowhere until the guest taps one; the calendar file needs the guest's link. Neither contains
 the guest's link.

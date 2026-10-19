@@ -1,0 +1,9 @@
+Subject: {{title}} on {{date}} is cancelled
+
+Hi {{guest}},
+
+{{host}} has cancelled {{title}}, which was planned for {{date}}. {{host}} asked us to let you know.
+
+You don't need to do anything. Please don't reply to this email: to talk to {{host}}, contact them the way you usually do.
+
+Sent by Localites.

@@ -124,7 +124,11 @@ const fold = (line: string) => {
   return out.join('\r\n ');
 };
 
-/** A calendar file with this one event. uid: the same each time for one guest, so adding again updates it. */
+/**
+ * A calendar file with this one event. uid: the same each time for one guest, and SEQUENCE
+ * counts up with time (minutes), so adding it again after the host changes the date, time or
+ * place replaces the old entry rather than adding a second one (M11, D-54).
+ */
 export function calendarFile(e: CalendarEvent, uid: string, nowMs: number): string {
   const t = eventTimes(e);
   const lines = [
@@ -136,6 +140,8 @@ export function calendarFile(e: CalendarEvent, uid: string, nowMs: number): stri
     'BEGIN:VEVENT',
     `UID:${uid}@localites.ca`,
     `DTSTAMP:${stamp(nowMs)}`,
+    `LAST-MODIFIED:${stamp(nowMs)}`,
+    `SEQUENCE:${Math.floor(nowMs / 60_000)}`,
     ...(t.allDay
       ? [`DTSTART;VALUE=DATE:${day(t.start)}`, `DTEND;VALUE=DATE:${day(t.end)}`]
       : [`DTSTART:${stamp(t.start)}`, `DTEND:${stamp(t.end)}`]),

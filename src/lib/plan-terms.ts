@@ -68,6 +68,8 @@ export const TOO_FAST = 'You’re going a bit fast. Please wait a minute and try
 export const PLAN_REFUSALS: Record<string, string> = {
   LP100: 'That can’t be changed.',
   LP102: 'This event is cancelled, so it can’t be changed.',
+  LP189: 'Only a cancelled event can be deleted. Cancel it first.',
+  LP190: 'The businesses you’d marked booked are told about the cancellation in their morning summary. You can delete the event a day after cancelling it.',
   LP103: 'That kind of event isn’t offered any more. Please choose another.',
   LP104: 'Localites doesn’t cover that town yet. Please choose another.',
   LP105: 'Choose a date in the last 60 days or the next 3 years.',

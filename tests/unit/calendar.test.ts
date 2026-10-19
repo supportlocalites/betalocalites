@@ -36,6 +36,10 @@ describe('calendar', () => {
     expect(f).toContain('UID:abc@localites.ca');
     expect(f.split('\r\n').every((line) => new TextEncoder().encode(line).length <= 75)).toBe(true);
   });
+  it('a later file for the same guest has a higher SEQUENCE, so adding it again updates the entry (M11)', () => {
+    const seq = (f: string) => Number(/SEQUENCE:(\d+)/.exec(f)?.[1]);
+    expect(seq(calendarFile(party, 'abc', Date.UTC(2026, 9, 15)))).toBeGreaterThan(seq(calendarFile(party, 'abc', Date.UTC(2026, 9, 14))));
+  });
   it('long titles with accents and emoji fold by bytes, never mid-letter; a lone line break is escaped', () => {
     const f = calendarFile({ ...party, title: 'Fête 🎉 '.repeat(20), details: 'a\rb' }, 'abc', 0);
     expect(f.split('\r\n').every((line) => new TextEncoder().encode(line).length <= 75)).toBe(true);

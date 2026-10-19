@@ -1,4 +1,4 @@
-import { data, Form, Link, useSearchParams } from 'react-router';
+import { data, Form, Link, redirect, useSearchParams } from 'react-router';
 import { cloudflareContext, memberContext } from '@/app/context';
 import { SiteHeader } from '@/components/SiteHeader';
 import { isUuid } from '@/lib/ids.mjs';
@@ -16,8 +16,9 @@ import {
   timeRange,
   whenWords,
 } from '@/lib/plan-terms';
-import { eventPlan, type PlanRow } from '@/server/events.server';
-import { found, todayIso } from '@/server/plan-pages.server';
+import { TOO_FAST } from '@/lib/plan-terms';
+import { deleteCancelledEvent, eventPlan, type PlanRow } from '@/server/events.server';
+import { found, refusal, todayIso, tooFast } from '@/server/plan-pages.server';
 import type { Route } from './+types/event-plan';
 import { SquarePhoto } from '@/components/SquarePhoto';
 import styles from './plan.module.css';
@@ -40,6 +41,22 @@ export async function loader({ params, context }: Route.LoaderArgs) {
   return { plan: await found(eventPlan(env, member.userId, params.id)), today: todayIso() };
 }
 
+/** M10 (D-54): deleting a cancelled event, from its plan (which can say why not, yet). */
+export async function action({ request, params, context }: Route.ActionArgs) {
+  if (!isUuid(params.id)) throw data(null, { status: 404 });
+  const member = context.get(memberContext);
+  const { env } = context.get(cloudflareContext);
+  if ((await request.formData()).get('intent') !== 'delete') throw data(null, { status: 400 });
+  if (await tooFast(env, member.userId)) return data({ error: TOO_FAST }, { status: 429 });
+  try {
+    await deleteCancelledEvent(env, member.userId, params.id);
+  } catch (err) {
+    const { error, status } = refusal(err);
+    return data({ error }, { status });
+  }
+  return redirect('/events?deleted=1');
+}
+
 /** The notice after a change. Names come from the plan itself (the address carries only a row id or web address). */
 function useNotice(rows: PlanRow[]): string | null {
   const [params] = useSearchParams();
@@ -58,6 +75,12 @@ function useNotice(rows: PlanRow[]): string | null {
   const back = row('back');
   if (back) return `${back.name} is back on your plan as Considering.`;
   const added = params.get('added') ? rows.find((r) => r.slug === params.get('added')) : undefined;
+  if (params.has('copied')) {
+    const n = Number(params.get('copied')) || 0;
+    return n > 0
+      ? `Copy saved, with ${n === 1 ? 'its business' : `${n} businesses`} as Considering. They aren’t told.`
+      : 'Copy saved.';
+  }
   if (params.has('created')) return added ? `Event saved. Added ${added.name} as Considering. They aren’t told.` : 'Event saved.';
   if (added) return `Added ${added.name} as Considering. They aren’t told.`;
   if (params.has('saved')) return 'Saved.';
@@ -80,7 +103,7 @@ const ages = (min: number | null, max: number | null) =>
         ? `up to ${max}`
         : null;
 
-export default function EventPlan({ loaderData }: Route.ComponentProps) {
+export default function EventPlan({ loaderData, actionData }: Route.ComponentProps) {
   const { plan, today } = loaderData;
   const { event, rows, ideas } = plan;
   const notice = useNotice(rows);
@@ -148,7 +171,8 @@ export default function EventPlan({ loaderData }: Route.ComponentProps) {
                   <div className={styles.rowBody}>
                     <div className={styles.rowHead}>
                       <BusinessName row={r} />
-                      <span className={styles.pill}>{STATUS_WORDS.booked}</span>
+                      {/* M10 (D-54): a cancelled event's booking was, not is. */}
+                      <span className={styles.pill}>{cancelled ? 'You’d marked this booked' : STATUS_WORDS.booked}</span>
                     </div>
                     {r.category && <span className={styles.meta}>{r.category}</span>}
                     {!r.listed && <span className={styles.meta}>No longer listed on Localites. It stays here as your own record.</span>}
@@ -270,7 +294,38 @@ export default function EventPlan({ loaderData }: Route.ComponentProps) {
           )}
           {step === 'settled' && <p>Everything you’ve marked is here. Arrange the details directly with each business.</p>}
           {step === 'passed' && <p>This event has passed.</p>}
-          {step === 'cancelled' && <p>You cancelled this event.</p>}
+          {step === 'cancelled' && (
+            // M10, C10 (D-54): tell guests, start again from a copy, or delete it.
+            <>
+              <p>You cancelled this event. The businesses you’d marked booked were told.</p>
+              <div className={styles.actions}>
+                <Link to={`${base}/tell-guests`} className="button button-secondary">
+                  Let your guests know
+                </Link>
+                <Link to={`/events/new?copy=${event.id}`} className="button button-secondary">
+                  Copy this event
+                </Link>
+              </div>
+              <details open={Boolean(actionData?.error)}>
+                <summary className="text-link">Delete this event</summary>
+                <p className="muted">
+                  Its plan, guest list, replies, questions and updates are deleted, and your guests’ links stop working (they won’t see
+                  that it was cancelled). This can’t be undone.
+                </p>
+                {actionData?.error && (
+                  <p className="notice" role="alert">
+                    {actionData.error}
+                  </p>
+                )}
+                <Form method="post">
+                  <input type="hidden" name="intent" value="delete" />
+                  <button type="submit" className="button button-secondary">
+                    Yes, delete it
+                  </button>
+                </Form>
+              </details>
+            </>
+          )}
         </section>
 
         {open && !event.passed && (
