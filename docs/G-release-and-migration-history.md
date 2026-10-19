@@ -31,6 +31,45 @@ Every release and every database migration, in order. Appended before each deplo
 
 ## Releases
 
+### 2026-10-19 — The business page, Messages, the event page and the invitation (D-58)
+
+**Stage:** 1, 2A, 2B, 4 (E §4.1 to §4.6)
+**What changed (plain English):** the three approved mock-ups are built. **A business's page:**
+photos across the top (each whole), the name with its $–$$$ cost and rating, About, Services with
+**no prices** (gone from the owner's and team's editors too; prices set before stay stored,
+unseen), reviews, and a dark panel to Message (or Inquire), shortlist, save as favourite or add to
+one of your events; on phones a bar at the bottom. Where shows the town until the map (step 3).
+**Messages:** By event, Most recent, Unread; on computers the open conversation beside the list.
+**An event's page:** a band (kind, date, time, town, guests), its name with Booked, Considering
+and Guests coming, tabs Businesses, Guests, Updates, the businesses as cards, "Still to find",
+the guests in short beside it. **Message all** (`/events/<id>/message-all`): the same words to
+each chosen business on Localites from the Considering list (up to 10 at a time), each in its own
+conversation about the event, through the same step as messaging one (the same limits, blocks and
+emails). **The invitation:** a framed card, the host named once ("Host:" under When and Where),
+"the host" everywhere else, the moon and sun.
+**Migrations applied:** none.
+**Destructive?** No.
+**Tests run:** every database check file; unit tests 209 of 209; messages 147 of 147 (new: the
+three views, the list beside a conversation, Message all); event planning 145 of 145 (one check of
+how fast changes are slowed failed once on a busy machine and passed on its own); guests 47 of 47,
+guests part 2 34 of 34, look 788 of 788 (every page in both looks); for the business page also
+admin access 43, analytics 53, browse 33, claiming 74, language check 40, owner editing 55, round
+4 28, round 5a 36, photos 67.
+**Security tests:** another person can't open or send from someone else's Message all (404); a
+business not on Localites can't be chosen; a business that blocked the person is skipped and
+named, the rest still go; the same words twice in a moment aren't sent again or called sent; each
+business sees only its own message, never who else was messaged; the Messages list shows an
+event's name only to its own host.
+**Independent review before push:** fixed: if something fails part-way, what was already sent is
+still emailed and the person is told which weren't sent; a double send isn't reported as sent;
+the page says an existing conversation moves to this event. Checked fine: access, limits, the
+free plan's request count (about 30 for 10 businesses, under 50).
+**Existing functionality affected:** the Explore-style list of photos on a business's page is now
+"See all photos"; the event plan's "Businesses people often need" is "Still to find".
+**How to roll back:** with the next update.
+**Approved by:** the product owner, 19 October 2026 ("approved the three new mock ups - push to
+website"; D-58).
+
 ### 2026-10-19 — Browse local, step 2 of the redesign (D-56, D-57)
 
 **Stage:** 1, 2A (E §4.1, §4.2)
