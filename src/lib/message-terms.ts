@@ -6,7 +6,7 @@
 export const MESSAGE_LIMITS = {
   body: 5000,
   /** New conversations one person may start in a day (keeps a business's inbox free of spam). */
-  conversationsPerDay: 20,
+  conversationsPerDay: 30, // 20 until D-56 (the owner, 19 October 2026)
   /** Messages one person may send in a day, across all conversations. */
   messagesPerDay: 200,
 } as const;
