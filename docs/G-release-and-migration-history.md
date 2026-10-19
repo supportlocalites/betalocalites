@@ -31,6 +31,39 @@ Every release and every database migration, in order. Appended before each deplo
 
 ## Releases
 
+### 2026-10-19 — Addresses, the map and Message all from the shortlist (D-56, D-57 step 3)
+
+**Stage:** 1, 2B (E §4.1, §4.3, §7)
+**What changed (plain English):** a business's owner or a manager sets its street and number
+(`/vendors/<slug>/address`, linked from Edit your listing); the team can too, on the listing's
+page. **Hide my street number:** only the street and town show, the number isn't kept from then
+on, and the pin is near the street, marked "Approximate location". No address: listed by its
+town, not on the map. Each business's page has a map (OpenStreetMap, free) and Directions;
+Browse local has **List / Map**: the map beside a smaller list, "Only businesses that share an
+address are on the map", and how many are listed by their town. The shortlist bar has
+**Message all** (`/shortlist/message`), through the same step as messaging one.
+**Migrations applied:** `0054_business_addresses.sql`
+**Destructive?** No: six columns and their checks, one more owner-change flag.
+**Tests run:** every database check file (0054: 16); unit tests 209 of 209; new browser suite
+`addresses.mjs` 36 of 36; look 836 of 836 (the map view, the address page, both Message all pages,
+in both looks); browse 33, owner editing 55, round 5b 36, messages 147, event planning 145,
+claiming 74, admin access 43, language check 40. The map's pictures can't load where the tests
+run, so the maps were checked for layout, not for their streets.
+**Security tests:** staff, a customer and another business's owner can't set an address; signed
+out is sent to sign in; a hidden number is never sent to the address search, shown, put in
+directions or kept in the change's history; the team's undo brings back the street, never the
+number or its exact pin; a business owner can't use the team's page; Message all from the
+shortlist uses only the person's own shortlist and only businesses on Localites.
+**Independent review before push:** fixed: the change's history and the team's email kept a
+hidden number, and an undo could bring it back (now: no copy, and undo refuses); the database
+refuses an exact pin on a hidden number; the address search is asked only when the address
+changed, about once a second for the whole site, and when it doesn't answer nothing is saved and
+the owner is told so; the team's form says when the business chose to hide its number; the
+privacy policy names OpenStreetMap and Directions.
+**Existing functionality affected:** the business page's Where box shows the address and map.
+**How to roll back:** with the next update.
+**Approved by:** the product owner, 19 October 2026 ("approve step 3"; "Never on Localites").
+
 ### 2026-10-19 — The business page, Messages, the event page and the invitation (D-58)
 
 **Stage:** 1, 2A, 2B, 4 (E §4.1 to §4.6)

@@ -89,6 +89,12 @@
   border-bottom: var(--hairline) solid var(--color-line-soft);
 }
 
+/* Long words (an address, a web address) wrap rather than widen the page on a phone. */
+.row > * {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
 .rowName {
   font-family: var(--font-display);
   font-size: var(--text-title-3);
