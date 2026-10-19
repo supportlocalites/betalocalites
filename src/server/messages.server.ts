@@ -408,8 +408,13 @@ export async function messageAll(env: ServerEnv, userId: string, eventId: string
   const result: MessageAllResult = { sent: [], sentTo: [], notSent: [] };
   for (const [i, b] of chosen.entries()) {
     try {
-      result.sent.push(await startConversation(env, userId, b.slug, { body, eventId }));
-      result.sentTo.push(b.name);
+      const written = await startConversation(env, userId, b.slug, { body, eventId });
+      // The same words a moment ago (Send pressed twice): already there, not sent again.
+      if (written.again) result.notSent.push({ name: b.name, why: 'You sent them this a moment ago.' });
+      else {
+        result.sent.push(written);
+        result.sentTo.push(b.name);
+      }
     } catch (err) {
       if (err instanceof PlanCapped) {
         for (const rest of chosen.slice(i)) result.notSent.push({ name: rest.name, why: err.message });
@@ -417,7 +422,14 @@ export async function messageAll(env: ServerEnv, userId: string, eventId: string
       }
       if (err instanceof PlanRefused) result.notSent.push({ name: b.name, why: err.message });
       else if (err instanceof PlanNotFound) result.notSent.push({ name: b.name, why: 'It can’t be messaged at the moment.' });
-      else throw err;
+      else {
+        // Something went wrong part-way (independent review): those already sent still get their
+        // emails, and the person is told plainly which weren't sent.
+        console.error('message all stopped:', err instanceof Error ? err.message : err);
+        const why = 'Something went wrong, so it wasn’t sent. Please try again.';
+        for (const rest of chosen.slice(i)) result.notSent.push({ name: rest.name, why });
+        break;
+      }
     }
   }
   return result;

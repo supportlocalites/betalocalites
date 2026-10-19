@@ -174,7 +174,7 @@ export default function EventPlan({ loaderData, actionData }: Route.ComponentPro
 
         <div className={styles.evGrid}>
           <div className={styles.evMain}>
-            <p className="muted">{when}</p>
+            {(cancelled || event.passed) && <p className="muted">{when}</p>}
 
             {booked.length > 0 && (
               <section aria-labelledby="booked" className={styles.evSection}>
@@ -185,7 +185,7 @@ export default function EventPlan({ loaderData, actionData }: Route.ComponentPro
                       {r.listed ? <SquarePhoto photo={r.photo} alt="" size="profile" className={styles.evPhoto} /> : null}
                       <div className={styles.evCardBody}>
                         <span className={styles.evKind}>
-                          {[r.category, cancelled ? 'You’d marked this booked' : STATUS_WORDS.booked].filter(Boolean).join(' · ')}
+                          {[r.category, cancelled ? 'You’d marked this booked' : 'Booked'].filter(Boolean).join(' · ')}
                         </span>
                         <h3 className={styles.evName}>
                           <BusinessName row={r} />

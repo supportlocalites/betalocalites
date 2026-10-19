@@ -107,6 +107,9 @@ export default function MessageAll({ loaderData, actionData }: Route.ComponentPr
             <p>
               {`Each business gets your words in its own conversation, about ${event.name} on ${shortDate(event.date, today)}. They see your name, the date, the town and about how many guests; never your event’s name, your budget or your notes, and never who else you messaged.`}
             </p>
+            <p className="muted">
+              If you already have a conversation with one of them, your message goes there, and that conversation will be about this event.
+            </p>
             {actionData?.error && (
               <p className="notice" role="alert">
                 {actionData.error}

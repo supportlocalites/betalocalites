@@ -561,6 +561,11 @@ text = words(r.body);
 check('a business that blocked them is skipped, said plainly; the rest still go',
   r.status === 200 && text.includes(`Sent to ${W.name}`) && text.includes(`${V.name}: This conversation is blocked`) && (await countFrom()) === before5e + 1,
   `${r.status} ${text.slice(text.indexOf('Not sent'), text.indexOf('Not sent') + 120)}`);
+before5e = await countFrom();
+r = await page(ALL, { cookie: cookie.a, method: 'POST', form: [['body', `Second note ${run}`], ['slug', W.slug]] });
+check('…sent again a moment later (two taps): not sent twice, and not called “sent”',
+  r.status === 200 && words(r.body).includes(`${W.name}: You sent them this a moment ago.`) && !words(r.body).includes('Sent to') && (await countFrom()) === before5e,
+  String(r.status));
 await page(BIZ_THREAD, { cookie: cookie.o, method: 'POST', form: { intent: 'unblock' } });
 
 // ------------------------------------------------------------------ 6. Leaving

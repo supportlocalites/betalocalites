@@ -62,8 +62,8 @@ export function EventTop({
             ] as const
           ).map(([label, n]) => (
             <div key={label}>
-              <dd>{String(n).padStart(2, '0')}</dd>
               <dt>{label}</dt>
+              <dd>{String(n).padStart(2, '0')}</dd>
             </div>
           ))}
         </dl>
