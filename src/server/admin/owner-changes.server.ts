@@ -223,6 +223,8 @@ export async function removeOwner(
         for update of m`);
       if (!m) throw new OwnerChangeConflict('This business has no owner on Localites.');
       await tx.execute(sql`update vendor_member set ended_at = now() where id = ${m.memberId}`);
+      // A page that owner hid stays down, now as the team's decision (D-54): no next owner can show it.
+      await tx.execute(sql`update vendor set owner_hidden_at = null where id = ${vendorId}`);
       if (v.claimStatus !== 'unclaimed') {
         await tx.execute(sql`update vendor set claim_status = 'unclaimed' where id = ${vendorId}`);
         await tx.execute(sql`

@@ -4,7 +4,8 @@ import { SiteHeader } from '@/components/SiteHeader';
 import { shareMeta } from '@/lib/meta';
 import { suggestionInput } from '@/server/suggestion-input';
 import { hasSessionCookie, loadSession } from '@/server/auth/session.server';
-import { notifyTeam, saveSuggestion } from '@/server/suggestions.server';
+import { connectionFingerprint, notifyTeam, saveSuggestion } from '@/server/suggestions.server';
+import { torontoDate } from '@/lib/activity';
 import { addressKey, visitor } from '@/server/visitor.server';
 import type { Route } from './+types/suggest';
 import { cleanText } from '@/lib/clean-text';
@@ -52,9 +53,15 @@ export async function action({ request, context }: Route.ActionArgs) {
   const signedIn = hasSessionCookie(request) ? await loadSession(request, env).catch(() => null) : null;
   for (const c of signedIn?.setCookies ?? []) headers.append('Set-Cookie', c);
   const userId = signedIn?.session?.user.id ?? null;
-  const result = await saveSuggestion(env, parsed.data, who.id, userId);
+  const connection = await connectionFingerprint(env, addressKey(request), torontoDate(new Date()));
+  const result = await saveSuggestion(env, parsed.data, who.id, userId, connection);
   if (!result.saved) {
-    const error = result.reason === 'daily_limit' ? 'We’ve had a lot of suggestions today. Please try again tomorrow.' : LIMITED;
+    const error =
+      result.reason === 'daily_limit'
+        ? 'We’ve had a lot of suggestions today. Please try again tomorrow.'
+        : result.reason === 'connection_limit'
+          ? 'That’s the most suggestions from one place in a day. Thank you! Please send more tomorrow.'
+          : LIMITED;
     return data({ error, errors: {} as Record<string, string> }, { status: 429, headers });
   }
   // The email to the team happens after the person sees "Thanks"; its outcome is recorded.

@@ -110,6 +110,20 @@ their account), everyone else on that business's team leaves too and open invita
 cancelled. Limits: 10 people besides the owner, 20 invitations a day. Joining, removing,
 inviting and cancelling are all in `audit_log`.
 
+**Stepping back (D-54, migration 0050).** On the same page, and only as its current owner, the
+owner can: **hide** the page (unlisted, new messages paused; `owner_hidden_at`) and show it
+again, but never show a page the Localites team took down, and any status change by the team
+replaces the owner's hiding; **hand the business** to someone on its team now (they become owner,
+the old owner stays on as a manager, one owner at a time; the new owner is emailed; conversations
+stay with the business, as the team is the same; at most 5 a day per business, never to a suspended
+account); or, with nobody else on the team, **take it off
+Localites** (archived and unclaimed, their place on it ended, its conversations end as when a team
+ends). A manager or staff member can **leave** a team from My business; an owner can't (they hand
+over first). Every step is in `audit_log`, and hiding or taking off also in `status_change` as the
+business's own act. Someone on a business's team sees its public page as theirs (no Message, Save
+or Add to event; the database already refuses messaging your own business, LP108), and a
+conversation they had with it as a customer before joining says so instead of "the business left".
+
 **Built (18 October 2026, migration 0036, D-50, ADR-033): words are checked before they show.**
 An owner's or manager's save whose words the language check flags is held whole and written to
 nothing until the team puts it live (as the owner's own save) or declines it; the owner can
@@ -143,7 +157,7 @@ grants more, and every admin action is recorded in `audit_log`.
 | Suggested kinds of business per event type (D-43) | — | R (on own plan) | — | — | R C U X |
 | Featured placements (D-43) | — | Which businesses only, for current placements of published businesses, at most 3 per kind of event, on own plan; never the note | — | — | R C; end early (no edit, no delete) |
 | Activity totals (seen in search, visits, taps, saves, inquiries, messages; §7a) | — | — | R (own; the owner and managers, when the team has switched the Analytics page on) | R (own, same) | R (detail, logged) |
-| Suggest a business (D-25) | C (rate-limited) | C; R (own, from Stage 2) | — | — | R U |
+| Suggest a business (D-25) | C (rate-limited; 10 a calendar day from one connection) | C; R (own, from Stage 2) | — | — | R U |
 
 ### 4.2 Consumer planning (Stage 2)
 
@@ -535,7 +549,7 @@ account exists, and detailed activity records kept for year-over-year reports (D
 | Published reviews | While the listing exists | **Built (migration 0031):** the author is shown as *"A Localites member"* if they delete their account, and a review still waiting is withdrawn; a review only shows while the business is listed. A declined review's words are erased 30 days after the decision (**built**, migration 0046, D-54), and a review its author withdrew 30 days after they did (0047) |
 | Guest phone numbers and emails (Stage 4) | Until 90 days after the event | Erased (**built**, the morning job, migration 0033). Guest names and their replies stay with the event so the host can look back, as do group-link replies (a name, a reply, a note) and guests' answers to the host's questions (part 2), which may be things like allergies; the guest list goes with the host's account |
 | Detailed activity records (§7a) | No deletion date (D-22), for year-over-year reports | Daily totals are also kept. If the database nears its free limit, older detail moves to archive storage. Unlinked from anyone who deletes their account |
-| Suggested businesses (D-25) | Kept | On a declined suggestion, the phone number or email typed in is erased after 1 year (**built**, migration 0041); the count stays for reports. The "it's listed" email is sent only within a year of the team's decision, since its record is deleted after a year |
+| Suggested businesses (D-25) | Kept | On a declined suggestion, the phone number or email typed in is erased after 1 year (**built**, migration 0041); the keyed fingerprint of the connection it came from (for the limit of 10 a day from one connection, D-54; a new key each day, never the address) is erased after 2 days (**built**, migration 0050); the count stays for reports. The "it's listed" email is sent only within a year of the team's decision, since its record is deleted after a year |
 | Email delivery log | 1 year | Deleted (**built**, the morning run, migration 0041) |
 | Audit log | 2 years | Deleted (**built**, migration 0041), except an entry a business page's own history points at (owners' saves, the latest analytics switch), kept as that history. The log stays append-only: only the morning run can delete, and only entries over 2 years old |
 | Words of a message removed after its conversation was reported (migrations 0026, 0027: only messages there when it was reported) | With the report (deleting reports isn't built yet) | Read only by the team, through the report |

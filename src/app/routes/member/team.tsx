@@ -7,7 +7,18 @@ import { pageMeta } from '@/lib/meta';
 import { emailInput } from '@/server/member-input';
 import { afterwards, siteUrl } from '@/server/plan-pages.server';
 import { TEAM_ROLES, type TeamRole } from '@/lib/team-terms';
-import { cancelInvite, inviteToTeam, removeFromTeam, sendInvite, teamFor, TeamRefused } from '@/server/team.server';
+import {
+  cancelInvite,
+  emailNewOwner,
+  handOver,
+  inviteToTeam,
+  removeFromTeam,
+  sendInvite,
+  setOwnerHidden,
+  takeOffLocalites,
+  teamFor,
+  TeamRefused,
+} from '@/server/team.server';
 import type { Route } from './+types/team';
 import styles from './plan.module.css';
 
@@ -58,6 +69,16 @@ export async function action({ request, params, context }: Route.ActionArgs) {
       afterwards(ctx, sendInvite(env, siteUrl(env, request), invite, email.data, role, member.name), 'team invitation email');
       return redirect(`/vendors/${params.slug}/team?invited=1`);
     }
+    // B6, M18 (D-54): stepping back.
+    if (intent === 'hide' || intent === 'show') {
+      await setOwnerHidden(env, member.userId, params.slug, intent === 'hide');
+      return redirect(`/vendors/${params.slug}/team?${intent === 'hide' ? 'hidden' : 'shown'}=1`);
+    }
+    if (intent === 'take-off') {
+      if (form.get('confirm') !== 'yes') return data({ error: 'Tick the box to confirm.' }, { status: 400 });
+      await takeOffLocalites(env, member.userId, params.slug);
+      return redirect('/business?off=1');
+    }
     const id = String(form.get('id') ?? '');
     if (!isUuid(id)) throw data(null, { status: 400 });
     if (intent === 'cancel') {
@@ -67,6 +88,11 @@ export async function action({ request, params, context }: Route.ActionArgs) {
     if (intent === 'remove') {
       await removeFromTeam(env, member.userId, params.slug, id);
       return redirect(`/vendors/${params.slug}/team?removed=1`);
+    }
+    if (intent === 'hand-over') {
+      const handed = await handOver(env, member.userId, params.slug, id);
+      afterwards(ctx, emailNewOwner(env, handed, member.name, siteUrl(env, request)), 'new owner email');
+      return redirect('/business?handed=1');
     }
   } catch (err) {
     if (err instanceof TeamRefused) {
@@ -83,10 +109,13 @@ const NOTICES: Record<string, string> = {
   invited: 'Invitation sent. It works for 7 days, only for that email address.',
   cancelled: 'Invitation cancelled.',
   removed: 'Removed from your team. They no longer have access to this business.',
+  hidden: 'Your page is hidden. Nobody can find it or message you until you show it again.',
+  shown: 'Your page is showing again.',
 };
 
 export default function Team({ loaderData, actionData }: Route.ComponentProps) {
   const { vendor, members, invites } = loaderData;
+  const others = members.filter((m) => m.role !== 'owner');
   const busy = useNavigation().state !== 'idle';
   const [params] = useSearchParams();
   const notice = Object.keys(NOTICES).find((k) => params.has(k));
@@ -191,6 +220,85 @@ export default function Team({ loaderData, actionData }: Route.ComponentProps) {
               {busy ? 'Sending…' : 'Send invitation'}
             </button>
           </Form>
+        </section>
+
+        {/* B6, M18 (D-54): the owner steps back. */}
+        <section className={styles.section} aria-labelledby="step-back">
+          <h2 id="step-back" className="label">
+            Stepping back
+          </h2>
+          {vendor.ownerHidden ? (
+            <Form method="post">
+              <p className="muted">You hid your page. Nobody can find it or message you. Messages so far are kept.</p>
+              <input type="hidden" name="intent" value="show" />
+              <button type="submit" className="button button-secondary" disabled={busy}>
+                Show my page again
+              </button>
+            </Form>
+          ) : (
+            vendor.status === 'published' && (
+              <details>
+                <summary className={styles.textButton}>Hide my page for now</summary>
+                <p className="muted">
+                  Your page won’t show on Localites and nobody can send you new messages until you show it again. Messages so far, your
+                  reviews and your team are kept. Events that marked you booked still show your name.
+                </p>
+                <Form method="post">
+                  <input type="hidden" name="intent" value="hide" />
+                  <button type="submit" className="button button-secondary" disabled={busy}>
+                    Yes, hide my page
+                  </button>
+                </Form>
+              </details>
+            )
+          )}
+          {others.length > 0 ? (
+            <details>
+              <summary className={styles.textButton}>Hand the business to someone on your team</summary>
+              <p className="muted">
+                They become the owner and can change the team. You stay on as a manager, and can leave the team afterwards from My
+                business. We’ll email them to let them know. Only they can hand it back. Someone whose account is suspended can’t be
+                chosen.
+              </p>
+              <Form method="post">
+                <input type="hidden" name="intent" value="hand-over" />
+                <div className="field">
+                  <label htmlFor="new-owner" className="field-label">
+                    New owner
+                  </label>
+                  <select id="new-owner" name="id" className="input" required>
+                    {others.map((m) => (
+                      <option key={m.memberId} value={m.memberId}>
+                        {m.name} ({m.role === 'manager' ? 'Manager' : 'Staff'})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <button type="submit" className="button button-secondary" disabled={busy}>
+                  Yes, hand it over
+                </button>
+              </Form>
+            </details>
+          ) : (
+            <details>
+              <summary className={styles.textButton}>Take my business off Localites</summary>
+              <p className="muted">
+                There’s nobody else on your team to hand it to. If you take it off, its page goes, you’re no longer its owner, and its
+                conversations end (customers can still read them). Events that marked it booked keep its name. This can’t be undone
+                here: to come back, email supportlocalites@gmail.com and we’ll add it again. If you’d rather someone else run it, invite
+                them first, then hand it over.
+              </p>
+              <Form method="post">
+                <input type="hidden" name="intent" value="take-off" />
+                <label className={styles.choice}>
+                  <input type="checkbox" name="confirm" value="yes" required /> I understand, take {vendor.name} off Localites
+                </label>
+                <button type="submit" className="button button-secondary" disabled={busy}>
+                  Take it off Localites
+                </button>
+              </Form>
+            </details>
+          )}
         </section>
       </main>
     </>

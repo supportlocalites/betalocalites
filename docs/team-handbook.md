@@ -70,8 +70,15 @@ same business automatically.
   with a reason. Whoever suggested it signed in is emailed once it's listed.
 - **Inquiries:** people asking about a business that hasn't joined. Contact the business and invite
   it to claim its page; the people who asked are emailed if it joins.
-- **"Please remove my business":** if the request comes from the business (check as for claims),
-  archive the listing on its team page, with the reason.
+- **"Please remove my business":** owners can now do this themselves (Team, then **Stepping back**):
+  hide the page for a while, hand the business to someone on its team, or, with nobody else on the
+  team, take it off Localites (the listing is archived and unclaimed). If they ask you instead and
+  the request comes from the business (check as for claims), archive the listing on its team page,
+  with the reason. A page its owner hid shows "The owner hid the page." in its history; anything
+  you change on its status replaces the owner's hiding.
+- **A business that left and wants to come back:** an archived listing can't be brought back. Check
+  it's them (as for claims), add it again as a new listing (it needs a new web address), and ask
+  them to claim it.
 - **"Something wrong with this listing":** check the business's own website, and correct the listing
   on its team page, or ask the owner to if it's claimed.
 - **Booking flags:** a business says someone marked it booked by mistake (the person has already

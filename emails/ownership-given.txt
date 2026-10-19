@@ -1,0 +1,10 @@
+Subject: You're now the owner of {{business}} on Localites
+
+Hi {{name}},
+
+{{from}} has handed {{business}} to you on Localites, so you're now its owner. You can edit its page, reply to its messages, and choose who else is on its team:
+{{link}}
+
+If you weren't expecting this, email supportlocalites@gmail.com.
+
+Localites

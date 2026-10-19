@@ -173,7 +173,15 @@ export default function Conversation({ loaderData: { thread, today, canAttach },
           <ReplyBox label={`Message ${vendor.name}`} busy={busy} canAttach={canAttach} />
         ) : (
           <p className="notice" role="status">
-            {vendor.rejoined ? (
+            {thread.ended && vendor.yourTeam ? (
+              // C6 (D-54): not "left Localites" when it's the person who now runs it.
+              <>
+                You’re on {vendor.name}’s team now, so this conversation from before has ended. You can still read it here.{' '}
+                <Link to="/business" className="text-link">
+                  My business
+                </Link>
+              </>
+            ) : vendor.rejoined ? (
               <>
                 This conversation has ended: {vendor.name} left Localites, and has since joined again.{' '}
                 <Link to={`/vendors/${vendor.slug}/message`} className="text-link">

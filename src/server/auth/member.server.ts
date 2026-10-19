@@ -14,9 +14,19 @@ export type Member = {
   lastName: string | null;
   email: string;
   accessToken: string;
+  /** On a business's team now (C6, D-54): the header offers My business. */
+  onTeam: boolean;
 };
 
-type Person = { name: string; firstName: string | null; lastName: string | null; email: string; closed: boolean; suspended: boolean };
+type Person = {
+  name: string;
+  firstName: string | null;
+  lastName: string | null;
+  email: string;
+  closed: boolean;
+  suspended: boolean;
+  onTeam: boolean;
+};
 
 /**
  * Our own record of a person (app_user), if they've finished joining. With a browser id,
@@ -27,7 +37,8 @@ export async function findPerson(env: ServerEnv, userId: string, visitorId: stri
     db.execute<Person>(sql`
       ${linkVisitor(visitorId, userId)}select display_name as name, given_name as "firstName", family_name as "lastName", email::text as email,
              deleted_at is not null as closed,
-             exists (select 1 from account_suspension s where s.user_id = app_user.id) as suspended
+             exists (select 1 from account_suspension s where s.user_id = app_user.id) as suspended,
+             exists (select 1 from vendor_member m where m.user_id = app_user.id and m.ended_at is null) as "onTeam"
       from app_user where id = ${userId}`),
   );
   return person ?? null;
@@ -89,6 +100,7 @@ export async function memberGate(request: Request, env: ServerEnv): Promise<{ me
     lastName: person.lastName,
     email: person.email,
     accessToken: session.accessToken,
+    onTeam: person.onTeam,
   };
   return { member, setCookies };
 }

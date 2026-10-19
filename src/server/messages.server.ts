@@ -352,7 +352,7 @@ export async function startConversation(
 
 export type PersonThread = {
   id: string;
-  vendor: { slug: string; name: string; photo: ListPhoto | null; left: boolean; paused: boolean; rejoined: boolean };
+  vendor: { slug: string; name: string; photo: ListPhoto | null; left: boolean; paused: boolean; rejoined: boolean; yourTeam: boolean };
   /** The conversation has ended (the business left Localites); see vendor.rejoined. */
   ended: boolean;
   status: 'open' | 'blocked_by_consumer' | 'blocked_by_vendor' | 'blocked_by_team';
@@ -377,12 +377,15 @@ export async function personThread(env: ServerEnv, userId: string, conversationI
           left: boolean;
           listed: boolean;
           rejoined: boolean;
+          yourTeam: boolean;
           ended: boolean;
           version: string;
         } & ListPhotoColumns
       >(sql`
         select c.id, c.status, c.event_id as "eventId", v.slug::text as slug, v.display_name as name,
                ${LEFT} as left, v.listing_status = 'published' as listed, ${REJOINED} as rejoined,
+               -- C6 (D-54): the person now runs (or works for) the business they wrote to.
+               exists (select 1 from vendor_member m where m.vendor_id = v.id and m.user_id = ${userId} and m.ended_at is null) as "yourTeam",
                c.ended_at is not null as ended, ${VERSION} as version,
                ${LIST_PHOTO_COLUMNS}
         from conversation c join vendor v on v.id = c.vendor_id
@@ -399,7 +402,7 @@ export async function personThread(env: ServerEnv, userId: string, conversationI
       const { photo } = withListPhoto(env, c, c.listed);
       return {
         id: c.id,
-        vendor: { slug: c.slug, name: c.name, photo, left: c.left, paused: !c.left && !c.listed, rejoined: c.rejoined },
+        vendor: { slug: c.slug, name: c.name, photo, left: c.left, paused: !c.left && !c.listed, rejoined: c.rejoined, yourTeam: c.yourTeam },
         ended: c.ended,
         status: c.status,
         version: c.version,

@@ -31,6 +31,52 @@ Every release and every database migration, in order. Appended before each deplo
 
 ## Releases
 
+### 2026-10-19 — Fixes from the scenario tests, round 5 part 1: stepping back from a business (D-54)
+
+**Stage:** 1, 2B (E §3)
+**What changed (plain English):** the owner's Team page has **Stepping back**: **Hide my page
+for now** (not listed, new messages paused, everything kept) and **Show my page again** (only a
+page the owner hid; a page the Localites team took down stays down); **Hand the business to
+someone on your team** (they become the owner and are emailed; the old owner stays on as a
+manager); and, only when nobody else is on the team, **Take my business off Localites** (after
+ticking a box: the listing is archived and unclaimed, the owner's place on it ends, its
+conversations end). Managers and staff can **Leave this team** from My business. Someone on a
+business's team sees its page as theirs (no Message, Save or Add to event; links to My business
+and editing), has **My business** in the header of account pages, and an old conversation they had with it as a
+customer says they're on its team now instead of "left Localites". One internet connection can
+suggest at most 10 businesses a calendar day (a keyed fingerprint of the connection, new each
+day, erased after 2 days; none is kept if the site has no secret key set). A business can change
+hands at most 5 times a day, never to someone whose account is suspended.
+**Migrations applied:** `0050_scenario_fixes_5a.sql`
+**Destructive?** No. Taking a business off Localites archives it, as the team's own archive does.
+**Tests run:** database checks 50 of 50 files (0050: 4); unit tests 198 of 198; new browser suite
+`scenario-fixes-5a.mjs` 36 of 36; business teams 39 of 39, owner editing 55 of 55, admin access 43
+of 43, suggestion emails 9 of 9, messages 133 of 133, round 3's suite 27 of 27, look 504 of 504.
+**Security tests:** only the current owner hides or hands over (a manager is refused), and a
+former owner, now a manager, can't take the business off; a page the Localites team took down
+can't be shown by the owner; hand-over only to someone on this business's team now (not another
+business's), at most 5 a day; the owner can't leave without handing over; someone not on a team
+can't leave it, staff and managers can; take-off refused while anyone else is on the team, and
+needs the confirm box; the 11th suggestion from one connection in a day is refused, another
+connection isn't. The fingerprint's 2-day erasure is checked in the database checks, not through
+the pages.
+**Independent review before push:** nothing serious; fixed before push: the fingerprint is kept
+only with a real secret key (otherwise it could be reversed); suggestions are saved one at a time
+so requests sent together can't pass the limits; the fingerprint erasure runs on its own, so
+another failure can't delay it; at most 5 hand-overs a day per business, never to a suspended
+account; two hand-overs at once, or accepting an invitation while the owner takes the business
+off, now wait for each other; the team removing an owner also ends that owner's hiding; the
+business page isn't kept by shared caches for signed-in visitors; wording ("we're emailing
+them"; "events that marked you booked"). **Known:** the business page treats a team member as a
+customer when their sign-in needs refreshing (about an hour after their last account page),
+until they open any account page; a manager who is handed the business keeps any conversation
+they started with it as a customer (as managers already did).
+**Existing functionality affected:** the team's status changes now clear an owner's hiding; the
+header gains My business for people on a team; the public business page asks Supabase who is
+signed in when the browser has a session (one extra call).
+**How to roll back:** with the next update.
+**Approved by:** the product owner, 19 October 2026 (D-54).
+
 ### 2026-10-19 — Fixes from the scenario tests, round 4 of 5: events and guests (D-54)
 
 **Stage:** 2A and 4 (E §4.6, §5)

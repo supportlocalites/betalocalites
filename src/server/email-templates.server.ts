@@ -34,6 +34,7 @@ import reviewReply from '../../emails/review-reply.txt?raw';
 import reportOutcome from '../../emails/report-outcome.txt?raw';
 import flagDecisionPerson from '../../emails/flag-decision-person.txt?raw';
 import flagDecisionBusiness from '../../emails/flag-decision-business.txt?raw';
+import ownershipGiven from '../../emails/ownership-given.txt?raw';
 import { uuidv7 } from '@/lib/ids.mjs';
 import { type Db, withDb } from './db.server';
 import { sendEmail, TEAM_ADDRESS } from './email.server';
@@ -89,6 +90,8 @@ const TEMPLATES = {
   reportOutcome,
   flagDecisionPerson,
   flagDecisionBusiness,
+  // Round 5 (D-54): a business handed to someone on its team.
+  ownershipGiven,
 } as const;
 export type TemplateName = keyof typeof TEMPLATES;
 
@@ -131,7 +134,8 @@ export async function emailPerson(
     | 'suggestion_listed'
     | 'review_reply'
     | 'report_outcome'
-    | 'flag_decision',
+    | 'flag_decision'
+    | 'ownership_given',
   subject: { type: string; id: string },
   content: { subject: string; text: string },
 ): Promise<void> {

@@ -33,6 +33,21 @@ export function readCookie(request: Request, name: string): string | undefined {
  */
 export const hasSessionCookie = (request: Request) => Boolean(readCookie(request, REFRESH));
 
+/**
+ * Who is signed in, for a public page that only adjusts what it shows (C6, D-54): the access
+ * token alone, checked with Supabase. Never refreshes (the new tokens couldn't be saved here);
+ * anything wrong is "nobody".
+ */
+export async function signedInUserId(request: Request, env: ServerEnv): Promise<string | null> {
+  const access = readCookie(request, ACCESS);
+  if (!access) return null;
+  try {
+    return (await getUser(env, access)).id;
+  } catch {
+    return null;
+  }
+}
+
 export type SignedIn = { user: AuthUser; accessToken: string; claims: TokenClaims };
 
 /** Who is signed in, if anyone, plus any cookies the response must set (a refresh or a sign-out). */

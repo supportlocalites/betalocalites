@@ -6,12 +6,13 @@ import { SiteHeader } from '@/components/SiteHeader';
 import { ReportLink, ReviewList } from '@/components/Reviews';
 import { VendorPage } from '@/components/VendorPage';
 import { cookieHeaders, viewTrack } from '@/server/activity.server';
-import { hasSessionCookie } from '@/server/auth/session.server';
+import { hasSessionCookie, signedInUserId } from '@/server/auth/session.server';
 import { isUuid } from '@/lib/ids.mjs';
 import { pageMeta, shareMeta } from '@/lib/meta';
 import { findRenamed, getVendor } from '@/server/catalog.server';
 import { withDb } from '@/server/db.server';
 import { publicReviews } from '@/server/reviews.server';
+import { teamRoleAt } from '@/server/team.server';
 import type { Route } from './+types/vendor';
 import styles from '@/components/VendorPage.module.css';
 
@@ -37,10 +38,16 @@ export async function loader({ request, params, context }: Route.LoaderArgs) {
   }
   const { id, ...vendor } = found;
   const reviews = await withDb(env, (db) => publicReviews(db, id));
+  // C6 (D-54): someone on this business's team sees it as theirs, not as a customer.
+  const userId = hasSessionCookie(request) ? await signedInUserId(request, env) : null;
+  const yours = userId ? await teamRoleAt(env, userId, id) : null;
   // A signed note of this page, for counting real visits and taps (ADR-030).
   const { track, setCookie } = await viewTrack(env, request, id);
   const origin = new URL(request.url).origin;
-  return data({ vendor, reviews, slug: params.slug, signedIn: hasSessionCookie(request), track, origin }, { headers: cookieHeaders(setCookie) });
+  const headers = new Headers(cookieHeaders(setCookie));
+  // What a signed-in visitor sees depends on who they are (C6): never kept by a shared cache.
+  if (hasSessionCookie(request)) headers.set('Cache-Control', 'private, no-store');
+  return data({ vendor, reviews, slug: params.slug, signedIn: hasSessionCookie(request), yours, track, origin }, { headers });
 }
 
 // The visitor cookie a new browser gets with the page (ADR-030).
@@ -82,7 +89,7 @@ function PlanNotice({ name }: { name: string }) {
   );
 }
 
-export default function VendorProfile({ loaderData: { vendor, reviews, slug, signedIn, track, origin } }: Route.ComponentProps) {
+export default function VendorProfile({ loaderData: { vendor, reviews, slug, signedIn, yours, track, origin } }: Route.ComponentProps) {
   const pageRef = useRef<HTMLElement>(null);
   const location = useLocation();
   const onTap = useVendorActivity(track, pageRef, listPlace(location.state), location.key);
@@ -92,8 +99,30 @@ export default function VendorProfile({ loaderData: { vendor, reviews, slug, sig
       <main className="page" ref={pageRef} onClickCapture={onTap}>
         <PlanNotice name={vendor.name} />
         <VendorPage vendor={vendor}>
+          {/* C6 (D-54): the business's own team sees what they can do, not the customer's buttons. */}
+          {yours && (
+            <section aria-labelledby="yours" className={styles.owner}>
+              <h2 id="yours" className="label">
+                This is your business
+              </h2>
+              <p className="muted">
+                You’re on {vendor.name}’s team, so this is how customers see your page. Messages, saving and adding to events are for
+                customers.
+              </p>
+              <div className={styles.contact}>
+                <Link to="/business" className="button button-secondary">
+                  My business
+                </Link>
+                {yours !== 'staff' && (
+                  <Link to={`/vendors/${slug}/edit`} className="button button-secondary">
+                    Edit your listing
+                  </Link>
+                )}
+              </div>
+            </section>
+          )}
           {/* Only here, not on the owner's edit page or preview (they share VendorPage). */}
-          {vendor.claimed && (
+          {vendor.claimed && !yours && (
             <section aria-labelledby="message" className={styles.owner}>
               <h2 id="message" className="label">
                 Questions?
@@ -119,24 +148,26 @@ export default function VendorProfile({ loaderData: { vendor, reviews, slug, sig
               </div>
             </section>
           )}
-          <section aria-labelledby="plan" className={styles.owner}>
-            <h2 id="plan" className="label">
-              Planning an event?
-            </h2>
-            <div className={styles.contact}>
-              <Link to={`/vendors/${slug}/add`} className="button button-secondary">
-                Add to event
-              </Link>
-              <Form method="post" action={`/vendors/${slug}/add`}>
-                <input type="hidden" name="intent" value="save" />
-                <input type="hidden" name="return" value="profile" />
-                <button type="submit" className="button button-secondary">
-                  Save
-                </button>
-              </Form>
-            </div>
-            <p className="muted">Saving and adding to an event are private. {vendor.name} isn’t told.</p>
-          </section>
+          {!yours && (
+            <section aria-labelledby="plan" className={styles.owner}>
+              <h2 id="plan" className="label">
+                Planning an event?
+              </h2>
+              <div className={styles.contact}>
+                <Link to={`/vendors/${slug}/add`} className="button button-secondary">
+                  Add to event
+                </Link>
+                <Form method="post" action={`/vendors/${slug}/add`}>
+                  <input type="hidden" name="intent" value="save" />
+                  <input type="hidden" name="return" value="profile" />
+                  <button type="submit" className="button button-secondary">
+                    Save
+                  </button>
+                </Form>
+              </div>
+              <p className="muted">Saving and adding to an event are private. {vendor.name} isn’t told.</p>
+            </section>
+          )}
           <section aria-labelledby="reviews" className={styles.owner}>
             <h2 id="reviews" className="label">
               Reviews
@@ -163,7 +194,7 @@ export default function VendorProfile({ loaderData: { vendor, reviews, slug, sig
                   This business manages its own listing on Localites. Something wrong? Email supportlocalites@gmail.com.
                 </p>
                 {/* Only a hint: the edit page itself checks who the owner is. */}
-                {signedIn && (
+                {signedIn && !yours && (
                   <p>
                     Your business?{' '}
                     <Link to={`/vendors/${slug}/edit`} className="text-link">

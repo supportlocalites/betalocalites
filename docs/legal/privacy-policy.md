@@ -64,7 +64,9 @@ keep it, and the choices you have. It applies to localites.ca and the emails we 
 ### When you suggest a business
 - The business's name and, if you know them, its website and a phone number or email. If
   you're signed in, the suggestion is linked to your account so we can tell you when the
-  business is listed.
+  business is listed. To stop one connection sending too many in a day, we keep a coded
+  fingerprint of your internet connection for that day (never the address itself), erased
+  after 2 days.
 
 ### If you run a business on Localites
 - Your business's details: name, description, contact details, photos and services. Most of this is public on your business page.
@@ -198,7 +200,7 @@ people in Quebec.]
 | Published reviews | While the business is listed |
 | A review the team declined, or one you withdrew | Its words are erased 30 days after the decision, or after you withdrew it |
 | Detailed activity records | With no set end date, for year-over-year reports. When you delete your account, they stay but are no longer linked to you. [Lawyer: please confirm this is acceptable, or advise a period.] |
-| Suggested businesses | The suggestion is kept; on a declined suggestion, the phone number or email typed in is erased after 1 year |
+| Suggested businesses | The suggestion is kept; on a declined suggestion, the phone number or email typed in is erased after 1 year; the fingerprint of the connection it came from is erased after 2 days |
 | Records of emails sent | 1 year |
 | The team's record of changes (audit log) | 2 years, except changes to a business's page, kept as that page's history while it's listed |
 | A reported message or file | With the report, so the team can look into it. A file goes 90 days after the team closes the report; the words of a reported message stay with the report [Lawyer: advise a period] |

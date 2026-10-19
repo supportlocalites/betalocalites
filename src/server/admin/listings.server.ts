@@ -311,7 +311,8 @@ export async function changeListingStatus(
       await tx.execute(sql`
         update vendor set listing_status = ${to},
                published_at = case when ${to} = 'published' then coalesce(published_at, now()) else published_at end,
-               archived_at = case when ${to} = 'archived' then now() else archived_at end
+               archived_at = case when ${to} = 'archived' then now() else archived_at end,
+               owner_hidden_at = null   -- the team's decision replaces the owner's hiding (D-54)
         where id = ${id}`);
       await tx.execute(sql`
         insert into status_change (id, subject_type, subject_id, field, from_status, to_status, actor_user_id, actor_kind, reason)

@@ -36,16 +36,17 @@ export async function refuseTeamMember(env: ServerEnv, userId: string, slug: str
  * "My business": the businesses this person runs, each with how many bookings are marked
  * coming up, and how many new messages this person hasn't read there (Stage 2B).
  */
-export async function myBusinesses(env: ServerEnv, userId: string): Promise<(MyBusiness & { comingUp: number; unread: number })[]> {
+export async function myBusinesses(env: ServerEnv, userId: string): Promise<(MyBusiness & { hidden: boolean; comingUp: number; unread: number })[]> {
   return withDb(env, async (db) => {
-    const businesses = await db.execute<MyBusiness>(sql`
+    const businesses = await db.execute<MyBusiness & { hidden: boolean }>(sql`
       select v.id, v.display_name as name, v.slug::text as slug, m.role, v.listing_status = 'published' as listed,
              v.listing_status = 'archived' as archived,
+             v.listing_status = 'unpublished' and v.owner_hidden_at is not null as hidden,
              exists (select 1 from vendor_analytics a where a.vendor_id = v.id and a.enabled) as analytics
       from vendor_member m join vendor v on v.id = m.vendor_id
       where m.user_id = ${userId} and m.ended_at is null
       order by v.display_name`);
-    const out: (MyBusiness & { comingUp: number; unread: number })[] = [];
+    const out: (MyBusiness & { hidden: boolean; comingUp: number; unread: number })[] = [];
     for (const b of businesses) {
       // Staff see no bookings (E §3: owners and managers); they read and reply to messages.
       const comingUp =

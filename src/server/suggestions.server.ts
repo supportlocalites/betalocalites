@@ -11,8 +11,23 @@ import { type SuggestionInput, teamEmail } from './suggestion-input';
 /** Suggest a business (D-25, ADR-027). Limits keep spam and the email budget in check. */
 export const PER_VISITOR_PER_HOUR = 5;
 export const ALL_VISITORS_PER_DAY = 100;
+/** One home connection a day (M22, D-54): fresh browsers can't use up everyone's 100. */
+export const PER_CONNECTION_PER_DAY = 10;
 
-export type SaveResult = { saved: true; id: string } | { saved: false; reason: 'visitor_limit' | 'daily_limit' };
+export type SaveResult = { saved: true; id: string } | { saved: false; reason: 'visitor_limit' | 'daily_limit' | 'connection_limit' };
+
+/**
+ * A fingerprint of the connection for today (M22): a keyed hash of the address key, never the
+ * address. A new key each day, and erased with its suggestion's after two days (0050).
+ */
+export async function connectionFingerprint(env: ServerEnv, addressKey: string, day: string): Promise<string | null> {
+  // Only with a real secret: without one the hash could be reversed, so nothing is kept (and no limit).
+  const secret = [env.ACTIVITY_KEY, env.INVITE_KEY].find((k) => k && k.length >= 32);
+  if (!secret) return null;
+  const key = await crypto.subtle.importKey('raw', new TextEncoder().encode(secret), { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']);
+  const mac = await crypto.subtle.sign('HMAC', key, new TextEncoder().encode(`localites-suggest:${day}:${addressKey}`));
+  return [...new Uint8Array(mac)].map((b) => b.toString(16).padStart(2, '0')).join('');
+}
 
 /** suggestedBy: the signed-in person, if any (D-25: they're emailed when the business is listed). */
 export async function saveSuggestion(
@@ -20,22 +35,28 @@ export async function saveSuggestion(
   input: SuggestionInput,
   visitorId: string,
   suggestedBy: string | null = null,
+  connection: string | null = null,
 ): Promise<SaveResult> {
-  return withDb(env, async (db) => {
-    const [counts] = await db.execute<{ visitor: number; today: number }>(sql`
+  return withDb(env, (db) => db.transaction(async (tx) => {
+    // One suggestion saved at a time, so requests sent together can't all pass the limits.
+    await tx.execute(sql`select pg_advisory_xact_lock(hashtextextended('localites.suggest', 0))`);
+    const [counts] = await tx.execute<{ visitor: number; today: number; connection: number }>(sql`
       select count(*) filter (where visitor_id = ${visitorId} and created_at > now() - interval '1 hour')::int as visitor,
-             count(*) filter (where created_at > now() - interval '1 day')::int as today
+             count(*) filter (where created_at > now() - interval '1 day')::int as today,
+             count(*) filter (where ${connection}::text is not null and connection_hash = decode(${connection}, 'hex'))::int as connection
       from vendor_suggestion where created_at > now() - interval '1 day'`);
     if ((counts?.visitor ?? 0) >= PER_VISITOR_PER_HOUR) return { saved: false, reason: 'visitor_limit' };
+    if ((counts?.connection ?? 0) >= PER_CONNECTION_PER_DAY) return { saved: false, reason: 'connection_limit' };
     if ((counts?.today ?? 0) >= ALL_VISITORS_PER_DAY) return { saved: false, reason: 'daily_limit' };
     const id = uuidv7();
-    await db.execute(sql`
-      insert into vendor_suggestion (id, business_name, website, contact, category_id, search_text, visitor_id, suggested_by)
+    await tx.execute(sql`
+      insert into vendor_suggestion (id, business_name, website, contact, category_id, search_text, visitor_id, suggested_by, connection_hash)
       values (${id}, ${input.businessName}, ${input.website}, ${input.contact},
               (select id from category where slug = ${input.category}), ${input.q}, ${visitorId},
-              (select u.id from app_user u where u.id = ${suggestedBy}::uuid and u.deleted_at is null))`);
-    return { saved: true, id };
-  });
+              (select u.id from app_user u where u.id = ${suggestedBy}::uuid and u.deleted_at is null),
+              case when ${connection}::text is null then null else decode(${connection}, 'hex') end)`);
+    return { saved: true, id } as const;
+  }));
 }
 
 /** Emails the team and records the outcome. Runs after the person has seen "Thanks". */

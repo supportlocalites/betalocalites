@@ -3,7 +3,7 @@ import { uuidv7 } from '@/lib/ids.mjs';
 import { audit } from './admin/audit.server';
 import { type Db, withDb } from './db.server';
 import { sendEmail, TEAM_ADDRESS } from './email.server';
-import { renderEmail } from './email-templates.server';
+import { emailPerson, renderEmail } from './email-templates.server';
 import type { ServerEnv } from './env';
 import { TEAM_ROLES, type TeamRole } from '@/lib/team-terms';
 
@@ -22,22 +22,25 @@ export { TEAM_ROLES, type TeamRole };
 export const TEAM_LIMIT = 10;
 /** Invitations one business may send in a day (emails come out of Resend's free 100 a day). */
 export const INVITES_PER_DAY = 20;
+/** Hand-overs one business may make in a day (each emails the new owner; D-54). */
+export const HAND_OVERS_PER_DAY = 5;
 
 export class TeamRefused extends Error {}
 
-type Owned = { id: string; slug: string; name: string };
+type Owned = { id: string; slug: string; name: string; status: string; ownerHidden: boolean };
 
 /** The business, if this person is its current owner and it isn't archived (by web address, or an old one). */
 async function ownedBusiness(db: Db, userId: string, slug: string, lock = false): Promise<Owned | null> {
   const [v] = await db.execute<Owned>(sql`
-    select v.id, v.slug::text as slug, v.display_name as name
+    select v.id, v.slug::text as slug, v.display_name as name, v.listing_status as status,
+           v.owner_hidden_at is not null and v.listing_status = 'unpublished' as "ownerHidden"
     from vendor v
     join vendor_member m on m.vendor_id = v.id and m.user_id = ${userId} and m.role = 'owner' and m.ended_at is null
     where v.listing_status <> 'archived'
       and (v.slug = ${slug} or v.id = (select h.vendor_id from vendor_slug_history h where h.slug = ${slug} and v.slug <> ${slug}))
     order by v.slug = ${slug} desc
     limit 1
-    ${lock ? sql`for update of v` : sql``}`);
+    ${lock ? sql`for update of v, m` : sql``}`);
   return v ?? null;
 }
 
@@ -240,7 +243,7 @@ export async function acceptInvite(
                i.email = ${person.email} as "forYou"
         from vendor_invite i join vendor v on v.id = i.vendor_id
         where i.token_hash = ${hash}
-        for update of i`);
+        for update of i, v`);
       if (!i || !i.ok) throw new TeamRefused('This invitation has expired or has already been used. Ask the owner to send a new one.');
       if (!i.forYou)
         throw new TeamRefused('This invitation was sent to a different email address. Sign in with that address to accept it.');
@@ -258,6 +261,161 @@ export async function acceptInvite(
         changes: { role: { from: null, to: i.role } },
       });
       return { business: i.business, slug: i.slug, role: i.role };
+    }),
+  );
+}
+
+/** This person's role on this business's team now, if any (C6: their own page shows as theirs). */
+export async function teamRoleAt(env: ServerEnv, userId: string, vendorId: string): Promise<'owner' | TeamRole | null> {
+  const [m] = await withDb(env, (db) =>
+    db.execute<{ role: 'owner' | TeamRole }>(sql`
+      select role from vendor_member where vendor_id = ${vendorId} and user_id = ${userId} and ended_at is null`),
+  );
+  return m?.role ?? null;
+}
+
+// ------------------------------------------------------------------ stepping back (B6, M18; D-54)
+
+/**
+ * The owner hands the business to someone already on its team: they become the owner, and the
+ * old owner stays on as a manager (they can leave after). Returns who to email.
+ */
+export async function handOver(
+  env: ServerEnv,
+  ownerId: string,
+  slug: string,
+  memberId: string,
+): Promise<{ vendorId: string; business: string; slug: string; to: { userId: string; email: string; name: string } }> {
+  return withDb(env, (db) =>
+    db.transaction(async (tx) => {
+      const vendor = await ownedBusiness(tx, ownerId, slug, true);
+      if (!vendor) throw new TeamRefused('not found');
+      const [next] = await tx.execute<{ userId: string; email: string; name: string }>(sql`
+        select u.id as "userId", u.email::text as email, coalesce(u.given_name, u.display_name) as name
+        from vendor_member m join app_user u on u.id = m.user_id
+        where m.id = ${memberId} and m.vendor_id = ${vendor.id} and m.role <> 'owner' and m.ended_at is null and u.deleted_at is null
+          and not exists (select 1 from account_suspension s where s.user_id = u.id)
+        for update of m`);
+      if (!next) throw new TeamRefused('Choose someone who is on your team now.');
+      // Each hand-over emails the new owner: a few a day per business is plenty.
+      const [today] = await tx.execute<{ n: number }>(sql`
+        select count(*)::int as n from audit_log
+        where action = 'vendor_member.hand_over' and subject_id = ${vendor.id} and created_at > now() - interval '1 day'`);
+      if ((today?.n ?? 0) >= HAND_OVERS_PER_DAY) throw new TeamRefused('This business has changed hands a lot today. Please try again tomorrow.');
+      // One owner at a time (vendor_member_one_owner): the old owner steps down first.
+      await tx.execute(sql`
+        update vendor_member set role = 'manager' where vendor_id = ${vendor.id} and user_id = ${ownerId} and role = 'owner' and ended_at is null`);
+      await tx.execute(sql`update vendor_member set role = 'owner' where id = ${memberId}`);
+      await audit(tx, {
+        actor: ownerId,
+        action: 'vendor_member.hand_over',
+        subjectType: 'vendor',
+        subjectId: vendor.id,
+        changes: { owner: { from: ownerId, to: next.userId } },
+      });
+      return { vendorId: vendor.id, business: vendor.name, slug: vendor.slug, to: next };
+    }),
+  );
+}
+
+/** The new owner is told (D-54). */
+export async function emailNewOwner(
+  env: ServerEnv,
+  handed: { vendorId: string; business: string; slug: string; to: { userId: string; email: string; name: string } },
+  from: string,
+  siteUrl: string,
+): Promise<void> {
+  await emailPerson(
+    env,
+    { userId: handed.to.userId, email: handed.to.email },
+    'ownership_given',
+    { type: 'vendor', id: handed.vendorId },
+    renderEmail('ownershipGiven', { name: handed.to.name, from, business: handed.business, link: `${siteUrl}/vendors/${handed.slug}/team` }),
+  );
+}
+
+/**
+ * The owner hides the business's page (not listed; messages paused, as when the team unlists it)
+ * or shows it again: only a page they hid themselves (the team's decisions stay the team's).
+ */
+export async function setOwnerHidden(env: ServerEnv, ownerId: string, slug: string, hide: boolean): Promise<void> {
+  await withDb(env, (db) =>
+    db.transaction(async (tx) => {
+      const vendor = await ownedBusiness(tx, ownerId, slug, true);
+      if (!vendor) throw new TeamRefused('not found');
+      if (hide ? vendor.status !== 'published' : !vendor.ownerHidden) {
+        throw new TeamRefused(hide ? 'Your page isn’t showing at the moment.' : 'Only a page you hid yourself can be shown again here.');
+      }
+      const to = hide ? 'unpublished' : 'published';
+      await tx.execute(sql`
+        update vendor set listing_status = ${to}, owner_hidden_at = ${hide ? sql`now()` : sql`null`},
+               published_at = case when ${to} = 'published' then coalesce(published_at, now()) else published_at end
+        where id = ${vendor.id}`);
+      await tx.execute(sql`
+        insert into status_change (id, subject_type, subject_id, field, from_status, to_status, actor_user_id, actor_kind, reason)
+        values (${uuidv7()}, 'vendor', ${vendor.id}, 'listing_status', ${vendor.status}, ${to}, ${ownerId}, 'vendor',
+                ${hide ? 'The owner hid the page.' : 'The owner showed the page again.'})`);
+      await audit(tx, {
+        actor: ownerId,
+        action: hide ? 'vendor.owner_hide' : 'vendor.owner_show',
+        subjectType: 'vendor',
+        subjectId: vendor.id,
+        changes: { listing_status: { from: vendor.status, to } },
+      });
+    }),
+  );
+}
+
+/**
+ * An owner with no one else on the team takes the business off Localites: the page is archived
+ * (as when the team removes a listing; to come back, it's added again), the business is unclaimed and their place on it ends, as when
+ * the team removes an owner. Its conversations end (0025).
+ */
+export async function takeOffLocalites(env: ServerEnv, ownerId: string, slug: string): Promise<void> {
+  await withDb(env, (db) =>
+    db.transaction(async (tx) => {
+      const vendor = await ownedBusiness(tx, ownerId, slug, true);
+      if (!vendor) throw new TeamRefused('not found');
+      const [others] = await tx.execute<{ n: number }>(sql`
+        select count(*)::int as n from vendor_member where vendor_id = ${vendor.id} and ended_at is null and user_id <> ${ownerId}`);
+      if ((others?.n ?? 0) > 0) throw new TeamRefused('Hand the business to someone on your team, or remove them first.');
+      await tx.execute(sql`update vendor_member set ended_at = now() where vendor_id = ${vendor.id} and user_id = ${ownerId} and ended_at is null`);
+      await tx.execute(sql`
+        update vendor set listing_status = 'archived', archived_at = now(), claim_status = 'unclaimed', owner_hidden_at = null
+        where id = ${vendor.id}`);
+      await tx.execute(sql`
+        insert into status_change (id, subject_type, subject_id, field, from_status, to_status, actor_user_id, actor_kind, reason)
+        values (${uuidv7()}, 'vendor', ${vendor.id}, 'listing_status', ${vendor.status}, 'archived', ${ownerId}, 'vendor',
+                'The owner took the business off Localites.'),
+               (${uuidv7()}, 'vendor', ${vendor.id}, 'claim_status', 'claimed', 'unclaimed', ${ownerId}, 'vendor',
+                'The owner took the business off Localites.')`);
+      await audit(tx, {
+        actor: ownerId,
+        action: 'vendor.owner_take_off',
+        subjectType: 'vendor',
+        subjectId: vendor.id,
+        changes: { listing_status: { from: vendor.status, to: 'archived' }, claimStatus: { from: 'claimed', to: 'unclaimed' } },
+      });
+    }),
+  );
+}
+
+/** A manager or staff member leaves a business's team (the owner hands over first). */
+export async function leaveTeam(env: ServerEnv, userId: string, vendorId: string): Promise<void> {
+  await withDb(env, (db) =>
+    db.transaction(async (tx) => {
+      const [done] = await tx.execute<{ role: string }>(sql`
+        update vendor_member set ended_at = now()
+        where vendor_id = ${vendorId} and user_id = ${userId} and role <> 'owner' and ended_at is null
+        returning role`);
+      if (!done) throw new TeamRefused('not found');
+      await audit(tx, {
+        actor: userId,
+        action: 'vendor_member.leave',
+        subjectType: 'vendor',
+        subjectId: vendorId,
+        changes: { member: { from: userId, to: null }, role: { from: done.role, to: null } },
+      });
     }),
   );
 }
