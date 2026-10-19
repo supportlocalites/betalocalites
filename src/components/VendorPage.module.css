@@ -501,6 +501,9 @@ p.contact {
 }
 
 .contactLink {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--size-icon-button);
   color: var(--color-ink);
   text-underline-offset: var(--underline-offset);
   overflow-wrap: anywhere;

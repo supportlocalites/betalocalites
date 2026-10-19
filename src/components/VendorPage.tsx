@@ -175,7 +175,7 @@ function PhotoMosaic({ photos, onOpen }: { photos: VendorPhoto[]; onOpen: (index
       {tile(photos[0]!, 0, styles.tileMain!)}
       {side.length > 0 && <div className={styles.sideTiles}>{side.map((p, i) => tile(p, i + 1, styles.tileSide!))}</div>}
       {photos.length > 1 && (
-        <button type="button" className={styles.seeAll} onClick={() => onOpen(0)}>
+        <button type="button" className={styles.seeAll} onClick={() => onOpen(0)} aria-label={`See all ${photos.length} photos`}>
           <span className={styles.seeAllWide}>See all {photos.length} photos</span>
           <span className={styles.seeAllPhone} aria-hidden="true">
             1 of {photos.length}

@@ -217,7 +217,7 @@ const PAGES = [
   { who: 'person', path: '/shortlist', label: 'Your shortlist' },
   { who: null, path: `/search?q=${run}`, label: 'Search results' },
   { who: null, path: `/vendors/${V.slug}`, label: 'A business page' },
-  { who: null, path: `/vendors/${V.slug}`, label: 'The photo viewer', open: 'section[aria-labelledby=photos] a >> nth=1', dialog: true },
+  { who: null, path: `/vendors/${V.slug}`, label: 'The photo viewer', open: 'section[aria-label=Photos] a >> nth=0', dialog: true },
   { who: null, path: '/join', label: 'Join' },
   { who: null, path: '/sign-in', label: 'Team sign-in' },
   { who: null, path: '/suggest', label: 'Suggest a business' },
