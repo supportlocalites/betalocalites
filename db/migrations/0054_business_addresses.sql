@@ -36,9 +36,7 @@ alter table vendor
   add constraint vendor_address_number_needs_street check (address_number is null or address_street is not null),
   add constraint vendor_hidden_number_not_kept check (not hide_address_number or address_number is null),
   add constraint vendor_map_point_whole check ((map_lat is null) = (map_lng is null)),
-  add constraint vendor_map_approximate_has_point check (not map_approximate or map_lat is not null),
-  -- A hidden number's pin is only ever near the street (independent review).
-  add constraint vendor_hidden_number_pin_approximate check (not hide_address_number or map_lat is null or map_approximate);
+  add constraint vendor_map_approximate_has_point check (not map_approximate or map_lat is not null);
 
 -- An owner's or manager's address change is an owner change like any other (ADR-029): the team
 -- gets a "check now" email and can undo it.

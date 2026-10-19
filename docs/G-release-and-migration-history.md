@@ -42,8 +42,14 @@ town, not on the map. Each business's page has a map (OpenStreetMap, free) and D
 Browse local has **List / Map**: the map beside a smaller list, "Only businesses that share an
 address are on the map", and how many are listed by their town. The shortlist bar has
 **Message all** (`/shortlist/message`), through the same step as messaging one.
-**Migrations applied:** `0054_business_addresses.sql`
-**Destructive?** No: six columns and their checks, one more owner-change flag.
+**Migrations applied:** `0054_business_addresses.sql`, `0055_hidden_number_pin.sql`
+**Destructive?** No: six columns and their checks, one more owner-change flag (0054); one more
+check, after marking any hidden number's exact pin approximate (0055).
+**What went wrong, and the fix:** an early copy of 0054 reached the shared test database from the
+work-in-progress branch (every branch's push updates it), and the review's extra check was then
+added to 0054 itself. The update was refused ("changed after it was applied"), so nothing went
+live. 0054 is back exactly as applied, and the extra check is its own migration, 0055. From now
+on a migration is pushed only once it's final (after its review).
 **Tests run:** every database check file (0054: 16); unit tests 209 of 209; new browser suite
 `addresses.mjs` 36 of 36; look 836 of 836 (the map view, the address page, both Message all pages,
 in both looks); browse 33, owner editing 55, round 5b 36, messages 147, event planning 145,

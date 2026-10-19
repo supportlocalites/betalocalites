@@ -150,7 +150,11 @@ text = words(r.body);
 check('the map view lists all three, and says which are on the map',
   r.status === 200 && [V, W, U].every((b) => text.includes(b.name)) && text.includes('listed by its town') && text.includes('on the map'),
   String(r.status));
-check('…with the note that only those with an address are on it, and how many aren’t', text.includes('Only businesses that share an address are on the map. 1 more is listed by its town.'));
+// Other suites' businesses may match the search too, so the note is checked against the list itself.
+const townOnly = (text.match(/· listed by its town/g) ?? []).length;
+const note = /Only businesses that share an address are on the map\. (\d+) more (?:is|are) listed by (?:its|their) town\./.exec(text);
+check('…with the note that only those with an address are on it, and how many aren’t', townOnly >= 1 && Number(note?.[1]) === townOnly,
+  `${townOnly} ${note?.[0]}`);
 r = await site(`/explore?q=${encodeURIComponent(`Address ${run}`)}`);
 check('the list view is still the rows, with the Map switch', r.status === 200 && r.body.includes('view=map'));
 
