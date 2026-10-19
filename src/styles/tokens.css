@@ -45,6 +45,8 @@
   /* Shrinks on narrow phones so "Localites." always fits inside the frame (360px and below). */
   --text-welcome: clamp(44px, calc((100vw - 92px) / 4.4), 72px);
   --text-title-1: 30px;
+  /* A page's own heading (the approved design, D-55 to D-58): large, in the display face. */
+  --text-page-title: clamp(32px, 6vw, 48px);
   --text-title-2: 26px;
   --text-title-3: 18px;
   --text-body: 15px;
@@ -71,9 +73,9 @@
   --content-max: 1200px;
 
   /* Shape (§5) */
-  --radius-button: 12px;
-  --radius-file: 10px;
-  --radius-sheet: 24px;
+  --radius-button: 0;
+  --radius-file: 0;
+  --radius-sheet: 0;
   --radius-pill: 999px;
   --size-icon-button: 44px;
   --size-theme-icon: 20px;

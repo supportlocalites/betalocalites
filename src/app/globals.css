@@ -60,14 +60,23 @@ img {
 .label {
   font-family: var(--font-body);
   font-size: var(--text-label);
-  font-weight: 600;
+  font-weight: 500;
   letter-spacing: var(--tracking-label);
   text-transform: uppercase;
-  color: var(--color-muted);
+  color: var(--color-gold-ink);
 }
 
+/* Every page's heading, as in the approved design (D-55 to D-58). */
 .title-1 {
-  font-size: var(--text-title-1);
+  font-size: var(--text-page-title);
+  font-weight: 700;
+  line-height: 1.1;
+  overflow-wrap: anywhere;
+}
+
+.title-2 {
+  font-size: var(--text-title-2);
+  font-weight: 700;
 }
 
 .title-rule {
@@ -158,9 +167,13 @@ button.text-link:disabled {
   margin-bottom: var(--space-5);
 }
 
+/* Form labels as in the approved design: small capitals in the gold ink. */
 .field-label {
-  font-size: var(--text-small);
+  font-size: var(--text-label);
   font-weight: 500;
+  letter-spacing: var(--tracking-label);
+  text-transform: uppercase;
+  color: var(--color-gold-ink);
 }
 
 .field-hint {
@@ -201,7 +214,8 @@ textarea.input {
 }
 
 .notice {
-  border: var(--hairline) solid var(--color-gold);
+  border: var(--hairline) solid var(--color-line-soft);
+  border-left: var(--mark-current) solid var(--color-gold);
   border-radius: var(--radius-file);
   background: var(--color-surface);
   padding: var(--space-3) var(--space-4);
