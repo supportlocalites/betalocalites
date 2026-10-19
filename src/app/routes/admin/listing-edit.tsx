@@ -3,8 +3,7 @@ import { adminContext, cloudflareContext } from '@/app/context';
 import { ListingFields, type ListingValues } from '@/components/admin/ListingFields';
 import { isUuid } from '@/lib/ids.mjs';
 import { pageMeta } from '@/lib/meta';
-import { describePrice, type PricingModel } from '@/lib/price';
-import { ADMIN_TRANSITIONS, type ListingStatus, PRICING_MODELS, STATUS_LABEL } from '@/lib/listing-status';
+import { ADMIN_TRANSITIONS, type ListingStatus, STATUS_LABEL } from '@/lib/listing-status';
 import { fieldErrors, formValues, listingInput, readLoadedListing, readLoadedService, serviceInput } from '@/server/admin/listing-input';
 import {
   changeListingStatus,
@@ -212,14 +211,6 @@ const SAVED: Record<string, string> = {
   'owner-removed': 'Owner removed, and the listing is unclaimed again. We’re emailing them the reason.',
 };
 
-const PRICING_LABEL: Record<(typeof PRICING_MODELS)[number], string> = {
-  fixed: 'A set price',
-  starting_at: 'From a price',
-  hourly: 'Per hour',
-  on_request: 'Price on request',
-  not_listed: 'Don’t show a price',
-};
-
 type ServiceValues = { name: string; description: string | null; pricingModel: string; price: string; priceNote: string | null };
 
 function ServiceFields({ prefix, values, errors = {} }: { prefix: string; values: ServiceValues; errors?: Record<string, string> }) {
@@ -246,41 +237,10 @@ function ServiceFields({ prefix, values, errors = {} }: { prefix: string; values
           />
           {err('name')}
         </div>
-        <div className="field">
-          <label htmlFor={`${prefix}-pricingModel`} className="field-label">
-            Price shown as
-          </label>
-          <select id={`${prefix}-pricingModel`} name="pricingModel" defaultValue={values.pricingModel} className="input">
-            {PRICING_MODELS.map((m) => (
-              <option key={m} value={m}>
-                {PRICING_LABEL[m]}
-              </option>
-            ))}
-          </select>
-          {err('pricingModel')}
-        </div>
-        <div className="field">
-          <label htmlFor={`${prefix}-price`} className="field-label">
-            Price in dollars (only for a set, from or hourly price)
-          </label>
-          <input
-            id={`${prefix}-price`}
-            name="price"
-            defaultValue={values.price}
-            className="input"
-            inputMode="decimal"
-            maxLength={12}
-            aria-invalid={errors.price ? true : undefined}
-          />
-          {err('price')}
-        </div>
-        <div className="field">
-          <label htmlFor={`${prefix}-priceNote`} className="field-label">
-            Price note (optional)
-          </label>
-          <input id={`${prefix}-priceNote`} name="priceNote" defaultValue={values.priceNote ?? ''} className="input" maxLength={200} />
-          {err('priceNote')}
-        </div>
+        {/* No prices, anywhere (D-58): what was set stays as it was, unseen. */}
+        <input type="hidden" name="pricingModel" value={values.pricingModel} />
+        <input type="hidden" name="price" value={values.price} />
+        <input type="hidden" name="priceNote" value={values.priceNote ?? ''} />
       </div>
       <div className="field">
         <label htmlFor={`${prefix}-description`} className="field-label">
@@ -583,20 +543,18 @@ export default function EditListing({ loaderData, actionData: rawResult }: Route
       </section>
 
       <section className={styles.section} aria-labelledby="services-heading">
-        <h2 id="services-heading">Services and prices</h2>
-        <p className="muted">Prices exactly as the business publishes them. Hidden services stay in the history.</p>
+        <h2 id="services-heading">Services</h2>
+        <p className="muted">No prices are shown anywhere on Localites (D-58). Hidden services stay in the history.</p>
         {listing.services.map((s) => {
           const errors = errorsFor('service', s.id);
           const values =
             errors && actionData?.values
               ? (actionData.values as unknown as ServiceValues)
               : { ...s, price: s.priceCents === null ? '' : String(s.priceCents / 100) };
-          const shown = describePrice(s.pricingModel as PricingModel, s.priceCents);
           return (
             <div key={s.id} className={`${styles.service} ${s.isActive ? '' : styles.serviceHidden}`}>
               <p className="label">
                 {s.isActive ? 'Shown' : 'Hidden'}
-                {shown ? ` · ${shown}` : ''}
               </p>
               <Form method="post" noValidate key={`${s.id}-${saved ?? ''}`}>
                 <input type="hidden" name="intent" value="service" />

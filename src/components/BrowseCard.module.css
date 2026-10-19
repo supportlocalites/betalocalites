@@ -199,3 +199,34 @@
   color: var(--color-on-bar);
   font-size: var(--text-small);
 }
+
+/* On a business's page (D-58): on the dark panel, the + wide with its words. */
+.panelButtons {
+  width: 100%;
+}
+
+.panelGrow {
+  flex: 1;
+  display: flex;
+}
+
+.panelButton {
+  height: var(--size-button-short);
+  width: var(--size-button-short);
+  background: transparent;
+  border-color: var(--color-bar-line);
+  color: var(--color-on-bar);
+  text-decoration: none;
+}
+
+.panelWide {
+  flex: 1;
+  width: auto;
+  gap: var(--space-2);
+  font-size: var(--text-body);
+}
+
+.panelButton.chosen {
+  background: var(--color-gold-fill);
+  color: var(--color-on-gold);
+}

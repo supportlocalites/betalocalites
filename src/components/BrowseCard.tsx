@@ -3,7 +3,7 @@ import { Link, useFetcher, useLocation } from 'react-router';
 import type { BrowseCard as Card } from '@/server/browse.server';
 import styles from './BrowseCard.module.css';
 
-const COST_WORDS = ['', 'Low cost', 'Medium cost', 'High cost'];
+export const COST_WORDS = ['', 'Low cost', 'Medium cost', 'High cost'];
 
 /** True once the page's scripts run: the buttons then answer in place instead of reloading. */
 const noChange = () => () => {};
@@ -42,12 +42,15 @@ function Rating({ reviews, average }: { reviews: number; average: number | null 
   );
 }
 
+type Choosable = { slug: string; name: string; shortlisted: boolean; saved: boolean };
+
 /**
  * The two buttons at a card's bottom right (D-57): + adds to the shortlist, the bookmark saves
  * as a favourite. Each posts to /shortlist as the signed-in person; signed out, each asks them
- * to sign in first and brings them back.
+ * to sign in first and brings them back. look 'panel': on a business's page (D-58), the + with
+ * its words, on the dark panel; 'bar': icons only, in the phone's bar there.
  */
-function CardButtons({ card, signedIn }: { card: Card; signedIn: boolean }) {
+export function ChoiceButtons({ card, signedIn, look = 'card' }: { card: Choosable; signedIn: boolean; look?: 'card' | 'panel' | 'bar' }) {
   const location = useLocation();
   const back = location.pathname + location.search;
   const hydrated = useHydrated();
@@ -66,14 +69,20 @@ function CardButtons({ card, signedIn }: { card: Card; signedIn: boolean }) {
       <path d="M2 1.5h12v17l-6-4.2-6 4.2z" />
     </svg>
   );
+  const panel = look === 'panel';
+  // 'bar': the same dark buttons, icons only, in a phone's bar at the bottom of a business's page.
+  const box = look === 'card' ? styles.button : `${styles.button} ${styles.panelButton}`;
+  const wide = panel ? `${box} ${styles.panelWide}` : box;
+  const words = panel ? <span aria-hidden="true">{shortlisted ? 'On your shortlist' : 'Add to shortlist'}</span> : null;
   if (!signedIn) {
     const join = `/join?next=${encodeURIComponent(back)}`;
     return (
-      <div className={styles.buttons}>
-        <Link to={join} className={styles.button} aria-label={`Sign in to add ${card.name} to your shortlist`} title="Add to shortlist">
+      <div className={`${styles.buttons} ${panel ? styles.panelButtons : ''}`}>
+        <Link to={join} className={wide} aria-label={`Sign in to add ${card.name} to your shortlist`} title="Add to shortlist">
           {plus}
+          {words}
         </Link>
-        <Link to={join} className={styles.button} aria-label={`Sign in to save ${card.name} as a favourite`} title="Save as favourite">
+        <Link to={join} className={box} aria-label={`Sign in to save ${card.name} as a favourite`} title="Save as favourite">
           {mark}
         </Link>
       </div>
@@ -86,19 +95,20 @@ function CardButtons({ card, signedIn }: { card: Card; signedIn: boolean }) {
   const shortTip = shortlisted ? 'Remove from shortlist' : 'Add to shortlist';
   const saveTip = saved ? 'Remove from favourites' : 'Save as favourite';
   return (
-    <div className={styles.buttons}>
-      <shortlist.Form method="post" action="/shortlist" preventScrollReset>
+    <div className={`${styles.buttons} ${panel ? styles.panelButtons : ''}`}>
+      <shortlist.Form method="post" action="/shortlist" preventScrollReset className={panel ? styles.panelGrow : undefined}>
         <input type="hidden" name="intent" value={shortlisted ? 'remove' : 'add'} />
         <input type="hidden" name="slug" value={card.slug} />
         <input type="hidden" name="back" value={back} />
         {hydrated && <input type="hidden" name="inline" value="1" />}
         <button
           type="submit"
-          className={`${styles.button} ${shortlisted ? styles.chosen : ''}`}
+          className={`${wide} ${shortlisted ? styles.chosen : ''}`}
           aria-label={shortlisted ? `Remove ${card.name} from your shortlist` : `Add ${card.name} to your shortlist`}
           title={shortTip}
         >
           {plus}
+          {words}
         </button>
       </shortlist.Form>
       <favourite.Form method="post" action="/shortlist" preventScrollReset>
@@ -108,7 +118,7 @@ function CardButtons({ card, signedIn }: { card: Card; signedIn: boolean }) {
         {hydrated && <input type="hidden" name="inline" value="1" />}
         <button
           type="submit"
-          className={styles.button}
+          className={box}
           aria-label={saved ? `Remove ${card.name} from your favourites` : `Save ${card.name} as a favourite`}
           title={saveTip}
         >
@@ -164,7 +174,7 @@ export function BrowseCard({
           <Cost level={card.cost} />
           <Rating reviews={card.reviews} average={card.average} />
         </span>
-        <CardButtons card={card} signedIn={signedIn} />
+        <ChoiceButtons card={card} signedIn={signedIn} />
       </div>
     </li>
   );

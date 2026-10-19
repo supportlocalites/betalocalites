@@ -103,17 +103,6 @@
   gap: 0 var(--space-4);
 }
 
-@media (min-width: 768px) {
-  .serviceTop {
-    grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
-  }
-}
-
-/* The amount box only when the price is shown as an amount. */
-.price:has(option[value='on_request']:checked) .amount,
-.price:has(option[value='not_listed']:checked) .amount {
-  display: none;
-}
 
 .check {
   display: inline-flex;

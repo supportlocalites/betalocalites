@@ -85,6 +85,7 @@
   --size-bar-space: 120px;
   --size-search-min: 320px;
   --size-button: 52px;
+  --size-button-short: 48px;
   --hairline: 1px;
   --frame-inset-photo: 6px;
   --frame-inset-welcome: 14px;
@@ -108,6 +109,9 @@
   --size-hero-max: 520px;
   /* The height a row of a business's photos aims for (each photo whole, in its own shape). */
   --size-gallery-row: 96px;
+  /* The photos at the top of a business's page (D-58): phones, then computers. */
+  --size-mosaic: 280px;
+  --size-mosaic-wide: 440px;
   /* The square profile photo beside a business's name, and on the owner's Photos page. */
   --size-profile-photo: 88px;
   --size-profile-photo-large: 240px;

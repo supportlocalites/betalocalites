@@ -1,5 +1,5 @@
-/* A business's page: its first photo in a calm band, then its name (with its square profile
-   photo), what it does, every photo whole, its services and how to reach it. */
+/* A business's page (D-58): its photos, then its name (with its square profile photo), what it
+   does and its services; beside it on computers, how to plan with them, where and how to reach them. */
 .page {
   display: grid;
   gap: var(--space-6);
@@ -143,47 +143,6 @@
   margin: 0;
 }
 
-/* ------------------------------------------------------------------ every photo, whole */
-
-/* Rows of even height; each photo's share of its row is its shape, so none is cut. */
-.rows {
-  list-style: none;
-  margin: var(--space-2) 0 0;
-  padding: 0;
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-2);
-}
-
-.rowItem {
-  flex: var(--shape) 1 calc(var(--shape) * var(--size-gallery-row));
-  /* A photo left alone on a row grows only so far, rather than filling the width. */
-  max-width: calc(var(--shape) * var(--size-gallery-row) * 1.75);
-  aspect-ratio: var(--shape);
-  min-width: 0;
-}
-
-/* The last row keeps its photos at their natural size instead of stretching them. */
-.rows::after {
-  content: '';
-  flex: 1000 1 0;
-}
-
-.rowLink {
-  display: block;
-  width: 100%;
-  height: 100%;
-  background: var(--color-photo-1);
-  cursor: zoom-in;
-}
-
-.rowPhoto {
-  display: block;
-  width: 100%;
-  height: 100%;
-  object-fit: cover; /* the box already has the photo's own shape: nothing is lost */
-}
-
 /* ------------------------------------------------------------------ services and contact */
 
 .services {
@@ -192,12 +151,26 @@
   padding: 0;
 }
 
+.services {
+  border-top: var(--hairline) solid var(--color-line);
+}
+
 .service {
   display: flex;
   justify-content: space-between;
-  gap: var(--space-4);
-  padding-block: var(--space-3);
-  border-bottom: var(--hairline) solid var(--color-line-soft);
+  gap: var(--space-6);
+  padding-block: var(--space-4);
+  border-bottom: var(--hairline) solid var(--color-line);
+}
+
+.serviceTitle {
+  font-family: var(--font-display);
+  font-size: var(--text-title-3);
+}
+
+.ask {
+  flex: none;
+  font-size: var(--text-small);
 }
 
 .serviceName {
@@ -217,8 +190,318 @@
   gap: var(--space-3);
 }
 
+p.contact {
+  margin: 0;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
 .owner {
   margin-top: var(--space-6);
   padding-top: var(--space-4);
   border-top: var(--hairline) solid var(--color-line-soft);
+}
+
+/* ------------------------------------------------------------------ the photos (D-58) */
+
+.mosaic {
+  position: relative;
+  display: grid;
+  gap: var(--space-3);
+  height: var(--size-mosaic);
+}
+
+.tile {
+  position: relative;
+  display: block;
+  overflow: hidden;
+  background: var(--color-photo-2);
+  cursor: zoom-in;
+  min-height: 0;
+}
+
+.tileMain::after {
+  content: '';
+  position: absolute;
+  inset: var(--frame-inset-photo);
+  border: var(--hairline) solid var(--color-gold);
+  pointer-events: none;
+}
+
+.sideTiles {
+  display: none;
+}
+
+.seeAll {
+  position: absolute;
+  right: var(--space-3);
+  bottom: var(--space-3);
+  min-height: var(--size-icon-button);
+  padding: 0 var(--space-4);
+  border: var(--hairline) solid var(--color-line);
+  background: var(--color-surface);
+  color: var(--color-ink);
+  font: inherit;
+  font-size: var(--text-button);
+  letter-spacing: var(--tracking-button);
+  text-transform: uppercase;
+  cursor: pointer;
+}
+
+.seeAllWide {
+  display: none;
+}
+
+/* Computers: the first photo large, the next two stacked beside it. */
+@media (min-width: 1000px) {
+  .mosaic {
+    height: var(--size-mosaic-wide);
+  }
+
+  .mosaicSide {
+    grid-template-columns: 2fr 1fr;
+  }
+
+  .sideTiles {
+    display: grid;
+    grid-auto-rows: 1fr;
+    gap: var(--space-3);
+    min-height: 0;
+  }
+
+  .seeAllWide {
+    display: inline;
+  }
+
+  .seeAllPhone {
+    display: none;
+  }
+}
+
+/* ------------------------------------------------------------------ under the name */
+
+.summary {
+  margin: 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2) var(--space-5);
+  color: var(--color-ink-soft);
+}
+
+.rated {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+}
+
+.rated strong {
+  color: var(--color-ink);
+}
+
+.star {
+  width: var(--space-4);
+  height: var(--space-4);
+  fill: var(--color-gold-ink);
+}
+
+.section {
+  display: grid;
+  gap: var(--space-3);
+  margin-top: var(--space-6);
+}
+
+.section > h2,
+.card h2 {
+  color: var(--color-gold-ink);
+  margin: 0;
+}
+
+/* ------------------------------------------------------------------ beside it */
+
+.card {
+  display: grid;
+  gap: var(--space-2);
+  padding: var(--space-5) var(--space-6);
+  background: var(--color-surface);
+  border: var(--hairline) solid var(--color-line-soft);
+}
+
+.card .cardGap {
+  margin-top: var(--space-4);
+}
+
+.place {
+  margin: 0;
+}
+
+/* ------------------------------------------------------------------ the public page's extras */
+
+.crumb {
+  font-size: var(--text-small);
+  color: var(--color-ink-soft);
+}
+
+.crumb a {
+  color: inherit;
+}
+
+/* Planning with them (D-58): dark in both looks, with the gold button. */
+.panel {
+  display: grid;
+  gap: var(--space-3);
+  padding: var(--space-6) var(--space-6) var(--space-5);
+  background: var(--color-bar);
+  color: var(--color-on-bar);
+  border-top: var(--hairline) solid var(--color-gold);
+}
+
+.panelLabel {
+  margin: 0;
+  font-family: var(--font-body);
+  font-size: var(--text-label);
+  font-weight: 400;
+  letter-spacing: var(--tracking-label);
+  text-transform: uppercase;
+  color: var(--color-bar-gold-ink);
+}
+
+.panelTitle {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: var(--text-title-2);
+  line-height: 1.2;
+  overflow-wrap: anywhere;
+}
+
+.panelNote {
+  margin: 0;
+  font-size: var(--text-small);
+  line-height: var(--leading-body);
+  color: var(--color-on-bar);
+}
+
+.panelLinks {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.panelMain,
+.panelSecond {
+  min-height: var(--size-button-short);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 var(--space-4);
+  font: inherit;
+  font-size: var(--text-button);
+  letter-spacing: var(--tracking-button);
+  text-transform: uppercase;
+  text-decoration: none;
+  text-align: center;
+  cursor: pointer;
+}
+
+.panelMain {
+  min-height: var(--size-button);
+  background: var(--color-gold-fill);
+  color: var(--color-on-gold);
+  font-weight: 500;
+  border: 0;
+}
+
+.panelSecond {
+  background: transparent;
+  color: var(--color-on-bar);
+  border: var(--hairline) solid var(--color-bar-line);
+}
+
+.addForm {
+  display: grid;
+  gap: var(--space-2);
+  margin-top: var(--space-2);
+}
+
+.addRow {
+  display: flex;
+  gap: var(--space-2);
+}
+
+.addSelect {
+  flex: 1;
+  min-width: 0;
+  min-height: var(--size-icon-button);
+  border: var(--hairline) solid var(--color-bar-line);
+  background: var(--color-bar);
+  color: var(--color-on-bar);
+  font: inherit;
+  padding: 0 var(--space-2);
+}
+
+/* Reviews: a heading in the display face, its count and a line to the edge. */
+.reviews {
+  display: grid;
+  gap: var(--space-3);
+  margin-top: var(--space-8);
+}
+
+.reviewsHead {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-3);
+}
+
+.reviewsHead h2 {
+  margin: 0;
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: var(--text-title-1);
+}
+
+.reviewsCount {
+  font-size: var(--text-small);
+  color: var(--color-gold-ink);
+}
+
+.reviewsRule {
+  flex: 1;
+  align-self: center;
+  height: var(--hairline);
+  background: var(--color-line);
+}
+
+/* Phones: Message, the + and the bookmark held at the bottom of the screen. */
+.phoneBar {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 10;
+  display: flex;
+  gap: var(--space-2);
+  padding: var(--space-3) var(--gutter);
+  background: var(--color-bar);
+  border-top: var(--hairline) solid var(--color-gold);
+}
+
+.phoneBar > .panelMain {
+  flex: 1;
+}
+
+@media (max-width: 999px) {
+  .withBar {
+    padding-bottom: calc(var(--size-button) + var(--space-12));
+  }
+}
+
+@media (min-width: 1000px) {
+  .phoneBar {
+    display: none;
+  }
+}
+
+.contactLink {
+  color: var(--color-ink);
+  text-underline-offset: var(--underline-offset);
+  overflow-wrap: anywhere;
 }

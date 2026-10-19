@@ -615,7 +615,7 @@ export async function changePlan(
 // ------------------------------------------------------------------ C4: add to an event, save
 
 export type AddingChoices = {
-  vendor: { id: string; slug: string; name: string; ownBusiness: boolean; saved: boolean; photo: ListPhoto | null };
+  vendor: { id: string; slug: string; name: string; ownBusiness: boolean; saved: boolean; shortlisted: boolean; photo: ListPhoto | null };
   /** The person's events still being planned that haven't passed, soonest first. */
   events: { id: string; name: string; date: string; town: string; status: 'considering' | 'booked' | null }[];
 };
@@ -627,6 +627,7 @@ export async function addingChoices(env: ServerEnv, userId: string, slug: string
         select v.id, v.slug::text as slug, v.display_name as name,
                exists (select 1 from vendor_member m where m.vendor_id = v.id and m.user_id = ${userId} and m.ended_at is null) as "ownBusiness",
                exists (select 1 from saved_vendor s where s.user_id = ${userId} and s.vendor_id = v.id) as saved,
+               exists (select 1 from shortlist s where s.user_id = ${userId} and s.vendor_id = v.id) as shortlisted,
                ${LIST_PHOTO_COLUMNS}
         from vendor v ${LIST_PHOTO} where v.slug = ${slug} and v.listing_status = 'published'`);
       if (!found) throw new PlanNotFound();

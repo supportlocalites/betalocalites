@@ -116,14 +116,6 @@ export async function action({ request, params, context }: Route.ActionArgs) {
 
 // ------------------------------------------------------------------ the page
 
-const PRICE_CHOICES: [PricingModel, string][] = [
-  ['fixed', 'Price: $'],
-  ['starting_at', 'From $'],
-  ['hourly', '$ an hour'],
-  ['on_request', 'Price on request'],
-  ['not_listed', 'No price shown'],
-];
-const PRICED = new Set<string>(['fixed', 'starting_at', 'hourly']);
 
 type Row = { id: string; name: string; description: string; pricingModel: string; price: string; shown: boolean };
 
@@ -162,13 +154,7 @@ function previewOf(
     publicPhone: (f.publicPhone ?? '').trim() || null,
     services: rowsFromFields(f)
       .filter((r) => r.shown && tidyLine(r.name))
-      .map((r) => {
-        const cents = /^\d{1,7}(\.\d{1,2})?$/.test(r.price.replace(/[$,\s]/g, ''))
-          ? Math.round(Number(r.price.replace(/[$,\s]/g, '')) * 100)
-          : null;
-        const price = PRICED.has(r.pricingModel) && cents === null ? null : describePrice(r.pricingModel as PricingModel, cents);
-        return { name: tidyLine(r.name), description: paragraphs(r.description), price };
-      }),
+      .map((r) => ({ name: tidyLine(r.name), description: paragraphs(r.description) })),
   };
 }
 
@@ -497,38 +483,9 @@ function Editor({
                                 />
                                 {errorFor(k('name'))}
                               </div>
-                              <div className={`${styles.spot} ${styles.price}`}>
-                                <label htmlFor={id('pricingModel')} className={styles.spotLabel}>
-                                  Price
-                                </label>
-                                <select
-                                  id={id('pricingModel')}
-                                  name={k('pricingModel')}
-                                  className={styles.box}
-                                  defaultValue={r.pricingModel}
-                                >
-                                  {PRICE_CHOICES.map(([model, words]) => (
-                                    <option key={model} value={model}>
-                                      {words}
-                                    </option>
-                                  ))}
-                                </select>
-                                <label htmlFor={id('price')} className={`${styles.spotLabel} ${styles.amount}`}>
-                                  Price in dollars
-                                </label>
-                                <input
-                                  id={id('price')}
-                                  name={k('price')}
-                                  className={`${styles.box} ${styles.amount}`}
-                                  defaultValue={r.price}
-                                  inputMode="decimal"
-                                  placeholder="150"
-                                  maxLength={12}
-                                  aria-invalid={errors[k('price')] ? true : undefined}
-                                  aria-describedby={described(k('price'))}
-                                />
-                                {errorFor(k('price'))}
-                              </div>
+                              {/* No prices, anywhere (D-58): what was set stays as it was, unseen. */}
+                              <input type="hidden" name={k('pricingModel')} value={r.pricingModel} />
+                              <input type="hidden" name={k('price')} value={r.price} />
                             </div>
                             <div className={styles.spot}>
                               <label htmlFor={id('description')} className={styles.spotLabel}>

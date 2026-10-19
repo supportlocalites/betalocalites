@@ -222,6 +222,8 @@ export type ConversationCard = {
   snippet: string | null;
   lastFromMe: boolean;
   unread: number;
+  /** Which of the person's events it's about, if any: Messages groups by it (D-58). */
+  event: { id: string; name: string; date: string } | null;
   blocked: boolean;
   /** The business isn't on Localites any more (left, or no one runs it): the conversation has ended. */
   left: boolean;
@@ -235,8 +237,16 @@ export async function myConversations(env: ServerEnv, userId: string): Promise<C
   return talked(
     actingAs(env, asPerson(userId), async (tx) => {
       const rows = await tx.execute<
-        Omit<ConversationCard, 'photo' | 'snippet'> &
-          ListPhotoColumns & { listed: boolean; lastBody: string | null; lastRemoved: boolean; lastHidden: boolean }
+        Omit<ConversationCard, 'photo' | 'snippet' | 'event'> &
+          ListPhotoColumns & {
+            listed: boolean;
+            lastBody: string | null;
+            lastRemoved: boolean;
+            lastHidden: boolean;
+            eventId: string | null;
+            eventName: string | null;
+            eventDate: string | null;
+          }
       >(sql`
         select c.id, v.slug::text as "vendorSlug", v.display_name as "vendorName", c.last_message_at::text as "lastMessageAt",
                c.status <> 'open' as blocked, ${LEFT} as left, not ${LEFT} and v.listing_status <> 'published' as paused,
@@ -246,9 +256,12 @@ export async function myConversations(env: ServerEnv, userId: string): Promise<C
                coalesce(lm.mine, false) as "lastFromMe",
                (select count(*) from message m where m.conversation_id = c.id and m.author_side = 'vendor' and m.removed_at is null and m.hidden_by_team_at is null
                   and m.created_at > coalesce(r.last_read_at, '-infinity'))::int as unread,
+               ev.id as "eventId", ep.title as "eventName", ev.event_date::text as "eventDate",
                ${LIST_PHOTO_COLUMNS}
         from conversation c join vendor v on v.id = c.vendor_id
         left join conversation_read r on r.conversation_id = c.id and r.user_id = ${userId}
+        left join event ev on ev.id = c.event_id and ev.host_user_id = ${userId}
+        left join event_private ep on ep.event_id = ev.id
         left join lateral (
           select case when m.hidden_by_team_at is null then m.body end as body, m.removed_at is not null as removed,
                  m.hidden_by_team_at is not null as hidden, m.author_side = 'consumer' as mine
@@ -258,9 +271,10 @@ export async function myConversations(env: ServerEnv, userId: string): Promise<C
         where c.consumer_user_id = ${userId}
         order by c.last_message_at desc nulls last
         limit 200`);
-      return rows.map(({ lastBody, lastRemoved, lastHidden, listed, ...r }) => ({
+      return rows.map(({ lastBody, lastRemoved, lastHidden, listed, eventId, eventName, eventDate, ...r }) => ({
         ...withListPhoto(env, r, listed),
         snippet: snippet(lastBody, lastRemoved, lastHidden),
+        event: eventId && eventName && eventDate ? { id: eventId, name: eventName, date: eventDate } : null,
       }));
     }),
   );

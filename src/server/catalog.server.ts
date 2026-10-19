@@ -1,6 +1,5 @@
 import { and, asc, eq, sql } from 'drizzle-orm';
 import { category, municipality, vendor, vendorCategory, vendorService } from '@/db/generated/schema';
-import { describePrice, type PricingModel } from '@/lib/price';
 import { type Db, withDb } from './db.server';
 import type { ServerEnv } from './env';
 import {
@@ -94,7 +93,9 @@ export type VendorProfile = {
   publicPhone: string | null;
   claimed: boolean;
   categories: string[];
-  services: { name: string; description: string | null; price: string | null }[];
+  /** $ to $$$, set by our team (D-56). */
+  cost: number | null;
+  services: { name: string; description: string | null }[];
   photos: Photo[];
   /** The square profile photo, if the business has one. */
   profile: Photo | null;
@@ -113,6 +114,7 @@ export async function getVendor(env: ServerEnv, slug: string): Promise<VendorPro
         websiteUrl: vendor.websiteUrl,
         publicPhone: vendor.publicPhone,
         claimStatus: vendor.claimStatus,
+        cost: sql<number | null>`${vendor}.cost_level`,
       })
       .from(vendor)
       .innerJoin(municipality, eq(municipality.id, vendor.primaryMunicipalityId))
@@ -128,13 +130,8 @@ export async function getVendor(env: ServerEnv, slug: string): Promise<VendorPro
         .where(eq(vendorCategory.vendorId, v.id))
         .orderBy(sql`${vendorCategory.isPrimary} desc`, asc(category.name)),
       db
-        .select({
-          name: vendorService.name,
-          description: vendorService.description,
-          pricingModel: vendorService.pricingModel,
-          priceCents: vendorService.priceCents,
-          currency: vendorService.currency,
-        })
+        // No prices, anywhere (D-58).
+        .select({ name: vendorService.name, description: vendorService.description })
         .from(vendorService)
         .where(and(eq(vendorService.vendorId, v.id), eq(vendorService.isActive, true)))
         .orderBy(asc(vendorService.sortOrder), asc(vendorService.name)),
@@ -152,11 +149,8 @@ export async function getVendor(env: ServerEnv, slug: string): Promise<VendorPro
       publicPhone: v.publicPhone,
       claimed: v.claimStatus === 'claimed',
       categories: cats.map((c) => c.name),
-      services: services.map((s) => ({
-        name: s.name,
-        description: s.description,
-        price: describePrice(s.pricingModel as PricingModel, s.priceCents, s.currency),
-      })),
+      cost: v.cost,
+      services,
       photos: toPhotos(env, photos),
       profile: toPhotos(env, profile)[0] ?? null,
     };
