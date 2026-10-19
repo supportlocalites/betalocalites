@@ -31,6 +31,40 @@ Every release and every database migration, in order. Appended before each deplo
 
 ## Releases
 
+### 2026-10-19 — Fixes from the scenario tests, round 3 of 5: deleting conversations, editing messages (D-54)
+
+**Stage:** 2B (E §4.3, §6)
+**What changed (plain English):** a person can delete a conversation ("Delete this conversation",
+with a confirm step): it's gone from their messages and the business's at once, and nobody can
+write in it again. For 30 days the business sees "Deleted by the customer" with **Report it**, so
+the team can still read it if it held abuse; then it's deleted with its messages and files,
+unless it was reported (then the team keeps it with the report, as before). They can message the business
+afresh. Anyone can edit their own messages while the conversation is open: the message shows
+"Edited", and a tap shows what it said before, to both sides (the owner's choice); the team sees
+the earlier versions through a report. Removing a message removes its earlier versions too,
+unless a report covers it. At most 20 edits per message.
+**Migrations applied:** `0048_scenario_fixes_3.sql`
+**Destructive?** Only as decided: a conversation the person deleted is deleted 30 days later,
+unless reported.
+**Tests run:** database checks 48 of 48 files (0048: 33); unit tests 197 of 197; new browser suite
+`scenario-fixes-3.mjs` 27 of 27; messages 133 of 133, account deletion 22 of 22, round 1's suite
+10 of 10, round 2's 26 of 26, look 504 of 504.
+**Security tests:** only a message's author edits it, on their own side (staff can't change the
+owner's); nothing else can change a message's words, not even the database's owner; earlier
+versions are seen only by the two sides (and the team through a report); only the person deletes
+a conversation; afterwards neither side can open, list or write in it; only the business's team
+reports a deleted conversation, within 30 days, under the usual report limits, without seeing it.
+**Independent review before push:** nothing high. Fixed: deleting straight after sending abuse
+could have hidden it from the business and the team: the business can now report a deleted
+conversation for 30 days, and its files are kept until then; no "new message" email is queued
+for a conversation deleted before the email went; only the edit function can change a message's
+words. Known: for those 30 days a deleted conversation still appears in the person's data
+download and in the business's message totals (the download is rebuilt in round 5); an edit
+doesn't send an email or mark the message unread.
+**Existing functionality affected:** messages were "remove only"; now they can be edited.
+**How to roll back:** with the next update.
+**Approved by:** the product owner, 19 October 2026 (D-54).
+
 ### 2026-10-19 — Fixes from the scenario tests, round 2 of 5: reviews and booking notes (D-54)
 
 **Stage:** 3 (E §4.4, §4.5)

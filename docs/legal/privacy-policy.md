@@ -54,7 +54,8 @@ keep it, and the choices you have. It applies to localites.ca and the emails we 
 
 ### When you contact a business
 - **Messages and files** you send in a conversation (photos and PDFs), and the business's
-  replies.
+  replies. If either of you edits a message, its earlier versions are kept and both of you can
+  see them.
 - **Inquiries** about a business that isn't on Localites yet: which business, your note,
   and, if you choose, a summary of your event. These go to the Localites team, not to the
   business.
@@ -191,7 +192,8 @@ people in Quebec.]
 | Events, plans, guest names and replies | As long as your account exists, so you can look back at past events |
 | Guests' email addresses and phone numbers | Until 90 days after the event, then erased |
 | Files in conversations | Until 30 days after the conversation's event (at least 30 days after sending), or 1 year after sending if the conversation isn't about an event |
-| Conversations | Up to 3 years after the last message, then deleted with their messages (unless reported: then kept with the report) |
+| Conversations | Up to 3 years after the last message, then deleted with their messages (unless reported: then kept with the report). If you delete a conversation, neither of you can see it from then on; the business can still report it to our team for 30 days, and then it's deleted with its files (unless reported) |
+| Earlier versions of an edited message | As long as the message, and seen by both sides; removed with it if its author removes it (unless reported) |
 | Published reviews | While the business is listed |
 | A review the team declined, or one you withdrew | Its words are erased 30 days after the decision, or after you withdrew it |
 | Detailed activity records | With no set end date, for year-over-year reports. When you delete your account, they stay but are no longer linked to you. [Lawyer: please confirm this is acceptable, or advise a period.] |

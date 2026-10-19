@@ -70,6 +70,15 @@ export async function action({ request, params, context }: Route.ActionArgs) {
       await businessChange(env, member.userId, params.slug, params.id, { kind: intent });
       return redirect(here);
     }
+    // M2 (D-54): change your own message's words; the earlier version stays visible to both sides.
+    if (intent === 'edit') {
+      const messageId = String(form.get('messageId') ?? '');
+      if (!isUuid(messageId)) throw data(null, { status: 400 });
+      const read = readBody(form, true);
+      if ('error' in read) return data({ error: read.error }, { status: 400 });
+      await businessChange(env, member.userId, params.slug, params.id, { kind: 'edit', messageId, body: read.body });
+      return redirect(here);
+    }
     throw data(null, { status: 400 });
   } catch (err) {
     // Anything that isn't a refusal (including the 400s above) is rethrown by refusal().
@@ -112,6 +121,7 @@ export default function BusinessConversation({ loaderData, actionData }: Route.C
         <MessageList
           messages={messages}
           canRemove
+          canEdit={status === 'open' && !ended && business.listed}
           reportPath={`/vendors/${business.slug}/messages/${loaderData.id}/report`}
           filePath={`/vendors/${business.slug}/messages/${loaderData.id}/files`}
         />

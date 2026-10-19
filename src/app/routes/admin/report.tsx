@@ -93,6 +93,11 @@ export default function ReportPage({ loaderData: { report }, actionData }: Route
                   : ''}
               </span>
               <span dir="auto">{m.removed && !m.body ? <span className="muted">(removed)</span> : m.body}</span>
+              {m.versions.map((v) => (
+                <span key={v.replacedAt} className="muted" dir="auto">
+                  Before {when.format(new Date(v.replacedAt))} it said: “{v.body}”
+                </span>
+              ))}
               {m.file &&
                 (m.file.gone ? (
                   <span className="muted">

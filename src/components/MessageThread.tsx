@@ -19,6 +19,8 @@ export type ShownMessage = {
   removed: boolean;
   hidden: boolean;
   file: { id: string; name: string; isPhoto: boolean; size: number; width: number | null; height: number | null; expired: boolean } | null;
+  edited: boolean;
+  versions: { body: string; replacedAt: string }[];
 };
 
 const when = new Intl.DateTimeFormat('en-CA', { dateStyle: 'medium', timeStyle: 'short', timeZone: 'America/Toronto' });
@@ -108,11 +110,14 @@ const sizeWords = (bytes: number) =>
 export function MessageList({
   messages,
   canRemove,
+  canEdit = false,
   reportPath,
   filePath,
 }: {
   messages: ShownMessage[];
   canRemove: boolean;
+  /** While messages can be sent: the author can change their own (M2, D-54). */
+  canEdit?: boolean;
   reportPath: string;
   filePath: string;
 }) {
@@ -130,6 +135,22 @@ export function MessageList({
               <p className={styles.body}>{m.hidden ? 'Hidden by Localites' : 'Message removed'}</p>
             ) : (
               (m.body || !m.file) && <p className={styles.body} dir="auto">{m.body || 'File removed'}</p>
+            )}
+            {!gone && m.edited && (
+              // M2 (D-54): "Edited", and a tap shows what it said before, to both sides.
+              <details className={styles.edited}>
+                <summary className={styles.textButton}>Edited</summary>
+                <ol className={styles.versions} aria-label="Earlier versions">
+                  {m.versions.map((v) => (
+                    <li key={v.replacedAt}>
+                      <span className={styles.byline}>Until {when.format(new Date(v.replacedAt))}</span>
+                      <p className={styles.body} dir="auto">
+                        {v.body || '(no words, only the file)'}
+                      </p>
+                    </li>
+                  ))}
+                </ol>
+              </details>
             )}
             {!gone && m.file?.expired && (
               <p className={`muted ${styles.fileLink}`}>
@@ -156,6 +177,23 @@ export function MessageList({
               <Link to={`${reportPath}?message=${m.id}`} className={`${styles.messageActions} ${styles.textButton}`}>
                 Report
               </Link>
+            )}
+            {canEdit && m.mine && !gone && (
+              <details className={styles.messageActions}>
+                <summary className={styles.textButton}>Edit</summary>
+                <Form method="post">
+                  <input type="hidden" name="intent" value="edit" />
+                  <input type="hidden" name="messageId" value={m.id} />
+                  <label htmlFor={`edit-${m.id}`} className="field-label">
+                    Change your message
+                  </label>
+                  <textarea id={`edit-${m.id}`} name="body" className="input" maxLength={MESSAGE_LIMITS.body} defaultValue={m.body} />
+                  <p className="muted">It will show as edited, and both of you can still see what it said before.</p>
+                  <button type="submit" className="button button-secondary">
+                    Save
+                  </button>
+                </Form>
+              </details>
             )}
             {canRemove && m.mine && !gone && (
               <Form method="post" className={styles.messageActions}>

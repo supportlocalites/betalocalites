@@ -119,6 +119,60 @@ export async function sendReport(
   return id;
 }
 
+// ------------------------------------------------------------------ a conversation the person deleted (D-54)
+
+export type DeletedConversation = { id: string; person: string; deletedAt: string; reported: boolean };
+
+/** For 30 days after a person deletes a conversation, the business is told, and can report it (without reading it). */
+export async function deletedConversations(env: ServerEnv, userId: string, slug: string): Promise<DeletedConversation[]> {
+  return asTeam(env, userId, slug, async (tx) => [
+    ...(await tx.execute<DeletedConversation>(sql`
+      select conversation_id as id, person, deleted_at::text as "deletedAt", reported from deleted_conversations_for_business()`)),
+  ]);
+}
+
+/** The business reports a conversation the person deleted; the team is emailed as for any report. */
+export async function reportDeleted(
+  env: ServerEnv,
+  userId: string,
+  slug: string,
+  conversationId: string,
+  input: Omit<ReportInput, 'messageId'>,
+  siteUrl: string,
+): Promise<void> {
+  const made = await talked(
+    asTeam(env, userId, slug, async (tx, b) => {
+      const [row] = await tx.execute<{ id: string; person: string; business: string }>(sql`
+        select report_id as id, person, business from report_deleted_conversation(${conversationId}::uuid, ${input.reason}, ${input.details})`);
+      const [me] = await tx.execute<{ name: string }>(sql`select display_name as name from app_user where id = ${userId}`);
+      return row ? { ...row, reporter: me?.name ?? 'Someone', vendorId: b.id } : null;
+    }),
+  );
+  if (!made) throw new PlanNotFound();
+  const today = await withDb(env, (db) => db.execute<{ n: number }>(sql`select report_emails_today() as n`)).catch(() => []);
+  if ((today[0]?.n ?? 0) >= REPORT_EMAILS_PER_DAY) return;
+  const result = await sendEmail(env, {
+    to: TEAM_ADDRESS,
+    ...renderEmail('reportTeam', {
+      reporter: made.reporter,
+      side: `on ${made.business}'s team`,
+      what: 'a conversation the customer has since deleted',
+      person: made.person,
+      business: made.business,
+      reason: REPORT_REASONS[input.reason],
+      details: input.details ?? 'none',
+      reportUrl: `${siteUrl}/admin/reports/${made.id}`,
+    }),
+  });
+  try {
+    await actingAs(env, { side: 'business', userId, vendorId: made.vendorId }, (tx) =>
+      tx.execute(sql`update moderation_report set team_email_status = ${result.sent ? 'sent' : 'failed'} where id = ${made.id}`),
+    );
+  } catch (err) {
+    console.error('report email outcome not recorded', err instanceof Error ? err.message : err);
+  }
+}
+
 // ------------------------------------------------------------------ the team (X13)
 
 export type ReportRow = {
@@ -169,6 +223,8 @@ export type ReportDetail = ReportRow & {
     removed: boolean;
     hidden: boolean;
     reported: boolean;
+    /** What it said before its author changed it (M2, D-54), oldest first. */
+    versions: { body: string; replacedAt: string }[];
     /** The photo or PDF sent with it (migration 0028); gone: deleted, not kept for the report. */
     file: { id: string; name: string; isPhoto: boolean; size: number; gone: boolean } | null;
   }[];
@@ -182,7 +238,7 @@ export async function reportDetail(env: ServerEnv, admin: Admin, reportId: strin
       from (${ROW}) x join moderation_report r on r.id = x.id join conversation c on c.id = r.conversation_id
       where x.id = ${reportId}`);
     if (!row) throw new PlanNotFound();
-    const messages = await tx.execute<Omit<ReportDetail['messages'][number], 'file'>>(sql`
+    const messages = await tx.execute<Omit<ReportDetail['messages'][number], 'file' | 'versions'>>(sql`
       select message_id as id, author_side as side, author_name as author, body, created_at::text as "createdAt", removed, hidden, reported
       from reported_conversation_for_team(${reportId}::uuid)`);
     const files = await tx.execute<{ id: string; messageId: string; name: string; type: string; size: number; gone: boolean }>(sql`
@@ -191,7 +247,14 @@ export async function reportDetail(env: ServerEnv, admin: Admin, reportId: strin
     const byMessage = new Map(
       files.map((f) => [f.messageId, { id: f.id, name: f.name, isPhoto: f.type !== 'application/pdf', size: f.size, gone: f.gone }]),
     );
-    return { ...row, messages: messages.map((m) => ({ ...m, file: byMessage.get(m.id) ?? null })) };
+    const edits = await tx.execute<{ messageId: string; body: string; replacedAt: string }>(sql`
+      select message_id as "messageId", body, replaced_at::text as "replacedAt" from reported_message_versions_for_team(${reportId}::uuid)`);
+    const versions = new Map<string, { body: string; replacedAt: string }[]>();
+    for (const e of edits) versions.set(e.messageId, [...(versions.get(e.messageId) ?? []), { body: e.body, replacedAt: e.replacedAt }]);
+    return {
+      ...row,
+      messages: messages.map((m) => ({ ...m, file: byMessage.get(m.id) ?? null, versions: versions.get(m.id) ?? [] })),
+    };
   });
 }
 

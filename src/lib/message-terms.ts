@@ -70,6 +70,8 @@ export const MESSAGE_REFUSALS = {
   LP145: 'Your business isn’t listed on Localites at the moment, so messages are paused until it is.',
   LP146: 'This person has left Localites, so no new messages can be sent.',
   LP147: 'Write a message or add a file first.',
+  LP187: 'Please keep your message under 5,000 characters.',
+  LP188: 'This message has been changed as many times as it can be. You can remove it and send a new one.',
   notReceived: 'That didn’t come through. Please try again.',
   LP182: 'You’ve sent the most reports allowed in a day. If something urgent is happening, email supportlocalites@gmail.com.',
   LP183: 'You’ve already reported this. Our team will look at it.',

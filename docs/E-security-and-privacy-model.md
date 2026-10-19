@@ -440,6 +440,8 @@ Stage 4. Unchanged from revision 1:
 | Photos reveal home location | GPS data stripped from images on upload (business photos: built, in the browser and again on the server). |
 | Former staff keep access | Access ends the moment membership ends. |
 | Platform staff snoop | Staff can open a conversation only through a report, and each access is logged with the report ID. |
+| Someone edits abuse away | A message's earlier versions are kept and shown to both sides under "Edited", and to the team through a report (D-54, migration 0048). |
+| Wrong business messaged | The person deletes the conversation: hidden from both sides at once (the database refuses either side) and nobody can write in it. For 30 days the business sees that it was deleted and can report it without reading it, so deleting can't hide abuse; then it's deleted with its files unless reported (D-54). |
 
 ## 7. Data minimisation commitments
 

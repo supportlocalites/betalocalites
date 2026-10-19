@@ -1,4 +1,4 @@
-import { Link } from 'react-router';
+import { Link, useSearchParams } from 'react-router';
 import { cloudflareContext, memberContext } from '@/app/context';
 import { SiteHeader } from '@/components/SiteHeader';
 import { SquarePhoto } from '@/components/SquarePhoto';
@@ -18,12 +18,18 @@ export async function loader({ context }: Route.LoaderArgs) {
 const when = new Intl.DateTimeFormat('en-CA', { dateStyle: 'medium', timeZone: 'America/Toronto' });
 
 export default function Messages({ loaderData: { conversations } }: Route.ComponentProps) {
+  const deleted = useSearchParams()[0].has('deleted');
   return (
     <>
       <SiteHeader />
       <main className="page narrow">
         <h1 className="title-1">Messages</h1>
         <div className="title-rule" aria-hidden="true" />
+        {deleted && (
+          <p className="notice" role="status">
+            The conversation is deleted.
+          </p>
+        )}
         {conversations.length === 0 ? (
           <p>No messages yet. You can message a business from its page once it has joined Localites.</p>
         ) : (

@@ -67,6 +67,21 @@ export async function action({ request, params, context }: Route.ActionArgs) {
       await personChange(env, member.userId, params.id, { kind: intent });
       return redirect(here);
     }
+    // M2 (D-54): change your own message's words; the earlier version stays visible to both sides.
+    if (intent === 'edit') {
+      const messageId = String(form.get('messageId') ?? '');
+      if (!isUuid(messageId)) throw data(null, { status: 400 });
+      const read = readBody(form, true);
+      if ('error' in read) return data({ error: read.error }, { status: 400 });
+      await personChange(env, member.userId, params.id, { kind: 'edit', messageId, body: read.body });
+      return redirect(here);
+    }
+    // M1 (D-54): gone from both sides; the person can message the business afresh.
+    if (intent === 'delete') {
+      await personChange(env, member.userId, params.id, { kind: 'delete' });
+      afterwards(ctx, cleanUpConversationFiles(env, 2), 'file clean-up');
+      return redirect('/messages?deleted=1');
+    }
     if (intent === 'event') {
       const eventId = String(form.get('eventId') ?? '');
       if (eventId && !isUuid(eventId)) throw data(null, { status: 400 });
@@ -150,6 +165,7 @@ export default function Conversation({ loaderData: { thread, today, canAttach },
         <MessageList
           messages={thread.messages}
           canRemove
+          canEdit={canWrite}
           reportPath={`/messages/${thread.id}/report`}
           filePath={`/messages/${thread.id}/files`}
         />
@@ -210,6 +226,21 @@ export default function Conversation({ loaderData: { thread, today, canAttach },
           <Link to={`/messages/${thread.id}/report`} className={styles.textButton}>
             Report this conversation
           </Link>
+          {/* M1 (D-54): a confirm step first, since it can't be undone. */}
+          <details>
+            <summary className={styles.textButton}>Delete this conversation</summary>
+            <p className="muted">
+              It will be gone from your messages and from {vendor.name}’s, and nobody can write in it again. This can’t be undone. If
+              you need to, you can message {vendor.name} afresh. For 30 days, {vendor.name} can still report it to our team, and then
+              it’s deleted for good.
+            </p>
+            <Form method="post">
+              <input type="hidden" name="intent" value="delete" />
+              <button type="submit" className="button button-secondary" disabled={busy}>
+                Yes, delete it
+              </button>
+            </Form>
+          </details>
         </div>
       </main>
     </>

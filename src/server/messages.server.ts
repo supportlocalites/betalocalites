@@ -128,7 +128,7 @@ async function writeMessage(
 const VERSION = sql`format('%s|%s|%s|%s|%s|%s|%s|%s|%s', c.status, c.ended_at, c.last_message_at, c.event_id, v.claim_status,
   v.listing_status, (select count(*) from message m where m.conversation_id = c.id),
   (select count(*) from conversation_file f where f.conversation_id = c.id and f.deleted_at is null),
-  (select max(greatest(m.removed_at, m.hidden_by_team_at)) from message m where m.conversation_id = c.id))`;
+  (select max(greatest(m.removed_at, m.hidden_by_team_at, m.edited_at)) from message m where m.conversation_id = c.id))`;
 
 /** For the person: the business isn't on Localites (its team ended, or it was archived): nobody can write. */
 const LEFT = sql`(c.ended_at is not null or v.claim_status <> 'claimed' or v.listing_status = 'archived')`;
@@ -147,6 +147,9 @@ export type ThreadMessage = {
   hidden: boolean;
   /** The photo or PDF sent with it (part 3), while it's there. */
   file: ShownFile | null;
+  /** Its author changed its words (M2, D-54): its earlier versions, oldest first, for both sides. */
+  edited: boolean;
+  versions: { body: string; replacedAt: string }[];
 };
 
 /**
@@ -163,15 +166,24 @@ async function readMessages(tx: Db, conversationId: string, userId: string, view
     createdAt: string;
     removed: boolean;
     hidden: boolean;
+    edited: boolean;
   }>(sql`
     select m.id, m.author_side as side, m.author_user_id as "authorId", u.display_name as "authorName",
            case when m.hidden_by_team_at is null then m.body else '' end as body,
-           m.created_at::text as "createdAt", m.removed_at is not null as removed, m.hidden_by_team_at is not null as hidden
+           m.created_at::text as "createdAt", m.removed_at is not null as removed, m.hidden_by_team_at is not null as hidden,
+           m.edited_at is not null and m.removed_at is null and m.hidden_by_team_at is null as edited
     from message m join app_user u on u.id = m.author_user_id
     where m.conversation_id = ${conversationId}
     order by m.created_at desc, m.id desc
     limit 300`);
   const files = await filesByMessage(tx, conversationId);
+  // Earlier versions (the database shows them only for messages that still show).
+  const edits = await tx.execute<{ messageId: string; body: string; replacedAt: string }>(sql`
+    select e.message_id as "messageId", e.body, e.replaced_at::text as "replacedAt"
+    from message_edit e join message m on m.id = e.message_id
+    where m.conversation_id = ${conversationId} order by e.replaced_at`);
+  const versions = new Map<string, { body: string; replacedAt: string }[]>();
+  for (const e of edits) versions.set(e.messageId, [...(versions.get(e.messageId) ?? []), { body: e.body, replacedAt: e.replacedAt }]);
   return [...rows].reverse().map(
     (m): ThreadMessage => ({
       id: m.id,
@@ -183,6 +195,8 @@ async function readMessages(tx: Db, conversationId: string, userId: string, view
       removed: m.removed,
       hidden: m.hidden,
       file: files.get(m.id) ?? null,
+      edited: m.edited,
+      versions: m.edited ? (versions.get(m.id) ?? []) : [],
     }),
   );
 }
@@ -456,10 +470,23 @@ export async function personChange(
   env: ServerEnv,
   userId: string,
   conversationId: string,
-  change: { kind: 'block' | 'unblock' } | { kind: 'event'; eventId: string | null } | { kind: 'remove'; messageId: string },
+  change:
+    | { kind: 'block' | 'unblock' | 'delete' }
+    | { kind: 'event'; eventId: string | null }
+    | { kind: 'remove'; messageId: string }
+    | { kind: 'edit'; messageId: string; body: string },
 ): Promise<void> {
   await talked(
     actingAs(env, asPerson(userId), async (tx) => {
+      // M1, M2 (D-54): the database's own functions, which check who's asking.
+      if (change.kind === 'delete') {
+        await tx.execute(sql`select delete_my_conversation(${conversationId}::uuid)`);
+        return;
+      }
+      if (change.kind === 'edit') {
+        await editMessage(tx, conversationId, change.messageId, change.body);
+        return;
+      }
       const done =
         change.kind === 'remove'
           ? await tx.execute(sql`
@@ -475,6 +502,13 @@ export async function personChange(
       if (done.length === 0) throw new PlanNotFound();
     }),
   );
+}
+
+/** M2 (D-54): the author changes a message's words; the database keeps the earlier version. */
+async function editMessage(tx: Db, conversationId: string, messageId: string, body: string): Promise<void> {
+  const [mine] = await tx.execute<{ id: string }>(sql`select id from message where id = ${messageId} and conversation_id = ${conversationId}`);
+  if (!mine) throw new PlanNotFound();
+  await tx.execute(sql`select edit_my_message(${messageId}::uuid, ${body})`);
 }
 
 // ======================================================================= the business's side
@@ -665,9 +699,14 @@ export async function businessChange(
   userId: string,
   slug: string,
   conversationId: string,
-  change: { kind: 'block' | 'unblock' } | { kind: 'remove'; messageId: string },
+  change: { kind: 'block' | 'unblock' } | { kind: 'remove'; messageId: string } | { kind: 'edit'; messageId: string; body: string },
 ): Promise<void> {
   await asTeam(env, userId, slug, async (tx, business) => {
+    // Anyone on the team edits their own messages (M2, D-54); owners and managers block.
+    if (change.kind === 'edit') {
+      await editMessage(tx, conversationId, change.messageId, change.body);
+      return;
+    }
     if (change.kind !== 'remove' && business.role === 'staff') throw new PlanNotFound();
     const done =
       change.kind === 'remove'

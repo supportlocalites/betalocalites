@@ -44,6 +44,10 @@ Every review waits for a person before it shows (D-51).
 - You can only read a conversation through a report, and each look is recorded.
 - **Hide** the reported message if it breaks the rules; **Block** the conversation if it keeps
   happening; then close the report as dealt with, or dismiss it, with a short note.
+- A message that was edited shows what it said before ("Before … it said"). A conversation the
+  person deleted stays readable through its report; the business can no longer see it, but can
+  report it for 30 days after it was deleted (the email says "a conversation the customer has
+  since deleted").
 - For someone who keeps causing trouble across conversations or reviews, see **Suspending an
   account** below.
 

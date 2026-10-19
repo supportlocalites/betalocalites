@@ -116,7 +116,7 @@ on codes (ADR-028).
   2. ✅ **built 19 October 2026** (migration 0047): reviews and fake bookings: withdraw a review, ask for one to be removed, emails on replies and
      report outcomes, the team decides "wasn't booked" notes, a 24-hour wait when a booking is
      marked after the event (M4, M7, M8, M9);
-  3. messages: a person deletes a conversation; both sides edit a message, with earlier versions a
+  3. ✅ **built 19 October 2026** (migration 0048): messages: a person deletes a conversation; both sides edit a message, with earlier versions a
      tap away (M1, M2);
   4. events and guests: copy or delete a cancelled event, tell guests about changes, paste a guest
      list, limits and name matching, a cancellation notice, a lighter guest page (M10–M13, C10, B9);
