@@ -9,6 +9,7 @@ import { PlanNotFound } from '@/server/acting.server';
 import { dateWindow, parseEventForm } from '@/server/event-input';
 import { addingChoices, copyBusinesses, copySource, createEvent, eventFormOptions } from '@/server/events.server';
 import { formFields, refusal, todayIso, tooFast } from '@/server/plan-pages.server';
+import { shortlistToEvent } from '@/server/shortlist.server';
 import type { Route } from './+types/event-new';
 
 /**
@@ -46,7 +47,15 @@ export async function loader({ request, context }: Route.LoaderArgs) {
   const copied = copy
     ? { ...copy.values, date: copy.values.date >= dates.min && copy.values.date <= dates.max ? copy.values.date : '' }
     : null;
-  return { options, add, dates, copy: copied && copy ? { fields: eventFields(copied), businesses: copy.slugs, from: copyId } : null };
+  // From the shortlist (D-57): its businesses go on the new event once it's planned.
+  const fromShortlist = params.get('shortlist') === '1';
+  return {
+    options,
+    add,
+    dates,
+    fromShortlist,
+    copy: copied && copy ? { fields: eventFields(copied), businesses: copy.slugs, from: copyId } : null,
+  };
 }
 
 export async function action({ request, context }: Route.ActionArgs) {
@@ -71,11 +80,18 @@ export async function action({ request, context }: Route.ActionArgs) {
     const n = await copyBusinesses(env, member.userId, fields.copyFrom, eventId).catch(() => 0);
     return redirect(`/events/${eventId}?created=1&copied=${n}`);
   }
+  if (fields.fromShortlist === '1') {
+    const n = await shortlistToEvent(env, member.userId, eventId).catch((err: unknown) => {
+      console.error('shortlist not moved to the new event', err instanceof Error ? err.message : err);
+      return 0;
+    });
+    if (n > 0) return redirect(`/events/${eventId}?created=1&moved=${n}`);
+  }
   return redirect(`/events/${eventId}?created=1${added ? `&added=${encodeURIComponent(added.slug)}` : ''}`);
 }
 
 export default function NewEvent({ loaderData, actionData }: Route.ComponentProps) {
-  const { options, add, dates, copy } = loaderData;
+  const { options, add, dates, copy, fromShortlist } = loaderData;
   const busy = useNavigation().state !== 'idle';
   return (
     <>
@@ -103,6 +119,12 @@ export default function NewEvent({ loaderData, actionData }: Route.ComponentProp
             <>
               <input type="hidden" name="add" value={add.slug} />
               <p>We’ll add {add.name} to this event as Considering.</p>
+            </>
+          )}
+          {fromShortlist && !copy && !add && (
+            <>
+              <input type="hidden" name="fromShortlist" value="1" />
+              <p>The businesses on your shortlist go on this event as Considering.</p>
             </>
           )}
           {copy && (

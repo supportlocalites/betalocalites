@@ -207,9 +207,14 @@ const found = await site(`/search?q=${run}`);
 check('set-up: search finds the business, so its result row is looked at', found.body.includes(V.name));
 
 // ---- the pages, as each kind of visitor sees them
+// Browse local signed in (D-57): one business on the shortlist, so its bar shows; a cost set.
+await sql`insert into shortlist (user_id, vendor_id) values (${ids.person}, ${W.id}) on conflict do nothing`;
+await sql`update vendor set cost_level = 2 where id = ${V.id}`;
 const PAGES = [
   { who: null, path: '/', label: 'Welcome' },
   { who: null, path: '/explore', label: 'Explore' },
+  { who: 'person', path: '/explore', label: 'Browse local, with a shortlist' },
+  { who: 'person', path: '/shortlist', label: 'Your shortlist' },
   { who: null, path: `/search?q=${run}`, label: 'Search results' },
   { who: null, path: `/vendors/${V.slug}`, label: 'A business page' },
   { who: null, path: `/vendors/${V.slug}`, label: 'The photo viewer', open: 'section[aria-labelledby=photos] a >> nth=1', dialog: true },

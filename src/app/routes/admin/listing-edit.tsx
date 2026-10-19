@@ -12,6 +12,7 @@ import {
   readFormOptions,
   readListing,
   saveService,
+  setCostLevel,
   setServiceActive,
   updateListing,
 } from '@/server/admin/listings.server';
@@ -150,6 +151,13 @@ export async function action({ params, request, context }: Route.ActionArgs) {
       }
       return back('details');
     }
+    if (intent === 'cost') {
+      const raw = String(form.get('cost') ?? '');
+      const level = raw === '1' || raw === '2' || raw === '3' ? (Number(raw) as 1 | 2 | 3) : raw === '' ? null : undefined;
+      if (level === undefined) throw data(null, { status: 400 });
+      await setCostLevel(env, admin, params.id, level);
+      return back('cost');
+    }
     if (intent === 'status') {
       const to = String(form.get('to') ?? '') as ListingStatus;
       if (!(to in STATUS_LABEL)) return data({ intent, errors: { form: 'Choose what to do with the listing.' } }, { status: 400 });
@@ -193,6 +201,7 @@ export async function action({ params, request, context }: Route.ActionArgs) {
 const SAVED: Record<string, string> = {
   created: 'Draft saved. Nobody sees it until you publish it.',
   details: 'Details saved.',
+  cost: 'Cost guide saved.',
   service: 'Services saved.',
   published: 'Published: it’s now on Localites.',
   unpublished: 'Hidden: it no longer shows on Localites.',
@@ -413,6 +422,29 @@ export default function EditListing({ loaderData, actionData: rawResult }: Route
           ))}
         </Form>
       )}
+
+      <section className={styles.section} aria-labelledby="cost-heading">
+        <h2 id="cost-heading">Cost guide</h2>
+        <p className="muted">
+          Shown on Browse local as $ (low cost), $$ or $$$ (high cost), and used by its Cost filter. Set by our team only, from what people
+          tell us their events cost. Never a price.
+        </p>
+        <Form method="post" className={styles.buttons}>
+          <input type="hidden" name="intent" value="cost" />
+          <label htmlFor="cost" className="field-label">
+            Cost
+          </label>
+          <select id="cost" name="cost" className="input" defaultValue={listing.costLevel ? String(listing.costLevel) : ''}>
+            <option value="">Not set yet</option>
+            <option value="1">$ (low cost)</option>
+            <option value="2">$$ (medium cost)</option>
+            <option value="3">$$$ (high cost)</option>
+          </select>
+          <button type="submit" className="button button-secondary" disabled={busy}>
+            Save cost
+          </button>
+        </Form>
+      </section>
 
       <section className={styles.section} aria-labelledby="owner-heading">
         <h2 id="owner-heading">Owner</h2>

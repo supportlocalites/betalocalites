@@ -1,0 +1,128 @@
+/* Dark in both looks, held to the bottom of the screen (D-57). */
+.bar {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 10;
+  background: var(--color-bar);
+  color: var(--color-on-bar);
+  border-top: var(--hairline) solid var(--color-gold);
+}
+
+.inner {
+  max-width: var(--content-max);
+  margin: 0 auto;
+  padding: var(--space-3) var(--gutter);
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2) var(--space-3);
+}
+
+.count {
+  margin: 0;
+  flex: none;
+  display: grid;
+  gap: var(--space-1);
+}
+
+.label {
+  font-size: var(--text-label);
+  letter-spacing: var(--tracking-label);
+  text-transform: uppercase;
+  color: var(--color-bar-gold-ink);
+}
+
+.number {
+  font-family: var(--font-display);
+  font-size: var(--text-title-3);
+}
+
+.items {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  /* On a phone the bar is just the count and the button (D-57's phone design). */
+  display: none;
+  flex: 1 1 auto;
+  min-width: 0;
+  gap: var(--space-3);
+  overflow-x: auto;
+}
+
+.item {
+  flex: none;
+  width: var(--size-bar-item);
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-2) var(--space-2) var(--space-2) var(--space-3);
+  border: var(--hairline) solid var(--color-bar-line);
+}
+
+.thumb {
+  width: var(--size-bar-thumb);
+  height: var(--size-bar-thumb);
+  flex: none;
+  object-fit: cover;
+}
+
+.words {
+  flex: 1;
+  min-width: 0;
+  display: grid;
+  gap: var(--space-1);
+}
+
+.name {
+  font-family: var(--font-display);
+  line-height: 1.25;
+  overflow-wrap: anywhere;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+}
+
+.remove {
+  width: var(--size-icon-button);
+  height: var(--size-icon-button);
+  border: 0;
+  background: transparent;
+  color: var(--color-on-bar);
+  font-size: var(--text-title-3);
+  cursor: pointer;
+}
+
+.go {
+  flex: none;
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  min-height: var(--size-icon-button);
+  padding-inline: var(--space-5);
+  background: var(--color-gold-fill);
+  color: var(--color-on-gold);
+  font-weight: 500;
+  font-size: var(--text-button);
+  letter-spacing: var(--tracking-button);
+  text-transform: uppercase;
+  text-decoration: none;
+}
+
+/* On a computer: everything in one line. */
+@media (min-width: 768px) {
+  .inner {
+    flex-wrap: nowrap;
+    gap: var(--space-4);
+  }
+
+  .items {
+    display: flex;
+  }
+
+  .go {
+    margin-left: 0;
+  }
+}

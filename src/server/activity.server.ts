@@ -82,6 +82,37 @@ export async function listTrack(
   return quietly(async () => {
     const browser = await pageBrowser(env, request);
     if (!browser) return { track: null, setCookie: null };
+    return { track: await listNote(env, browser.id, list), setCookie: browser.setCookie };
+  });
+}
+
+/**
+ * Several lists on one page (Browse local's rows, D-57): one browser for all of them (a new one
+ * is made and limited once), and a note for each list.
+ */
+export async function listTracks(
+  env: ServerEnv,
+  request: Request,
+  lists: { words: string; category: string | null; ids: string[] }[],
+): Promise<{ tracks: (ListTrack | null)[]; setCookie: string | null }> {
+  const none = { tracks: lists.map(() => null), setCookie: null };
+  if (!trackingOn(env) || !isPerson(request) || lists.length === 0) return none;
+  try {
+    const browser = await pageBrowser(env, request);
+    if (!browser) return none;
+    return { tracks: await Promise.all(lists.map((l) => listNote(env, browser.id, l))), setCookie: browser.setCookie };
+  } catch (err) {
+    console.error('activity note not made', err instanceof Error ? err.message : err);
+    return none;
+  }
+}
+
+async function listNote(
+  env: ServerEnv & { ACTIVITY_KEY: string },
+  browserId: string,
+  list: { words: string; category: string | null; ids: string[] },
+): Promise<ListTrack> {
+  {
     const pv = uuidv7();
     const note: ListNote = {
       k: 'list',
@@ -91,14 +122,11 @@ export async function listTrack(
       cat: list.category,
       ids: list.ids.slice(0, 30),
       n: Math.min(list.ids.length, 30),
-      b: browser.id,
+      b: browserId,
       x: expiry(Date.now() / 1000),
     };
-    return {
-      track: { token: await signNote(env.ACTIVITY_KEY, note), list: pv },
-      setCookie: browser.setCookie,
-    };
-  });
+    return { token: await signNote(env.ACTIVITY_KEY, note), list: pv };
+  }
 }
 
 /**

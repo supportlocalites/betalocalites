@@ -26,6 +26,16 @@
   --color-viewer: rgba(20, 20, 20, 0.94);
   --color-viewer-button: rgba(20, 20, 20, 0.45);
   --color-on-viewer: #f7f5f1;
+  /* Browse local (D-57): gold words only in this deeper shade (5:1 on ground); the shortlist bar
+     stays dark in both looks, with a gold button. */
+  --color-gold-ink: #7f6129;
+  --color-bar: #141414;
+  --color-on-bar: #f7f5f1;
+  --color-bar-gold-ink: #d4b77c;
+  --color-bar-line: #8a7346;
+  --color-gold-fill: #c9a96a;
+  --color-on-gold: #141414;
+  --color-chosen: #e3c98f;
   color-scheme: light;
 
   /* Type (§3): served with the site from @fontsource, no third party */
@@ -67,6 +77,13 @@
   --radius-pill: 999px;
   --size-icon-button: 44px;
   --size-theme-icon: 20px;
+  /* Browse local's cards (D-57): a row scrolls sideways; the photo band on top of each card. */
+  --size-card: 260px;
+  --size-card-photo: 170px;
+  --size-bar-item: 250px;
+  --size-bar-thumb: 44px;
+  --size-bar-space: 120px;
+  --size-search-min: 320px;
   --size-button: 52px;
   --hairline: 1px;
   --frame-inset-photo: 6px;
@@ -127,6 +144,9 @@
   --color-photo-2: #34302b;
   --color-photo-3: #2a2825;
   --color-photo-4: #3a362f;
+  --color-gold-ink: #d4b77c;
+  --color-bar: #0b0b0b;
+  --color-chosen: #c9a96a;
   color-scheme: dark;
 }
 
@@ -145,6 +165,9 @@
     --color-photo-2: #34302b;
     --color-photo-3: #2a2825;
     --color-photo-4: #3a362f;
+    --color-gold-ink: #d4b77c;
+    --color-bar: #0b0b0b;
+    --color-chosen: #c9a96a;
     color-scheme: dark;
   }
 }
@@ -152,6 +175,8 @@
 @media (min-width: 768px) {
   :root {
     --gutter: 32px;
+    --size-card: 300px;
+    --size-card-photo: 196px;
     --hero-ratio: 16 / 9;
     --size-gallery-row: 180px;
   }

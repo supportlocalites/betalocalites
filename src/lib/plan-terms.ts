@@ -23,6 +23,8 @@ export const PLAN_LIMITS = {
   vendorsPerEvent: 40,
   bookedMarksPerDay: 15,
   savedMax: 500,
+  /** The shortlist (D-57): businesses to contact together; the database refuses more (LP140). */
+  shortlistMax: 30,
   /** Featured businesses shown per kind of event (D-43), and the team's note on one. */
   featuredShown: 3,
   featuredNote: 500,
@@ -83,6 +85,7 @@ export const PLAN_REFUSALS: Record<string, string> = {
   vendorsPerEvent: `This event already has ${PLAN_LIMITS.vendorsPerEvent} businesses on it. Remove one first.`,
   bookedMarksPerDay: 'You’ve marked a lot of businesses booked today. Please try again tomorrow.',
   savedMax: 'Your saved list is full. Remove one first.',
+  LP140: `Your shortlist holds ${PLAN_LIMITS.shortlistMax} businesses. Remove one first.`,
 };
 
 // ------------------------------------------------------------------ dates and times

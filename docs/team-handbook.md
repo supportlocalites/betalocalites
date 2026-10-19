@@ -70,6 +70,9 @@ same business automatically.
 
 ## Businesses and listings
 
+- **Cost guide ($ to $$$, D-56):** on each listing's team page. Set it from what people tell us their
+  events cost: $ low, $$ medium, $$$ high. It shows on Browse local and drives its Cost filter;
+  businesses can't change it. Never write a price.
 - **Suggested businesses:** check it's a real local business. **Add** it as a draft listing (using
   only what it publishes itself), mark it a **duplicate** of an existing listing, or **decline** it
   with a reason. Whoever suggested it signed in is emailed once it's listed.

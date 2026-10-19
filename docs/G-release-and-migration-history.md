@@ -31,6 +31,48 @@ Every release and every database migration, in order. Appended before each deplo
 
 ## Releases
 
+### 2026-10-19 — Browse local, step 2 of the redesign (D-56, D-57)
+
+**Stage:** 1, 2A (E §4.1, §4.2)
+**What changed (plain English):** **Browse local** (`/explore`) is the approved design: a filter bar
+(search, where, cost $ to $$$, rating, sort; choosing from a list shows the results at once), a
+button for every kind of business, then a row for each kind that scrolls sideways, each business
+with one of its photos (or its name on a plain panel), its kind, town, cost and rating. At each
+card's bottom right, side by side: **+** adds it to the shortlist ("Add to shortlist") and the
+**bookmark** saves it as a favourite ("Save as favourite", the existing saved list); signed out,
+each asks to sign in first and comes back. Once something is on the shortlist, a dark bar along
+the bottom lists it, with × to take one off and **Add these to an event**, which opens **Your
+shortlist** (`/shortlist`): add them to one of your events, or **Plan a new event with these**;
+they go on as Considering and leave the shortlist. "Your favourites first" sorts by the bookmark.
+The team sets each listing's **cost guide** on its team page (recorded). Ratings show an average
+from 3 reviews, as on a business's page.
+**Migrations applied:** `0053_browse_and_shortlist.sql`
+**Destructive?** No: a column, a table, a trigger, one function renamed and one added.
+**Tests run:** every database check file (0053: 17); unit tests 209 of 209; new browser suite
+`browse.mjs` 33 of 33; look 788 of 788 (Browse local signed in with a shortlist, and Your
+shortlist, in both looks); categories 30 of 30, event planning 145 of 145, accounts 35 of 35,
+account deletion 22 of 22, activity and analytics 53 of 53, help and sharing 19 of 19, round 4's
+suite 28 of 28, owner editing 55 of 55, admin access 43 of 43. Tried in a real browser, signed
+in: + and the bookmark change in place without reloading, and the bar appears.
+**Security tests:** someone else sees no shortlist or favourites and can't remove them; a
+business that isn't listed can't be added; signed out nothing is added; the shortlist goes only
+onto one's own event (someone else's is refused, nothing moves); an owner's own business never
+goes on their own plan; only the team sets a cost, only $ to $$$; the form only goes back to a
+page on this site; in the database (0053): only the person acting as themselves reads or changes
+their shortlist (not the business or team side), at most 30 listed businesses, the site can't
+change when one was added, the old download can't be called, a deleted account's shortlist goes.
+**Independent review before push:** fixed before push: a first-time visitor counted once for the
+whole page, not once per row (the one serious finding); tapping + or the bookmark no longer counts
+the rows as seen again; only listed businesses count towards the 30; + on one already there says
+so even at 30; moving the shortlist waits for another move by the same person; no wrong "already
+on this event" after planning a new event; a favourites error shows; clearer screen-reader
+words. **Known:** the page reads every listed business's rating and photo before taking 12 per
+row: fine now, to revisit when there are many hundreds of businesses.
+**Existing functionality affected:** the old Explore page (category tiles) is replaced; each
+kind's own page (`/search?category=`) is unchanged and is where "See all" goes.
+**How to roll back:** with the next update.
+**Approved by:** the product owner, 19 October 2026 (D-56, D-57).
+
 ### 2026-10-19 — The light and dark look (D-57, step 1 of the redesign)
 
 **Stage:** all pages (design system §2)

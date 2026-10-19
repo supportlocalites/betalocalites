@@ -60,6 +60,8 @@ export default [
     // Report a published review (Stage 3, part 2): as the person, or as the business about its own.
     route('reviews/:id/report', 'routes/member/review-report.tsx', { id: 'person-review-report' }),
     route('saved', 'routes/member/saved.tsx'),
+    // The shortlist (D-57): the + on Browse local; also where the card buttons post.
+    route('shortlist', 'routes/member/shortlist.tsx'),
     route('vendors/:slug/add', 'routes/member/vendor-add.tsx'),
     // Inquire, for a business not on Localites yet (C10, ADR-024).
     route('vendors/:slug/inquire', 'routes/member/inquire.tsx'),

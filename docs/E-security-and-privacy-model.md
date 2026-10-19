@@ -166,7 +166,9 @@ grants more, and every admin action is recorded in `audit_log`.
 
 | Record | Visitor | The consumer | Another consumer | Vendor on the plan | Admin |
 |---|---|---|---|---|---|
-| Saved vendors | — | R C X (own) | — | — (not told) | aggregate counts only (D-42) |
+| Saved vendors (the bookmark, "favourites" on Browse local) | — | R C X (own) | — | — (not told) | aggregate counts only (D-42) |
+| Shortlist (the +, D-57, migration 0053): at most 30 listed businesses, moved onto one's own event as Considering | — | R C X (own, acting as themselves only; the database refuses anyone else) | — | — (not told) | — (not readable) |
+| Cost guide ($ to $$$, D-56, migration 0053) | R | R | R (own) | R (own) | R U (recorded) |
 | Event | — | R C U; cancel (own) | — | **Summary only**¹ | The booking summary³ for every event with a business marked booked; the rest only when a booking on it is flagged |
 | Event plan: vendors *considering* | — | R C U X (own) | — | — (not told) | — |
 | Event plan: vendor *booked* | — | R U (own); can't newly mark a business that isn't listed (D-46) | — | R (own row)²; can flag once | R³, every booking, logged (D-46); R when flagged; decides each flag once: stands, or not real (its review removed) (D-54) |

@@ -210,7 +210,7 @@ people in Quebec.]
 
 On **Your account → Delete your account**, after you type your email address, we immediately:
 
-- delete your events, plans, guest lists and saved businesses (so businesses you marked as
+- delete your events, plans, guest lists, saved businesses and shortlist (so businesses you marked as
   booked no longer see the booking);
 - erase your name, email address and personal details;
 - remove you from any business team;

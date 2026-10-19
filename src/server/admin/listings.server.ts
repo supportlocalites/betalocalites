@@ -114,6 +114,8 @@ export type ListingDetail = VendorRecord & {
   claimStatus: string;
   services: ServiceRow[];
   history: HistoryRow[];
+  /** $ to $$$, as the team judges it (D-56); null until set. */
+  costLevel: number | null;
 };
 
 async function readVendor(
@@ -162,7 +164,8 @@ export async function readListing(db: Db, id: string): Promise<ListingDetail | n
       where a.subject_type = 'vendor' and a.subject_id = ${id} and a.action not like 'activity.%'
       order by a.created_at desc limit 30`),
   ]);
-  return { id, ...vendor, services: [...services], history: [...history] };
+  const [cost] = await db.execute<{ costLevel: number | null }>(sql`select cost_level as "costLevel" from vendor where id = ${id}`);
+  return { id, ...vendor, services: [...services], history: [...history], costLevel: cost?.costLevel ?? null };
 }
 
 async function assertSlugFree(db: Db, slug: string, vendorId: string | null) {
@@ -305,6 +308,31 @@ export async function updateListing(
         from vendor_member m join app_user u on u.id = m.user_id and u.deleted_at is null
         where m.vendor_id = ${id} and m.role = 'owner' and m.ended_at is null`);
       return { from: before.name, to: input.name, slug: input.slug, owner: owner ?? null };
+    }),
+  );
+}
+
+/**
+ * How costly a business is, $ to $$$ (D-56): set by the team only, from what people say their
+ * events cost; null takes it off. Recorded in the history.
+ */
+export async function setCostLevel(env: ServerEnv, admin: Admin, id: string, level: 1 | 2 | 3 | null): Promise<void> {
+  await withDb(env, (db) =>
+    db.transaction(async (tx) => {
+      const [before] = await tx.execute<{ costLevel: number | null; status: string }>(sql`
+        select cost_level as "costLevel", listing_status as status from vendor where id = ${id} for update`);
+      if (!before) throw new ListingConflict('form', 'This listing no longer exists.');
+      if (before.status === 'archived') throw new ListingConflict('form', 'Archived listings can’t be edited.');
+      if (before.costLevel === level) return;
+      await tx.execute(sql`update vendor set cost_level = ${level} where id = ${id}`);
+      await audit(tx, {
+        actor: admin.userId,
+        action: 'vendor.cost_level',
+        subjectType: 'vendor',
+        subjectId: id,
+        changes: { costLevel: { from: before.costLevel, to: level } },
+        sessionRef: admin.sessionId,
+      });
     }),
   );
 }

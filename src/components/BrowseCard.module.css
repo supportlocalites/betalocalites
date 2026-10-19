@@ -1,0 +1,201 @@
+/* A business's card on Browse local (D-57). */
+.card {
+  /* Holds the words only screen readers hear, so they stay inside its row's scrolling. */
+  position: relative;
+  flex: none;
+  width: var(--size-card);
+  background: var(--color-surface);
+  border: var(--hairline) solid var(--color-line-soft);
+  display: flex;
+  flex-direction: column;
+  scroll-snap-align: start;
+}
+
+.cardChosen {
+  border-color: var(--color-gold);
+}
+
+.link {
+  display: flex;
+  flex-direction: column;
+  text-decoration: none;
+  flex: 1;
+}
+
+.photo {
+  position: relative;
+  height: var(--size-card-photo);
+  background: var(--color-tint);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* No photo yet: the business's name on a plain panel (D-56), never a stock photo. */
+.blank {
+  font-family: var(--font-display);
+  font-style: italic;
+  font-weight: 500;
+  font-size: var(--text-title-2);
+  color: var(--color-ink-soft);
+  text-align: center;
+  padding-inline: var(--space-6);
+  overflow-wrap: anywhere;
+}
+
+.kind {
+  position: absolute;
+  top: var(--space-3);
+  left: var(--space-3);
+  background: var(--color-surface);
+  color: var(--color-ink);
+  padding: var(--space-1) var(--space-2);
+  font-size: var(--text-label);
+  letter-spacing: var(--tracking-label);
+  text-transform: uppercase;
+}
+
+.town {
+  position: absolute;
+  left: var(--space-3);
+  bottom: var(--space-2);
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  background: var(--color-surface);
+  color: var(--color-ink);
+  padding: var(--space-1) var(--space-2);
+  font-size: var(--text-small);
+}
+
+.pin {
+  width: var(--space-3);
+  fill: currentColor;
+}
+
+.words {
+  display: grid;
+  gap: var(--space-1);
+  padding: var(--space-4) var(--space-4) 0;
+}
+
+.name {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: var(--text-title-3);
+  line-height: 1.25;
+  overflow-wrap: anywhere;
+}
+
+.tagline {
+  font-size: var(--text-small);
+  color: var(--color-ink-soft);
+  line-height: var(--leading-body);
+}
+
+/* The bottom line: cost and rating on the left, the two buttons at the bottom right. */
+.foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4) var(--space-4);
+  margin-top: auto;
+}
+
+.meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-1) var(--space-4);
+  font-size: var(--text-small);
+  color: var(--color-ink-soft);
+}
+
+.cost {
+  letter-spacing: var(--tracking-label);
+}
+
+.costOn {
+  color: var(--color-ink);
+  font-weight: 600;
+}
+
+.costOff {
+  color: var(--color-muted);
+}
+
+.rating {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+}
+
+.star {
+  width: var(--space-3);
+  height: var(--space-3);
+  fill: var(--color-gold-ink);
+}
+
+.buttons {
+  display: flex;
+  gap: var(--space-2);
+  flex: none;
+  position: relative;
+}
+
+.button {
+  width: var(--size-icon-button);
+  height: var(--size-icon-button);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: var(--hairline) solid var(--color-line);
+  background: var(--color-surface);
+  color: var(--color-ink);
+  cursor: pointer;
+  padding: 0;
+}
+
+.button:hover {
+  border-color: var(--color-gold);
+}
+
+.chosen {
+  background: var(--color-chosen);
+  border-color: var(--color-gold);
+  color: var(--color-on-gold);
+}
+
+.icon {
+  width: var(--space-5);
+  height: var(--space-5);
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.6;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.filled {
+  fill: currentColor;
+}
+
+.error {
+  position: absolute;
+  right: 0;
+  bottom: calc(100% + var(--space-2));
+  width: var(--size-card);
+  margin: 0;
+  padding: var(--space-2) var(--space-3);
+  background: var(--color-bar);
+  color: var(--color-on-bar);
+  font-size: var(--text-small);
+}
