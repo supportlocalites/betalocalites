@@ -1,6 +1,6 @@
-import { sql } from 'drizzle-orm';
+import { type SQL, sql } from 'drizzle-orm';
 import { uuidv7 } from '@/lib/ids.mjs';
-import { REVIEW_LIMITS, REVIEW_REFUSALS } from '@/lib/review-terms';
+import { REPORT_OUTCOMES, REVIEW_LIMITS, REVIEW_REFUSALS } from '@/lib/review-terms';
 import { actingAs, errorCode, PlanCapped, PlanNotFound, PlanRefused } from './acting.server';
 import { audit } from './admin/audit.server';
 import type { Admin } from './auth/admin.server';
@@ -55,16 +55,18 @@ export function readReview(form: FormData): { rating: number; body: string } | {
 export type ReviewStatus = 'pending' | 'published' | 'declined' | 'removed' | 'withdrawn';
 
 /** Whether a booking can be reviewed now, and why not. */
-export type CanReview = 'yes' | 'not_booked' | 'not_yet' | 'closed' | 'flagged' | 'own' | 'unlisted' | 'not_open';
+export type CanReview = 'yes' | 'not_booked' | 'not_yet' | 'closed' | 'not_real' | 'flagged' | 'own' | 'unlisted' | 'grace' | 'not_open';
 
 /** The same rules as the database's (enforce_review_rules), to say so on the page before anyone tries. */
 export const CAN_REVIEW = sql`case
   when ev.status <> 'booked' or e.status = 'cancelled' then 'not_booked'
   when event_ends_at(e) > now() then 'not_yet'
   when now() > event_ends_at(e) + interval '60 days' then 'closed'
+  when ev.vendor_flagged_at is not null and ev.vendor_flagged_at >= ev.booked_at and ev.flag_outcome = 'booking_not_real' then 'not_real'
   when ev.vendor_flagged_at is not null and ev.vendor_flagged_at >= ev.booked_at and ev.flag_outcome is distinct from 'booking_stands' then 'flagged'
   when exists (select 1 from vendor_member m where m.vendor_id = ev.vendor_id and m.user_id = ev.host_user_id and m.ended_at is null) then 'own'
   when v.listing_status <> 'published' then 'unlisted'
+  when ev.booked_after_event and now() < ev.booked_at + interval '24 hours' then 'grace'
   else 'yes' end`;
 
 export type ReviewForm = {
@@ -73,6 +75,8 @@ export type ReviewForm = {
   can: CanReview;
   /** The last day to review (60 days after the event). */
   until: string;
+  /** Marked booked after the event: when reviews open, 24 hours after the marking (M9, D-54). */
+  opensAt: string | null;
   review: {
     id: string;
     rating: number;
@@ -82,6 +86,10 @@ export type ReviewForm = {
     reply: string | null;
     /** Came back as written when the booking was marked again (migration 0046): it can't be changed. */
     locked: boolean;
+    /** Its author withdrew it (M4, D-54). */
+    withdrawnByMe: boolean;
+    /** Its author has asked the team to remove it, and the team hasn't decided yet (M4, D-54). */
+    removalAsked: boolean;
   } | null;
 };
 
@@ -97,18 +105,22 @@ export async function reviewForm(env: ServerEnv, userId: string, eventId: string
         date: string;
         can: CanReview;
         until: string;
+        opensAt: string | null;
       }>(sql`
         select v.display_name as name, v.slug::text as slug, v.listing_status = 'published' as listed,
                p.title as "eventName", e.event_date::text as date, ${CAN_REVIEW} as can,
-               ((event_ends_at(e) + interval '60 days') at time zone e.timezone)::date::text as until
+               ((event_ends_at(e) + interval '60 days') at time zone e.timezone)::date::text as until,
+               case when ev.booked_after_event then (ev.booked_at + interval '24 hours')::text end as "opensAt"
         from event_vendor ev join event e on e.id = ev.event_id join event_private p on p.event_id = e.id
         join vendor v on v.id = ev.vendor_id
         where ev.id = ${rowId} and ev.event_id = ${eventId} and ev.host_user_id = ${userId}`);
       if (!row) throw new PlanNotFound();
       const [review] = await tx.execute<NonNullable<ReviewForm['review']>>(sql`
-        select id, rating, body, status, decision_reason as reason, locked,
-               case when reply_removed_at is null and reply_held_at is null then vendor_reply end as reply
-        from review where event_vendor_id = ${rowId} and author_user_id = ${userId}`);
+        select r.id, r.rating, r.body, r.status, r.decision_reason as reason, r.locked, r.withdrawn_by_author as "withdrawnByMe",
+               exists (select 1 from review_report x where x.review_id = r.id and x.reporter_user_id = ${userId}
+                         and x.reason = 'author_request' and x.status = 'open') as "removalAsked",
+               case when r.reply_removed_at is null and r.reply_held_at is null then r.vendor_reply end as reply
+        from review r where r.event_vendor_id = ${rowId} and r.author_user_id = ${userId}`);
       // A review the team denied isn't shown to its author, and the booking can't be reviewed again (D-51).
       const denied = review?.status === 'declined';
       return {
@@ -116,6 +128,7 @@ export async function reviewForm(env: ServerEnv, userId: string, eventId: string
         event: { name: row.eventName, date: row.date },
         can: denied ? 'not_open' : row.can,
         until: row.until,
+        opensAt: row.opensAt,
         review: denied ? null : (review ?? null),
       };
     }),
@@ -184,6 +197,34 @@ export async function saveReview(
     ).catch((err: unknown) => console.error('review email outcome not recorded', err instanceof Error ? err.message : err));
   }
   return saved;
+}
+
+/** M4 (D-54): the author withdraws their own review while it waits; it stays withdrawn. */
+export async function withdrawReview(env: ServerEnv, userId: string, rowId: string): Promise<void> {
+  await reviewed(
+    actingAs(env, { side: 'person', userId }, async (tx) => {
+      const [mine] = await tx.execute<{ id: string }>(sql`
+        select id from review where event_vendor_id = ${rowId} and author_user_id = ${userId}`);
+      if (!mine) throw new PlanNotFound();
+      await tx.execute(sql`select withdraw_my_review(${mine.id}::uuid)`);
+    }),
+  );
+}
+
+/** The review's author is told the business replied, once the reply shows (M7, D-54); not after they've left. */
+export async function emailAboutReply(env: ServerEnv, reviewId: string, authorId: string, business: { name: string; slug: string }, siteUrl: string) {
+  const [author] = await withDb(env, (db) =>
+    db.execute<{ email: string; name: string }>(sql`
+      select email::text as email, coalesce(given_name, display_name) as name from app_user where id = ${authorId} and deleted_at is null`),
+  );
+  if (!author) return;
+  await emailPerson(
+    env,
+    { userId: authorId, email: author.email },
+    'review_reply',
+    { type: 'review', id: reviewId },
+    renderEmail('reviewReply', { name: author.name, business: business.name, link: `${siteUrl}/vendors/${business.slug}` }),
+  );
 }
 
 // ======================================================================= the public
@@ -257,20 +298,22 @@ export async function replyToReview(
   reviewId: string,
   reply: string,
   siteUrl: string,
-): Promise<{ held: boolean }> {
+): Promise<{ held: boolean; authorId: string; business: { name: string; slug: string } }> {
   const check = await checkLanguage(env, [reply], { personal: true });
   const hold = check.flagged ? check.reason : null;
   const business = await reviewed(
     asTeam(env, userId, slug, async (tx, business) => {
       if (business.role === 'staff') throw new PlanNotFound();
-      const done = await tx.execute(sql`
+      const [done] = await tx.execute<{ authorId: string }>(sql`
         update review set vendor_reply = ${reply}, reply_held_reason = ${hold}
-        where id = ${reviewId} and vendor_id = ${business.id} returning id`);
-      if (done.length === 0) throw new PlanNotFound();
-      return business;
+        where id = ${reviewId} and vendor_id = ${business.id} returning author_user_id as "authorId"`);
+      if (!done) throw new PlanNotFound();
+      return { ...business, authorId: done.authorId };
     }),
   );
-  if (!hold) return { held: false };
+  const out = { authorId: business.authorId, business: { name: business.name, slug: business.slug } };
+  // Not held: the caller tells the review's author after the page answers (emailAboutReply).
+  if (!hold) return { held: false, ...out };
   const [today] = await withDb(env, (db) =>
     db.execute<{ n: number }>(sql`
       select count(*)::int as n from audit_log where action = 'review.reply_held_email' and created_at > now() - interval '1 day'`),
@@ -286,7 +329,7 @@ export async function replyToReview(
       ).catch((err: unknown) => console.error('held reply email not recorded', err instanceof Error ? err.message : err));
     }
   }
-  return { held: true };
+  return { held: true, ...out };
 }
 
 export function readReply(form: FormData): { reply: string } | { error: string } {
@@ -363,6 +406,10 @@ export type TeamReview = TeamReviewRow & {
   seen: string;
   /** Reports of it (part 2), newest first: open ones first. */
   reports: TeamReviewReport[];
+  /** When its booking was last marked (M9, D-54); null once the booking is gone. */
+  bookedAt: string | null;
+  /** Marked booked only after the event, as recorded when it was marked. */
+  bookedAfterEvent: boolean;
 };
 
 export type TeamReviewReport = {
@@ -397,7 +444,9 @@ export async function teamReview(env: ServerEnv, admin: Admin, id: string): Prom
              x.created_at::text as "createdAt"
       from review_report x join app_user u on u.id = x.reporter_user_id
       where x.review_id = ${id} order by (x.status = 'open') desc, x.created_at desc limit 100`);
-    return { ...row, reports: [...reports] };
+    const [timing] = await tx.execute<{ bookedAt: string | null; bookedAfterEvent: boolean }>(sql`
+      select booked_at::text as "bookedAt", booked_after_event as "bookedAfterEvent" from review_booking_timing(${id}::uuid)`);
+    return { ...row, reports: [...reports], bookedAt: timing?.bookedAt ?? null, bookedAfterEvent: timing?.bookedAfterEvent ?? false };
   });
 }
 
@@ -409,13 +458,37 @@ export type ReviewDecision =
   | { kind: 'release_reply' }
   | { kind: 'dismiss_reports'; reason: string };
 
-/** The team's decision, recorded in audit_log; the author (and, when published, the business) is emailed after. */
+/** Who sent the reports a decision closed, to tell them the outcome (M7, D-54). */
+export type ClosedReports = { business: string; kept: boolean; reporters: { userId: string; own: boolean }[] };
+
+/**
+ * The review reports this transaction closed (removing a review closes them, 0032, as dismissing
+ * them does): each closed report records the transaction's own time, so a report sent a moment
+ * before the decision is on the list exactly when the decision closed it.
+ */
+export async function closedReports(tx: Db, which: SQL): Promise<ClosedReports | null> {
+  const rows = await tx.execute<{ userId: string; own: boolean; kept: boolean; business: string }>(sql`
+    select x.reporter_user_id as "userId", x.reason = 'author_request' as own, x.status = 'dismissed' as kept, v.display_name as business
+    from review_report x join review r on r.id = x.review_id join vendor v on v.id = r.vendor_id
+    where ${which} and x.status <> 'open' and x.reviewed_at = now()`);
+  const first = rows[0];
+  if (!first) return null;
+  return { business: first.business, kept: first.kept, reporters: rows.map(({ userId, own }) => ({ userId, own })) };
+}
+
+/** At most this many outcome emails for one decision (Resend's free 100 a day are shared). */
+const OUTCOME_EMAILS_PER_DECISION = 20;
+
+/**
+ * The team's decision, recorded in audit_log; the author (and, when published, the business) is
+ * emailed after, as are the people whose reports it closed (`closed`).
+ */
 export async function decideReview(
   env: ServerEnv,
   admin: Admin,
   id: string,
   decision: ReviewDecision,
-): Promise<{ notify: 'published' | 'declined' | null }> {
+): Promise<{ notify: 'published' | 'declined' | 'reply' | null; closed: ClosedReports | null }> {
   return reviewed(
     actingAs(env, { side: 'team', userId: admin.userId }, async (tx) => {
       const change =
@@ -437,6 +510,7 @@ export async function decideReview(
                       where review_id = ${id} and status = 'open' returning id`;
       const done = await tx.execute(change);
       if (done.length === 0) throw new PlanRefused('That was already decided, or the review changed. Please look again.');
+      const closed = await closedReports(tx, sql`x.review_id = ${id}`);
       await audit(tx, {
         actor: admin.userId,
         action: `review.${decision.kind}`,
@@ -445,17 +519,56 @@ export async function decideReview(
         reason: 'reason' in decision ? decision.reason : undefined,
         sessionRef: admin.sessionId,
       });
-      return { notify: decision.kind === 'publish' ? 'published' : decision.kind === 'decline' ? 'declined' : null };
+      return {
+        notify:
+          decision.kind === 'publish'
+            ? 'published'
+            : decision.kind === 'decline'
+              ? 'declined'
+              : decision.kind === 'release_reply'
+                ? 'reply'
+                : null,
+        closed,
+      };
     }),
   );
 }
 
-/** After the decision: the author is told (and, when published, the business's owners and managers). */
+/** After a decision that closed reports: each reporter is told the outcome, never the team's note (M7, D-54). */
+export async function emailReportOutcomes(env: ServerEnv, reviewId: string, closed: ClosedReports): Promise<void> {
+  const reporters = closed.reporters.slice(0, OUTCOME_EMAILS_PER_DECISION);
+  if (closed.reporters.length > reporters.length)
+    console.error(`report outcome emails: ${closed.reporters.length - reporters.length} not sent (over the limit for one decision)`);
+  for (const r of reporters) {
+    // One failure doesn't stop the others.
+    try {
+      const [to] = await withDb(env, (db) =>
+        db.execute<{ email: string; name: string }>(sql`
+          select email::text as email, coalesce(given_name, display_name) as name from app_user where id = ${r.userId} and deleted_at is null`),
+      );
+      if (!to) continue;
+      const outcome = r.own
+        ? (closed.kept ? REPORT_OUTCOMES.ownKept : REPORT_OUTCOMES.ownRemoved)(closed.business)
+        : (closed.kept ? REPORT_OUTCOMES.reviewKept : REPORT_OUTCOMES.reviewRemoved)(closed.business);
+      await emailPerson(
+        env,
+        { userId: r.userId, email: to.email },
+        'report_outcome',
+        { type: 'review', id: reviewId },
+        renderEmail('reportOutcome', { name: to.name, outcome }),
+      );
+    } catch (err) {
+      console.error('report outcome email failed', err instanceof Error ? err.message : err);
+    }
+  }
+}
+
+/** After the decision: the author is told (and, when published, the business's owners and managers; a released reply, its author). */
 export async function emailAboutDecision(
   env: ServerEnv,
   admin: Admin,
   id: string,
-  outcome: 'published' | 'declined',
+  outcome: 'published' | 'declined' | 'reply',
   siteUrl: string,
 ): Promise<void> {
   const asTeamMember = { side: 'team' as const, userId: admin.userId };
@@ -476,6 +589,16 @@ export async function emailAboutDecision(
              r.rating, u.deleted_at is not null as deleted
       from review_for_email(${id}::uuid) r join app_user u on u.id = r.author_user_id join vendor v on v.id = r.vendor_id`),
   );
+  // A reply the team put live (D-50): now its review's author is told (M7, D-54), if the review
+  // and the reply still show.
+  if (r && outcome === 'reply') {
+    const [showing] = await actingAs(env, asTeamMember, (db) =>
+      db.execute<{ yes: boolean }>(sql`
+        select status = 'published' and reply_removed_at is null and reply_held_at is null as yes from review where id = ${id}`),
+    );
+    if (showing?.yes) await emailAboutReply(env, id, r.authorId, { name: r.business, slug: r.slug }, siteUrl);
+    return;
+  }
   // A denied review isn't mentioned to its author at all (D-51): no email, nothing on their pages.
   if (!r || outcome !== 'published') return;
   if (!r.deleted) {

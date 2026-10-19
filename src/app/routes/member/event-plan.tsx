@@ -158,9 +158,9 @@ export default function EventPlan({ loaderData }: Route.ComponentProps) {
                         {REVIEW_STATUS_WORDS[r.review]}
                       </Link>
                     ) : (
-                      r.canReview === 'yes' && (
+                      (r.canReview === 'yes' || r.canReview === 'grace') && (
                         <Link to={`${base}/review/${r.rowId}`} className="text-link">
-                          Review {r.name}
+                          {r.canReview === 'grace' ? `Review ${r.name} (opens 24 hours after you marked it)` : `Review ${r.name}`}
                         </Link>
                       )
                     )}

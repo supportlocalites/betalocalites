@@ -6,8 +6,8 @@ import { isUuid, SLUG } from '@/lib/ids.mjs';
 import { pageMeta } from '@/lib/meta';
 import { TOO_FAST } from '@/lib/plan-terms';
 import { REVIEW_LIMITS } from '@/lib/review-terms';
-import { found, refusal, siteUrl, tooFast } from '@/server/plan-pages.server';
-import { businessReviews, readReply, replyToReview } from '@/server/reviews.server';
+import { afterwards, found, refusal, siteUrl, tooFast } from '@/server/plan-pages.server';
+import { businessReviews, emailAboutReply, readReply, replyToReview } from '@/server/reviews.server';
 import type { Route } from './+types/business-reviews';
 
 /**
@@ -29,7 +29,7 @@ export async function loader({ params, context }: Route.LoaderArgs) {
 export async function action({ request, params, context }: Route.ActionArgs) {
   if (!SLUG.test(params.slug)) throw data(null, { status: 404 });
   const member = context.get(memberContext);
-  const { env } = context.get(cloudflareContext);
+  const { env, ctx } = context.get(cloudflareContext);
   const form = await request.formData();
   const reviewId = String(form.get('reviewId') ?? '');
   if (!isUuid(reviewId)) throw data(null, { status: 400 });
@@ -37,7 +37,9 @@ export async function action({ request, params, context }: Route.ActionArgs) {
   const read = readReply(form);
   if ('error' in read) return data({ error: read.error, reviewId }, { status: 400 });
   try {
-    const { held } = await replyToReview(env, member.userId, params.slug, reviewId, read.reply, siteUrl(env, request));
+    const { held, authorId, business } = await replyToReview(env, member.userId, params.slug, reviewId, read.reply, siteUrl(env, request));
+    // The review's author is told once the reply shows (M7, D-54), after the page answers.
+    if (!held) afterwards(ctx, emailAboutReply(env, reviewId, authorId, business, siteUrl(env, request)), 'review reply email');
     return redirect(`/vendors/${params.slug}/reviews?${held ? 'held' : 'replied'}=1`);
   } catch (err) {
     const { error, status } = refusal(err);

@@ -1,12 +1,13 @@
 import { sql } from 'drizzle-orm';
 import { uuidv7 } from '@/lib/ids.mjs';
 import { REPORT_REASONS, type ReportReason } from '@/lib/message-terms';
+import { REPORT_OUTCOMES } from '@/lib/review-terms';
 import { type Acting, actingAs, errorCode, PlanNotFound, PlanRefused } from './acting.server';
 import { audit } from './admin/audit.server';
 import type { Admin } from './auth/admin.server';
 import { type Db, withDb } from './db.server';
 import { sendEmail, TEAM_ADDRESS } from './email.server';
-import { renderEmail } from './email-templates.server';
+import { emailPerson, renderEmail } from './email-templates.server';
 import { readPrivateFile } from './photo-store.server';
 import type { ServerEnv } from './env';
 import { asTeam, talked } from './messages.server';
@@ -200,8 +201,8 @@ export async function decideReport(
   admin: Admin,
   reportId: string,
   decision: { kind: 'hide' } | { kind: 'block' | 'unblock' } | { kind: 'close'; outcome: 'actioned' | 'dismissed'; note: string },
-): Promise<void> {
-  await actingAs(env, { side: 'team', userId: admin.userId }, async (tx) => {
+): Promise<Closed | null> {
+  return actingAs(env, { side: 'team', userId: admin.userId }, async (tx): Promise<Closed | null> => {
     if (decision.kind === 'hide') {
       try {
         await tx.execute(sql`select team_hide_reported_message(${reportId}::uuid)`);
@@ -213,10 +214,13 @@ export async function decideReport(
     } else if (decision.kind === 'block' || decision.kind === 'unblock') {
       await tx.execute(sql`select team_block_reported(${reportId}::uuid, ${decision.kind === 'block'})`);
     } else if (decision.kind === 'close') {
-      const done = await tx.execute(sql`
-        update moderation_report set status = ${decision.outcome}, decision_note = ${decision.note}
-        where id = ${reportId} and status = 'open' returning id`);
-      if (done.length === 0) throw new PlanNotFound();
+      const [done] = await tx.execute<{ reporterId: string; other: string }>(sql`
+        update moderation_report x set status = ${decision.outcome}, decision_note = ${decision.note}
+        from conversation c join vendor v on v.id = c.vendor_id
+        where x.id = ${reportId} and x.status = 'open' and c.id = x.conversation_id
+        returning x.reporter_user_id as "reporterId",
+                  case when x.reporter_side = 'consumer' then v.display_name else reviewer_name(c.consumer_user_id) end as other`);
+      if (!done) throw new PlanNotFound();
       await audit(tx, {
         actor: admin.userId,
         action: `moderation_report.${decision.outcome}`,
@@ -225,8 +229,30 @@ export async function decideReport(
         reason: decision.note,
         sessionRef: admin.sessionId,
       });
+      return { reporterId: done.reporterId, other: done.other, outcome: decision.outcome };
     }
+    return null;
   });
+}
+
+/** A closed report: who sent it, and who it was about, as they knew them. */
+type Closed = { reporterId: string; other: string; outcome: 'actioned' | 'dismissed' };
+
+/** The person who sent the report is told the outcome, never the team's note (M7, D-54). */
+export async function emailReportOutcome(env: ServerEnv, reportId: string, closed: Closed): Promise<void> {
+  const [to] = await withDb(env, (db) =>
+    db.execute<{ email: string; name: string }>(sql`
+      select email::text as email, coalesce(given_name, display_name) as name from app_user where id = ${closed.reporterId} and deleted_at is null`),
+  );
+  if (!to) return;
+  const outcome = (closed.outcome === 'actioned' ? REPORT_OUTCOMES.conversationActioned : REPORT_OUTCOMES.conversationDismissed)(closed.other);
+  await emailPerson(
+    env,
+    { userId: closed.reporterId, email: to.email },
+    'report_outcome',
+    { type: 'moderation_report', id: reportId },
+    renderEmail('reportOutcome', { name: to.name, outcome }),
+  );
 }
 
 /** One file of a reported conversation, for the team (each look logged by the database, with the report). */

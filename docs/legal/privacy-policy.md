@@ -137,13 +137,15 @@ keep it, and the choices you have. It applies to localites.ca and the emails we 
 - **For businesses:** a morning summary of bookings (marked as booked, no longer booked, or an
   event changed or cancelled), claim decisions, team invitations, and notices about your
   page and reviews.
-- **About your reviews:** when your review is published.
+- **About your reviews:** when your review is published, and when the business replies to it.
+- **About reports:** the outcome of a report you sent (never the team's notes).
 - **After an event:** a "How was it?" email asking you to review the businesses you booked,
   and one reminder. You can turn these off on **Your account**.
 - **News you asked for:** that a business you inquired about or suggested is now on
   Localites.
-- **About a booking a business says isn't right**, and to guests whose reply their host
-  changed (section 3).
+- **About a booking a business says isn't right:** when the business tells us, and our team's
+  decision (to you and to the business); and to guests whose reply their host changed
+  (section 3).
 
 We don't send newsletters or marketing emails. [Lawyer: please confirm these all count as
 transactional under Canada's anti-spam law (CASL), in particular the "How was it?" email and
@@ -191,7 +193,7 @@ people in Quebec.]
 | Files in conversations | Until 30 days after the conversation's event (at least 30 days after sending), or 1 year after sending if the conversation isn't about an event |
 | Conversations | Up to 3 years after the last message, then deleted with their messages (unless reported: then kept with the report) |
 | Published reviews | While the business is listed |
-| A review the team declined | Its words are erased 30 days after the decision |
+| A review the team declined, or one you withdrew | Its words are erased 30 days after the decision, or after you withdrew it |
 | Detailed activity records | With no set end date, for year-over-year reports. When you delete your account, they stay but are no longer linked to you. [Lawyer: please confirm this is acceptable, or advise a period.] |
 | Suggested businesses | The suggestion is kept; on a declined suggestion, the phone number or email typed in is erased after 1 year |
 | Records of emails sent | 1 year |

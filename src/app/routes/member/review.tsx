@@ -4,9 +4,10 @@ import { SiteHeader } from '@/components/SiteHeader';
 import { isUuid } from '@/lib/ids.mjs';
 import { pageMeta } from '@/lib/meta';
 import { longDateWithYear, TOO_FAST } from '@/lib/plan-terms';
-import { REVIEW_LIMITS, REVIEW_PROMISE, STAR_WORDS } from '@/lib/review-terms';
+import { REMOVAL_ASKED, REVIEW_LIMITS, REVIEW_PROMISE, STAR_WORDS } from '@/lib/review-terms';
 import { found, refusal, siteUrl, tooFast } from '@/server/plan-pages.server';
-import { readReview, reviewForm, saveReview } from '@/server/reviews.server';
+import { reportReview } from '@/server/review-reports.server';
+import { readReview, reviewForm, saveReview, withdrawReview } from '@/server/reviews.server';
 import type { Route } from './+types/review';
 import styles from './review.module.css';
 
@@ -32,7 +33,34 @@ export async function action({ request, params, context }: Route.ActionArgs) {
   const member = context.get(memberContext);
   const { env } = context.get(cloudflareContext);
   if (await tooFast(env, member.userId)) return data({ error: TOO_FAST }, { status: 429 });
-  const read = readReview(await request.formData());
+  const body = await request.formData();
+  const intent = String(body.get('intent') ?? '');
+  const here = `/events/${params.id}/review/${params.rowId}`;
+  // M4 (D-54): withdraw a waiting review; ask the team to remove a published one.
+  if (intent === 'withdraw' || intent === 'ask_removal') {
+    try {
+      const form = await found(reviewForm(env, member.userId, params.id, params.rowId));
+      if (!form.review) throw data(null, { status: 404 });
+      if (intent === 'withdraw') {
+        await withdrawReview(env, member.userId, params.rowId);
+        return redirect(`${here}?withdrawn=1`);
+      }
+      const details = String(body.get('details') ?? '').replace(/\s+/g, ' ').trim();
+      if (details.length > 2000) return data({ error: 'Please keep it under 2,000 characters.' }, { status: 400 });
+      await reportReview(
+        env,
+        { side: 'person', userId: member.userId },
+        form.review.id,
+        { reason: 'author_request', details: details || null },
+        siteUrl(env, request),
+      );
+      return redirect(`${here}?asked=1`);
+    } catch (err) {
+      const { error, status } = refusal(err);
+      return data({ error }, { status });
+    }
+  }
+  const read = readReview(body);
   if ('error' in read) return data({ error: read.error }, { status: 400 });
   try {
     // The booking must belong to this event (and to this person: the database checks that).
@@ -47,8 +75,11 @@ export async function action({ request, params, context }: Route.ActionArgs) {
   }
 }
 
+const opens = new Intl.DateTimeFormat('en-CA', { dateStyle: 'medium', timeStyle: 'short', timeZone: 'America/Toronto' });
+
 const CANT: Record<string, string> = {
   not_booked: 'A business can be reviewed once it’s marked booked for an event that went ahead.',
+  not_real: 'Our team agreed with the business that it wasn’t booked for this event, so it can’t be reviewed.',
   not_yet: 'You can review this business once your event has happened.',
   closed: 'The 60 days to review this booking have passed.',
   flagged: 'The business says it wasn’t booked for this event. Our team will look at it; you can review it if they confirm it was.',
@@ -89,6 +120,11 @@ export default function Review({ loaderData: { form }, actionData }: Route.Compo
             Your changes are saved. Our team hasn’t looked at it yet.
           </p>
         )}
+        {params.has('asked') && (
+          <p className="notice" role="status">
+            {REMOVAL_ASKED}
+          </p>
+        )}
         {actionData?.error && (
           <p className="notice" role="alert">
             {actionData.error}
@@ -119,6 +155,28 @@ export default function Review({ loaderData: { form }, actionData }: Route.Compo
                 <p className={styles.body} dir="auto">{review.reply}</p>
               </div>
             )}
+            {review.removalAsked ? (
+              <p className="muted">You’ve asked our team to remove this review. We’ll email you when they’ve decided.</p>
+            ) : (
+              <details className="section-gap">
+                <summary className="text-link">Ask us to remove this review</summary>
+                <Form method="post" className={styles.form}>
+                  <input type="hidden" name="intent" value="ask_removal" />
+                  <p className="muted">
+                    Our team reads every request and emails you when they’ve decided. It stays up until then.
+                  </p>
+                  <div className="field">
+                    <label htmlFor="details" className="field-label">
+                      Why? (optional)
+                    </label>
+                    <textarea id="details" name="details" className="input" maxLength={2000} />
+                  </div>
+                  <button type="submit" className="button button-secondary" disabled={busy}>
+                    Send the request
+                  </button>
+                </Form>
+              </details>
+            )}
           </>
         )}
         {review?.status === 'removed' && (
@@ -142,13 +200,25 @@ export default function Review({ loaderData: { form }, actionData }: Route.Compo
             </p>
           </>
         )}
-        {review?.status === 'withdrawn' && (
-          <p className="notice" role="status">
-            This review was withdrawn because the booking was un-marked or the event was cancelled. If the booking was un-marked and you
-            mark {business.name} booked again, it comes back as you wrote it, unless {business.name} has told us it wasn’t booked.
+        {review?.status === 'withdrawn' &&
+          (review.withdrawnByMe ? (
+            <p className="notice" role="status">
+              You withdrew this review{params.has('withdrawn') ? '' : ' earlier'}. It won’t be published, and this booking can’t be reviewed
+              again.
+            </p>
+          ) : (
+            <p className="notice" role="status">
+              This review was withdrawn because the booking was un-marked or the event was cancelled. If the booking was un-marked and
+              you mark {business.name} booked again, it comes back as you wrote it, unless {business.name} has told us it wasn’t booked.
+            </p>
+          ))}
+        {!review && can === 'grace' && form.opensAt && (
+          <p>
+            You marked {business.name} booked after your event, so you can review them from {opens.format(new Date(form.opensAt))}, 24
+            hours after marking them.
           </p>
         )}
-        {!review && can !== 'yes' && <p>{CANT[can]}</p>}
+        {!review && can !== 'yes' && can !== 'grace' && <p>{CANT[can]}</p>}
 
         {editable && (
           <Form method="post" className={styles.form}>
@@ -189,6 +259,19 @@ export default function Review({ loaderData: { form }, actionData }: Route.Compo
             </p>
             {!review && <p className="muted">You can review until {longDateWithYear(form.until)}.</p>}
           </Form>
+        )}
+        {review?.status === 'pending' && (
+          // M4 (D-54): a confirm step first, since a withdrawn review can't be written again.
+          <details className="section-gap">
+            <summary className="text-link">Withdraw this review</summary>
+            <p className="muted">It won’t be published, and you won’t be able to review this booking again.</p>
+            <Form method="post">
+              <input type="hidden" name="intent" value="withdraw" />
+              <button type="submit" className="button button-secondary" disabled={busy}>
+                Yes, withdraw it
+              </button>
+            </Form>
+          </details>
         )}
         {back}
       </main>

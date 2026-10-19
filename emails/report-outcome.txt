@@ -1,0 +1,9 @@
+Subject: About your report
+
+Hi {{name}},
+
+{{outcome}}
+
+Thank you for telling us.
+
+Localites

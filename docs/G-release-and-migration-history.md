@@ -31,6 +31,46 @@ Every release and every database migration, in order. Appended before each deplo
 
 ## Releases
 
+### 2026-10-19 — Fixes from the scenario tests, round 2 of 5: reviews and booking notes (D-54)
+
+**Stage:** 3 (E §4.4, §4.5)
+**What changed (plain English):** a person can withdraw their review while it waits for the team
+(for good: it can't be written again, and it doesn't come back if the booking is marked again),
+and ask the team to remove a published one; the team sees the request with the review's reports
+and decides. The reviewer is emailed when the business's reply appears (at once, or when the team
+puts a held reply live). Whoever sent a report (of a review or a conversation) is emailed the
+outcome, never the team's note. The team now decides each business's "this wasn't booked" note on
+Booking flags: **the booking stands** (it can be reviewed) or **not a real booking** (it can't, and
+any review of it is removed); the person and the business are emailed; a decision is final, and a
+note on a later marking starts afresh. A business marked booked only after the event can be
+reviewed 24 hours after the marking (the owner's grace period), and the team's review page says
+when a booking was marked, and whether only after the event.
+**Migrations applied:** `0047_scenario_fixes_2.sql`
+**Destructive?** Only as decided: a review is removed only by the team's decision; a review its
+author withdrew loses its words 30 days later, as a declined one does (0046).
+**Tests run:** database checks 47 of 47 files (0047: 29); unit tests 197 of 197; new browser suite
+`scenario-fixes-2.mjs` 26 of 26; reviews 73 of 73, event planning 145 of 145, messages 133 of 133,
+admin access 43 of 43, language check 40 of 40, round 1's suite 10 of 10, look 504 of 504.
+**Security tests:** nobody else can withdraw a review or ask for it to be removed as its author;
+a business can't send that request; only the team decides a booking note, once; a person posting
+a decision changes nothing; the site can't change whether a booking was marked after its event;
+moving the event afterwards doesn't open reviews early; emails carry outcomes, never the
+business's note or the team's.
+**Independent review before push:** nothing high. Fixed: "marked after the event" is now recorded
+as the booking is marked, so editing the event's date or time afterwards can't skip the 24 hours;
+whoever reported a review is told when a booking decision removes it, and the people told are
+exactly those whose reports the decision closed (none missed by a report sent a moment before);
+at most 20 outcome emails per decision, each on its own so one failure doesn't stop the rest; the
+team's timing note handles a review that came back after re-marking; the reply email goes after
+the page answers, and only if the review and reply still show; a booking waiting out the 24 hours
+has a link on the plan; a withdrawn review's words are erased after 30 days; the new database
+functions are tightened as 0046's were. Known: the "How was it?" email can arrive while a booking
+marked after the event is still in its 24 hours; the review page then says when it opens.
+**Existing functionality affected:** Booking flags is no longer read-only; reviews of a booking
+marked after the event wait 24 hours.
+**How to roll back:** with the next update.
+**Approved by:** the product owner, 19 October 2026 (D-54).
+
 ### 2026-10-19 — Fixes from the scenario tests, round 1 of 5 (D-54)
 
 **Stage:** 2B, 3 and 4 (E §4, §6)

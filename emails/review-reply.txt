@@ -1,0 +1,8 @@
+Subject: {{business}} replied to your review
+
+Hi {{name}},
+
+{{business}} replied to your review. You can read it on their Localites page:
+{{link}}
+
+Localites

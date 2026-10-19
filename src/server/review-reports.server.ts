@@ -1,5 +1,5 @@
 import { sql } from 'drizzle-orm';
-import { REVIEW_REFUSALS, REVIEW_REPORT_REASONS, type ReviewReportReason } from '@/lib/review-terms';
+import { REPORT_REASON_WORDS, REVIEW_REFUSALS, REVIEW_REPORT_REASONS, type ReviewReportReason } from '@/lib/review-terms';
 import { type Acting, actingAs, errorCode, PlanNotFound, PlanRefused } from './acting.server';
 import type { Db } from './db.server';
 import { sendEmail, TEAM_ADDRESS } from './email.server';
@@ -42,12 +42,16 @@ export function businessReportTarget(env: ServerEnv, userId: string, slug: strin
   return reviewed(asTeam(env, userId, slug, (tx, b) => target({ side: 'business', userId, vendorId: b.id }, tx, reviewId)));
 }
 
-/** Records the report as the reporter, then emails the team when the database says to. */
+/**
+ * Records the report as the reporter, then emails the team when the database says to. Its
+ * author asking for their own published review to be removed is a report too ('author_request',
+ * M4, D-54): the database lets only them send it.
+ */
 export async function reportReview(
   env: ServerEnv,
   acting: Extract<Acting, { side: 'person' } | { side: 'business' }>,
   reviewId: string,
-  input: { reason: ReviewReportReason; details: string | null },
+  input: { reason: ReviewReportReason | 'author_request'; details: string | null },
   siteUrl: string,
 ): Promise<void> {
   const made = await reviewed(
@@ -72,7 +76,7 @@ export async function reportReview(
     to: TEAM_ADDRESS,
     ...renderEmail('reviewReported', {
       business: made.business,
-      reason: REVIEW_REPORT_REASONS[input.reason],
+      reason: REPORT_REASON_WORDS[input.reason],
       reviewUrl: `${siteUrl}/admin/reviews/${reviewId}`,
     }),
   });

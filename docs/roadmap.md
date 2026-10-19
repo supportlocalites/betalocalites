@@ -113,7 +113,7 @@ on codes (ADR-028).
   Pages for them are built after the lawyer's review.
 - **Fixes from the scenario tests (D-54, 19 October 2026), in five rounds:**
   1. ✅ **built 19 October 2026** (migration 0046): quick fixes and wording (see G);
-  2. reviews and fake bookings: withdraw a review, ask for one to be removed, emails on replies and
+  2. ✅ **built 19 October 2026** (migration 0047): reviews and fake bookings: withdraw a review, ask for one to be removed, emails on replies and
      report outcomes, the team decides "wasn't booked" notes, a 24-hour wait when a booking is
      marked after the event (M4, M7, M8, M9);
   3. messages: a person deletes a conversation; both sides edit a message, with earlier versions a

@@ -70,8 +70,15 @@ same business automatically.
   archive the listing on its team page, with the reason.
 - **"Something wrong with this listing":** check the business's own website, and correct the listing
   on its team page, or ask the owner to if it's claimed.
-- **Booking flags:** a business says someone marked it booked by mistake. Read the list; the person
-  has already been told.
+- **Booking flags:** a business says someone marked it booked by mistake (the person has already
+  been told). Look into it: email the business or the person if you need to. Then press **The
+  booking stands** (it can be reviewed) or **Not a real booking** (it can't, and any review of it
+  is removed). Both are emailed; the business's note is never shared. You can't change a decision.
+- **A review's author asks for it to be removed:** it shows under the review's reports as "Its
+  author asks for it to be removed". Remove it (with a short reason) or close the request; the
+  author is emailed either way. Whoever sends any report is told the outcome, never your note.
+- **A booking marked minutes before its review, or only after the event:** the review page says
+  so. Worth a second look before approving.
 - **Bookings to check in on:** a business people had booked was taken down. Email those people so
   they can make other arrangements.
 

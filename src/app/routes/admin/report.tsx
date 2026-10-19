@@ -4,8 +4,8 @@ import { isUuid } from '@/lib/ids.mjs';
 import { REPORT_REASONS } from '@/lib/message-terms';
 import { pageMeta } from '@/lib/meta';
 import { PlanRefused } from '@/server/acting.server';
-import { decideReport, reportDetail } from '@/server/reports.server';
-import { found } from '@/server/plan-pages.server';
+import { decideReport, emailReportOutcome, reportDetail } from '@/server/reports.server';
+import { afterwards, found } from '@/server/plan-pages.server';
 import type { Route } from './+types/report';
 import styles from './admin.module.css';
 
@@ -25,7 +25,7 @@ export async function loader({ params, context }: Route.LoaderArgs) {
 
 export async function action({ params, request, context }: Route.ActionArgs) {
   if (!isUuid(params.id)) throw data(null, { status: 404 });
-  const { env } = context.get(cloudflareContext);
+  const { env, ctx } = context.get(cloudflareContext);
   const admin = context.get(adminContext);
   const form = await request.formData();
   const intent = String(form.get('intent') ?? '');
@@ -42,7 +42,9 @@ export async function action({ params, request, context }: Route.ActionArgs) {
       .trim()
       .slice(0, 1000);
     if (!note) return data({ error: 'Write a note: what you did, or why it needs nothing.' }, { status: 400 });
-    await found(decideReport(env, admin, params.id, { kind: 'close', outcome: intent, note }));
+    const closed = await found(decideReport(env, admin, params.id, { kind: 'close', outcome: intent, note }));
+    // The person who reported it is told the outcome, never the note (M7, D-54).
+    if (closed) afterwards(ctx, emailReportOutcome(env, params.id, closed), 'report outcome email');
   } else {
     throw data(null, { status: 400 });
   }

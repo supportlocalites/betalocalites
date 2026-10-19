@@ -15,12 +15,16 @@ You can review a business when **all** of these are true:
 
 - you planned the event on Localites and marked the business as booked for it;
 - the event has happened, and it's within **60 days** of the event;
+- if you marked the business as booked only after the event, 24 hours have passed since you did;
 - the event wasn't cancelled;
-- the business hasn't told us it wasn't booked for your event;
+- the business hasn't told us it wasn't booked for your event (or it has, and our team decided
+  the booking stands);
 - it isn't your own business, or one you're on the team of; and
 - the business is listed on Localites.
 
-You can review each booking once. The day after your event, we email you to ask how it went,
+You can review each booking once. While your review waits for our team you can change it, or
+withdraw it (a withdrawn review can't be written again, and its words are erased 30 days later). Once it's published, you can ask us to
+remove it from the review's page: our team decides and emails you. The day after your event, we email you to ask how it went,
 and send one reminder; you can turn these emails off on **Your account**.
 
 Each review is labelled **"Planned on Localites"** if the business replied to you in a
@@ -70,12 +74,15 @@ Localites conversation, or **"Planned outside Localites"** if it didn't.
 ## 6. What businesses can do
 
 - **Reply once** to each review, publicly, under the review. Replies follow the same rules
-  as reviews and may be held for our team if the automated check flags them.
+  as reviews and may be held for our team if the automated check flags them. The reviewer is
+  emailed when the reply appears.
 - **Report a review** that breaks this policy, choosing a reason: not a real customer; from a
   competitor or someone too close to the business; shares personal details; abusive or
   offensive; or something else.
 - **Tell us a booking isn't right** if someone marked the business as booked for an event it
-  wasn't booked for. The team looks into it, and the person is told.
+  wasn't booked for. The person is told at once. Our team looks into it and decides: the
+  booking stands (it can be reviewed), or it wasn't real (it can't be, and any review of it is
+  removed). The person and the business are both emailed the decision.
 
 Businesses can't remove reviews, see who denied or approved them, or contact reviewers through
 Localites to ask them to change a review.
@@ -83,8 +90,9 @@ Localites to ask them to change a review.
 ## 7. Reporting a review
 
 Anyone signed in can report a published review. Our team looks at every report. The review
-stays up unless the team decides it breaks this policy. [Lawyer: should we commit to a time
-frame, or to telling the reporter and the author of the outcome?]
+stays up unless the team decides it breaks this policy. We email whoever sent the report when
+we've decided (the outcome, not the team's notes). [Lawyer: should we commit to a time frame,
+and should the review's author be told when a review is removed after a report?]
 
 ## 8. Contact
 

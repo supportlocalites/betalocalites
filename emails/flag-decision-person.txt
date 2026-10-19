@@ -1,0 +1,10 @@
+Subject: About your booking with {{business}}
+
+Hi {{name}},
+
+{{outcome}}
+
+Your event's plan:
+{{link}}
+
+Localites

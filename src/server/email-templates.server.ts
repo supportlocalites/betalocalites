@@ -29,6 +29,10 @@ import heldEditDeclined from '../../emails/held-edit-declined.txt?raw';
 import replyHeldTeam from '../../emails/reply-held-team.txt?raw';
 import suggestionListed from '../../emails/suggestion-listed.txt?raw';
 import planSummary from '../../emails/plan-summary.txt?raw';
+import reviewReply from '../../emails/review-reply.txt?raw';
+import reportOutcome from '../../emails/report-outcome.txt?raw';
+import flagDecisionPerson from '../../emails/flag-decision-person.txt?raw';
+import flagDecisionBusiness from '../../emails/flag-decision-business.txt?raw';
 import { uuidv7 } from '@/lib/ids.mjs';
 import { type Db, withDb } from './db.server';
 import { sendEmail, TEAM_ADDRESS } from './email.server';
@@ -78,6 +82,11 @@ const TEMPLATES = {
   suggestionListed,
   // The morning summary of booking emails (D-53).
   planSummary,
+  // Scenario-test fixes, round 2 (D-54): a reply to your review, a report's outcome, a booking note decided.
+  reviewReply,
+  reportOutcome,
+  flagDecisionPerson,
+  flagDecisionBusiness,
 } as const;
 export type TemplateName = keyof typeof TEMPLATES;
 
@@ -117,7 +126,10 @@ export async function emailPerson(
     | 'review_for_business'
     | 'held_edit_published'
     | 'held_edit_declined'
-    | 'suggestion_listed',
+    | 'suggestion_listed'
+    | 'review_reply'
+    | 'report_outcome'
+    | 'flag_decision',
   subject: { type: string; id: string },
   content: { subject: string; text: string },
 ): Promise<void> {

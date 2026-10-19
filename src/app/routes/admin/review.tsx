@@ -6,14 +6,13 @@ import { longDateWithYear } from '@/lib/plan-terms';
 import {
   PLANNED_ON,
   PLANNED_OUTSIDE,
+  REPORT_REASON_WORDS,
   REVIEW_LIMITS,
-  REVIEW_REPORT_REASONS,
   REVIEW_STATUS,
-  type ReviewReportReason,
 } from '@/lib/review-terms';
 import { PlanRefused } from '@/server/acting.server';
 import { afterwards, found, siteUrl } from '@/server/plan-pages.server';
-import { decideReview, emailAboutDecision, type ReviewDecision, teamReview } from '@/server/reviews.server';
+import { decideReview, emailAboutDecision, emailReportOutcomes, type ReviewDecision, teamReview } from '@/server/reviews.server';
 import type { Route } from './+types/review';
 import styles from './admin.module.css';
 
@@ -62,8 +61,9 @@ export async function action({ params, request, context }: Route.ActionArgs) {
     decision = { kind: intent, reason };
   } else throw data(null, { status: 400 });
   try {
-    const { notify } = await found(decideReview(env, admin, params.id, decision));
+    const { notify, closed } = await found(decideReview(env, admin, params.id, decision));
     if (notify) afterwards(ctx, emailAboutDecision(env, admin, params.id, notify, siteUrl(env, request)), 'review decision email');
+    if (closed) afterwards(ctx, emailReportOutcomes(env, params.id, closed), 'report outcome email');
   } catch (err) {
     if (err instanceof PlanRefused) return data({ error: err.message }, { status: 409 });
     throw err;
@@ -72,6 +72,38 @@ export async function action({ params, request, context }: Route.ActionArgs) {
 }
 
 const when = new Intl.DateTimeFormat('en-CA', { dateStyle: 'medium', timeStyle: 'short', timeZone: 'America/Toronto' });
+
+/** How long between two times, roughly, in words. */
+function gap(ms: number): string {
+  const minutes = Math.max(0, Math.round(ms / 60000));
+  if (minutes < 120) return minutes === 1 ? '1 minute' : `${minutes} minutes`;
+  const hours = Math.round(minutes / 60);
+  if (hours < 48) return `${hours} hours`;
+  return `${Math.round(hours / 24)} days`;
+}
+
+/**
+ * When the booking behind the review was marked (M9, D-54): a booking marked minutes before
+ * its review, or only after the event, is worth a second look.
+ */
+function BookingTiming({ bookedAt, after, reviewedAt }: { bookedAt: string; after: boolean; reviewedAt: string }) {
+  const before = new Date(reviewedAt).getTime() - new Date(bookedAt).getTime();
+  // Written before the latest marking: it came back when the booking was marked again (0046).
+  if (before < 0) {
+    return (
+      <p className="muted">
+        Written before the booking’s latest marking ({when.format(new Date(bookedAt))}): it came back as written when the business
+        was marked booked again.
+      </p>
+    );
+  }
+  return (
+    <p className={after || before < 24 * 3600000 ? 'notice' : 'muted'}>
+      Marked booked {when.format(new Date(bookedAt))}, {gap(before)} before this review was written
+      {after ? ', and only after the event (reviews opened 24 hours after the marking).' : '.'}
+    </p>
+  );
+}
 const REPORT_STATUS = { open: 'Open', actioned: 'Review removed', dismissed: 'Closed, review kept' } as const;
 
 export default function TeamReviewPage({ loaderData: { review, choose }, actionData }: Route.ComponentProps) {
@@ -90,8 +122,12 @@ export default function TeamReviewPage({ loaderData: { review, choose }, actionD
         {longDateWithYear(review.eventDate)} · {review.plannedOnLocalites ? PLANNED_ON : PLANNED_OUTSIDE}
       </p>
       {review.flagged && (
-        <p className="notice">The business says it wasn’t booked for this event, and the team hasn’t said the booking stands.</p>
+        <p className="notice">
+          The business says it wasn’t booked for this event, and the team hasn’t said the booking stands. Decide on{' '}
+          <Link to="/admin/booking-flags">Booking flags</Link>.
+        </p>
       )}
+      {review.bookedAt && <BookingTiming bookedAt={review.bookedAt} after={review.bookedAfterEvent} reviewedAt={review.createdAt} />}
       {review.emailStatus === 'failed' && <p className="muted">The email telling the team about this review didn’t go.</p>}
       {review.languageFlag && <p className="notice">{`The language check found something to look at: ${review.languageFlag}`}</p>}
       <blockquote className={styles.section}>
@@ -166,7 +202,7 @@ export default function TeamReviewPage({ loaderData: { review, choose }, actionD
               <li key={x.id} className={styles.row}>
                 <span>
                   <span className={styles.status}>{REPORT_STATUS[x.status]}</span> ·{' '}
-                  {REVIEW_REPORT_REASONS[x.reason as ReviewReportReason] ?? x.reason}
+                  {REPORT_REASON_WORDS[x.reason as keyof typeof REPORT_REASON_WORDS] ?? x.reason}
                 </span>
                 <span className="muted">
                   By {x.reporter} ({x.side === 'vendor' ? 'the business' : 'a person'}) · {when.format(new Date(x.createdAt))}

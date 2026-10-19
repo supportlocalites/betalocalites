@@ -1,0 +1,10 @@
+Subject: About the booking you told us about
+
+Hi {{name}},
+
+{{outcome}}
+
+Your bookings:
+{{link}}
+
+Localites
