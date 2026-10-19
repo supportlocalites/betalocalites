@@ -29,7 +29,10 @@
     // Business photos (E §9): 20 changes a minute per person (adding 8 photos and describing them fits).
     { "name": "PHOTO_EDIT_LIMIT", "namespace_id": "1007", "simple": { "limit": 20, "period": 60 } },
     // Guests' replies to invitations: per internet address, per minute (E §5).
-    { "name": "INVITE_LIMIT", "namespace_id": "1008", "simple": { "limit": 20, "period": 60 } }
+    { "name": "INVITE_LIMIT", "namespace_id": "1008", "simple": { "limit": 20, "period": 60 } },
+    // OpenStreetMap's address search (the map's pins, step 3): one look-up a second for the whole
+    // site on average, as its usage policy asks (10 in 10 seconds).
+    { "name": "GEOCODE_LIMIT", "namespace_id": "1009", "simple": { "limit": 10, "period": 10 } }
   ],
   // The team's daily note of owners' changes (ADR-029) and the nightly count of activity
   // (ADR-030), free on Cloudflare: 12:00 UTC is 8 am in Toronto in summer and 7 am in

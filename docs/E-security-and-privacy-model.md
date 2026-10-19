@@ -500,6 +500,17 @@ need to. Staff don't read conversations unless reported.
 briefly for abuse prevention, never stored against records. Localites' own activity
 tracking is described in §7a.
 
+**About business addresses (D-56, D-57 step 3, migration 0054):** a business's owner or a
+manager (never staff, a customer or another business), or the team, sets its street and number;
+each owner save is an owner change (the team is emailed and can undo it as one unit). A business
+can hide its street number: the database then refuses to keep it (`vendor_hidden_number_not_kept`)
+or an exact pin (`vendor_hidden_number_pin_approximate`); the number isn't sent to the address
+search, shown, put in directions, or kept in the change's history from then on, and an undo can
+never bring a number back onto a business that hides it. Earlier changes already in the
+append-only audit log stay as they were. Pins come from OpenStreetMap's free address search
+(Nominatim: our User-Agent, about one look-up a second for the whole site, only when the address
+changed); maps are OpenStreetMap's tiles, fetched by the visitor's browser, credited on the map.
+
 ## 7a. Activity tracking (D-22)
 
 Localites counts how people interact with each vendor (ADR-023), to report to vendors and

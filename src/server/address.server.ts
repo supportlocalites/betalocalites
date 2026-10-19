@@ -44,8 +44,10 @@ export async function findPin(
   env: ServerEnv,
   a: AddressForm,
   town: string,
-): Promise<{ lat: number; lng: number; approximate: boolean } | null> {
+): Promise<{ lat: number; lng: number; approximate: boolean } | null | 'failed'> {
   if (!a.street) return null;
+  // One look-up a second for the whole site (Nominatim's usage policy); busier, try again shortly.
+  if (env.GEOCODE_LIMIT && !(await env.GEOCODE_LIMIT.limit({ key: 'nominatim' })).success) return 'failed';
   const approximate = a.hidden || !a.number;
   const url = new URL(searchUrl(env));
   url.searchParams.set('format', 'jsonv2');
@@ -57,10 +59,10 @@ export async function findPin(
   try {
     // Nominatim asks every site to say who it is (its usage policy).
     const res = await fetch(url, {
-      headers: { 'User-Agent': 'Localites (localites.ca; supportlocalites@gmail.com)', Accept: 'application/json' },
+      headers: { 'User-Agent': 'Localites (supportlocalites@gmail.com)', Accept: 'application/json' },
       signal: AbortSignal.timeout(4000),
     });
-    if (!res.ok) return null;
+    if (!res.ok) return 'failed';
     const [hit] = (await res.json()) as { lat?: string; lon?: string }[];
     const lat = Number(hit?.lat);
     const lng = Number(hit?.lon);
@@ -70,11 +72,17 @@ export async function findPin(
     return { lat: round(lat), lng: round(lng), approximate };
   } catch (err) {
     console.error('address search failed:', err instanceof Error ? err.message : err);
-    return null;
+    return 'failed';
   }
 }
 
-const toAddress = (a: AddressForm, pin: Awaited<ReturnType<typeof findPin>>): Address => ({
+/** Not answering (down, busy, or over the limit): said plainly, and nothing is saved. */
+export const SEARCH_DOWN = 'The map’s address search isn’t answering right now, so nothing was saved. Please try again in a few minutes.';
+
+/** The same street, number and choice to hide as now: nothing to look up or save. */
+const sameForm = (a: Address, f: AddressForm) => a.street === f.street && a.number === f.number && a.hidden === f.hidden;
+
+const toAddress = (a: AddressForm, pin: { lat: number; lng: number; approximate: boolean } | null): Address => ({
   ...a,
   lat: pin?.lat ?? null,
   lng: pin?.lng ?? null,
@@ -126,8 +134,10 @@ export async function saveOwnerAddress(
 ): Promise<{ auditId: string; address: Address } | 'unchanged'> {
   const page = await addressPage(env, userId, slug);
   if (!page) throw new AddressRefused('not found');
+  if (sameForm(page.address, form)) return 'unchanged';
   // The search is outside the step that writes (it's another site, and can take a moment).
   const pin = await findPin(env, form, page.town);
+  if (pin === 'failed') throw new AddressRefused(SEARCH_DOWN);
   const next = toAddress(form, pin);
   return withDb(env, (db) =>
     db.transaction(async (tx) => {
@@ -169,7 +179,10 @@ export async function setTeamAddress(
       select m.name as town from vendor v join municipality m on m.id = v.primary_municipality_id where v.id = ${vendorId}`),
   );
   if (!t) throw new AddressRefused('not found');
-  const next = toAddress(form, await findPin(env, form, t.town));
+  if (sameForm(await withDb(env, (db) => readAddress(db, vendorId)), form)) return 'unchanged';
+  const pin = await findPin(env, form, t.town);
+  if (pin === 'failed') throw new AddressRefused(SEARCH_DOWN);
+  const next = toAddress(form, pin);
   return withDb(env, (db) =>
     db.transaction(async (tx) => {
       const [locked] = await tx.execute<{ status: string }>(sql`select listing_status as status from vendor where id = ${vendorId} for update`);
@@ -193,6 +206,10 @@ export async function setTeamAddress(
 
 /** The team's undo of an owner's address change: all of it at once (the database checks the parts together). */
 export async function restoreAddress(tx: Db, vendorId: string, value: unknown) {
-  const a = (value ?? NO_ADDRESS) as Address;
-  await writeAddress(tx, vendorId, { ...NO_ADDRESS, ...a });
+  const a = { ...NO_ADDRESS, ...((value ?? {}) as Partial<Address>) };
+  // Never a number back onto a business that hides it now ("Never on Localites").
+  if (a.number && (await readAddress(tx, vendorId)).hidden) {
+    throw new AddressRefused('The business hides its street number now, so the earlier address can’t be put back.');
+  }
+  await writeAddress(tx, vendorId, a);
 }

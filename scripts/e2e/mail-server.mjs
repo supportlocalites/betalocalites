@@ -20,7 +20,7 @@
 //     (hate, S10), "pretend-phone" trips only privacy (S7), "pretend-outage" makes it fail;
 //     anything else is safe. GET /moderation/asked lists what it was asked;
 //   - GET /geocode stands in for OpenStreetMap's address search (Nominatim, when the site is
-//     pointed here with GEOCODE_URL): a street with "Nowhere" isn't found; any other is in
+//     pointed here with GEOCODE_URL): a street with "Nowhere" isn't found, "Outage" makes it fail; any other is in
 //     Orillia, a little further along for each number. GET /geocode/asked lists what it was asked.
 // Usage: node scripts/e2e/mail-server.mjs
 import { readFile } from 'node:fs/promises';
@@ -229,6 +229,11 @@ http
     } else if (url.pathname === '/geocode' && req.method === 'GET') {
       const street = url.searchParams.get('street') ?? '';
       geocodes.push({ street, city: url.searchParams.get('city'), agent: req.headers['user-agent'] ?? null });
+      if (street.toLowerCase().includes('outage')) {
+        res.writeHead(503);
+        res.end();
+        return;
+      }
       const n = Number(/^(\d+)/.exec(street)?.[1] ?? 0);
       const found = street.toLowerCase().includes('nowhere') ? [] : [{ lat: String(44.6083 + n / 100000), lon: String(-79.41971 - n / 100000) }];
       res.writeHead(200, { 'Content-Type': 'application/json' });

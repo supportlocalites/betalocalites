@@ -116,6 +116,13 @@ check('not found by the search: saved, but not on the map', r.status === 302 && 
 r = await site(`/vendors/${W.slug}/address`, { cookie: cookie.w });
 check('…and the owner is told plainly', words(r.body).includes('couldn’t find it on the map'));
 
+r = await site(`/vendors/${W.slug}/address`, { cookie: cookie.w, method: 'POST', form: { street: 'Outage Road', number: '1' } });
+check('the address search not answering: nothing saved, and said plainly',
+  r.status === 409 && words(r.body).includes('isn’t answering right now') && (await row(W.id)).street === 'Nowhere Lane', String(r.status));
+before = (await asked()).length;
+r = await site(`/vendors/${W.slug}/address`, { cookie: cookie.w, method: 'POST', form: { street: 'Nowhere Lane', number: '9' } });
+check('the same address again doesn’t ask the search a second time', r.status === 302 && (await asked()).length === before, String(r.status));
+
 console.log('\nThe team');
 const [last] = await sql`select oc.audit_id from owner_change oc where oc.vendor_id = ${V.id} order by oc.audit_id desc limit 1`;
 r = await site(`/admin/listings/${V.id}`, { cookie: cookie.t });
@@ -138,7 +145,7 @@ check('…a business owner can’t use the team’s page', r.status !== 302 && (
 
 console.log('\nBrowse local’s map');
 await sql`update vendor set map_lat = null, map_lng = null, address_street = null, address_number = null where id = ${U.id}`;
-r = await site(`/explore?view=map&q=${encodeURIComponent(`Address ${run}`)}`);
+r = await site(`/explore?view=map&q=${encodeURIComponent(run)}`);
 text = words(r.body);
 check('the map view lists all three, and says which are on the map',
   r.status === 200 && [V, W, U].every((b) => text.includes(b.name)) && text.includes('listed by its town') && text.includes('on the map'),

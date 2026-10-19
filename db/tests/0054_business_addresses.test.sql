@@ -58,6 +58,8 @@ select pg_temp.expect('hidden: the street stays, the number goes, the pin is app
   (select address_street is not null and address_number is null and map_approximate from vendor where id = '00000000-0000-7000-8000-0000000054c1'));
 select pg_temp.expect_code('…and a number can''t come back while it''s hidden',
   $q$update vendor set address_number = '22' where id = '00000000-0000-7000-8000-0000000054c1'$q$, '23514');
+select pg_temp.expect_code('…nor an exact pin while it''s hidden',
+  $q$update vendor set map_approximate = false where id = '00000000-0000-7000-8000-0000000054c1'$q$, '23514');
 select pg_temp.expect_code('half a pin is refused',
   $q$update vendor set map_lng = null where id = '00000000-0000-7000-8000-0000000054c1'$q$, '23514');
 select pg_temp.expect_code('a pin far from Ontario is refused',

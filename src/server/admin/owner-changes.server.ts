@@ -1,5 +1,5 @@
 import { sql } from 'drizzle-orm';
-import { restoreAddress } from '../address.server';
+import { AddressRefused, restoreAddress } from '../address.server';
 import { uuidv7 } from '@/lib/ids.mjs';
 import type { Admin } from '../auth/admin.server';
 import { type Db, withDb } from '../db.server';
@@ -115,7 +115,14 @@ const VENDOR_COLUMNS: Record<string, string> = {
 
 /** Puts one field back. Only the fixed columns above; every service write is scoped to this business. */
 async function restore(tx: Db, vendorId: string, key: string, value: unknown) {
-  if (key === 'address') return restoreAddress(tx, vendorId, value);
+  if (key === 'address') {
+    try {
+      return await restoreAddress(tx, vendorId, value);
+    } catch (err) {
+      if (err instanceof AddressRefused) throw new OwnerChangeConflict(err.message);
+      throw err;
+    }
+  }
   const column = VENDOR_COLUMNS[key];
   if (column) {
     await tx.execute(sql`update vendor set ${sql.raw(column)} = ${value as string | null} where id = ${vendorId}`);

@@ -29,6 +29,8 @@ export type ServerEnv = {
   OWNER_EDIT_LIMIT?: RateLimit;
   /** Planning an event (slice 2A): a per-person limit on changes, kept by Cloudflare. */
   PLAN_LIMIT?: RateLimit;
+  /** OpenStreetMap's address search: one look-up a second for the whole site (its usage policy). */
+  GEOCODE_LIMIT?: RateLimit;
   /** Business photos: a per-person limit on changes, kept by Cloudflare. */
   PHOTO_EDIT_LIMIT?: RateLimit;
   /**

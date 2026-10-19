@@ -130,8 +130,8 @@ export default function BusinessAddress({ loaderData, actionData }: Route.Compon
           </div>
           <label className="field-hint">
             <input type="checkbox" name="hideNumber" value="yes" defaultChecked={address.hidden} /> Hide my street number. Only the street and
-            town show, and the pin is near the street, marked “{APPROXIMATE}”. Your number is never shown or kept on Localites; share it in
-            a message when you’re ready.
+            town show, and the pin is near the street, marked “{APPROXIMATE}”. Your number is then never shown on Localites and we stop
+            keeping it; share it in a message when you’re ready.
           </label>
           {actionData?.error && (
             <p className="field-error" role="alert">

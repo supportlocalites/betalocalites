@@ -182,6 +182,13 @@ its service to us.
 | **Cloudflare** | Hosts the site, runs the "are you human?" check, limits repeated requests, works out approximate town, and runs the automated word check (section 4) | Worldwide network, including outside Canada |
 | **Resend** | Sends our emails (your email address, and the email's content) | United States |
 | **GitHub** | Stores our encrypted nightly backup for 30 days | United States |
+| **OpenStreetMap** (OpenStreetMap Foundation) | Draws the maps on business pages and Browse local: your browser fetches the map pictures from it directly, so it sees your internet address and which page you're on (no account, nothing else from Localites). When a business saves its address, we ask its free address search where to put the pin: we send the street, number (never when the business hides it) and town, nothing about you | United Kingdom and worldwide |
+
+**Directions** on a business's page open Google Maps in a new tab, only if you tap it; Google's
+own privacy policy then applies. A business can hide its street number: it's then never shown
+on Localites and no longer kept (our team's record of earlier changes, which can't be edited, still
+has it if the business entered it before hiding it), and its pin is only near the street
+("Approximate location").
 
 Information processed outside Canada may be accessible to the authorities of those countries
 under their laws. [Lawyer: please review this wording, and whether anything more is needed for

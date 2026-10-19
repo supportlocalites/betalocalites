@@ -447,8 +447,9 @@ export default function EditListing({ loaderData, actionData: rawResult }: Route
           </label>
           <input id="team-number" name="number" className="input" maxLength={13} defaultValue={listing.address.number ?? ''} />
           <label className="field-hint">
-            <input type="checkbox" name="hideNumber" value="yes" defaultChecked={listing.address.hidden} /> Hide the number (never shown or
-            kept; the pin is near the street)
+            <input type="checkbox" name="hideNumber" value="yes" defaultChecked={listing.address.hidden} /> Hide the number (never shown, and
+            no longer kept; the pin is near the street).{' '}
+            {listing.address.hidden && 'The business chose this: leave it ticked unless they ask you to change it.'}
           </label>
           {actionData?.intent === 'address' && actionData.errors && 'address' in actionData.errors && (
             <p className="field-error" role="alert">
