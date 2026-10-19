@@ -144,9 +144,15 @@ await page(BIZ_THREAD, { cookie: cookie.g, method: 'POST', form: { intent: 'send
 await new Promise((res) => setTimeout(res, 3000)); // the site waits 2 seconds here before emailing (20 when live)
 check('a second reply before they’ve read it: no second email', (await newMail('a', beforeReply)).length === 1);
 r = await page('/messages', { cookie: cookie.a });
-check('the person sees 2 new', r.body.includes('aria-label="2 new"'));
+check('the person sees 2 new', words(r.body).includes('2 new'));
+check('…By event: under their own event’s name (only they see it)', words(r.body).includes(SECRET_TITLE) && /aria-current="true"[^>]*>By event</.test(r.body));
+r = await page('/messages?view=unread', { cookie: cookie.a });
+check('…Unread shows it, with the count', words(r.body).includes(V.name) && words(r.body).includes('Unread · 1'));
+r = await page('/messages?view=recent', { cookie: cookie.a });
+check('…Most recent shows it too', words(r.body).includes(V.name) && /aria-current="true"[^>]*>Most recent</.test(r.body));
 r = await page(THREAD, { cookie: cookie.a });
 text = words(r.body);
+check('the open conversation has the list beside it, read now', r.body.includes('aria-current="page"') && !text.includes('2 new'));
 check('the person reads the replies under the business’s name, never the staff member’s', text.includes(REPLY) && text.includes(V.name) && !text.includes(S_NAME));
 const beforeMore = Date.now();
 await page(BIZ_THREAD, { cookie: cookie.g, method: 'POST', form: { intent: 'send', body: `One more thing. ${run}` } });

@@ -344,7 +344,8 @@ for (const size of SIZES) {
     );
     check(`${name}: no accessibility problems`, problems.length === 0, problems.join(' | '));
     check(`${name}: no errors in the page`, errors.length === 0, errors.slice(0, 3).join(' | '));
-    if (!ok || page.wide || problems.length || errors.length) {
+    // LOOK_ALL=1 keeps every page's screenshot, to look at a new design.
+    if (!ok || page.wide || problems.length || errors.length || process.env.LOOK_ALL) {
       await p.screenshot({ path: `${SHOTS}/${name.replace(/[^a-z0-9]+/gi, '-').toLowerCase()}.png`, fullPage: !pg.dialog });
     }
     await p.close();

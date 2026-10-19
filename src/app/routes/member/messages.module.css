@@ -82,8 +82,7 @@
 .message {
   max-width: min(100%, var(--size-form-wide));
   justify-self: start;
-  border: var(--hairline) solid var(--color-line);
-  border-radius: var(--radius-sheet);
+  border: var(--hairline) solid var(--color-line-soft);
   background: var(--color-surface);
   padding: var(--space-3) var(--space-4);
   display: grid;
@@ -91,9 +90,32 @@
   min-width: 0;
 }
 
+/* Your own on the right, dark (D-58); theirs on the surface. */
 .message.mine {
   justify-self: end;
-  background: var(--color-tint);
+  background: var(--color-ink);
+  border-color: var(--color-ink);
+  color: var(--color-on-ink);
+}
+
+.message.mine .byline,
+.message.mine a,
+.message.mine button,
+.message.mine summary,
+.message.mine :global(.muted) {
+  color: var(--color-on-ink);
+}
+
+/* Changing your own message: the form on a light panel, as everywhere else. */
+.message.mine details form {
+  background: var(--color-surface);
+  color: var(--color-ink);
+  padding: var(--space-3);
+}
+
+.message.mine details form :global(.muted),
+.message.mine details form button {
+  color: var(--color-ink);
 }
 
 .message.removed {
@@ -194,5 +216,73 @@ details.messageActions form {
 }
 
 .fileLink {
+  overflow-wrap: anywhere;
+}
+
+/* Messages (D-58): on computers the list and the open conversation side by side; on phones
+   one at a time (the list on /messages, the conversation on its own page). */
+.split {
+  display: grid;
+  gap: var(--space-6);
+}
+
+.listPane,
+.readPane {
+  min-width: 0;
+}
+
+.choose {
+  display: none;
+}
+
+.withList .listPane {
+  display: none;
+}
+
+@media (min-width: 1000px) {
+  .split {
+    grid-template-columns: var(--size-inbox) minmax(0, 1fr);
+    gap: 0;
+  }
+
+  .listPane {
+    padding-right: var(--space-6);
+    border-right: var(--hairline) solid var(--color-line-soft);
+  }
+
+  .readPane {
+    padding-left: var(--space-8);
+    max-width: var(--size-form-wide);
+  }
+
+  .choose {
+    display: grid;
+    place-items: center;
+  }
+
+  .withList .listPane {
+    display: grid;
+    align-content: start;
+  }
+
+  .backLink {
+    display: none;
+  }
+}
+
+/* The open conversation's top: the business's photo, name and the event it's about. */
+.head {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  padding-bottom: var(--space-4);
+  border-bottom: var(--hairline) solid var(--color-line-soft);
+}
+
+.headName {
+  margin: 0;
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: var(--text-title-2);
   overflow-wrap: anywhere;
 }

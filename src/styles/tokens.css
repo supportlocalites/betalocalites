@@ -87,6 +87,8 @@
   --size-button: 52px;
   --size-button-short: 48px;
   --hairline: 1px;
+  /* The gold mark beside the open conversation in Messages (D-58). */
+  --mark-current: 2px;
   --frame-inset-photo: 6px;
   --frame-inset-welcome: 14px;
   --focus-ring: 2px;
@@ -123,6 +125,8 @@
   --blur-photo-backdrop: 18px;
   --size-form-narrow: 440px;
   --size-form-wide: 760px;
+  /* The conversations list beside an open conversation (Messages, D-58). */
+  --size-inbox: 380px;
   --size-qr: 200px;
   /* A printed invitation's QR code (guests, part 2): large enough to scan from across a table. */
   --size-qr-print: 288px;
