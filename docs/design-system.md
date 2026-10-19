@@ -52,6 +52,17 @@ font, a button or a card is made once and appears everywhere, at every size.
 (it fails contrast). Body text on `ground` or `surface` must reach a 4.5:1 contrast ratio.
 `muted` on `ground` is about 5.3:1.
 
+**The dark look (D-57, built 19 October 2026).** Every page also comes dark: the moon (top right
+of Welcome, end of every header, round with a gold ring) switches to it, the sun back. The choice
+is kept in a cookie (`lc_theme`, "light" or "dark" only); with no choice, the page follows the
+device's own setting. The same tokens take dark values (`tokens.css`, `[data-theme='dark']` and
+the device's dark setting): `ground` `#141414`, `surface` `#1C1B19`, `ink` `#F7F5F1`, `ink-soft`
+`#D9D3CA`, `muted` `#A39B90`, `line` `#3A3631`, `line-soft` `#2B2926`, `tint` `#242220`, `on-ink`
+`#141414`, photo placeholders `#2E2B27` `#34302B` `#2A2825` `#3A362F`. `gold` stays `#B8955A`, lines
+only. Primary buttons swap with the ink (light button, dark words); the wordmark and its pin are
+drawn in the ink colour, so they're light on dark. The photo viewer stays dark in both looks
+(`on-viewer`). Every page's look checks also run in the dark look.
+
 ## 3. Type
 
 Two typefaces, both free (SIL Open Font License), **served with the site itself** rather

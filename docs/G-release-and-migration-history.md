@@ -31,6 +31,30 @@ Every release and every database migration, in order. Appended before each deplo
 
 ## Releases
 
+### 2026-10-19 — The light and dark look (D-57, step 1 of the redesign)
+
+**Stage:** all pages (design system §2)
+**What changed (plain English):** a round **moon** button at the top right of the Welcome page and
+at the end of every header (the team's pages too) switches the site to a dark look: light words on
+near-black, the gold lines kept, the light button with dark words. The moon becomes a **sun** to go
+back. The choice is remembered on that browser for a year (a cookie holding only "light" or
+"dark"); someone who hasn't chosen sees the look their phone or computer is set to. The Welcome
+page is otherwise unchanged.
+**Migrations applied:** none.
+**Destructive?** No.
+**Tests run:** unit tests 209 of 209; new browser suite `theme.mjs` 15 of 15; look 764 of 764 (every
+page now also checked at phone size in the dark look: contrast, layout, errors); admin access 43
+of 43. Looked at by eye: Welcome, Explore and a business page in the dark look.
+**Security tests:** the switch only ever goes back to a page on this site (another site's address,
+`//…`, `/\…` or `javascript:` goes Home); any value but "dark" is taken as light; a cookie with
+another value is ignored.
+**Independent review before push:** not needed (no database change, nothing about who can see
+or do what).
+**Existing functionality affected:** the header has one more button; the photo viewer keeps its
+light words on dark in both looks.
+**How to roll back:** with the next update.
+**Approved by:** the product owner, 19 October 2026 (D-57).
+
 ### 2026-10-19 — Fixes from the scenario tests, round 5 part 2b: a readable data download (D-54)
 
 **Stage:** 1 (E §8, privacy policy §11)

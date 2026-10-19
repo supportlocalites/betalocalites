@@ -5,12 +5,20 @@
 }
 
 .frame {
+  position: relative;
   flex: 1;
   border: var(--hairline) solid var(--color-gold);
   display: grid;
   grid-template-rows: 1fr auto;
   padding-inline: var(--space-8);
   padding-block: var(--space-14);
+}
+
+/* The moon or sun, in the top right corner inside the gold frame (D-57). */
+.theme {
+  position: absolute;
+  top: var(--space-4);
+  right: var(--space-4);
 }
 
 .words {

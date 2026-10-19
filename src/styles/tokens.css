@@ -22,9 +22,11 @@
   /* The framing screen: what's outside the square is dimmed; its guide lines are faint. */
   --color-crop-shade: rgba(20, 20, 20, 0.62);
   --color-crop-grid: rgba(251, 250, 248, 0.5);
-  /* The photo viewer's background, and its buttons on top of photos. */
+  /* The photo viewer's background, and its buttons on top of photos. Dark in both looks. */
   --color-viewer: rgba(20, 20, 20, 0.94);
   --color-viewer-button: rgba(20, 20, 20, 0.45);
+  --color-on-viewer: #f7f5f1;
+  color-scheme: light;
 
   /* Type (§3): served with the site from @fontsource, no third party */
   --font-display: 'Playfair Display', Georgia, 'Times New Roman', serif;
@@ -64,6 +66,7 @@
   --radius-sheet: 24px;
   --radius-pill: 999px;
   --size-icon-button: 44px;
+  --size-theme-icon: 20px;
   --size-button: 52px;
   --hairline: 1px;
   --frame-inset-photo: 6px;
@@ -103,6 +106,47 @@
   /* A printed invitation's QR code (guests, part 2): large enough to scan from across a table. */
   --size-qr-print: 288px;
   --size-textarea: 140px;
+}
+
+/*
+ * The dark look (D-57): the same page with light words on near-black; the gold lines stay.
+ * Chosen with the moon (data-theme="dark", kept in a cookie), or the device's own setting
+ * when the visitor hasn't chosen. Both blocks hold the same values.
+ */
+:root[data-theme='dark'] {
+  --color-ground: #141414;
+  --color-surface: #1c1b19;
+  --color-ink: #f7f5f1;
+  --color-ink-soft: #d9d3ca;
+  --color-muted: #a39b90;
+  --color-line: #3a3631;
+  --color-line-soft: #2b2926;
+  --color-tint: #242220;
+  --color-on-ink: #141414;
+  --color-photo-1: #2e2b27;
+  --color-photo-2: #34302b;
+  --color-photo-3: #2a2825;
+  --color-photo-4: #3a362f;
+  color-scheme: dark;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) {
+    --color-ground: #141414;
+    --color-surface: #1c1b19;
+    --color-ink: #f7f5f1;
+    --color-ink-soft: #d9d3ca;
+    --color-muted: #a39b90;
+    --color-line: #3a3631;
+    --color-line-soft: #2b2926;
+    --color-tint: #242220;
+    --color-on-ink: #141414;
+    --color-photo-1: #2e2b27;
+    --color-photo-2: #34302b;
+    --color-photo-3: #2a2825;
+    --color-photo-4: #3a362f;
+    color-scheme: dark;
+  }
 }
 
 @media (min-width: 768px) {

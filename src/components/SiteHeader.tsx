@@ -1,5 +1,6 @@
 import { Link, useRouteLoaderData } from 'react-router';
 import styles from './SiteHeader.module.css';
+import { ThemeToggle } from './ThemeToggle';
 import { Wordmark } from './Wordmark';
 
 /** The wordmark always returns Home (design system §7). */
@@ -12,28 +13,31 @@ export function SiteHeader() {
       <Link to="/explore" className={styles.wordmark}>
         <Wordmark small />
       </Link>
-      {signedIn ? (
-        <nav aria-label="Your pages" className={styles.links}>
-          <Link to="/events" className="text-link">
-            My events
-          </Link>
-          <Link to="/messages" className="text-link">
-            Messages
-          </Link>
-          {onTeam && (
-            <Link to="/business" className="text-link">
-              My business
+      <div className={styles.end}>
+        {signedIn ? (
+          <nav aria-label="Your pages" className={styles.links}>
+            <Link to="/events" className="text-link">
+              My events
             </Link>
-          )}
-          <Link to="/account" className="text-link">
-            Account
+            <Link to="/messages" className="text-link">
+              Messages
+            </Link>
+            {onTeam && (
+              <Link to="/business" className="text-link">
+                My business
+              </Link>
+            )}
+            <Link to="/account" className="text-link">
+              Account
+            </Link>
+          </nav>
+        ) : (
+          <Link to="/join" className="text-link">
+            Sign in
           </Link>
-        </nav>
-      ) : (
-        <Link to="/join" className="text-link">
-          Sign in
-        </Link>
-      )}
+        )}
+        <ThemeToggle />
+      </div>
     </header>
   );
 }

@@ -1,0 +1,24 @@
+/* A round button with a thin gold ring (D-57), the moon or sun drawn in the ink colour. */
+.button {
+  width: var(--size-icon-button);
+  height: var(--size-icon-button);
+  border-radius: var(--radius-pill);
+  border: var(--hairline) solid var(--color-gold);
+  background: transparent;
+  color: var(--color-ink);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  padding: 0;
+}
+
+.icon {
+  width: var(--size-theme-icon);
+  height: var(--size-theme-icon);
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.6;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}

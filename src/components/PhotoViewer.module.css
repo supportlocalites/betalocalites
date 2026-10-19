@@ -8,7 +8,7 @@
   height: 100%;
   max-height: none;
   background: var(--color-viewer);
-  color: var(--color-on-ink);
+  color: var(--color-on-viewer);
   overflow: hidden;
   /* Sideways swipes reach the page (to move between photos); up and down, and pinching, stay the browser's. */
   touch-action: pan-y pinch-zoom;
@@ -68,7 +68,7 @@
   border: none;
   border-radius: 50%;
   background: var(--color-viewer-button);
-  color: var(--color-on-ink);
+  color: var(--color-on-viewer);
   font-size: var(--text-title-2);
   line-height: 1;
   cursor: pointer;

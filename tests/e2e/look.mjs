@@ -1,7 +1,7 @@
 /* global document, window -- the code passed to page.evaluate runs in the browser */
 // How the pages look and behave in a real browser (testing strategy: look checks), at
 // phone size and computer size, signed out, as a person, as a business owner and as the
-// team. On every page: nothing makes the page wider than the screen; no accessibility
+// team, and at phone size in the dark look (D-57). On every page: nothing makes the page wider than the screen; no accessibility
 // problems that the standard checker (axe-core, WCAG 2.2 A and AA rules, including tap
 // target size and colour contrast) can find; and no errors in the page. Also checked open:
 // the photo viewer and the profile-photo framing screen. A failed page's screenshot is
@@ -19,6 +19,8 @@ mkdirSync(SHOTS, { recursive: true });
 const SIZES = [
   { name: 'phone', width: 360, height: 740 },
   { name: 'computer', width: 1280, height: 900 },
+  // The dark look (D-57), as a phone set to dark mode sees every page.
+  { name: 'phone, dark', width: 360, height: 740, colorScheme: 'dark' },
 ];
 
 // ---- people and a business with everything filled in
@@ -122,7 +124,7 @@ const [Z] = await sql`
 
 const browser = await chromium.launch();
 async function contextFor(who, size) {
-  const ctx = await browser.newContext({ viewport: { width: size.width, height: size.height } });
+  const ctx = await browser.newContext({ viewport: { width: size.width, height: size.height }, colorScheme: size.colorScheme ?? 'light' });
   const s = sessions[who];
   if (who === 'guest') {
     const host = new URL(BASE).hostname;

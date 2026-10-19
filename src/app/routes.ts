@@ -18,6 +18,8 @@ export default [
   route('sign-in', 'routes/sign-in.tsx'),
   route('two-step', 'routes/two-step.tsx'),
   route('sign-out', 'routes/sign-out.ts'),
+  // The moon and sun: light or dark look (D-57).
+  route('theme', 'routes/theme.ts'),
   route('goodbye', 'routes/goodbye.tsx'),
   route('suspended', 'routes/suspended.tsx'),
   // A guest's invitation (Stage 4): no account. /i/<token> swaps the link for a cookie.

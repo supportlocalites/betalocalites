@@ -5,11 +5,12 @@ import '@fontsource/jost/400.css';
 import '@fontsource/jost/500.css';
 import '@fontsource/jost/600.css';
 import './globals.css';
-import { Form, isRouteErrorResponse, Link, Links, Meta, Outlet, Scripts, ScrollRestoration } from 'react-router';
+import { Form, isRouteErrorResponse, Link, Links, Meta, Outlet, Scripts, ScrollRestoration, useRouteLoaderData } from 'react-router';
 import { SiteFooter } from '@/components/SiteFooter';
 import { SiteHeader } from '@/components/SiteHeader';
 import { TeamOnly, teamOnlyReason } from '@/components/TeamOnly';
 import { pageMeta } from '@/lib/meta';
+import { themeFrom } from '@/lib/theme';
 import { hasSessionCookie } from '@/server/auth/session.server';
 import type { Route } from './+types/root';
 
@@ -26,7 +27,8 @@ export const meta: Route.MetaFunction = ({ error }) =>
 /** Only what the header needs; reading a cookie costs no network request. */
 export function loader({ request }: Route.LoaderArgs) {
   // The site's own address, for link previews (lib/meta.ts shareMeta).
-  return { signedIn: hasSessionCookie(request), origin: new URL(request.url).origin };
+  // The light or dark look the visitor chose (D-57); none: the device's own setting.
+  return { signedIn: hasSessionCookie(request), origin: new URL(request.url).origin, theme: themeFrom(request.headers.get('Cookie')) };
 }
 
 /**
@@ -37,8 +39,9 @@ export function loader({ request }: Route.LoaderArgs) {
 export const shouldRevalidate = () => true;
 
 export function Layout({ children }: { children: React.ReactNode }) {
+  const theme = useRouteLoaderData<typeof loader>('root')?.theme ?? undefined;
   return (
-    <html lang="en-CA">
+    <html lang="en-CA" data-theme={theme}>
       <head>
         <meta charSet="utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
