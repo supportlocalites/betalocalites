@@ -90,7 +90,7 @@ export default function ReportPage({ loaderData: { report }, actionData }: Route
                     : ' · Removed by its author'
                   : ''}
               </span>
-              <span>{m.removed && !m.body ? <span className="muted">(removed)</span> : m.body}</span>
+              <span dir="auto">{m.removed && !m.body ? <span className="muted">(removed)</span> : m.body}</span>
               {m.file &&
                 (m.file.gone ? (
                   <span className="muted">

@@ -62,7 +62,7 @@ export default function Review({ loaderData: { form }, actionData }: Route.Compo
   const [params] = useSearchParams();
   const eventId = useParams().id ?? '';
   const { business, event, review, can } = form;
-  const editable = review ? review.status === 'pending' : can === 'yes';
+  const editable = review ? review.status === 'pending' && !review.locked : can === 'yes';
   const back = (
     <p className="section-gap">
       <Link to={`/events/${eventId}`} className="text-link">
@@ -112,11 +112,11 @@ export default function Review({ loaderData: { form }, actionData }: Route.Compo
               {'★'.repeat(review.rating)}
               {'☆'.repeat(5 - review.rating)}
             </p>
-            <p className={styles.body}>{review.body}</p>
+            <p className={styles.body} dir="auto">{review.body}</p>
             {review.reply && (
               <div className={styles.reply}>
                 <span className="label">{business.name} replied</span>
-                <p className={styles.body}>{review.reply}</p>
+                <p className={styles.body} dir="auto">{review.reply}</p>
               </div>
             )}
           </>
@@ -125,6 +125,27 @@ export default function Review({ loaderData: { form }, actionData }: Route.Compo
           <p className="notice" role="status">
             Our team removed your review{review.reason ? `, because: ${review.reason}` : '.'} If you have questions, email
             supportlocalites@gmail.com.
+          </p>
+        )}
+        {review?.status === 'pending' && review.locked && (
+          <>
+            <p className="notice" role="status">
+              Your review came back as you wrote it when you marked {business.name} booked again. It’s waiting for our team, and it
+              can’t be changed.
+            </p>
+            <p className={styles.stars} aria-label={`${review.rating} out of 5 stars`}>
+              {'★'.repeat(review.rating)}
+              {'☆'.repeat(5 - review.rating)}
+            </p>
+            <p className={styles.body} dir="auto">
+              {review.body}
+            </p>
+          </>
+        )}
+        {review?.status === 'withdrawn' && (
+          <p className="notice" role="status">
+            This review was withdrawn because the booking was un-marked or the event was cancelled. If the booking was un-marked and you
+            mark {business.name} booked again, it comes back as you wrote it, unless {business.name} has told us it wasn’t booked.
           </p>
         )}
         {!review && can !== 'yes' && <p>{CANT[can]}</p>}

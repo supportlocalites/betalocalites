@@ -81,11 +81,11 @@ export function ReviewList({
             <span className={styles.meta}>
               Event in {month.format(new Date(`${r.eventMonth}T00:00:00Z`))} · {r.plannedOnLocalites ? PLANNED_ON : PLANNED_OUTSIDE}
             </span>
-            <p className={styles.body}>{r.body}</p>
+            <p className={styles.body} dir="auto">{r.body}</p>
             {r.reply && (
               <div className={styles.reply}>
                 <span className="label">{businessName} replied</span>
-                <p className={styles.body}>{r.reply}</p>
+                <p className={styles.body} dir="auto">{r.reply}</p>
               </div>
             )}
             {after?.(r)}

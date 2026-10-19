@@ -31,6 +31,57 @@ Every release and every database migration, in order. Appended before each deplo
 
 ## Releases
 
+### 2026-10-19 — Fixes from the scenario tests, round 1 of 5 (D-54)
+
+**Stage:** 2B, 3 and 4 (E §4, §6)
+**What changed (plain English):** quick fixes from testing the site as many different people.
+Words people type lose invisible and direction-changing characters before anything reads them; a
+name must have a visible letter and pass the word list. Reviews and businesses' replies with a phone
+number, email address or street address wait for the team. A review withdrawn because its booking
+was un-marked comes back, exactly as written and no longer editable, if the booking is marked again
+(the author is told why they can't change it). A business's "this booking isn't right" note still
+counts after the person un-marks and re-marks. The words of a review the team declined are erased 30
+days later. No "new message" email for a message taken back first. Pressing Save or Send twice makes
+one event or one message (files included). Reporting a conversation can block it in the same step;
+blocking now asks first and says what the other side still sees. A message refused because the
+conversation was blocked in the meantime goes to the conversation and says it wasn't sent. Staff
+(and managers, on the team page) are told who can open a page instead of "not found"; anyone not on
+the team still gets "not found". Clearer words: deleting an account (reviews and messages stay,
+anonymous; invitations stop; how to join again), a closed account, sending limits, the event name
+(guests see it, businesses never do), keeping a guest link, staff and managers' rights, claiming.
+Right-to-left writing shows correctly. Waiting claims are oldest first, with "Showing 200 of N". The
+Living Local badge shows on a business's own reviews page; a flag emoji in a last name is kept whole.
+**Migrations applied:** `0046_scenario_fixes_1.sql`
+**Destructive?** Only as decided: declined reviews' words over 30 days old are replaced with "Erased
+30 days after the team declined it." (D-54, M6). Nothing else is removed.
+**Tests run:** database checks 46 of 46 files (0046: 18; 0012 updated to the new flag behaviour);
+unit tests 197 of 197; new browser suite `scenario-fixes.mjs` 10 of 10; messages 133 of 133, reviews
+73 of 73, accounts 35 of 35, owner editing 55 of 55, claiming 74 of 74, admin access 43 of 43, event
+planning 145 of 145, language check 40 of 40, business teams 39 of 39, photos 67 of 67, analytics
+53 of 53, account deletion 22 of 22, guests 47 of 47, guests part 2 34 of 34, look 504 of 504.
+**Security tests:** staff and managers get "only the owner (or a manager) can" only for their own
+business; anyone else still gets "not found"; the site can't unlock a returned review or change its
+words; the list of Living Local reviewers stays closed to the site; a review doesn't come back while
+the business's note counts.
+**Independent review before push:** nothing high. Fixed: a note the team settles as "not a real
+booking" is kept across re-marking too, and a review doesn't come back while a note counts (it
+would otherwise reopen the fake-review gap); carrying a note forward isn't logged as a new flag; the
+team password and the owner-edit page's copy of saved values are left exactly as sent; "your
+message wasn't sent" only for a blocked conversation (other refusals stay on the page with the
+form); blank-looking characters (Hangul fillers, blank braille) don't count as a name; a second
+Save isn't refused by the limits for the event the first made; a second photo isn't mistaken for a
+double tap unless its type, size and dimensions match too; the 30-day erase also clears what the
+language check found, and a failure there no longer stops the morning run; the badge lookup only
+for listed businesses; the word list checks a name only when it changes (with a way to ask the
+team); fewer false street addresses; the remaining search filters are cleaned; a block that fails
+after a report is said. Known: a review that comes back isn't emailed to the team; it shows in
+Reviews and Waiting for you.
+**Existing functionality affected:** re-marking a booking no longer clears the business's note
+(D-54, B5); 0012's check is updated to match.
+**How to roll back:** with the next update; the new review column and functions are unused by older
+code.
+**Approved by:** the product owner, 19 October 2026 (D-54).
+
 ### 2026-10-18 — Before-launch tasks, part 2: Waiting for you, the handbook, and fixes from the whole-site security review
 
 **Stage:** 1 (screen X23; E §6, §8)

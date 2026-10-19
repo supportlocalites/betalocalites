@@ -1,6 +1,7 @@
 import { data, Form, redirect, useNavigation, useSearchParams } from 'react-router';
 import { cloudflareContext, memberContext } from '@/app/context';
 import { SiteHeader } from '@/components/SiteHeader';
+import { refuseTeamMember } from '@/server/bookings.server';
 import { isUuid } from '@/lib/ids.mjs';
 import { pageMeta } from '@/lib/meta';
 import { emailInput } from '@/server/member-input';
@@ -23,7 +24,10 @@ export async function loader({ params, context }: Route.LoaderArgs) {
   const member = context.get(memberContext);
   const { env } = context.get(cloudflareContext);
   const team = await teamFor(env, member.userId, params.slug);
-  if (!team) throw data(null, { status: 404 });
+  if (!team) {
+    await refuseTeamMember(env, member.userId, params.slug, true);
+    throw data(null, { status: 404 });
+  }
   if ('renamedTo' in team) throw redirect(`/vendors/${team.renamedTo}/team`);
   return team;
 }
@@ -103,8 +107,8 @@ export default function Team({ loaderData, actionData }: Route.ComponentProps) {
           </p>
         )}
         <p className="muted">
-          A <strong>manager</strong> can edit your listing, see who marked you as booked, and see Analytics if they’re on. Only you, the
-          owner, can change the team. <strong>Staff</strong> will be able to read and reply to customers’ messages when messaging arrives.
+          A <strong>manager</strong> can edit your listing, reply to and block messages, see who marked you as booked, and see Analytics if
+          they’re on. Only you, the owner, can change the team. <strong>Staff</strong> can read and reply to customers’ messages.
         </p>
 
         <section className={styles.section} aria-labelledby="people">

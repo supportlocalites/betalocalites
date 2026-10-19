@@ -5,7 +5,8 @@ import { SiteHeader } from '@/components/SiteHeader';
 import { pageMeta } from '@/lib/meta';
 import { EVENTS_PRIVATE } from '@/lib/plan-terms';
 import { updatePerson } from '@/server/auth/member.server';
-import { NAMES_NEEDED, namesInput, profileInput } from '@/server/member-input';
+import { NAME_WORDS, NAMES_NEEDED, namesInput, profileInput } from '@/server/member-input';
+import { listMatches } from '@/server/moderation.server';
 import { getProfile } from '@/server/profile.server';
 import { myAccount } from '@/server/claims.server';
 import { reviewRequestsOn, setReviewRequests } from '@/server/review-requests.server';
@@ -51,6 +52,13 @@ export async function action({ request, context }: Route.ActionArgs) {
     for (const issue of [...(names.error?.issues ?? []), ...(profile.error?.issues ?? [])]) errors[String(issue.path[0])] ??= issue.message;
     const nameMissing = !String(fields.firstName ?? '').trim() || !String(fields.lastName ?? '').trim();
     return data({ error: nameMissing ? NAMES_NEEDED : 'Please check what’s marked below.', errors }, { status: 400 });
+  }
+  // Names show on reviews and to businesses: the language check's word list runs on them too,
+  // on a part being changed only, so someone whose real name is on the list can still save the
+  // rest of their details (independent review).
+  const changed = [names.data.firstName, names.data.lastName].filter((n, i) => n !== [member.firstName, member.lastName][i]);
+  if (listMatches(changed).length > 0) {
+    return data({ error: NAME_WORDS, errors: { firstName: NAME_WORDS } }, { status: 400 });
   }
   // Only ever this person's own record: the id comes from the session, never the form.
   await updatePerson(context.get(cloudflareContext).env, member.userId, names.data, profile.data);

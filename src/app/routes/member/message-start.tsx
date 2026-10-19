@@ -55,6 +55,13 @@ export async function action({ request, params, context }: Route.ActionArgs) {
     return redirect(`/messages/${written.conversationId}?sent=${written.messageId}`);
   } catch (err) {
     const { error, status } = refusal(err);
+    // Blocked since this page was opened (in another tab): reloading it would only send them to
+    // the conversation, losing the error, so they go there and are told it wasn't sent. Any other
+    // refusal (a limit, a file) stays here with the words and the form (independent review).
+    if (error === MESSAGE_REFUSALS.LP143) {
+      const page = await startPage(env, member.userId, params.slug).catch(() => null);
+      if (page?.existing) return redirect(`/messages/${page.existing}?unsent=1`);
+    }
     return data({ error }, { status });
   }
 }

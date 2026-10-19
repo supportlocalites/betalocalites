@@ -107,8 +107,9 @@ keep it, and the choices you have. It applies to localites.ca and the emails we 
 - **To check words before they show:** what businesses write on their page, reviews, and
   businesses' replies to reviews are checked for offensive language before they appear,
   first by our own word list and then by an automated service (Cloudflare's AI service).
-  Anything flagged is held for a person on our team to decide. Private messages are not
-  checked this way.
+  Reviews and replies that seem to include a phone number, email address or street address
+  are held too, so personal details aren't posted by mistake. Anything flagged is held for a
+  person on our team to decide. Private messages are not checked this way.
 - **To improve Localites and report to businesses:** we use activity records to understand
   how the site is used, and give each business totals about its own page (section 5). The
   optional details on your account (gender, date of birth, address) may be used, combined with
@@ -190,6 +191,7 @@ people in Quebec.]
 | Files in conversations | Until 30 days after the conversation's event (at least 30 days after sending), or 1 year after sending if the conversation isn't about an event |
 | Conversations | Up to 3 years after the last message, then deleted with their messages (unless reported: then kept with the report) |
 | Published reviews | While the business is listed |
+| A review the team declined | Its words are erased 30 days after the decision |
 | Detailed activity records | With no set end date, for year-over-year reports. When you delete your account, they stay but are no longer linked to you. [Lawyer: please confirm this is acceptable, or advise a period.] |
 | Suggested businesses | The suggestion is kept; on a declined suggestion, the phone number or email typed in is erased after 1 year |
 | Records of emails sent | 1 year |

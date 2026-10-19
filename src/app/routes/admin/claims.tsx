@@ -95,6 +95,11 @@ export default function Claims({ loaderData, actionData }: Route.ComponentProps)
           </Link>
         )}
       </p>
+      {(claims[0]?.total ?? 0) > claims.length && (
+        <p className="muted">
+          Showing {claims.length} of {claims[0]?.total}. Waiting claims come first, oldest first.
+        </p>
+      )}
       {claims.length === 0 ? (
         <p className="muted">{show === 'open' ? 'No claims waiting.' : 'No claims yet.'}</p>
       ) : (

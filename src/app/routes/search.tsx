@@ -11,13 +11,14 @@ import { categoryName as nameOfCategory, searchVendors } from '@/server/catalog.
 import { withDb } from '@/server/db.server';
 import { toListPhoto } from '@/server/photo-store.server';
 import type { Route } from './+types/search';
+import { cleanText } from '@/lib/clean-text';
 
 export const meta: Route.MetaFunction = () => pageMeta('Search');
 
 export async function loader({ request, context }: Route.LoaderArgs) {
   const params = new URL(request.url).searchParams;
-  const q = (params.get('q') ?? '').slice(0, 100);
-  const categorySlug = (params.get('category') ?? '').slice(0, 80) || undefined;
+  const q = cleanText(params.get('q') ?? '').slice(0, 100);
+  const categorySlug = cleanText(params.get('category') ?? '').slice(0, 80) || undefined;
   const { env } = context.get(cloudflareContext);
   const [found, categoryName] = await withDb(env, (db) =>
     Promise.all([searchVendors(db, q, categorySlug), categorySlug ? nameOfCategory(db, categorySlug) : null]),

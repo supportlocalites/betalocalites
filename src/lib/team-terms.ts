@@ -9,10 +9,10 @@ export type TeamRole = 'manager' | 'staff';
 export const TEAM_ROLES: Record<TeamRole, { name: string; what: string }> = {
   manager: {
     name: 'a manager',
-    what: 'A manager can edit the business’s listing, see who marked it as booked, and see its Analytics if they’re on. Only the owner can change the team.',
+    what: 'A manager can edit the business’s listing, reply to and block its messages, see who marked it as booked, and see its Analytics if they’re on. Only the owner can change the team.',
   },
   staff: {
     name: 'staff',
-    what: 'Staff will be able to read and reply to customers’ messages to the business when messaging arrives on Localites.',
+    what: 'Staff can read and reply to customers’ messages to the business on Localites.',
   },
 };

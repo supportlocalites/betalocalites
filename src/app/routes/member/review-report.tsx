@@ -92,7 +92,7 @@ export default function ReviewReport({ loaderData: { review, business, back }, a
           <p>
             <Stars rating={review.rating} /> {review.author}
           </p>
-          <p style={{ whiteSpace: 'pre-wrap' }}>{review.body}</p>
+          <p dir="auto" style={{ whiteSpace: 'pre-wrap' }}>{review.body}</p>
         </blockquote>
         {actionData?.error && (
           <p className="notice" role="alert">

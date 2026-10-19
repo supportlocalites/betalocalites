@@ -73,7 +73,16 @@ export type ReviewForm = {
   can: CanReview;
   /** The last day to review (60 days after the event). */
   until: string;
-  review: { id: string; rating: number; body: string; status: ReviewStatus; reason: string | null; reply: string | null } | null;
+  review: {
+    id: string;
+    rating: number;
+    body: string;
+    status: ReviewStatus;
+    reason: string | null;
+    reply: string | null;
+    /** Came back as written when the booking was marked again (migration 0046): it can't be changed. */
+    locked: boolean;
+  } | null;
 };
 
 /** C11: reviewing a business booked for one of the person's events (their own, or "not found"). */
@@ -97,7 +106,7 @@ export async function reviewForm(env: ServerEnv, userId: string, eventId: string
         where ev.id = ${rowId} and ev.event_id = ${eventId} and ev.host_user_id = ${userId}`);
       if (!row) throw new PlanNotFound();
       const [review] = await tx.execute<NonNullable<ReviewForm['review']>>(sql`
-        select id, rating, body, status, decision_reason as reason,
+        select id, rating, body, status, decision_reason as reason, locked,
                case when reply_removed_at is null and reply_held_at is null then vendor_reply end as reply
         from review where event_vendor_id = ${rowId} and author_user_id = ${userId}`);
       // A review the team denied isn't shown to its author, and the booking can't be reviewed again (D-51).
@@ -126,7 +135,7 @@ export async function saveReview(
 ): Promise<{ id: string; created: boolean }> {
   const acting = { side: 'person' as const, userId };
   // The language check (D-50): reviews already wait for the team; a finding is kept for them to see.
-  const check = await checkLanguage(env, [input.body]);
+  const check = await checkLanguage(env, [input.body], { personal: true });
   const flag = check.flagged ? check.reason : null;
   const saved = await reviewed(
     actingAs(env, acting, async (tx) => {
@@ -212,7 +221,8 @@ export async function businessReviews(env: ServerEnv, userId: string, slug: stri
   return reviewed(
     asTeam(env, userId, slug, async (tx, business) => {
       const rows = await tx.execute<Omit<BusinessReview, 'canReply'> & { replied: boolean }>(sql`
-        select r.id, r.vendor_reply is not null as replied, r.rating, r.body, reviewer_name(r.author_user_id) as author, false as "livingLocal",
+        select r.id, r.vendor_reply is not null as replied, r.rating, r.body, reviewer_name(r.author_user_id) as author,
+               r.id in (select living_local_reviews(${business.id}::uuid)) as "livingLocal",
                date_trunc('month', r.event_date)::date::text as "eventMonth", r.planned_on_localites as "plannedOnLocalites",
                case when r.reply_removed_at is null and r.reply_held_at is null then r.vendor_reply end as reply,
                case when r.reply_removed_at is null and r.reply_held_at is not null then r.vendor_reply end as "replyHeld"
@@ -248,7 +258,7 @@ export async function replyToReview(
   reply: string,
   siteUrl: string,
 ): Promise<{ held: boolean }> {
-  const check = await checkLanguage(env, [reply]);
+  const check = await checkLanguage(env, [reply], { personal: true });
   const hold = check.flagged ? check.reason : null;
   const business = await reviewed(
     asTeam(env, userId, slug, async (tx, business) => {

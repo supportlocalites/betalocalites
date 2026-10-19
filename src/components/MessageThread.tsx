@@ -129,7 +129,7 @@ export function MessageList({
             {gone ? (
               <p className={styles.body}>{m.hidden ? 'Hidden by Localites' : 'Message removed'}</p>
             ) : (
-              (m.body || !m.file) && <p className={styles.body}>{m.body || 'File removed'}</p>
+              (m.body || !m.file) && <p className={styles.body} dir="auto">{m.body || 'File removed'}</p>
             )}
             {!gone && m.file?.expired && (
               <p className={`muted ${styles.fileLink}`}>

@@ -114,7 +114,7 @@ export function EventForm({
         'title',
         'Name your event',
         { maxLength: PLAN_LIMITS.title, required: true, autoComplete: 'off' },
-        'Just for you, like “Sam’s party”. No need to use a child’s full name.',
+        'Like “Sam’s party”. Guests you invite see this name; businesses never do. No need to use a child’s full name.',
       )}
 
       <fieldset className={styles.chips} aria-describedby={errors.typeId ? 'typeId-error' : undefined}>

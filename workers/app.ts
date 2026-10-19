@@ -14,10 +14,13 @@ import { sendReviewRequests } from '@/server/review-requests.server';
 import { eraseGuestContacts } from '@/server/guests.server';
 import { discardBody } from '@/server/discard-body';
 import { refuseCrossSiteForm, withSecurityHeaders } from '@/server/security-headers';
+import { installFormCleaning } from '@/server/clean-form';
 
 // Loaded when the Worker starts, not during a visitor's request: Cloudflare's free plan
 // counts processing time per request (10 ms), and preparing the pages takes longer.
 const handleRequest = createRequestHandler(build, import.meta.env.MODE);
+// Invisible characters removed from every form before any page reads it (clean-form.ts).
+installFormCleaning();
 
 /** The Cloudflare Worker: every page and API request comes through here. */
 export default {

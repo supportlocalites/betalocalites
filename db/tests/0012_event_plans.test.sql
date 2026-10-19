@@ -556,9 +556,10 @@ select pg_temp.act(null, null);
 select pg_temp.expect_equal('the featured list needs nobody signed in (it holds only public businesses)', (
   select count(*)::text from featured_for_type('00000000-0000-7000-8000-0000000012d2')), '3');
 
--- ------------------------------- a flag belongs to one marking (D-41) ---
--- A un-marks V and marks it again (an hour later, so the times differ): the old flag no
--- longer counts, and V can say again that this new marking isn't right.
+-- ------------------------------- a flag stays until the team decides (D-41, D-54) ---
+-- A un-marks V and marks it again (an hour later, so the times differ). Since migration 0046
+-- the business's "this wasn't booked" note stays with the booking until the team decides:
+-- re-marking no longer clears it (the scenario tests found it let a fake review through).
 select pg_temp.act('person', '00000000-0000-7000-8000-0000000012a1');
 update event_vendor set status = 'considering' where id = '00000000-0000-7000-8000-000000001261';
 reset role;
@@ -566,19 +567,19 @@ update event_vendor set vendor_flagged_at = vendor_flagged_at - interval '1 hour
 set local role app_server;
 select pg_temp.act('person', '00000000-0000-7000-8000-0000000012a1');
 update event_vendor set status = 'booked' where id = '00000000-0000-7000-8000-000000001261';
-select pg_temp.expect_equal('after marking V booked again, the old flag doesn''t count for A', (
-  select (vendor_flagged_at >= booked_at)::text from event_vendor where id = '00000000-0000-7000-8000-000000001261'), 'false');
+select pg_temp.expect_equal('after marking V booked again, the flag still counts for A', (
+  select (vendor_flagged_at >= booked_at)::text from event_vendor where id = '00000000-0000-7000-8000-000000001261'), 'true');
 select pg_temp.act('business', '00000000-0000-7000-8000-0000000012a3', '00000000-0000-7000-8000-0000000012c1');
-select pg_temp.expect_equal('…nor for O, who sees the booking unflagged', (
-  select coalesce(flagged_at::text, 'unflagged') from bookings_for_business() where row_id = '00000000-0000-7000-8000-000000001261'), 'unflagged');
-select pg_temp.expect_accept('…and O can flag the new marking (no note: the old note is removed)',
-  $q$select * from flag_booking('00000000-0000-7000-8000-000000001261', null)$q$);
+select pg_temp.expect_equal('…and O still sees the booking flagged', (
+  select (flagged_at is not null)::text from bookings_for_business() where row_id = '00000000-0000-7000-8000-000000001261'), 'true');
+select pg_temp.expect_code('…so O doesn''t need to flag it again',
+  $q$select * from flag_booking('00000000-0000-7000-8000-000000001261', null)$q$, 'LP110');
 reset role;
 -- (The test's own back-dating above is recorded too, as support work: actor_kind 'system'.)
-select pg_temp.expect_equal('…two flags by the business recorded in status_change, and no note left', (
+select pg_temp.expect_equal('…one flag by the business recorded in status_change, and its note kept', (
   select (select count(*) from status_change where subject_id = '00000000-0000-7000-8000-000000001261' and field = 'vendor_flag'
           and actor_kind = 'vendor')::text || ' '
-      || (select count(*) from event_vendor_flag_note where event_vendor_id = '00000000-0000-7000-8000-000000001261')::text), '2 0');
+      || (select count(*) from event_vendor_flag_note where event_vendor_id = '00000000-0000-7000-8000-000000001261')::text), '1 1');
 -- Putting back a business that is no longer listed is refused, as adding it would be.
 -- (Added weeks ago, so it doesn't change the team counts checked below.)
 insert into event_vendor (id, event_id, host_user_id, vendor_id, status, removed_at, created_at) values

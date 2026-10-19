@@ -244,6 +244,15 @@ export async function createEvent(
     actingAs(env, asPerson(userId), async (tx) => {
       // Locks this person's row, so two quick submits can't both pass the caps.
       await tx.execute(sql`select id from app_user where id = ${userId} for update`);
+      // Save pressed twice (scenario tests): the same event made in the last 30 seconds stands.
+      // Checked before the limits, so the second press isn't refused for the event the first made.
+      const [twice] = await tx.execute<{ id: string }>(sql`
+        select e.id from event e join event_private p on p.event_id = e.id
+        where e.host_user_id = ${userId} and e.created_at > now() - interval '30 seconds'
+          and e.event_date = ${values.date}::date and e.municipality_id = ${values.townId}::uuid
+          and p.title = ${values.title} and e.start_time is not distinct from ${values.startTime}::time
+        order by e.created_at desc limit 1`);
+      if (twice) return { eventId: twice.id, added: null };
       const [caps] = await tx.execute<{ today: number; open: number }>(sql`
         select count(*) filter (where e.created_at > now() - interval '1 day')::int as today,
                count(*) filter (where e.status = 'planning' and event_ends_at(e) >= now())::int as open

@@ -4,7 +4,7 @@ import { SiteHeader } from '@/components/SiteHeader';
 import { isUuid, SLUG } from '@/lib/ids.mjs';
 import { pageMeta } from '@/lib/meta';
 import { NO_PAYMENTS_BUSINESS, PLAN_LIMITS, shortDate, TOO_FAST, vendorSummary } from '@/lib/plan-terms';
-import { type BookingMarked, bookingsMarked, flagBooking } from '@/server/bookings.server';
+import { type BookingMarked, bookingsMarked, flagBooking, refuseTeamMember } from '@/server/bookings.server';
 import { flagInput } from '@/server/event-input';
 import { emailBookingFlagged } from '@/server/plan-emails.server';
 import { afterwards, refusal, siteUrl, todayIso, tooFast } from '@/server/plan-pages.server';
@@ -25,8 +25,12 @@ export const meta: Route.MetaFunction = ({ loaderData }) => [
 export async function loader({ params, context }: Route.LoaderArgs) {
   if (!SLUG.test(params.slug)) throw data(null, { status: 404 });
   const member = context.get(memberContext);
-  const result = await bookingsMarked(context.get(cloudflareContext).env, member.userId, params.slug);
-  if (!result) throw data(null, { status: 404 });
+  const { env } = context.get(cloudflareContext);
+  const result = await bookingsMarked(env, member.userId, params.slug);
+  if (!result) {
+    await refuseTeamMember(env, member.userId, params.slug);
+    throw data(null, { status: 404 });
+  }
   if ('renamedTo' in result) throw redirect(`/vendors/${result.renamedTo}/bookings`);
   return { ...result, today: todayIso() };
 }

@@ -104,7 +104,7 @@ export default function Invite({ loaderData, actionData }: Route.ComponentProps)
     <main className="page narrow">
       {group ? <p className="label">You’re invited</p> : <p className="label">Hi {i.guestName},</p>}
       <p>{Host} invites you to</p>
-      <h1 className="title-1">{i.title}</h1>
+      <h1 className="title-1" dir="auto">{i.title}</h1>
       <div className="title-rule" aria-hidden="true" />
       <p>
         <strong>{when}</strong>
@@ -121,7 +121,7 @@ export default function Invite({ loaderData, actionData }: Route.ComponentProps)
             {extras.updates.map((u) => (
               <li key={u.id}>
                 <p className="muted">{longDateWithYear(u.at)}</p>
-                <p style={{ whiteSpace: 'pre-wrap', overflowWrap: 'anywhere' }}>{u.body}</p>
+                <p dir="auto" style={{ whiteSpace: 'pre-wrap', overflowWrap: 'anywhere' }}>{u.body}</p>
               </li>
             ))}
           </ul>
@@ -167,7 +167,10 @@ export default function Invite({ loaderData, actionData }: Route.ComponentProps)
               Other (calendar file)
             </a>
           </p>
-          <p className="muted">Your invitation link isn’t added to your calendar; keep this message to change your reply.</p>
+          <p className="muted">
+            Your invitation link isn’t added to your calendar. To change your reply later, open your original message with the link again
+            (Localites can’t send it to you), so keep it.
+          </p>
         </section>
       )}
       {i.status === 'cancelled' && <p className="notice">This event was cancelled.</p>}

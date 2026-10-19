@@ -11,7 +11,8 @@ import { createPerson, findPerson } from '@/server/auth/member.server';
 import { CODE_FAILED, explainCodeError, NEUTRAL_SEND_CODES } from '@/server/auth/messages.server';
 import { loadSession, safeNext, sessionCookies, withCookies } from '@/server/auth/session.server';
 import { CODE_MINUTES, RESEND_WAIT_SECONDS } from '@/lib/claim-terms';
-import { codeInput, emailInput, NAMES_NEEDED, namesInput, profileInput } from '@/server/member-input';
+import { codeInput, emailInput, NAME_WORDS, NAMES_NEEDED, namesInput, profileInput } from '@/server/member-input';
+import { listMatches } from '@/server/moderation.server';
 import { isUniqueViolation } from '@/server/db.server';
 import type { ServerEnv } from '@/server/env';
 import { checkHuman, HUMAN_CHECK_FIELD, humanCheckSiteKey } from '@/server/turnstile.server';
@@ -97,6 +98,10 @@ export async function action({ request, context }: Route.ActionArgs) {
       const nameMissing = !String(fields.firstName ?? '').trim() || !String(fields.lastName ?? '').trim();
       const error = nameMissing ? NAMES_NEEDED : 'Please check what’s marked below.';
       return reply({ step: 'name', email, error, errors }, 400, setCookies);
+    }
+    // Names show on reviews and to businesses: the language check's word list runs on them too.
+    if (listMatches([names.data.firstName, names.data.lastName]).length > 0) {
+      return reply({ step: 'name', email, error: NAME_WORDS, errors: { firstName: NAME_WORDS } }, 400, setCookies);
     }
     try {
       await createPerson(env, session.user, names.data, profile.data);
@@ -296,7 +301,11 @@ export default function Join({ loaderData, actionData }: Route.ComponentProps) {
           <p className="notice">Sign-in isn’t switched on for this site yet.</p>
         ) : step === 'closed' ? (
           <>
-            <p>This account has been closed. If that’s a mistake, email supportlocalites@gmail.com.</p>
+            <p>This account has been closed.</p>
+            <p>
+              If you deleted it yourself, you can join again with this email address once the Localites team has finished removing it
+              (within 30 days), or straight away with a different email address. If you didn’t close it, email supportlocalites@gmail.com.
+            </p>
             <Form method="post" action="/sign-out">
               <button type="submit" className="button button-secondary">
                 Sign out

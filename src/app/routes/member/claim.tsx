@@ -98,8 +98,7 @@ export default function Claim({ loaderData, actionData }: Route.ComponentProps) 
         <div className="title-rule" aria-hidden="true" />
         <p>
           Once our team approves your claim, you become this business’s owner on Localites. Claiming is free, and the
-          listing stays up while we check. Editing the listing yourself is coming soon; until then, our team makes
-          changes for you.
+          listing stays up while we check. Once approved, you can edit your business page yourself.
         </p>
         <p className="muted">
           {evidence === 'match'

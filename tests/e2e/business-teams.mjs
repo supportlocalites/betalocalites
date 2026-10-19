@@ -133,7 +133,7 @@ for (const path of [`/vendors/${V.slug}/edit`, `/vendors/${V.slug}/bookings`, '/
   check(`the manager can open ${path.replace(V.slug, '<V>')}`, r.status === 200, String(r.status));
 }
 r = await site(TEAM, { cookie: cookie.mgr });
-check('…but not the team page (owner only)', r.status === 404, String(r.status));
+check('…but not the team page, and is told only the owner can', r.status === 403 && r.body.includes('Only the owner can do this'), String(r.status));
 r = await site(TEAM, { cookie: cookie.mgr, method: 'POST', form: { intent: 'invite', email: email('other'), role: 'manager' } });
 check('…and can’t invite anyone', r.status === 404, String(r.status));
 r = await site(`/vendors/${W.slug}/edit`, { cookie: cookie.mgr });
@@ -151,8 +151,14 @@ check(
 );
 for (const path of [`/vendors/${V.slug}/edit`, `/vendors/${V.slug}/bookings`, TEAM]) {
   r = await site(path, { cookie: cookie.stf });
-  check(`staff can’t open ${path.replace(V.slug, '<V>')}`, r.status === 404, String(r.status));
+  check(
+    `staff can’t open ${path.replace(V.slug, '<V>')}, and are told who can`,
+    r.status === 403 && r.body.includes(path === TEAM ? 'Only the owner can do this' : 'Only the owner or a manager can do this'),
+    String(r.status),
+  );
 }
+r = await site(`/vendors/${V.slug}/edit`, { cookie: cookie.other });
+check('someone not on the team still gets “not found”, so nothing says who is on it', r.status === 404, String(r.status));
 
 console.log('\nCancelling and expiry');
 await site(TEAM, { cookie: cookie.o, method: 'POST', form: { intent: 'invite', email: email('other'), role: 'manager' } });

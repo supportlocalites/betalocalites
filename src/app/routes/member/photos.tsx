@@ -3,6 +3,7 @@ import { data, Form, Link, redirect, useFetcher, useLocation, useNavigation, use
 import { cloudflareContext, memberContext } from '@/app/context';
 import { FramingEditor } from '@/components/FramingEditor';
 import { SiteHeader } from '@/components/SiteHeader';
+import { refuseTeamMember } from '@/server/bookings.server';
 import { SquarePhoto } from '@/components/SquarePhoto';
 import { isUuid } from '@/lib/ids.mjs';
 import { pageMeta } from '@/lib/meta';
@@ -43,7 +44,10 @@ export async function loader({ params, context }: Route.LoaderArgs) {
   const member = context.get(memberContext);
   const { env } = context.get(cloudflareContext);
   const result = await photosFor(env, member.userId, params.slug);
-  if (!result) throw data(null, { status: 404 });
+  if (!result) {
+    await refuseTeamMember(env, member.userId, params.slug);
+    throw data(null, { status: 404 });
+  }
   if ('renamedTo' in result) throw redirect(`/vendors/${result.renamedTo}/photos`);
   return result;
 }

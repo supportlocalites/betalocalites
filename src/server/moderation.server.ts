@@ -121,13 +121,41 @@ function localCheckerUrl(env: ServerEnv): string | null {
   }
 }
 
-/** Checks the words; empty or missing texts are skipped. */
-export async function checkLanguage(env: ServerEnv, texts: (string | null | undefined)[]): Promise<LanguageCheck> {
+const PHONE = /(?:\+?1[\s.-]?)?\(?\b\d{3}\)?[\s.-]?\d{3}[\s.-]?\d{4}\b/;
+const EMAIL = /[^\s@]+@[^\s@]+\.[a-z]{2,}/i;
+// A number, then one to four capitalised words, then a kind of street ("12 Mississaga Street",
+// "4 Oak Cres"): capitals, so "took 2 kids to the dr" or "5 stars on the way" aren't addresses.
+const STREET_KINDS = ['street', 'st', 'avenue', 'ave', 'road', 'rd', 'drive', 'dr', 'lane', 'ln', 'crescent', 'cres', 'boulevard']
+  .concat(['blvd', 'court', 'ct', 'way', 'place', 'pl', 'line', 'concession', 'sideroad', 'trail', 'circle', 'cir'])
+  .map((k) => `[${k.charAt(0)}${k.charAt(0).toUpperCase()}]${k.slice(1)}`)
+  .join('|');
+const STREET = new RegExp(`\\b\\d{1,5}\\s+(?:[A-ZÀ-Þ][A-Za-zÀ-ÿ'.-]*\\s+){1,4}(?:${STREET_KINDS})\\b`);
+
+/**
+ * Someone's phone number, email or street address in a review or a reply (scenario tests,
+ * 18 October 2026): not for the public page, so the team is told. Not run on a business's own
+ * page, which is meant to carry its phone and email.
+ */
+export function personalDetails(texts: string[]): string[] {
+  const all = texts.join('\n');
+  return [PHONE.test(all) && 'a phone number', EMAIL.test(all) && 'an email address', STREET.test(all) && 'a street address'].filter(
+    (x): x is string => Boolean(x),
+  );
+}
+
+/** Checks the words; empty or missing texts are skipped. With `personal`, also personal details. */
+export async function checkLanguage(
+  env: ServerEnv,
+  texts: (string | null | undefined)[],
+  { personal = false }: { personal?: boolean } = {},
+): Promise<LanguageCheck> {
   const words = texts.filter((t): t is string => typeof t === 'string' && t.trim() !== '');
   if (words.length === 0) return { flagged: false };
   const reasons: string[] = [];
   const listed = listMatches(words);
   if (listed.length > 0) reasons.push(`Word list: ${listed.join(', ')}`);
+  const details = personal ? personalDetails(words) : [];
+  if (details.length > 0) reasons.push(`Personal details: ${details.join(', ')}`);
   try {
     const cats = await askAi(env, words.join('\n\n'));
     if (cats && cats.length > 0) reasons.push(`AI checker: ${cats.map((c) => AI_CATEGORIES[c]).join(', ')}`);

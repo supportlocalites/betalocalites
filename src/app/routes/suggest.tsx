@@ -7,6 +7,7 @@ import { hasSessionCookie, loadSession } from '@/server/auth/session.server';
 import { notifyTeam, saveSuggestion } from '@/server/suggestions.server';
 import { addressKey, visitor } from '@/server/visitor.server';
 import type { Route } from './+types/suggest';
+import { cleanText } from '@/lib/clean-text';
 
 /**
  * Screen P11: Suggest a business (D-25, ADR-027). Open to everyone, no account. Someone signed
@@ -17,8 +18,8 @@ export const meta: Route.MetaFunction = ({ matches }) => shareMeta(matches, '/su
 export function loader({ request }: Route.LoaderArgs) {
   const params = new URL(request.url).searchParams;
   return {
-    category: (params.get('category') ?? '').slice(0, 80),
-    q: (params.get('q') ?? '').slice(0, 200),
+    category: cleanText(params.get('category') ?? '').slice(0, 80),
+    q: cleanText(params.get('q') ?? '').slice(0, 200),
   };
 }
 

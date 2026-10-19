@@ -6,6 +6,7 @@ import { REPORT_REASONS, REPORT_SENT, type ReportReason } from '@/lib/message-te
 import { pageMeta } from '@/lib/meta';
 import { TOO_FAST } from '@/lib/plan-terms';
 import { found, refusal, siteUrl, tooFast } from '@/server/plan-pages.server';
+import { businessChange, personChange } from '@/server/messages.server';
 import { businessReportTarget, personReportTarget, sendReport } from '@/server/reports.server';
 import type { Route } from './+types/report';
 import styles from './member.module.css';
@@ -61,7 +62,20 @@ export async function action({ params, request, context }: Route.ActionArgs) {
     const { error, status } = refusal(err);
     return data({ error }, { status });
   }
-  return redirect(`${back}/report?sent=1`);
+  // "Also block this conversation" (scenario tests): best effort after the report is in. Staff
+  // can't block for a business, and an already-blocked conversation stays as it is.
+  // A block that didn't happen is said on the next page, not silently dropped (independent review).
+  let blocked = '';
+  if (form.get('block') === 'on') {
+    try {
+      if (slug) await businessChange(env, member.userId, slug, id, { kind: 'block' });
+      else await personChange(env, member.userId, id, { kind: 'block' });
+      blocked = '&blocked=1';
+    } catch {
+      blocked = '&blocked=0';
+    }
+  }
+  return redirect(`${back}/report?sent=1${blocked}`);
 }
 
 export default function Report({ loaderData: { withName, message, back }, actionData }: Route.ComponentProps) {
@@ -75,7 +89,16 @@ export default function Report({ loaderData: { withName, message, back }, action
           <h1 className="title-1">Reported</h1>
           <div className="title-rule" aria-hidden="true" />
           <p role="status">{REPORT_SENT}</p>
-          <p>If you don’t want to hear from {withName} again, you can also block the conversation.</p>
+          {params.get('blocked') === '1' ? (
+            <p>The conversation is blocked too: {withName} can’t send any more messages in it. You can unblock it from the conversation.</p>
+          ) : params.get('blocked') === '0' ? (
+            <p className="notice" role="alert">
+              The conversation couldn’t be blocked as well. It may be blocked already, and for a business only the owner or a manager can
+              block. Your report was still sent.
+            </p>
+          ) : (
+            <p>If you don’t want to hear from {withName} again, you can also block the conversation.</p>
+          )}
           <p className="section-gap">
             <Link to={back} className="text-link">
               Back to the conversation
@@ -97,7 +120,7 @@ export default function Report({ loaderData: { withName, message, back }, action
         </p>
         {message && (
           <blockquote className="notice">
-            <p>{message.body}</p>
+            <p dir="auto">{message.body}</p>
           </blockquote>
         )}
         {actionData?.error && (
@@ -121,6 +144,9 @@ export default function Report({ loaderData: { withName, message, back }, action
             </label>
             <textarea id="details" name="details" className="input" maxLength={2000} />
           </div>
+          <label className={styles.choice}>
+            <input type="checkbox" name="block" /> Also block this conversation, so {withName} can’t send any more messages in it
+          </label>
           <p className="section-gap">
             <button type="submit" className="button button-primary" disabled={busy}>
               {busy ? 'Sending…' : 'Send report'}

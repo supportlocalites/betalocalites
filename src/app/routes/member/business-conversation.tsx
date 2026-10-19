@@ -133,13 +133,29 @@ export default function BusinessConversation({ loaderData, actionData }: Route.C
         <div className={styles.footer}>
           <p className="muted">{NO_PAYMENTS_IN_CONVERSATION}</p>
           <p className="muted">{SHARE_CAREFULLY}</p>
-          {canBlock && (status === 'open' || status === 'blocked_by_vendor') && (
+          {canBlock && status === 'blocked_by_vendor' && (
             <Form method="post">
-              <input type="hidden" name="intent" value={status === 'blocked_by_vendor' ? 'unblock' : 'block'} />
+              <input type="hidden" name="intent" value="unblock" />
               <button type="submit" className={styles.textButton} disabled={busy}>
-                {status === 'blocked_by_vendor' ? 'Unblock this conversation' : `Block ${person}`}
+                Unblock this conversation
               </button>
             </Form>
+          )}
+          {canBlock && status === 'open' && (
+            // A confirm step first (scenario tests): what blocking does, and what the person still sees.
+            <details>
+              <summary className={styles.textButton}>Block {person}</summary>
+              <p className="muted">
+                {person} won’t be able to send any more messages here. They’ll still see the conversation so far, and that your business
+                blocked it. You can unblock it later.
+              </p>
+              <Form method="post">
+                <input type="hidden" name="intent" value="block" />
+                <button type="submit" className="button button-secondary" disabled={busy}>
+                  Yes, block {person}
+                </button>
+              </Form>
+            </details>
           )}
           <Link to={`/vendors/${business.slug}/messages/${loaderData.id}/report`} className={styles.textButton}>
             Report this conversation

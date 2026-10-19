@@ -1,4 +1,4 @@
-import { data, Form, Link, redirect, useNavigation } from 'react-router';
+import { data, Form, Link, redirect, useNavigation, useSearchParams } from 'react-router';
 import { cloudflareContext, memberContext } from '@/app/context';
 import { MessageList, ReplyBox, useRefresh } from '@/components/MessageThread';
 import { SiteHeader } from '@/components/SiteHeader';
@@ -84,6 +84,8 @@ export async function action({ request, params, context }: Route.ActionArgs) {
 export default function Conversation({ loaderData: { thread, today, canAttach }, actionData }: Route.ComponentProps) {
   useRefresh(`/messages/${thread.id}/check`, thread.version);
   const error = actionData?.error;
+  // Sent here from Message a business when a conversation already existed (scenario tests, C3).
+  const unsent = useSearchParams()[0].get('unsent') === '1';
   const busy = useNavigation().state === 'submitting';
   const { vendor, status } = thread;
   const canWrite = status === 'open' && !vendor.left && !vendor.paused;
@@ -134,10 +136,16 @@ export default function Conversation({ loaderData: { thread, today, canAttach },
           </Form>
         )}
 
-        {error && (
+        {error ? (
           <p className="notice" role="alert">
             {error}
           </p>
+        ) : (
+          unsent && (
+            <p className="notice" role="alert">
+              Your message wasn’t sent: you already have a conversation with {vendor.name}, so it’s below. Please send it again here.
+            </p>
+          )
         )}
         <MessageList
           messages={thread.messages}
@@ -175,13 +183,29 @@ export default function Conversation({ loaderData: { thread, today, canAttach },
         <div className={styles.footer}>
           <p className="muted">{NO_PAYMENTS_IN_CONVERSATION}</p>
           <p className="muted">{SHARE_CAREFULLY}</p>
-          {!vendor.left && (status === 'open' || status === 'blocked_by_consumer') && (
+          {!vendor.left && status === 'blocked_by_consumer' && (
             <Form method="post">
-              <input type="hidden" name="intent" value={status === 'blocked_by_consumer' ? 'unblock' : 'block'} />
+              <input type="hidden" name="intent" value="unblock" />
               <button type="submit" className={styles.textButton} disabled={busy}>
-                {status === 'blocked_by_consumer' ? 'Unblock this conversation' : `Block ${vendor.name}`}
+                Unblock this conversation
               </button>
             </Form>
+          )}
+          {!vendor.left && status === 'open' && (
+            // A confirm step first (scenario tests): what blocking does, and what the business still sees.
+            <details>
+              <summary className={styles.textButton}>Block {vendor.name}</summary>
+              <p className="muted">
+                {vendor.name} won’t be able to send you any more messages here. They’ll still see the conversation so far, and that you
+                blocked it. You can unblock it later.
+              </p>
+              <Form method="post">
+                <input type="hidden" name="intent" value="block" />
+                <button type="submit" className="button button-secondary" disabled={busy}>
+                  Yes, block {vendor.name}
+                </button>
+              </Form>
+            </details>
           )}
           <Link to={`/messages/${thread.id}/report`} className={styles.textButton}>
             Report this conversation

@@ -185,6 +185,8 @@ export type ClaimRow = {
   /** The website is one an owner typed in (ADR-029), so a matching email proves nothing. */
   websiteByOwner: boolean;
   evidence: DomainEvidence;
+  /** How many claims match, though at most 200 are shown. */
+  total: number;
 };
 
 export async function countOpenClaims(env: ServerEnv): Promise<number> {
@@ -208,13 +210,17 @@ export async function listClaims(env: ServerEnv, show: 'open' | 'all'): Promise<
              (select n.status from notification n
               where n.subject_type = 'vendor_claim' and n.subject_id = c.id and n.kind = 'claim_received'
               order by n.created_at desc limit 1) as "emailStatus",
-             ${websiteSetByOwner(sql`v.id`, sql`v.website_url`)} as "websiteByOwner"
+             ${websiteSetByOwner(sql`v.id`, sql`v.website_url`)} as "websiteByOwner",
+             count(*) over ()::int as total
       from vendor_claim c
       join vendor v on v.id = c.vendor_id
       join app_user u on u.id = c.claimant_user_id
       left join app_user r on r.id = c.reviewed_by
       where ${show} = 'all' or c.status = 'submitted'
-      order by (c.status = 'submitted') desc, c.created_at desc
+      -- Waiting claims oldest first, so none sits behind newer ones (scenario tests, B8).
+      order by (c.status = 'submitted') desc,
+               case when c.status = 'submitted' then c.created_at end asc,
+               c.created_at desc
       limit 200`),
   );
   return rows.map((r) => ({ ...r, evidence: emailMatchesWebsite(r.claimant.email, r.vendor.websiteUrl) }));

@@ -111,6 +111,18 @@ on codes (ADR-028).
 - **Policy drafts written 18 October 2026** ([docs/legal](./legal/)): privacy policy, terms of use,
   review policy and a brief for the lawyer (PO-07), each checked against what the site does.
   Pages for them are built after the lawyer's review.
+- **Fixes from the scenario tests (D-54, 19 October 2026), in five rounds:**
+  1. ✅ **built 19 October 2026** (migration 0046): quick fixes and wording (see G);
+  2. reviews and fake bookings: withdraw a review, ask for one to be removed, emails on replies and
+     report outcomes, the team decides "wasn't booked" notes, a 24-hour wait when a booking is
+     marked after the event (M4, M7, M8, M9);
+  3. messages: a person deletes a conversation; both sides edit a message, with earlier versions a
+     tap away (M1, M2);
+  4. events and guests: copy or delete a cancelled event, tell guests about changes, paste a guest
+     list, limits and name matching, a cancellation notice, a lighter guest page (M10–M13, C10, B9);
+  5. businesses: hand over or leave a team, hide a page, rename with "(dba former name)", the two
+     hats of an owner who also plans events, a readable data download, suggestion limits (B6, M18,
+     M20, C6, M21, M22).
 - **Added before launch (product owner, 18 October 2026: "add all of them"):**
   1. ✅ **built 18 October 2026** (migration 0041): scheduled deletions the privacy policy promises (email records 1 year, the team's change log
      2 years, conversations 3 years after the last message, declined suggestions' contact

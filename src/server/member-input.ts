@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { type Gender, GENDERS, type Province, PROVINCES, type Relationship, RELATIONSHIPS } from '@/lib/claim-terms';
+import { hasVisible } from '@/lib/clean-text';
 
 // The words and limits shown on screens live in src/lib/claim-terms.ts, so pages don't
 // send this checking code (zod) to the browser.
@@ -26,7 +27,8 @@ const namePart = (empty: string, part: string) =>
         .string()
         .min(1, empty)
         .max(59, `Keep your ${part} under 60 characters.`)
-        .refine((s) => !/:\/\/|www\.|[<>@]/i.test(s) && !WEB_ADDRESS.test(s), 'Enter just your name (no web or email addresses).'),
+        .refine((s) => !/:\/\/|www\.|[<>@]/i.test(s) && !WEB_ADDRESS.test(s), 'Enter just your name (no web or email addresses).')
+        .refine(hasVisible, empty),
     );
 
 /**
@@ -43,6 +45,10 @@ export type Names = z.output<typeof namesInput>;
 
 /** Shown above the form when a name box is empty. */
 export const NAMES_NEEDED = 'Please enter your first and last name to continue.';
+
+/** A name with a word from the language check's list (scenario tests, 18 October 2026). */
+export const NAME_WORDS =
+  'Please use your real name. It shows on your reviews and to businesses you contact. If this really is your name, please email supportlocalites@gmail.com.';
 
 export const emailInput = z
   .string()

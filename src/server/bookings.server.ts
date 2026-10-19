@@ -1,4 +1,5 @@
 import { sql } from 'drizzle-orm';
+import { data } from 'react-router';
 import { actAs, planned, PlanNotFound } from './acting.server';
 import type { MyBusiness } from './claims.server';
 import { type Db, withDb } from './db.server';
@@ -14,6 +15,22 @@ import { businessUnread } from './messages.server';
  * person's name, the date, the town and about how many guests), and flags only through
  * flag_booking() (ADR-031). Coming up or earlier is by date alone, so no time is revealed.
  */
+
+/**
+ * Before a page that only the owner and managers open (or, for the team, only the owner) says
+ * "not found": someone on the business's team who can't open it is told who can instead
+ * (scenario tests, C8). Anyone else still gets "not found", so the page reveals nothing about
+ * who is on a team.
+ */
+export async function refuseTeamMember(env: ServerEnv, userId: string, slug: string, ownerOnly = false): Promise<void> {
+  const [row] = await withDb(env, (db) =>
+    db.execute<{ role: 'owner' | 'manager' | 'staff' }>(sql`
+      select m.role from vendor_member m join vendor v on v.id = m.vendor_id
+      where v.slug = ${slug} and m.user_id = ${userId} and m.ended_at is null`),
+  );
+  if (row?.role === 'staff' || (ownerOnly && row?.role === 'manager'))
+    throw data({ reason: ownerOnly ? 'owner_only' : 'owner_or_manager' }, { status: 403 });
+}
 
 /**
  * "My business": the businesses this person runs, each with how many bookings are marked

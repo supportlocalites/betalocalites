@@ -87,7 +87,9 @@ let r = await site(PAGE());
 check('signed out: sent to sign in first', r.status === 302 && r.location.startsWith('/join'), `${r.status} ${r.location}`);
 for (const who of ['other', 'o2', 'stf']) {
   r = await site(PAGE(), { cookie: cookie[who] });
-  check(`${{ other: 'someone not on the team', o2: 'another business’s owner', stf: 'staff' }[who]} gets “not found”`, r.status === 404, String(r.status));
+  // Staff are told only the owner or a manager can (scenario tests, C8); nobody else learns who is on the team.
+  const want = who === 'stf' ? 403 : 404;
+  check(`${{ other: 'someone not on the team', o2: 'another business’s owner', stf: 'staff' }[who]} gets ${want === 403 ? '“only the owner or a manager”' : '“not found”'}`, r.status === want, String(r.status));
 }
 for (const who of ['other', 'o2', 'stf']) {
   r = await add(who, { large: jpeg(800, 600), small: jpeg(400, 300) });

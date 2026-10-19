@@ -8,6 +8,7 @@ import './globals.css';
 import { Form, isRouteErrorResponse, Link, Links, Meta, Outlet, Scripts, ScrollRestoration } from 'react-router';
 import { SiteFooter } from '@/components/SiteFooter';
 import { SiteHeader } from '@/components/SiteHeader';
+import { TeamOnly, teamOnlyReason } from '@/components/TeamOnly';
 import { pageMeta } from '@/lib/meta';
 import { hasSessionCookie } from '@/server/auth/session.server';
 import type { Route } from './+types/root';
@@ -64,6 +65,8 @@ export default function App() {
 
 /** Shown for unknown addresses, unlisted businesses and unexpected errors. */
 export function ErrorBoundary({ error }: Route.ErrorBoundaryProps) {
+  const teamOnly = teamOnlyReason(error);
+  if (teamOnly) return <TeamOnly reason={teamOnly} />;
   if (isForbidden(error)) {
     return (
       <>

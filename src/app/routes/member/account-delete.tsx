@@ -65,16 +65,22 @@ export default function DeleteAccount({ loaderData, actionData }: Route.Componen
           <>
             <p>This can’t be undone. When you delete your account:</p>
             <ul>
-              <li>your events, your plans for them and your saved businesses are deleted;</li>
+              <li>your events, your plans for them and your saved businesses are deleted, and the invitations you sent guests stop working;</li>
               <li>your name, email address and personal details are erased;</li>
               <li>if you run a business on Localites, you leave its team; if you were its only owner, it goes back to unclaimed;</li>
               <li>any claim you’re waiting on is withdrawn;</li>
               <li>businesses you marked as booked no longer see your booking;</li>
+              <li>your published reviews stay, shown as “A Localites member”;</li>
+              <li>your messages stay in the business’s conversation, shown as “Former Localites member”; the files you sent are deleted unless someone reported them;</li>
               <li>you’re signed out on this device.</li>
             </ul>
             <p className="muted">
               We keep only counts that can’t be linked to you (such as how often a business was viewed) and records of changes made to
-              businesses, without your name. Our backups are replaced within 30 days, after which nothing of yours is left.
+              businesses, without your name. Our backups are replaced within 30 days.
+            </p>
+            <p className="muted">
+              You can join again later. With a different email address, that works straight away; with this one, once the Localites team
+              has finished removing your sign-in (within 30 days). A new account starts empty.
             </p>
             <Form method="post">
               <input type="hidden" name="intent" value="delete" />

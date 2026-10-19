@@ -2,6 +2,8 @@ import { useEffect, useRef, useState, useSyncExternalStore } from 'react';
 import { data, Form, isRouteErrorResponse, Link, redirect, useBlocker, useNavigation, useRouteError, useSearchParams } from 'react-router';
 import { cloudflareContext, memberContext } from '@/app/context';
 import { SiteHeader } from '@/components/SiteHeader';
+import { TeamOnly, teamOnlyReason } from '@/components/TeamOnly';
+import { refuseTeamMember } from '@/server/bookings.server';
 import { BusinessName, PhotoHero, VendorPage, type VendorView } from '@/components/VendorPage';
 import { SquarePhoto } from '@/components/SquarePhoto';
 import page from '@/components/VendorPage.module.css';
@@ -37,8 +39,12 @@ export const meta: Route.MetaFunction = ({ loaderData }) => [
 
 export async function loader({ params, context }: Route.LoaderArgs) {
   const member = context.get(memberContext);
-  const result = await ownedListing(context.get(cloudflareContext).env, member.userId, params.slug);
-  if (!result) throw data({ reason: 'not_owner' }, { status: 404 });
+  const { env } = context.get(cloudflareContext);
+  const result = await ownedListing(env, member.userId, params.slug);
+  if (!result) {
+    await refuseTeamMember(env, member.userId, params.slug);
+    throw data({ reason: 'not_owner' }, { status: 404 });
+  }
   if ('archived' in result) throw data({ reason: 'archived' }, { status: 404 });
   if ('renamedTo' in result) throw redirect(`/vendors/${result.renamedTo}/edit`);
   return { ...result, base: JSON.stringify(result.values) };
@@ -658,6 +664,8 @@ function clashText(v: unknown): string {
 /** Not this person's listing (or no longer): said plainly, with a way back. */
 export function ErrorBoundary() {
   const error = useRouteError();
+  const teamOnly = teamOnlyReason(error);
+  if (teamOnly) return <TeamOnly reason={teamOnly} />;
   const notOwner = isRouteErrorResponse(error) && error.status === 404;
   const archived = notOwner && (error.data as { reason?: string } | null)?.reason === 'archived';
   return (
@@ -670,7 +678,7 @@ export function ErrorBoundary() {
           {archived
             ? 'This listing is no longer on Localites, so it can’t be edited. If you think that’s a mistake, email supportlocalites@gmail.com.'
             : notOwner
-              ? 'Only the business’s owner on Localites can edit it. If you’ve claimed it, we’ll email you once your claim is approved. If you think this should be yours, email supportlocalites@gmail.com.'
+              ? 'Only the business’s owner or a manager on Localites can edit it. If you’ve claimed it, we’ll email you once your claim is approved. If you think this should be yours, email supportlocalites@gmail.com.'
               : 'The page didn’t load. Please try again in a moment.'}
         </p>
         <Link to="/account" className="button button-primary">

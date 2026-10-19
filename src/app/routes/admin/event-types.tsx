@@ -1,3 +1,4 @@
+import { cleanText } from '@/lib/clean-text';
 import { data, Form, Link, redirect, useNavigation, useSearchParams } from 'react-router';
 import { adminContext, cloudflareContext } from '@/app/context';
 import { isUuid } from '@/lib/ids.mjs';
@@ -32,7 +33,7 @@ export const meta: Route.MetaFunction = () => [...pageMeta('Event types · Team'
 export async function loader({ request, context }: Route.LoaderArgs) {
   const { env } = context.get(cloudflareContext);
   const url = new URL(request.url);
-  const find = (url.searchParams.get('find') ?? '').slice(0, 100);
+  const find = cleanText(url.searchParams.get('find') ?? '').slice(0, 100);
   const [page, found] = await Promise.all([eventTypesPage(env, context.get(adminContext)), listedBusinesses(env, find)]);
   return {
     ...page,

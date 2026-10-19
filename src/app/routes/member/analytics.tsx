@@ -2,6 +2,8 @@ import { data, Form, isRouteErrorResponse, Link, redirect, useRouteError } from 
 import { cloudflareContext, memberContext } from '@/app/context';
 import { ActivityReport, dateWords, PERIOD_WORDS } from '@/components/ActivityReport';
 import { SiteHeader } from '@/components/SiteHeader';
+import { TeamOnly, teamOnlyReason } from '@/components/TeamOnly';
+import { refuseTeamMember } from '@/server/bookings.server';
 import { addDays, type Period, torontoDate } from '@/lib/activity';
 import { pageMeta } from '@/lib/meta';
 import { readReport } from '@/server/analytics.server';
@@ -31,7 +33,10 @@ export async function loader({ request, params, context }: Route.LoaderArgs) {
     if (!listing || 'renamedTo' in listing) return listing;
     return { listing, report: await readReport(db, listing.id, period, torontoDate(new Date())) };
   });
-  if (!result) throw data({ reason: 'not_available' }, { status: 404 });
+  if (!result) {
+    await refuseTeamMember(env, member.userId, params.slug);
+    throw data({ reason: 'not_available' }, { status: 404 });
+  }
   if ('renamedTo' in result) throw redirect(`/vendors/${result.renamedTo}/analytics?period=${period}`);
   return { listing: { slug: result.listing.slug, name: result.listing.name, has: result.listing.has }, report: result.report };
 }
@@ -89,6 +94,8 @@ export default function Analytics({ loaderData: { listing, report } }: Route.Com
 /** Not available here: said the same way whatever the reason. */
 export function ErrorBoundary() {
   const error = useRouteError();
+  const teamOnly = teamOnlyReason(error);
+  if (teamOnly) return <TeamOnly reason={teamOnly} />;
   const missing = isRouteErrorResponse(error) && error.status === 404;
   return (
     <>

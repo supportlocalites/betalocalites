@@ -45,6 +45,7 @@ export const REVIEW_REFUSALS = {
   LP153: 'The business says it wasn’t booked for this event. Our team will look at it; you can review it if they confirm it was.',
   LP154: 'This business isn’t listed on Localites at the moment.',
   LP155: 'Your review can’t be changed now that our team has looked at it.',
+  LP184: 'This review came back as you wrote it when you marked the business booked again, so it can’t be changed.',
   LP156: 'You’ve already replied to this review.',
   LP157: 'Say why, in a few words.',
   LP158: 'You can’t report your own review.',

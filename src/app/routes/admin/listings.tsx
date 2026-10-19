@@ -6,13 +6,14 @@ import { listListings } from '@/server/admin/listings.server';
 import { latestNote, type NoteStatus } from '@/server/daily-note.server';
 import type { Route } from './+types/listings';
 import styles from './admin.module.css';
+import { cleanText } from '@/lib/clean-text';
 
 export const meta: Route.MetaFunction = () => [...pageMeta('Listings · Team'), { name: 'robots', content: 'noindex' }];
 
 export async function loader({ request, context }: Route.LoaderArgs) {
   const params = new URL(request.url).searchParams;
-  const q = (params.get('q') ?? '').slice(0, 100);
-  const status = params.get('status') ?? '';
+  const q = cleanText(params.get('q') ?? '').slice(0, 100);
+  const status = cleanText(params.get('status') ?? '');
   const { env } = context.get(cloudflareContext);
   const [listings, note] = await Promise.all([listListings(env, { q, status }), latestNote(env)]);
   return { q, status, listings, note };

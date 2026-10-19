@@ -78,7 +78,10 @@ async function checkLimits(tx: Db, userId: string, newConversation: boolean): Pr
 /**
  * Writes a message, unless it's the same words this person sent last in this conversation
  * within the last 2 minutes (Send pressed twice, or a page sent again): then that message
- * stands, and `again` says so (no second email). Call lockSender first.
+ * stands, and `again` says so (no second email). With a file, the same words and the same file
+ * (name, type, exact size and a photo's width and height) within 30 seconds count as sent again
+ * (scenario tests: a double tap sent a photo twice); the caller then doesn't attach the second
+ * copy. Call lockSender first.
  */
 async function writeMessage(
   tx: Db,
@@ -86,9 +89,17 @@ async function writeMessage(
   userId: string,
   side: 'consumer' | 'vendor',
   body: string,
-  withFile = false,
+  file: Attachment | null = null,
 ): Promise<{ messageId: string; again: boolean }> {
-  if (withFile) {
+  if (file) {
+    const [twice] = await tx.execute<{ id: string }>(sql`
+      select m.id from message m join conversation_file f on f.message_id = m.id
+      where m.conversation_id = ${conversationId} and m.author_user_id = ${userId} and m.body = ${body}
+        and m.removed_at is null and m.created_at > now() - interval '30 seconds'
+        and f.file_name = ${file.name} and f.byte_size = ${file.bytes.byteLength} and f.mime_type = ${file.type}
+        and f.width is not distinct from ${file.width}::int and f.height is not distinct from ${file.height}::int
+      order by m.created_at desc limit 1`);
+    if (twice) return { messageId: twice.id, again: true };
     const messageId = uuidv7();
     await tx.execute(sql`
       insert into message (id, conversation_id, author_user_id, author_side, body)
@@ -309,12 +320,16 @@ export async function startConversation(
         } else if (input.eventId) {
           await tx.execute(sql`update conversation set event_id = ${input.eventId} where id = ${conversationId}`);
         }
-        const { messageId, again } = await writeMessage(tx, conversationId, userId, 'consumer', input.body, Boolean(file));
-        if (file && path) await attachFile(tx, messageId, conversationId, userId, path, file);
+        const { messageId, again } = await writeMessage(tx, conversationId, userId, 'consumer', input.body, file);
+        if (file && path && !again) await attachFile(tx, messageId, conversationId, userId, path, file);
         await markRead(tx, conversationId, userId);
         return { conversationId, messageId, again };
       }),
-    );
+    ).then(async (written) => {
+      // Sent twice in a moment: the first copy stands, this one's stored file goes.
+      if (written.again && path) await abandonAttachment(env, path);
+      return written;
+    });
   } catch (err) {
     if (path) await abandonAttachment(env, path);
     throw err;
@@ -398,7 +413,10 @@ async function sendWith<T>(
   await checkFileRoom(env, file.bytes.length);
   const path = await storeAttachment(env, conversationId, file);
   try {
-    return await write(path);
+    const written = await write(path);
+    // Sent twice in a moment: the first copy stands, this one's stored file goes.
+    if ((written as { again?: boolean }).again) await abandonAttachment(env, path);
+    return written;
   } catch (err) {
     await abandonAttachment(env, path);
     throw err;
@@ -424,8 +442,8 @@ export async function personSend(
           await lockSender(tx, userId);
           await checkLimits(tx, userId, false);
           if (file) await checkFilesToday(tx, userId, file.bytes.byteLength);
-          const { messageId, again } = await writeMessage(tx, conversationId, userId, 'consumer', body, Boolean(file));
-          if (file && path) await attachFile(tx, messageId, conversationId, userId, path, file);
+          const { messageId, again } = await writeMessage(tx, conversationId, userId, 'consumer', body, file);
+          if (file && path && !again) await attachFile(tx, messageId, conversationId, userId, path, file);
           await markRead(tx, conversationId, userId);
           return { conversationId, messageId, again };
         }),
@@ -604,8 +622,8 @@ export async function businessReply(
         await lockSender(tx, userId);
         await checkLimits(tx, userId, false);
         if (file) await checkFilesToday(tx, userId, file.bytes.byteLength);
-        const { messageId, again } = await writeMessage(tx, conversationId, userId, 'vendor', body, Boolean(file));
-        if (file && path) await attachFile(tx, messageId, conversationId, userId, path, file);
+        const { messageId, again } = await writeMessage(tx, conversationId, userId, 'vendor', body, file);
+        if (file && path && !again) await attachFile(tx, messageId, conversationId, userId, path, file);
         await markRead(tx, conversationId, userId);
         return { conversationId, messageId, again, vendorId: business.id };
       }),

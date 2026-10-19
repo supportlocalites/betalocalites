@@ -95,7 +95,7 @@ export default function TeamReviewPage({ loaderData: { review, choose }, actionD
       {review.emailStatus === 'failed' && <p className="muted">The email telling the team about this review didn’t go.</p>}
       {review.languageFlag && <p className="notice">{`The language check found something to look at: ${review.languageFlag}`}</p>}
       <blockquote className={styles.section}>
-        <p style={{ whiteSpace: 'pre-wrap' }}>{review.body}</p>
+        <p dir="auto" style={{ whiteSpace: 'pre-wrap' }}>{review.body}</p>
       </blockquote>
       {review.reason && <p className="muted">Reason given: “{review.reason}”</p>}
       {review.reply && (

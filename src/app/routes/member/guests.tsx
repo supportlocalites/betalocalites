@@ -496,7 +496,7 @@ export default function Guests({ loaderData, actionData }: Route.ComponentProps)
                 <li key={u.id}>
                   <div className={styles.rowBody}>
                     <span className={styles.meta}>{longDateWithYear(u.at)}</span>
-                    <p style={{ whiteSpace: 'pre-wrap', overflowWrap: 'anywhere' }}>{u.body}</p>
+                    <p dir="auto" style={{ whiteSpace: 'pre-wrap', overflowWrap: 'anywhere' }}>{u.body}</p>
                     <div className={styles.rowActions}>
                       <a
                         className="text-link"

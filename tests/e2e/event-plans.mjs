@@ -354,7 +354,7 @@ check('…nor flag one through their own business', r.status === 404 && (await r
 r = await site(BOOKINGS, { cookie: cookie.o2, method: 'POST', form: { intent: 'flag', rowId: vRow.id, note: 'Not mine' } });
 check('…nor through this one', r.status === 404 && (await rowOf(eventId, V.id)).vendor_flagged_at === null, String(r.status));
 r = await site(BOOKINGS, { cookie: cookie.s });
-check('staff (not an owner or manager) can’t see them (404)', r.status === 404, String(r.status));
+check('staff (not an owner or manager) can’t see them, and are told who can', r.status === 403 && !r.body.includes(A_NAME), String(r.status));
 r = await site(BOOKINGS, { cookie: cookie.a });
 check('the person who marked it can’t open the business’s page (404)', r.status === 404, String(r.status));
 r = await site(PLAN, { cookie: cookie.o });
