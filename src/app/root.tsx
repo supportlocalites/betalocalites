@@ -5,7 +5,7 @@ import '@fontsource/jost/400.css';
 import '@fontsource/jost/500.css';
 import '@fontsource/jost/600.css';
 import './globals.css';
-import { Form, isRouteErrorResponse, Link, Links, Meta, Outlet, Scripts, ScrollRestoration, useRouteLoaderData } from 'react-router';
+import { Form, isRouteErrorResponse, Link, Links, Meta, Outlet, Scripts, ScrollRestoration, useMatches, useRouteLoaderData } from 'react-router';
 import { SiteFooter } from '@/components/SiteFooter';
 import { SiteHeader } from '@/components/SiteHeader';
 import { TeamOnly, teamOnlyReason } from '@/components/TeamOnly';
@@ -58,10 +58,12 @@ export function Layout({ children }: { children: React.ReactNode }) {
 }
 
 export default function App() {
+  // The Welcome page is a clean landing page, with no footer (the owner, 19 October 2026).
+  const bare = useMatches().some((m) => (m.handle as { noFooter?: boolean } | undefined)?.noFooter);
   return (
     <>
       <Outlet />
-      <SiteFooter />
+      {!bare && <SiteFooter />}
     </>
   );
 }

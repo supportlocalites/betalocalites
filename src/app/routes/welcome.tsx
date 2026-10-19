@@ -5,6 +5,9 @@ import { shareMeta } from '@/lib/meta';
 import type { Route } from './+types/welcome';
 import styles from './welcome.module.css';
 
+/** A clean landing page: no footer (Help and the team's email are in every other page's). */
+export const handle = { noFooter: true };
+
 export const meta: Route.MetaFunction = ({ matches }) => shareMeta(matches, '/');
 
 export default function Welcome() {

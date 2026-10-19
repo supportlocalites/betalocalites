@@ -30,7 +30,9 @@ check('the help page answers the common questions, with the team’s email', r.s
   ['How do I pay a business?', 'How do I sign in?', 'Can I get a copy of my information?', 'I don’t want my business listed'].every((q) => words(r.body).includes(q)) &&
   r.body.includes('mailto:supportlocalites@gmail.com'), String(r.status));
 check('…and says plainly that Localites doesn’t process payments', words(r.body).includes('Localites doesn’t process payments'));
-for (const path of ['/', '/explore', `/vendors/${listed.slug}`, '/help']) {
+r = await site('/');
+check('the Welcome page is a clean landing page, with no footer', r.status === 200 && !r.body.includes('<footer'));
+for (const path of ['/explore', `/vendors/${listed.slug}`, '/help']) {
   r = await site(path);
   check(`the footer on ${path}: help, information pages and the team’s email`,
     r.body.includes('<footer') && r.body.includes('href="/help"') && r.body.includes('href="/for-businesses"') && r.body.includes('mailto:supportlocalites@gmail.com'));
