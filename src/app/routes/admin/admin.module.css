@@ -110,7 +110,7 @@
 
 .statusLive {
   border: var(--hairline) solid var(--color-gold);
-  border-radius: var(--radius-pill);
+  border-radius: 0;
   padding: 0 var(--space-2);
 }
 

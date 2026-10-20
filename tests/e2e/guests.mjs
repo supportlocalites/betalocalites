@@ -102,7 +102,7 @@ check('…and can’t reply', r.status === 404 && (await sql`select count(*)::in
 r = await site(GUESTS, { cookie: cookie.a });
 text = words(r.body);
 check('the host sees the replies: Jo maybe (2 people), Rob no reply yet, and the totals',
-  text.includes('Maybe · 2 people') && text.includes('No reply yet') && text.includes('0 coming · 2 maybe · 0 can’t come · 1 no reply yet'));
+  text.includes('Maybe · 2 people') && text.includes('No reply yet') && text.includes('coming 0 maybe 2 can’t come 0 no reply yet 1'));
 r = await site(GUESTS, { cookie: cookie.a, method: 'POST', form: { intent: 'message', message: `Bring a swimsuit ${run}` } });
 r = await site('/invite', { cookie: jar });
 check('the host’s message shows on the invitation', words(r.body).includes(`Bring a swimsuit ${run}`));

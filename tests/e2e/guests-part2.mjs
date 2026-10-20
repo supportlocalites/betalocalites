@@ -92,7 +92,7 @@ check('the calendar file works by the group link too', r.status === 200 && r.bod
 r = await site(GUESTS, { cookie: cookie.a });
 text = words(r.body);
 check('the host sees the group replies, not yet matched, with the answer, counted in the totals',
-  text.includes('Replies from the group link, not matched yet (2)') && text.includes(`Sam ${run}`) && text.includes('Any allergies? Peanuts') && text.includes('1 maybe'));
+  text.includes('Replies from the group link, not matched yet (2)') && text.includes(`Sam ${run}`) && text.includes('Any allergies? Peanuts') && text.includes('maybe 1'));
 const [samReply] = await sql`select id from group_reply where event_id = ${ev.id} and name = ${`Sam ${run}`}`;
 r = await site(GUESTS, { cookie: cookie.b, method: 'POST', form: { intent: 'match', replyId: samReply.id, guestId: jo.id } });
 check('another person can’t match a reply', r.status === 404 && (await sql`select response from guest where id = ${jo.id}`)[0].response === null, String(r.status));

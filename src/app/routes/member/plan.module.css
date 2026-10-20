@@ -101,7 +101,7 @@
   letter-spacing: var(--tracking-label);
   text-transform: uppercase;
   border: var(--hairline) solid var(--color-gold);
-  border-radius: var(--radius-pill);
+  border-radius: 0;
   padding: 0 var(--space-2);
   white-space: nowrap;
 }
@@ -230,8 +230,11 @@
 }
 
 .choices legend {
-  font-size: var(--text-small);
+  font-size: var(--text-label);
   font-weight: 500;
+  letter-spacing: var(--tracking-label);
+  text-transform: uppercase;
+  color: var(--color-gold-ink);
   margin-bottom: var(--space-2);
   padding: 0;
 }
@@ -656,4 +659,59 @@
   font-weight: 400;
   letter-spacing: 0;
   color: var(--color-ink);
+}
+
+/* Guests (D-58's look): the replies as numbers, the list beside the invitation's settings. */
+.guestTally {
+  margin: var(--space-6) 0 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-4) var(--space-8);
+}
+
+.guestTally div {
+  display: flex;
+  flex-direction: column-reverse;
+  gap: var(--space-1);
+}
+
+.guestTally dd {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: var(--text-title-1);
+}
+
+.guestTally dt {
+  font-size: var(--text-label);
+  letter-spacing: var(--tracking-label);
+  text-transform: uppercase;
+  color: var(--color-ink-soft);
+}
+
+.guestGrid {
+  display: grid;
+  gap: var(--space-8);
+  margin-top: var(--space-2);
+}
+
+.guestMain,
+.guestSide {
+  display: grid;
+  gap: var(--space-2);
+  align-content: start;
+  min-width: 0;
+}
+
+/* The invitation's settings as cards (group link, questions, updates, your message). */
+.guestSide > section {
+  padding: var(--space-5);
+  background: var(--color-surface);
+  border: var(--hairline) solid var(--color-line-soft);
+}
+
+@media (min-width: 1000px) {
+  .guestGrid {
+    grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
+    gap: var(--space-12);
+  }
 }

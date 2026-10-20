@@ -249,18 +249,16 @@ export default function Guests({ loaderData, actionData }: Route.ComponentProps)
   return (
     <>
       <SiteHeader />
-      <main className="page narrow">
-        <p>
-          <Link to={`/events/${event.id}`} className="text-link">
-            ← {event.name}
-          </Link>
+      <main className="page">
+        <p className={styles.evKind}>
+          <Link to={`/events/${event.id}`}>{event.name}</Link>
         </p>
-        <EventTabs base={`/events/${event.id}`} on="guests" coming={totals.coming} />
-        <h1 className="title-1 section-gap">Guests</h1>
+        <h1 className="title-1">Guests</h1>
         <div className="title-rule" aria-hidden="true" />
         <p className="muted">
-          {event.name} · {longDate(event.date, today)} · {event.town}
+          {longDate(event.date, today)} · {event.town}
         </p>
+        <EventTabs base={`/events/${event.id}`} on="guests" coming={totals.coming} />
         {params.has('removed') && (
           <p className="notice" role="status">
             Removed. Their link no longer works.
@@ -276,435 +274,453 @@ export default function Guests({ loaderData, actionData }: Route.ComponentProps)
         <p>{GUESTS_PROMISE}</p>
 
         {guests.length + groupReplies.length > 0 && (
-          <p aria-label="Replies so far">
-            <strong>{totals.coming}</strong> coming · <strong>{totals.maybe}</strong> maybe · <strong>{totals.cantCome}</strong> can’t come
-            · <strong>{totals.noReply}</strong> no reply yet
-          </p>
+          <dl className={styles.guestTally} aria-label="Replies so far">
+            {(
+              [
+                ['coming', totals.coming],
+                ['maybe', totals.maybe],
+                ['can’t come', totals.cantCome],
+                ['no reply yet', totals.noReply],
+              ] as const
+            ).map(([label, n]) => (
+              <div key={label}>
+                <dt>{label}</dt>
+                <dd>{n}</dd>
+              </div>
+            ))}
+          </dl>
         )}
 
-        <section className={styles.section} aria-labelledby="list-title" id="list">
-          <h2 id="list-title" className="label">
-            Your guest list ({guests.length})
-          </h2>
-          {notice('list')}
-          {errorFor('remove')}
-          {guests.length === 0 ? (
-            <p className="muted">No guests yet. Add the first one below.</p>
-          ) : (
-            <ul className={styles.list}>
-              {shownGuests.map((g) => (
-                <li key={g.id}>
-                  <div className={styles.rowBody}>
-                    <div className={styles.rowHead}>
-                      <span className={styles.name}>{g.name}</span>
-                      <span className={styles.pill}>
-                        {g.response
-                          ? `${RESPONSE_WORDS[g.response]}${g.partySize && g.partySize > 1 ? ` · ${g.partySize} people` : ''}`
-                          : g.opened
-                            ? 'Opened, no reply yet'
-                            : 'No reply yet'}
-                      </span>
-                    </div>
-                    {g.note && <span className={styles.meta}>“{g.note}”</span>}
-                    <Answers answers={g.answers} />
-                    <div className={styles.rowActions}>
-                      <Link to={`/events/${event.id}/guests/${g.id}`} className="text-link">
-                        Send invitation
-                      </Link>
-                      <Form method="post">
-                        <input type="hidden" name="intent" value="remove" />
-                        <input type="hidden" name="guestId" value={g.id} />
-                        <button type="submit" className={styles.textButton} disabled={busy}>
-                          Remove {g.name}
-                        </button>
-                      </Form>
-                    </div>
-                  </div>
-                </li>
-              ))}
-            </ul>
-          )}
-          {shownGuests.length < guests.length && (
-            <p>
-              <Link to={withParam('all', '1', 'list')} className="text-link">
-                Show all {guests.length} guests
-              </Link>
-            </p>
-          )}
-        </section>
+        <div className={styles.guestGrid}>
+          <div className={styles.guestMain}>
 
-        {groupReplies.length > 0 && (
-          <section className={styles.section} aria-labelledby="group-replies-title" id="group-replies">
-            <h2 id="group-replies-title" className="label">
-              Replies from the group link, not matched yet ({groupReplies.length})
-            </h2>
-            {errorFor('match', 'remove-reply', 'remove-unmatched')}
-            {groupReplies.length >= NEAR_LIMIT && (
-              <p className="notice" role="status">
-                The group link has {groupReplies.length} replies not matched to a guest, close to the limit of 300. If it was shared
-                somewhere public, make a new group link (the old one stops working) and remove the replies that aren’t from your
-                guests.
-              </p>
-            )}
-            <p className="muted">
-              Match each one to a guest on your list, so you can see who’s still to reply. They count in the totals either way. Matching
-              to a guest who already replied replaces their reply.
-            </p>
-            <ul className={styles.list}>
-              {shownReplies.map((r) => {
-                const twin = byName.get(nameKey(r.name)) ?? null;
-                return (
-                <li key={r.id} id={`reply-${r.id}`}>
-                  <div className={styles.rowBody}>
-                    <div className={styles.rowHead}>
-                      <span className={styles.name}>{r.name}</span>
-                      <span className={styles.pill}>
-                        {`${RESPONSE_WORDS[r.response]}${r.partySize && r.partySize > 1 ? ` · ${r.partySize} people` : ''}`}
-                      </span>
-                    </div>
-                    {r.note && <span className={styles.meta}>“{r.note}”</span>}
-                    <Answers answers={r.answers} />
-                    {/* M13 (D-54): the same name as a guest already on the list. */}
-                    {twin && (
-                      <span className={styles.meta}>
-                        Same name as {twin.name} on your list
-                        {twin.response ? `, who already replied (${RESPONSE_WORDS[twin.response]}). Matching replaces their reply with this one.` : '.'}
-                      </span>
-                    )}
-                    {twin && !twin.response && event.status === 'planning' && (
-                      <Form method="post" className={styles.rowActions}>
-                        <input type="hidden" name="intent" value="match" />
-                        <input type="hidden" name="replyId" value={r.id} />
-                        <input type="hidden" name="guestId" value={twin.id} />
-                        <button type="submit" className="button button-secondary" disabled={busy}>
-                          Match to {twin.name}
-                        </button>
-                      </Form>
-                    )}
-                    {guests.length > 0 && event.status === 'planning' && (guests.length <= INLINE_MATCH || matching === r.id ? (
-                      <Form method="post" className={styles.rowActions}>
-                        <input type="hidden" name="intent" value="match" />
-                        <input type="hidden" name="replyId" value={r.id} />
-                        <label htmlFor={`match-${r.id}`} className="visually-hidden">
-                          Which guest is {r.name}?
-                        </label>
-                        <select id={`match-${r.id}`} name="guestId" className="input" required defaultValue="">
-                          <option value="" disabled>
-                            This is…
-                          </option>
-                          {matchChoices.map((g) => (
-                            <option key={g.id} value={g.id}>
-                              {g.response ? `${g.name} (already replied: ${RESPONSE_WORDS[g.response]})` : g.name}
-                            </option>
-                          ))}
-                        </select>
-                        <button type="submit" className="button button-secondary" disabled={busy}>
-                          Match
-                        </button>
-                      </Form>
-                    ) : (
-                      // B9 (D-54): with a long list, the choices load for one reply at a time.
-                      <Link to={withParam('match', r.id, `reply-${r.id}`)} className="text-link">
-                        {twin ? 'Match to someone else' : 'Match to a guest'}
-                      </Link>
-                    ))}
-                    <Form method="post">
-                      <input type="hidden" name="intent" value="remove-reply" />
-                      <input type="hidden" name="replyId" value={r.id} />
-                      <button type="submit" className={styles.textButton} disabled={busy}>
-                        Remove this reply
-                      </button>
-                    </Form>
-                  </div>
-                </li>
-                );
-              })}
-            </ul>
-            {shownReplies.length < groupReplies.length && (
-              <p>
-                <Link to={withParam('replies', 'all', 'group-replies')} className="text-link">
-                  Show all {groupReplies.length} replies
-                </Link>
-              </p>
-            )}
-            {groupReplies.length > 1 && (
-              <Form method="post">
-                <input type="hidden" name="intent" value="remove-unmatched" />
-                <button type="submit" className={styles.textButton} disabled={busy}>
-                  Remove all {groupReplies.length} unmatched replies (if they aren’t from your guests)
-                </button>
-              </Form>
-            )}
-          </section>
-        )}
-
-        {open && (
-          <section className={styles.section} aria-labelledby="add">
-            <h2 id="add" className="label">
-              Add a guest
-            </h2>
-            {errorFor('add')}
-            <Form method="post">
-              <input type="hidden" name="intent" value="add" />
-              <div className="field">
-                <label htmlFor="name" className="field-label">
-                  Name
-                </label>
-                <input id="name" name="name" className="input" maxLength={GUEST_LIMITS.name} required autoComplete="off" />
-              </div>
-              <div className="field">
-                <label htmlFor="phone" className="field-label">
-                  Phone number (optional)
-                </label>
-                <input id="phone" name="phone" className="input" type="tel" inputMode="tel" maxLength={20} autoComplete="off" />
-              </div>
-              <div className="field">
-                <label htmlFor="email" className="field-label">
-                  Email (optional)
-                </label>
-                <input id="email" name="email" className="input" type="email" maxLength={254} autoComplete="off" />
-                <p className="muted">{CONTACT_KEPT}</p>
-              </div>
-              <button type="submit" className="button button-primary" disabled={busy || !on}>
-                Add guest
-              </button>
-            </Form>
-            {/* M12 (D-54): many names at once, straight from phone notes or a spreadsheet. */}
-            <details className="section-gap">
-              <summary className="text-link">Add many guests at once</summary>
-              {errorFor('add-many')}
-              <Form method="post">
-                <input type="hidden" name="intent" value="add-many" />
-                <div className="field">
-                  <label htmlFor="names" className="field-label">
-                    Names, one per line
-                  </label>
-                  <p className="field-hint" id="names-hint">
-                    Paste them from your notes or a spreadsheet. Names already on your list are skipped. You can add a phone number or
-                    email to anyone afterwards by adding them one at a time.
-                  </p>
-                  <textarea id="names" name="names" className="input" aria-describedby="names-hint" required />
-                </div>
-                <button type="submit" className="button button-secondary" disabled={busy || !on}>
-                  Add these guests
-                </button>
-              </Form>
-            </details>
-          </section>
-        )}
-
-        <section className={styles.section} aria-labelledby="group-title" id="group">
-          <h2 id="group-title" className="label">
-            Group link
-          </h2>
-          {notice('group')}
-          {errorFor('group-new', 'group-off')}
-          <p className="muted">{GROUP_LINK_SAYS}</p>
-          {groupLink ? (
-            <>
-              <p className={styles.box} style={{ overflowWrap: 'anywhere' }}>
-                {groupText}
-              </p>
-              <CopyAndShare link={groupLink} text={groupText} />
-              <p className={styles.actions}>
-                <a className="button button-secondary" href={`sms:?&body=${encodeURIComponent(groupText)}`}>
-                  Text message
-                </a>
-                <a
-                  className="button button-secondary"
-                  href={`https://wa.me/?text=${encodeURIComponent(groupText)}`}
-                  target="_blank"
-                  rel="noreferrer"
-                >
-                  WhatsApp
-                </a>
-                <Link className="button button-secondary" to={`/events/${event.id}/guests/print`}>
-                  Print with a QR code
-                </Link>
-              </p>
-              {event.status === 'planning' && (
-                <div className={styles.rowActions}>
-                  <Form method="post">
-                    <input type="hidden" name="intent" value="group-new" />
-                    <button type="submit" className={styles.textButton} disabled={busy}>
-                      Make a new group link (this one stops working)
-                    </button>
-                  </Form>
-                  <Form method="post">
-                    <input type="hidden" name="intent" value="group-off" />
-                    <button type="submit" className={styles.textButton} disabled={busy}>
-                      Switch the group link off
-                    </button>
-                  </Form>
-                </div>
+            <section className={styles.section} aria-labelledby="list-title" id="list">
+              <h2 id="list-title" className="label">
+                Your guest list ({guests.length})
+              </h2>
+              {notice('list')}
+              {errorFor('remove')}
+              {guests.length === 0 ? (
+                <p className="muted">No guests yet. Add the first one below.</p>
+              ) : (
+                <ul className={styles.list}>
+                  {shownGuests.map((g) => (
+                    <li key={g.id}>
+                      <div className={styles.rowBody}>
+                        <div className={styles.rowHead}>
+                          <span className={styles.name}>{g.name}</span>
+                          <span className={styles.pill}>
+                            {g.response
+                              ? `${RESPONSE_WORDS[g.response]}${g.partySize && g.partySize > 1 ? ` · ${g.partySize} people` : ''}`
+                              : g.opened
+                                ? 'Opened, no reply yet'
+                                : 'No reply yet'}
+                          </span>
+                        </div>
+                        {g.note && <span className={styles.meta}>“{g.note}”</span>}
+                        <Answers answers={g.answers} />
+                        <div className={styles.rowActions}>
+                          <Link to={`/events/${event.id}/guests/${g.id}`} className="text-link">
+                            Send invitation
+                          </Link>
+                          <Form method="post">
+                            <input type="hidden" name="intent" value="remove" />
+                            <input type="hidden" name="guestId" value={g.id} />
+                            <button type="submit" className={styles.textButton} disabled={busy}>
+                              Remove {g.name}
+                            </button>
+                          </Form>
+                        </div>
+                      </div>
+                    </li>
+                  ))}
+                </ul>
               )}
-            </>
-          ) : (
-            open && (
-              <Form method="post">
-                <input type="hidden" name="intent" value="group-new" />
-                <button type="submit" className="button button-secondary" disabled={busy || !on}>
-                  Make a group link
-                </button>
-              </Form>
-            )
-          )}
-        </section>
+              {shownGuests.length < guests.length && (
+                <p>
+                  <Link to={withParam('all', '1', 'list')} className="text-link">
+                    Show all {guests.length} guests
+                  </Link>
+                </p>
+              )}
+            </section>
 
-        <section className={styles.section} aria-labelledby="questions-title" id="questions">
-          <h2 id="questions-title" className="label">
-            Questions for guests ({questions.length} of {GUEST_LIMITS.questions})
-          </h2>
-          {notice('questions')}
-          {errorFor('question-add', 'question-remove')}
-          <p className="muted">
-            Asked on every invitation, for a short answer, such as “Any allergies?” Answering is optional. You see the answers above.
-          </p>
-          {questions.length > 0 && (
-            <ul className={styles.list}>
-              {questions.map((q) => (
-                <li key={q.id}>
-                  <div className={styles.rowHead}>
-                    <span>{q.question}</span>
-                    {event.status === 'planning' && (
-                      <Form method="post">
-                        <input type="hidden" name="intent" value="question-remove" />
-                        <input type="hidden" name="questionId" value={q.id} />
-                        <button type="submit" className={styles.textButton} disabled={busy}>
-                          Remove
-                        </button>
-                      </Form>
-                    )}
-                  </div>
-                </li>
-              ))}
-            </ul>
-          )}
-          {event.status === 'planning' && questions.length < GUEST_LIMITS.questions && (
-            <Form method="post">
-              <input type="hidden" name="intent" value="question-add" />
-              <div className="field">
-                <label htmlFor="question" className="field-label">
-                  Ask a question
-                </label>
-                <input id="question" name="question" className="input" maxLength={GUEST_LIMITS.question} required />
-              </div>
-              <button type="submit" className="button button-secondary" disabled={busy}>
-                Add question
-              </button>
-            </Form>
-          )}
-        </section>
-
-        <section className={styles.section} aria-labelledby="updates-title" id="updates">
-          <h2 id="updates-title" className="label">
-            Updates for guests
-          </h2>
-          {notice('updates')}
-          {errorFor('update-post', 'update-remove')}
-          {params.has('changed') && open && (
-            // M11 (D-54): the host changed when or where; a ready-made update to post.
-            <p className="notice" role="status">
-              You changed when or where {event.name} is. Guests aren’t told automatically: post an update below (we’ve written one you
-              can change), then share it with them.
-            </p>
-          )}
-          <p className="muted">
-            A short note, such as “We’ve moved to 3 pm”, shown at the top of every invitation. Localites doesn’t send it to anyone: share
-            it from your phone if you like.
-          </p>
-          {open && (
-            <Form method="post">
-              <input type="hidden" name="intent" value="update-post" />
-              <div className="field">
-                <label htmlFor="update-body" className="field-label">
-                  New update
-                </label>
-                <textarea
-                  id="update-body"
-                  name="body"
-                  className="input"
-                  maxLength={GUEST_LIMITS.update}
-                  required
-                  key={params.has('changed') ? 'changed' : 'blank'}
-                  defaultValue={
-                    params.has('changed')
-                      ? changeUpdateText(event.name, longDateWithYear(event.date), timeRange(event.startTime, null), event.town)
-                      : ''
-                  }
-                />
-              </div>
-              <button type="submit" className="button button-secondary" disabled={busy}>
-                Post update
-              </button>
-            </Form>
-          )}
-          {updates.length > 0 && (
-            <ul className={styles.list}>
-              {updates.map((u) => (
-                <li key={u.id}>
-                  <div className={styles.rowBody}>
-                    <span className={styles.meta}>{longDateWithYear(u.at)}</span>
-                    <p dir="auto" style={{ whiteSpace: 'pre-wrap', overflowWrap: 'anywhere' }}>{u.body}</p>
-                    <div className={styles.rowActions}>
-                      <a
-                        className="text-link"
-                        href={`https://wa.me/?text=${encodeURIComponent(`${event.name}: ${u.body}`)}`}
-                        target="_blank"
-                        rel="noreferrer"
-                      >
-                        Share on WhatsApp
-                      </a>
-                      <a className="text-link" href={`sms:?&body=${encodeURIComponent(`${event.name}: ${u.body}`)}`}>
-                        Text message
-                      </a>
-                      {event.status === 'planning' && (
+            {groupReplies.length > 0 && (
+              <section className={styles.section} aria-labelledby="group-replies-title" id="group-replies">
+                <h2 id="group-replies-title" className="label">
+                  Replies from the group link, not matched yet ({groupReplies.length})
+                </h2>
+                {errorFor('match', 'remove-reply', 'remove-unmatched')}
+                {groupReplies.length >= NEAR_LIMIT && (
+                  <p className="notice" role="status">
+                    The group link has {groupReplies.length} replies not matched to a guest, close to the limit of 300. If it was shared
+                    somewhere public, make a new group link (the old one stops working) and remove the replies that aren’t from your
+                    guests.
+                  </p>
+                )}
+                <p className="muted">
+                  Match each one to a guest on your list, so you can see who’s still to reply. They count in the totals either way. Matching
+                  to a guest who already replied replaces their reply.
+                </p>
+                <ul className={styles.list}>
+                  {shownReplies.map((r) => {
+                    const twin = byName.get(nameKey(r.name)) ?? null;
+                    return (
+                    <li key={r.id} id={`reply-${r.id}`}>
+                      <div className={styles.rowBody}>
+                        <div className={styles.rowHead}>
+                          <span className={styles.name}>{r.name}</span>
+                          <span className={styles.pill}>
+                            {`${RESPONSE_WORDS[r.response]}${r.partySize && r.partySize > 1 ? ` · ${r.partySize} people` : ''}`}
+                          </span>
+                        </div>
+                        {r.note && <span className={styles.meta}>“{r.note}”</span>}
+                        <Answers answers={r.answers} />
+                        {/* M13 (D-54): the same name as a guest already on the list. */}
+                        {twin && (
+                          <span className={styles.meta}>
+                            Same name as {twin.name} on your list
+                            {twin.response ? `, who already replied (${RESPONSE_WORDS[twin.response]}). Matching replaces their reply with this one.` : '.'}
+                          </span>
+                        )}
+                        {twin && !twin.response && event.status === 'planning' && (
+                          <Form method="post" className={styles.rowActions}>
+                            <input type="hidden" name="intent" value="match" />
+                            <input type="hidden" name="replyId" value={r.id} />
+                            <input type="hidden" name="guestId" value={twin.id} />
+                            <button type="submit" className="button button-secondary" disabled={busy}>
+                              Match to {twin.name}
+                            </button>
+                          </Form>
+                        )}
+                        {guests.length > 0 && event.status === 'planning' && (guests.length <= INLINE_MATCH || matching === r.id ? (
+                          <Form method="post" className={styles.rowActions}>
+                            <input type="hidden" name="intent" value="match" />
+                            <input type="hidden" name="replyId" value={r.id} />
+                            <label htmlFor={`match-${r.id}`} className="visually-hidden">
+                              Which guest is {r.name}?
+                            </label>
+                            <select id={`match-${r.id}`} name="guestId" className="input" required defaultValue="">
+                              <option value="" disabled>
+                                This is…
+                              </option>
+                              {matchChoices.map((g) => (
+                                <option key={g.id} value={g.id}>
+                                  {g.response ? `${g.name} (already replied: ${RESPONSE_WORDS[g.response]})` : g.name}
+                                </option>
+                              ))}
+                            </select>
+                            <button type="submit" className="button button-secondary" disabled={busy}>
+                              Match
+                            </button>
+                          </Form>
+                        ) : (
+                          // B9 (D-54): with a long list, the choices load for one reply at a time.
+                          <Link to={withParam('match', r.id, `reply-${r.id}`)} className="text-link">
+                            {twin ? 'Match to someone else' : 'Match to a guest'}
+                          </Link>
+                        ))}
                         <Form method="post">
-                          <input type="hidden" name="intent" value="update-remove" />
-                          <input type="hidden" name="updateId" value={u.id} />
+                          <input type="hidden" name="intent" value="remove-reply" />
+                          <input type="hidden" name="replyId" value={r.id} />
                           <button type="submit" className={styles.textButton} disabled={busy}>
-                            Remove
+                            Remove this reply
                           </button>
                         </Form>
-                      )}
-                    </div>
-                  </div>
-                </li>
-              ))}
-            </ul>
-          )}
-        </section>
+                      </div>
+                    </li>
+                    );
+                  })}
+                </ul>
+                {shownReplies.length < groupReplies.length && (
+                  <p>
+                    <Link to={withParam('replies', 'all', 'group-replies')} className="text-link">
+                      Show all {groupReplies.length} replies
+                    </Link>
+                  </p>
+                )}
+                {groupReplies.length > 1 && (
+                  <Form method="post">
+                    <input type="hidden" name="intent" value="remove-unmatched" />
+                    <button type="submit" className={styles.textButton} disabled={busy}>
+                      Remove all {groupReplies.length} unmatched replies (if they aren’t from your guests)
+                    </button>
+                  </Form>
+                )}
+              </section>
+            )}
 
-        <section className={styles.section} aria-labelledby="message-title" id="message">
-          <h2 id="message-title" className="label">
-            Your message to guests
-          </h2>
-          {notice('message')}
-          {errorFor('message')}
-          <p className="muted">{GUESTS_SEE}</p>
-          {event.status === 'planning' ? (
-            <Form method="post">
-              <input type="hidden" name="intent" value="message" />
-              <div className="field">
-                <label htmlFor="message-box" className="field-label">
-                  Message (optional)
-                </label>
-                <textarea
-                  id="message-box"
-                  name="message"
-                  className="input"
-                  maxLength={GUEST_LIMITS.message}
-                  defaultValue={event.message ?? ''}
-                />
-              </div>
-              <button type="submit" className="button button-secondary" disabled={busy}>
-                Save message
-              </button>
-            </Form>
-          ) : (
-            event.message && <p style={{ whiteSpace: 'pre-wrap' }}>{event.message}</p>
-          )}
-        </section>
+            {open && (
+              <section className={styles.section} aria-labelledby="add">
+                <h2 id="add" className="label">
+                  Add a guest
+                </h2>
+                {errorFor('add')}
+                <Form method="post">
+                  <input type="hidden" name="intent" value="add" />
+                  <div className="field">
+                    <label htmlFor="name" className="field-label">
+                      Name
+                    </label>
+                    <input id="name" name="name" className="input" maxLength={GUEST_LIMITS.name} required autoComplete="off" />
+                  </div>
+                  <div className="field">
+                    <label htmlFor="phone" className="field-label">
+                      Phone number (optional)
+                    </label>
+                    <input id="phone" name="phone" className="input" type="tel" inputMode="tel" maxLength={20} autoComplete="off" />
+                  </div>
+                  <div className="field">
+                    <label htmlFor="email" className="field-label">
+                      Email (optional)
+                    </label>
+                    <input id="email" name="email" className="input" type="email" maxLength={254} autoComplete="off" />
+                    <p className="muted">{CONTACT_KEPT}</p>
+                  </div>
+                  <button type="submit" className="button button-primary" disabled={busy || !on}>
+                    Add guest
+                  </button>
+                </Form>
+                {/* M12 (D-54): many names at once, straight from phone notes or a spreadsheet. */}
+                <details className="section-gap">
+                  <summary className="text-link">Add many guests at once</summary>
+                  {errorFor('add-many')}
+                  <Form method="post">
+                    <input type="hidden" name="intent" value="add-many" />
+                    <div className="field">
+                      <label htmlFor="names" className="field-label">
+                        Names, one per line
+                      </label>
+                      <p className="field-hint" id="names-hint">
+                        Paste them from your notes or a spreadsheet. Names already on your list are skipped. You can add a phone number or
+                        email to anyone afterwards by adding them one at a time.
+                      </p>
+                      <textarea id="names" name="names" className="input" aria-describedby="names-hint" required />
+                    </div>
+                    <button type="submit" className="button button-secondary" disabled={busy || !on}>
+                      Add these guests
+                    </button>
+                  </Form>
+                </details>
+              </section>
+            )}
+          </div>
+
+          <div className={styles.guestSide}>
+            <section className={styles.section} aria-labelledby="group-title" id="group">
+              <h2 id="group-title" className="label">
+                Group link
+              </h2>
+              {notice('group')}
+              {errorFor('group-new', 'group-off')}
+              <p className="muted">{GROUP_LINK_SAYS}</p>
+              {groupLink ? (
+                <>
+                  <p className={styles.box} style={{ overflowWrap: 'anywhere' }}>
+                    {groupText}
+                  </p>
+                  <CopyAndShare link={groupLink} text={groupText} />
+                  <p className={styles.actions}>
+                    <a className="button button-secondary" href={`sms:?&body=${encodeURIComponent(groupText)}`}>
+                      Text message
+                    </a>
+                    <a
+                      className="button button-secondary"
+                      href={`https://wa.me/?text=${encodeURIComponent(groupText)}`}
+                      target="_blank"
+                      rel="noreferrer"
+                    >
+                      WhatsApp
+                    </a>
+                    <Link className="button button-secondary" to={`/events/${event.id}/guests/print`}>
+                      Print with a QR code
+                    </Link>
+                  </p>
+                  {event.status === 'planning' && (
+                    <div className={styles.rowActions}>
+                      <Form method="post">
+                        <input type="hidden" name="intent" value="group-new" />
+                        <button type="submit" className={styles.textButton} disabled={busy}>
+                          Make a new group link (this one stops working)
+                        </button>
+                      </Form>
+                      <Form method="post">
+                        <input type="hidden" name="intent" value="group-off" />
+                        <button type="submit" className={styles.textButton} disabled={busy}>
+                          Switch the group link off
+                        </button>
+                      </Form>
+                    </div>
+                  )}
+                </>
+              ) : (
+                open && (
+                  <Form method="post">
+                    <input type="hidden" name="intent" value="group-new" />
+                    <button type="submit" className="button button-secondary" disabled={busy || !on}>
+                      Make a group link
+                    </button>
+                  </Form>
+                )
+              )}
+            </section>
+
+            <section className={styles.section} aria-labelledby="questions-title" id="questions">
+              <h2 id="questions-title" className="label">
+                Questions for guests ({questions.length} of {GUEST_LIMITS.questions})
+              </h2>
+              {notice('questions')}
+              {errorFor('question-add', 'question-remove')}
+              <p className="muted">
+                Asked on every invitation, for a short answer, such as “Any allergies?” Answering is optional. You see the answers above.
+              </p>
+              {questions.length > 0 && (
+                <ul className={styles.list}>
+                  {questions.map((q) => (
+                    <li key={q.id}>
+                      <div className={styles.rowHead}>
+                        <span>{q.question}</span>
+                        {event.status === 'planning' && (
+                          <Form method="post">
+                            <input type="hidden" name="intent" value="question-remove" />
+                            <input type="hidden" name="questionId" value={q.id} />
+                            <button type="submit" className={styles.textButton} disabled={busy}>
+                              Remove
+                            </button>
+                          </Form>
+                        )}
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              )}
+              {event.status === 'planning' && questions.length < GUEST_LIMITS.questions && (
+                <Form method="post">
+                  <input type="hidden" name="intent" value="question-add" />
+                  <div className="field">
+                    <label htmlFor="question" className="field-label">
+                      Ask a question
+                    </label>
+                    <input id="question" name="question" className="input" maxLength={GUEST_LIMITS.question} required />
+                  </div>
+                  <button type="submit" className="button button-secondary" disabled={busy}>
+                    Add question
+                  </button>
+                </Form>
+              )}
+            </section>
+
+            <section className={styles.section} aria-labelledby="updates-title" id="updates">
+              <h2 id="updates-title" className="label">
+                Updates for guests
+              </h2>
+              {notice('updates')}
+              {errorFor('update-post', 'update-remove')}
+              {params.has('changed') && open && (
+                // M11 (D-54): the host changed when or where; a ready-made update to post.
+                <p className="notice" role="status">
+                  You changed when or where {event.name} is. Guests aren’t told automatically: post an update below (we’ve written one you
+                  can change), then share it with them.
+                </p>
+              )}
+              <p className="muted">
+                A short note, such as “We’ve moved to 3 pm”, shown at the top of every invitation. Localites doesn’t send it to anyone: share
+                it from your phone if you like.
+              </p>
+              {open && (
+                <Form method="post">
+                  <input type="hidden" name="intent" value="update-post" />
+                  <div className="field">
+                    <label htmlFor="update-body" className="field-label">
+                      New update
+                    </label>
+                    <textarea
+                      id="update-body"
+                      name="body"
+                      className="input"
+                      maxLength={GUEST_LIMITS.update}
+                      required
+                      key={params.has('changed') ? 'changed' : 'blank'}
+                      defaultValue={
+                        params.has('changed')
+                          ? changeUpdateText(event.name, longDateWithYear(event.date), timeRange(event.startTime, null), event.town)
+                          : ''
+                      }
+                    />
+                  </div>
+                  <button type="submit" className="button button-secondary" disabled={busy}>
+                    Post update
+                  </button>
+                </Form>
+              )}
+              {updates.length > 0 && (
+                <ul className={styles.list}>
+                  {updates.map((u) => (
+                    <li key={u.id}>
+                      <div className={styles.rowBody}>
+                        <span className={styles.meta}>{longDateWithYear(u.at)}</span>
+                        <p dir="auto" style={{ whiteSpace: 'pre-wrap', overflowWrap: 'anywhere' }}>{u.body}</p>
+                        <div className={styles.rowActions}>
+                          <a
+                            className="text-link"
+                            href={`https://wa.me/?text=${encodeURIComponent(`${event.name}: ${u.body}`)}`}
+                            target="_blank"
+                            rel="noreferrer"
+                          >
+                            Share on WhatsApp
+                          </a>
+                          <a className="text-link" href={`sms:?&body=${encodeURIComponent(`${event.name}: ${u.body}`)}`}>
+                            Text message
+                          </a>
+                          {event.status === 'planning' && (
+                            <Form method="post">
+                              <input type="hidden" name="intent" value="update-remove" />
+                              <input type="hidden" name="updateId" value={u.id} />
+                              <button type="submit" className={styles.textButton} disabled={busy}>
+                                Remove
+                              </button>
+                            </Form>
+                          )}
+                        </div>
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </section>
+
+            <section className={styles.section} aria-labelledby="message-title" id="message">
+              <h2 id="message-title" className="label">
+                Your message to guests
+              </h2>
+              {notice('message')}
+              {errorFor('message')}
+              <p className="muted">{GUESTS_SEE}</p>
+              {event.status === 'planning' ? (
+                <Form method="post">
+                  <input type="hidden" name="intent" value="message" />
+                  <div className="field">
+                    <label htmlFor="message-box" className="field-label">
+                      Message (optional)
+                    </label>
+                    <textarea
+                      id="message-box"
+                      name="message"
+                      className="input"
+                      maxLength={GUEST_LIMITS.message}
+                      defaultValue={event.message ?? ''}
+                    />
+                  </div>
+                  <button type="submit" className="button button-secondary" disabled={busy}>
+                    Save message
+                  </button>
+                </Form>
+              ) : (
+                event.message && <p style={{ whiteSpace: 'pre-wrap' }}>{event.message}</p>
+              )}
+            </section>
+          </div>
+        </div>
       </main>
     </>
   );

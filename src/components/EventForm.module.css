@@ -8,8 +8,11 @@
 }
 
 .chips legend {
-  font-size: var(--text-small);
+  font-size: var(--text-label);
   font-weight: 500;
+  letter-spacing: var(--tracking-label);
+  text-transform: uppercase;
+  color: var(--color-gold-ink);
   margin-bottom: var(--space-2);
   padding: 0;
 }
@@ -28,7 +31,7 @@
   min-height: var(--size-icon-button);
   padding-inline: var(--space-4);
   border: var(--hairline) solid var(--color-line);
-  border-radius: var(--radius-pill);
+  border-radius: 0;
   background: var(--color-surface);
   font-size: var(--text-small);
   cursor: pointer;
