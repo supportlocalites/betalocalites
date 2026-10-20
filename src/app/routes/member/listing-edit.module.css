@@ -46,9 +46,11 @@
 }
 
 .spotLabel {
-  font-size: var(--text-small);
+  font-size: var(--text-label);
   font-weight: 500;
-  color: var(--color-ink-soft);
+  letter-spacing: var(--tracking-label);
+  text-transform: uppercase;
+  color: var(--color-gold-ink);
 }
 
 /* A box that looks like the text it replaces, outlined so it's clearly editable. */

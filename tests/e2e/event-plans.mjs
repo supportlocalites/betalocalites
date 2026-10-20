@@ -375,7 +375,7 @@ check('…and nothing else: not the name, kind of event, time, place, ages, budg
   privateIn(r.body).join());
 check('the owner’s own planned event isn’t on it', !r.body.includes(`Owner party ${run}`));
 r = await site('/business', { cookie: cookie.o });
-check('My business lists V with 1 booking marked coming up', r.status === 200 && words(r.body).includes(V.name) && words(r.body).includes('1 booking marked coming up'));
+check('My business lists V with 1 booking marked coming up', r.status === 200 && words(r.body).includes(V.name) && words(r.body).includes('booking marked coming up 1'));
 check('…and never the event’s name or kind', privateIn(r.body).length === 0 && !r.body.includes(TYPE_NAME));
 r = await site('/events', { cookie: cookie.o });
 check('the owner’s My events shows the switch to My business, and only their own event',

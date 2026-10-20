@@ -715,3 +715,66 @@
     gap: var(--space-12);
   }
 }
+
+/* My business (D-55's look): each business a card, its numbers, and tiles to each part. */
+.bizList {
+  list-style: none;
+  margin: var(--space-6) 0 0;
+  padding: 0;
+  display: grid;
+  gap: var(--space-6);
+}
+
+.bizCard {
+  display: grid;
+  gap: var(--space-3);
+  padding: var(--space-6);
+  background: var(--color-surface);
+  border: var(--hairline) solid var(--color-line-soft);
+  border-top: var(--hairline) solid var(--color-gold);
+}
+
+.bizName {
+  margin: 0;
+  font-size: var(--text-title-1);
+  overflow-wrap: anywhere;
+}
+
+.bizName a {
+  color: inherit;
+  text-decoration: none;
+}
+
+.bizName a:hover {
+  text-decoration: underline;
+}
+
+.bizTiles {
+  list-style: none;
+  margin: var(--space-4) 0 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(var(--size-tile-min), 1fr));
+  gap: var(--space-3);
+}
+
+.bizTile {
+  display: grid;
+  gap: var(--space-1);
+  height: 100%;
+  padding: var(--space-4);
+  border: var(--hairline) solid var(--color-line);
+  background: var(--color-ground);
+  color: var(--color-ink);
+  text-decoration: none;
+}
+
+.bizTile:hover {
+  border-color: var(--color-gold);
+}
+
+.bizTileName {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: var(--text-title-3);
+}

@@ -52,7 +52,7 @@ export default function MyBusiness({ loaderData: { businesses } }: Route.Compone
   return (
     <>
       <SiteHeader />
-      <main className="page narrow">
+      <main className="page">
         <SideSwitch current="business" />
         <h1 className="title-1">My business</h1>
         <div className="title-rule" aria-hidden="true" />
@@ -62,78 +62,79 @@ export default function MyBusiness({ loaderData: { businesses } }: Route.Compone
           </p>
         )}
         {businesses.length === 0 && <p className="muted">You’re not on a business’s team on Localites now.</p>}
-        <ul className={styles.list}>
-          {businesses.map((b) => (
-            <li key={b.id}>
-              <span className={styles.name}>{b.listed ? <Link to={`/vendors/${b.slug}`}>{b.name}</Link> : b.name}</span>
-              {b.archived ? (
-                <span className={styles.meta}>No longer on Localites. Email supportlocalites@gmail.com with questions.</span>
-              ) : (
-                <>
-                  {b.hidden && <span className={styles.meta}>Hidden by its owner: not showing on Localites</span>}
-                  {b.role !== 'staff' && (
-                    <span className={styles.meta}>
-                      {b.comingUp === 0
-                        ? 'No bookings marked coming up'
-                        : `${b.comingUp} ${b.comingUp === 1 ? 'booking' : 'bookings'} marked coming up`}
-                    </span>
-                  )}
-                  {b.role === 'staff' ? (
-                    <div className={styles.rowActions}>
-                      <Link to={`/vendors/${b.slug}/messages`} className="text-link">
-                        {b.unread > 0 ? `Messages (${b.unread} new)` : 'Messages'}
-                      </Link>
-                      <Link to={`/vendors/${b.slug}/reviews`} className="text-link">
-                        Reviews
-                      </Link>
-                    </div>
-                  ) : (
-                    <div className={styles.rowActions}>
-                      <Link to={`/vendors/${b.slug}/messages`} className="text-link">
-                        {b.unread > 0 ? `Messages (${b.unread} new)` : 'Messages'}
-                      </Link>
-                      <Link to={`/vendors/${b.slug}/bookings`} className="text-link">
-                        Bookings marked
-                      </Link>
-                      <Link to={`/vendors/${b.slug}/reviews`} className="text-link">
-                        Reviews
-                      </Link>
-                      <Link to={`/vendors/${b.slug}/edit`} className="text-link">
-                        Edit your listing
-                      </Link>
-                      <Link to={`/vendors/${b.slug}/photos`} className="text-link">
-                        Photos
-                      </Link>
-                      {b.analytics && (
-                        <Link to={`/vendors/${b.slug}/analytics`} className="text-link">
-                          Analytics
-                        </Link>
+        <ul className={styles.bizList}>
+          {businesses.map((b) => {
+            // Each place to go, with a line on what's there (the approved look's tiles, D-55).
+            const tiles: [string, string, string][] = b.archived
+              ? []
+              : [
+                  [`/vendors/${b.slug}/messages`, b.unread > 0 ? `Messages (${b.unread} new)` : 'Messages', 'Conversations with customers'],
+                  ...(b.role !== 'staff'
+                    ? ([[`/vendors/${b.slug}/bookings`, 'Bookings marked', 'Events that marked you booked']] as [string, string, string][])
+                    : []),
+                  [`/vendors/${b.slug}/reviews`, 'Reviews', 'What customers said, and your replies'],
+                  ...(b.role !== 'staff'
+                    ? ([
+                        [`/vendors/${b.slug}/edit`, 'Edit your listing', 'Your words, services and contact'],
+                        [`/vendors/${b.slug}/address`, 'Address and map', 'Where your pin goes'],
+                        [`/vendors/${b.slug}/photos`, 'Photos', 'Your page photos and profile photo'],
+                      ] as [string, string, string][])
+                    : []),
+                  ...(b.role !== 'staff' && b.analytics
+                    ? ([[`/vendors/${b.slug}/analytics`, 'Analytics', 'Who looked, and what they tapped']] as [string, string, string][])
+                    : []),
+                  ...(b.role === 'owner' ? ([[`/vendors/${b.slug}/team`, 'Team', 'Who helps you run it']] as [string, string, string][]) : []),
+                ];
+            return (
+              <li key={b.id} className={styles.bizCard}>
+                <p className={styles.evKind}>{`Your business · ${b.role === 'owner' ? 'Owner' : b.role === 'manager' ? 'Manager' : 'Staff'}`}</p>
+                <h2 className={styles.bizName}>{b.listed ? <Link to={`/vendors/${b.slug}`}>{b.name}</Link> : b.name}</h2>
+                {b.archived ? (
+                  <p className={styles.evText}>No longer on Localites. Email supportlocalites@gmail.com with questions.</p>
+                ) : (
+                  <>
+                    {b.hidden && <p className={styles.evText}>Hidden by its owner: not showing on Localites</p>}
+                    <dl className={styles.guestTally}>
+                      <div>
+                        <dt>new messages</dt>
+                        <dd>{b.unread}</dd>
+                      </div>
+                      {b.role !== 'staff' && (
+                        <div>
+                          <dt>{b.comingUp === 1 ? 'booking marked coming up' : 'bookings marked coming up'}</dt>
+                          <dd>{b.comingUp}</dd>
+                        </div>
                       )}
-                      {b.role === 'owner' && (
-                        <Link to={`/vendors/${b.slug}/team`} className="text-link">
-                          Team
-                        </Link>
-                      )}
-                    </div>
-                  )}
-                </>
-              )}
-              {b.role !== 'owner' && (
-                // M18 (D-54): leaving, with a confirm step. The owner hands over first (Team).
-                <details>
-                  <summary className={styles.textButton}>Leave this team</summary>
-                  <p className="muted">You’ll no longer see {b.name}’s messages or anything else of its. The owner can invite you again.</p>
-                  <Form method="post">
-                    <input type="hidden" name="intent" value="leave" />
-                    <input type="hidden" name="vendorId" value={b.id} />
-                    <button type="submit" className="button button-secondary" disabled={busy}>
-                      Yes, leave {b.name}
-                    </button>
-                  </Form>
-                </details>
-              )}
-            </li>
-          ))}
+                    </dl>
+                    <ul className={styles.bizTiles}>
+                      {tiles.map(([to, label, what]) => (
+                        <li key={to}>
+                          <Link to={to} className={styles.bizTile}>
+                            <span className={styles.bizTileName}>{label}</span>
+                            <span className={styles.evText}>{what}</span>
+                          </Link>
+                        </li>
+                      ))}
+                    </ul>
+                  </>
+                )}
+                {b.role !== 'owner' && (
+                  // M18 (D-54): leaving, with a confirm step. The owner hands over first (Team).
+                  <details>
+                    <summary className={styles.textButton}>Leave this team</summary>
+                    <p className="muted">You’ll no longer see {b.name}’s messages or anything else of its. The owner can invite you again.</p>
+                    <Form method="post">
+                      <input type="hidden" name="intent" value="leave" />
+                      <input type="hidden" name="vendorId" value={b.id} />
+                      <button type="submit" className="button button-secondary" disabled={busy}>
+                        Yes, leave {b.name}
+                      </button>
+                    </Form>
+                  </details>
+                )}
+              </li>
+            );
+          })}
         </ul>
         <p className="section-gap">
           <Link to="/account" className="text-link">
