@@ -240,6 +240,12 @@ textarea.input {
   word-break: break-all;
 }
 
+/* Tick boxes and choices in the site's ink, never the browser's blue. */
+input[type='checkbox'],
+input[type='radio'] {
+  accent-color: var(--color-ink);
+}
+
 button:disabled {
   opacity: 0.6;
   cursor: progress;

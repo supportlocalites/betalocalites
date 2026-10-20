@@ -3,9 +3,23 @@
   margin-top: var(--space-8);
 }
 
+/* Each part starts with a gold label over a thin line, as on a business's page (D-58). */
 .section > h2 {
-  font-size: var(--text-title-2);
+  font-family: var(--font-body);
+  font-size: var(--text-label);
+  font-weight: 500;
+  letter-spacing: var(--tracking-label);
+  text-transform: uppercase;
+  color: var(--color-gold-ink);
+  padding-top: var(--space-4);
+  border-top: var(--hairline) solid var(--color-line);
   margin-bottom: var(--space-3);
+}
+
+.section h3 {
+  font-size: var(--text-title-3);
+  font-weight: 700;
+  margin: var(--space-5) 0 var(--space-2);
 }
 
 .steps {
@@ -20,4 +34,47 @@
   flex-wrap: wrap;
   gap: var(--space-3);
   margin-top: var(--space-6);
+}
+
+/* How it works (D-55's look): the five steps as numbered cards; the reading parts stay narrow. */
+.intro,
+.section {
+  max-width: var(--size-form-wide);
+}
+
+.stepCards {
+  list-style: none;
+  margin: var(--space-8) 0 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(var(--size-card), 1fr));
+  gap: var(--space-4);
+}
+
+.stepCard {
+  display: grid;
+  gap: var(--space-2);
+  align-content: start;
+  padding: var(--space-5) var(--space-6);
+  background: var(--color-surface);
+  border: var(--hairline) solid var(--color-line-soft);
+  border-top: var(--hairline) solid var(--color-gold);
+}
+
+.stepCard h2 {
+  font-size: var(--text-title-3);
+}
+
+.stepCard p {
+  margin: 0;
+  font-size: var(--text-small);
+  line-height: var(--leading-body);
+  color: var(--color-ink-soft);
+}
+
+.stepNumber {
+  font-family: var(--font-display);
+  font-size: var(--text-title-1);
+  color: var(--color-gold-ink);
+  line-height: 1;
 }

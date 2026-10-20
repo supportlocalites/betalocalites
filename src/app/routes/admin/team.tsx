@@ -152,7 +152,7 @@ export default function Team({ loaderData, actionData }: Route.ComponentProps) {
               <input id="add-reason" name="reason" className="input" maxLength={300} required />
             </div>
           </div>
-          <button type="submit" className="button" disabled={busy}>
+          <button type="submit" className="button button-secondary" disabled={busy}>
             Add to the team
           </button>
         </Form>

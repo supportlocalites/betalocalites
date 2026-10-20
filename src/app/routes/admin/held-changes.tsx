@@ -98,7 +98,7 @@ export default function HeldChanges({ loaderData, actionData }: Route.ComponentP
                 <Form method="post">
                   <input type="hidden" name="intent" value="publish" />
                   <input type="hidden" name="id" value={c.id} />
-                  <button type="submit" className="button" disabled={busy}>
+                  <button type="submit" className="button button-secondary" disabled={busy}>
                     Put live
                   </button>
                 </Form>

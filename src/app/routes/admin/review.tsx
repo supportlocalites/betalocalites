@@ -143,7 +143,7 @@ export default function TeamReviewPage({ loaderData: { review, choose }, actionD
             <>
               <p className="notice">{`Held by the language check, not shown yet: ${review.replyHeldReason ?? ''}`}</p>
               <Form method="post" className={styles.buttons}>
-                <button type="submit" name="intent" value="release_reply" className="button" disabled={busy}>
+                <button type="submit" name="intent" value="release_reply" className="button button-secondary" disabled={busy}>
                   Put the reply live
                 </button>
               </Form>

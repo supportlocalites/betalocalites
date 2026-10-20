@@ -143,7 +143,7 @@ export default function Accounts({ loaderData, actionData }: Route.ComponentProp
                   </label>
                   <input id="suspend-reason" name="reason" className="input" maxLength={300} required />
                 </div>
-                <button type="submit" className="button" disabled={busy}>
+                <button type="submit" className="button button-secondary" disabled={busy}>
                   Suspend {account.name}
                 </button>
               </Form>

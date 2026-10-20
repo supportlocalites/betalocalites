@@ -83,169 +83,178 @@ export default function Account({ loaderData, actionData }: Route.ComponentProps
   return (
     <>
       <SiteHeader />
-      <main className="page narrow">
+      <main className="page">
         <h1 className="title-1">Your account</h1>
         <div className="title-rule" aria-hidden="true" />
 
-        <section aria-labelledby="details" className={styles.section}>
-          <h2 id="details" className="label">
-            Your details
-          </h2>
-          <p>
-            Email: {email}
-            <br />
-            <span className="muted">We email a sign-in code to this address each time you sign in.</span>
-          </p>
-          <Form method="post" noValidate>
-            <input type="hidden" name="intent" value="details" />
-            {actionData?.error && (
-              <p className="notice" role="alert">
-                {actionData.error}
-              </p>
-            )}
-            {saved && (
-              <p className="notice" role="status">
-                Saved.
-              </p>
-            )}
-            <NameFields first={first} last={last} errors={errors} />
-            <ProfileFields values={profile} errors={errors} />
-            <button type="submit" className="button button-secondary" disabled={busy}>
-              Save details
-            </button>
-          </Form>
-        </section>
-
-        <section aria-labelledby="planning" className={styles.section}>
-          <h2 id="planning" className="label">
-            Planning
-          </h2>
-          <p>
-            <Link to="/events" className="text-link">
-              My events
-            </Link>{' '}
-            ·{' '}
-            <Link to="/saved" className="text-link">
-              Your favourites
-            </Link>
-          </p>
-          <p className="muted">Only you can see your favourites. {EVENTS_PRIVATE}</p>
-        </section>
-
-        <section aria-labelledby="emails-title" className={styles.section} id="emails">
-          <h2 id="emails-title" className="label">
-            Emails
-          </h2>
-          <Form method="post">
-            <input type="hidden" name="intent" value="emails" />
-            <label className={styles.check}>
-              <input type="checkbox" name="reviewRequests" defaultChecked={reviewRequests} /> {REVIEW_REQUESTS.label}
-            </label>
-            <p className="muted">{REVIEW_REQUESTS.hint}</p>
-            <button type="submit" className="button button-secondary" disabled={busy}>
-              Save
-            </button>
-            {params.has('emails') && (
-              <p role="status" className="muted">
-                Saved.
-              </p>
-            )}
-          </Form>
-        </section>
-
-        <section aria-labelledby="businesses" className={styles.section}>
-          <h2 id="businesses" className="label">
-            Your businesses
-          </h2>
-          {businesses.length === 0 ? (
-            <p className="muted">None yet. If your business is on Localites, open its page and choose “Claim this business”.</p>
-          ) : (
-            <>
-              <ul className={styles.list}>
-                {businesses.map((b) => (
-                  <li key={b.id}>
-                    {b.listed ? <Link to={`/vendors/${b.slug}`}>{b.name}</Link> : <span>{b.name}</span>}
-                    <span className="muted">{ROLE[b.role] ?? b.role}</span>
-                    {(b.role === 'owner' || b.role === 'manager') && !b.archived && (
-                      <span>
-                        <Link to={`/vendors/${b.slug}/bookings`} className="text-link">
-                          Bookings marked
-                        </Link>
-                      </span>
-                    )}
-                    {b.role === 'owner' && !b.archived && (
-                      <span>
-                        <Link to={`/vendors/${b.slug}/team`} className="text-link">
-                          Team
-                        </Link>
-                      </span>
-                    )}
-                    {b.role === 'staff' && !b.archived && (
-                      <span>
-                        <Link to={`/vendors/${b.slug}/messages`} className="text-link">
-                          Messages
-                        </Link>
-                      </span>
-                    )}
-                    {(b.role === 'owner' || b.role === 'manager') && !b.archived && (
-                      <span>
-                        <Link to={`/vendors/${b.slug}/edit`} className="button button-primary">
-                          Edit your listing
-                        </Link>{' '}
-                        <Link to={`/vendors/${b.slug}/photos`} className="button button-secondary">
-                          Photos
-                        </Link>
-                        {b.analytics && (
-                          <>
-                            {' '}
-                            <Link to={`/vendors/${b.slug}/analytics`} className="button button-secondary">
-                              Analytics
-                            </Link>
-                          </>
-                        )}
-                      </span>
-                    )}
-                    {b.archived && <span className="muted">No longer on Localites. Email supportlocalites@gmail.com with questions.</span>}
-                  </li>
-                ))}
-              </ul>
-            </>
-          )}
-        </section>
-
-        {claims.length > 0 && (
-          <section aria-labelledby="claims-title" className={styles.section} id="claims">
-            <h2 id="claims-title" className="label">
-              Your claims
+        {/* The approved look (D-55): your details beside the rest, each part a card. */}
+        <div className={styles.accountGrid}>
+          <section aria-labelledby="details" className={`${styles.section} ${styles.accountCard}`}>
+            <h2 id="details" className="label">
+              Your details
             </h2>
-            <ul className={styles.list}>
-              {claims.map((c) => (
-                <li key={c.id}>
-                  <Link to={`/vendors/${c.slug}`}>{c.business}</Link>
-                  <span className="muted">
-                    {CLAIM_STATUS[c.status]} · sent {when.format(new Date(c.createdAt))}
-                  </span>
-                  {c.reason && <span className={styles.reason}>Reason: {c.reason}</span>}
-                </li>
-              ))}
-            </ul>
+            <p>
+              Email: {email}
+              <br />
+              <span className="muted">We email a sign-in code to this address each time you sign in.</span>
+            </p>
+            <Form method="post" noValidate>
+              <input type="hidden" name="intent" value="details" />
+              {actionData?.error && (
+                <p className="notice" role="alert">
+                  {actionData.error}
+                </p>
+              )}
+              {saved && (
+                <p className="notice" role="status">
+                  Saved.
+                </p>
+              )}
+              <NameFields first={first} last={last} errors={errors} />
+              <ProfileFields values={profile} errors={errors} />
+              <button type="submit" className="button button-secondary" disabled={busy}>
+                Save details
+              </button>
+            </Form>
           </section>
-        )}
 
-        <p className={styles.section}>
-          <Link to="/account/data" className="text-link">
-            Download your data
-          </Link>
-          {' · '}
-          <Link to="/account/delete" className="text-link">
-            Delete your account
-          </Link>
-        </p>
-        <Form method="post" action="/sign-out" className={styles.section}>
-          <button type="submit" className="button button-secondary">
-            Sign out
-          </button>
-        </Form>
+          <div className={styles.accountSide}>
+            <section aria-labelledby="planning" className={`${styles.section} ${styles.accountCard}`}>
+              <h2 id="planning" className="label">
+                Planning
+              </h2>
+              <p>
+                <Link to="/events" className="text-link">
+                  My events
+                </Link>{' '}
+                ·{' '}
+                <Link to="/saved" className="text-link">
+                  Your favourites
+                </Link>
+              </p>
+              <p className="muted">Only you can see your favourites. {EVENTS_PRIVATE}</p>
+            </section>
+
+            <section aria-labelledby="emails-title" className={`${styles.section} ${styles.accountCard}`} id="emails">
+              <h2 id="emails-title" className="label">
+                Emails
+              </h2>
+              <Form method="post">
+                <input type="hidden" name="intent" value="emails" />
+                <label className={styles.check}>
+                  <input type="checkbox" name="reviewRequests" defaultChecked={reviewRequests} /> {REVIEW_REQUESTS.label}
+                </label>
+                <p className="muted">{REVIEW_REQUESTS.hint}</p>
+                <button type="submit" className="button button-secondary" disabled={busy}>
+                  Save
+                </button>
+                {params.has('emails') && (
+                  <p role="status" className="muted">
+                    Saved.
+                  </p>
+                )}
+              </Form>
+            </section>
+
+            <section aria-labelledby="businesses" className={`${styles.section} ${styles.accountCard}`}>
+              <h2 id="businesses" className="label">
+                Your businesses
+              </h2>
+              {businesses.length === 0 ? (
+                <p className="muted">None yet. If your business is on Localites, open its page and choose “Claim this business”.</p>
+              ) : (
+                <>
+                  <ul className={styles.list}>
+                    {businesses.map((b) => (
+                      <li key={b.id}>
+                        {b.listed ? <Link to={`/vendors/${b.slug}`}>{b.name}</Link> : <span>{b.name}</span>}
+                        <span className="muted">{ROLE[b.role] ?? b.role}</span>
+                        {(b.role === 'owner' || b.role === 'manager') && !b.archived && (
+                          <span>
+                            <Link to={`/vendors/${b.slug}/bookings`} className="text-link">
+                              Bookings marked
+                            </Link>
+                          </span>
+                        )}
+                        {b.role === 'owner' && !b.archived && (
+                          <span>
+                            <Link to={`/vendors/${b.slug}/team`} className="text-link">
+                              Team
+                            </Link>
+                          </span>
+                        )}
+                        {b.role === 'staff' && !b.archived && (
+                          <span>
+                            <Link to={`/vendors/${b.slug}/messages`} className="text-link">
+                              Messages
+                            </Link>
+                          </span>
+                        )}
+                        {(b.role === 'owner' || b.role === 'manager') && !b.archived && (
+                          <span>
+                            <Link to={`/vendors/${b.slug}/edit`} className="button button-primary">
+                              Edit your listing
+                            </Link>{' '}
+                            <Link to={`/vendors/${b.slug}/photos`} className="button button-secondary">
+                              Photos
+                            </Link>
+                            {b.analytics && (
+                              <>
+                                {' '}
+                                <Link to={`/vendors/${b.slug}/analytics`} className="button button-secondary">
+                                  Analytics
+                                </Link>
+                              </>
+                            )}
+                          </span>
+                        )}
+                        {b.archived && (
+                          <span className="muted">No longer on Localites. Email supportlocalites@gmail.com with questions.</span>
+                        )}
+                      </li>
+                    ))}
+                  </ul>
+                </>
+              )}
+            </section>
+
+            {claims.length > 0 && (
+              <section aria-labelledby="claims-title" className={`${styles.section} ${styles.accountCard}`} id="claims">
+                <h2 id="claims-title" className="label">
+                  Your claims
+                </h2>
+                <ul className={styles.list}>
+                  {claims.map((c) => (
+                    <li key={c.id}>
+                      <Link to={`/vendors/${c.slug}`}>{c.business}</Link>
+                      <span className="muted">
+                        {CLAIM_STATUS[c.status]} · sent {when.format(new Date(c.createdAt))}
+                      </span>
+                      {c.reason && <span className={styles.reason}>Reason: {c.reason}</span>}
+                    </li>
+                  ))}
+                </ul>
+              </section>
+            )}
+
+            <div className={`${styles.section} ${styles.accountCard}`}>
+              <p>
+                <Link to="/account/data" className="text-link">
+                  Download your data
+                </Link>
+                {' · '}
+                <Link to="/account/delete" className="text-link">
+                  Delete your account
+                </Link>
+              </p>
+              <Form method="post" action="/sign-out">
+                <button type="submit" className="button button-secondary">
+                  Sign out
+                </button>
+              </Form>
+            </div>
+          </div>
+        </div>
       </main>
     </>
   );

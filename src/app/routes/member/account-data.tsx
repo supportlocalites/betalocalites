@@ -18,13 +18,13 @@ export default function AccountData() {
         <h1 className="title-1">Download your data</h1>
         <div className="title-rule" aria-hidden="true" />
         <p>
-          You can have a copy of your information on Localites, including your account and details, your events, plans and guests, saved
-          businesses, conversations, reviews, inquiries, suggestions, reports, business teams and claims, what you did for a business
+          You can have a copy of your information on Localites, including your account and details, your events, plans and guests, favourites
+          and shortlist, conversations, reviews, inquiries, suggestions, reports, business teams and claims, what you did for a business
           you’re or were on the team of (messages you wrote for it, changes you saved to its page, replies to reviews, photos and notes),
           and the latest record of how you’ve used Localites.
         </p>
         <p>
-          <a href="/account/data/download?readable" className="button" download>
+          <a href="/account/data/download?readable" className="button button-primary" download>
             Download a readable copy
           </a>
         </p>
