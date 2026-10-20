@@ -370,11 +370,15 @@ const person = cookieOf(sessions.person);
 await site(`/vendors/${V.slug}/add`, { cookie: person, method: 'POST', form: { intent: 'save' } });
 for (const [what, path] of [
   ['an event plan', `/events/${eventId}`],
-  ['Saved businesses', '/saved'],
   ['Add to an event', `/vendors/${V.slug}/add`],
 ]) {
   check(`${what} shows the business’s square profile photo`, (await site(path, { cookie: person })).body.includes(small));
 }
+// Favourites are Browse local's cards (D-57): the first page photo, else the profile photo.
+const [first] = await sql`select a.storage_path as path from vendor_media vm join media_asset a on a.id = vm.media_asset_id
+  where vm.vendor_id = ${V.id} and vm.role = 'gallery' and a.deleted_at is null order by vm.sort_order, a.created_at limit 1`;
+check('Your favourites shows the business’s card photo',
+  (await site('/saved', { cookie: person })).body.includes((first?.path ?? logo.path).replace(/\.(\w+)$/, '-small.$1')));
 // Taken down (D-46): gone from Saved; on the plan only as the person's own booking, with no
 // photo or empty square; and listed for the team to check in about.
 await sql`update vendor set listing_status = 'unpublished' where id = ${V.id}`;

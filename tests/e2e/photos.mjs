@@ -173,8 +173,12 @@ r = await add('o', { large: jpeg(1200, 500), small: jpeg(600, 250), description:
 let [logo] = await logoOf();
 check('the owner adds a profile photo, and the page opens its framing screen (recorded)', r.status === 302 && r.location.includes(`profile=${logo?.id}`)
   && (await sql`select count(*)::int as n from audit_log where action = 'vendor_photo.profile' and subject_id = ${V.id}`)[0].n === 1, `${r.status} ${r.location}`);
+// Search results are Browse local's cards (D-57): they lead with the first page photo. The
+// square profile photo is for the person's own lists (Add to an event, a plan, messages).
 r = await site(`/search?q=${encodeURIComponent(V.name)}`);
-check('search now shows the profile photo, not the first page photo',
+check('search’s cards still lead with the first page photo', r.body.includes(mgrPhoto.path.replace('.jpg', '-small.jpg')));
+r = await site(`/vendors/${V.slug}/add`, { cookie: cookie.other });
+check('a person’s own lists now show the profile photo, not the first page photo',
   r.body.includes(logo.path.replace('.jpg', '-small.jpg')) && !r.body.includes(mgrPhoto.path.replace('.jpg', '-small.jpg')));
 // 1200 x 500 is 2.4 times wider than tall: whole, it fills the square's width and 41.667% of its height, centred.
 check('…shown whole by default (a wide logo), on a soft copy of itself',
@@ -193,7 +197,7 @@ r = await post(PAGE(), 'mgr', { intent: 'frame', id: logo.id, ...frame, x: '20' 
 const reframed = (await sql`select changes from audit_log where action = 'vendor_photo.frame' and subject_id = ${V.id} order by created_at desc limit 1`)[0]?.changes;
 check('framing it again records what it was before', r.status === 200 && reframed?.[`photo.${logo.id}.frame`]?.from?.x === 10, JSON.stringify(reframed));
 r = await post(PAGE(), 'mgr', { intent: 'frame', id: logo.id, ...frame });
-r = await site(`/search?q=${encodeURIComponent(V.name)}`);
+r = await site(`/vendors/${V.slug}/add`, { cookie: cookie.other });
 check('lists draw it as framed', r.body.includes('left:-20%') && r.body.includes('width:200%'));
 for (const [what, bad] of [
   ['an empty size', { ...frame, w: '0' }],
