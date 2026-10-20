@@ -31,6 +31,27 @@ Every release and every database migration, in order. Appended before each deplo
 
 ## Releases
 
+### 2026-10-20 — Sample businesses for showing how Localites looks
+
+**Stage:** 1 (data only, test project only)
+**What changed (plain English):** the product owner asked for "more dummy data where the
+business accounts are filled out; photos are added, addresses are added". Ten made-up sample
+businesses (`sample-…`) are loaded into the Supabase test project on every push until taken
+down (`scripts/demo/`): published, with a description, services, cost level, towns served,
+phone (555-01xx, never anyone's), example.com website and email, a profile photo and three page
+pictures. The pictures are drawings (`public/sample-photos/`, served by the site itself, not
+storage), so they can't be mistaken for real photos. Six have an address on a real Orillia street
+with an invented number (one with the number hidden and an approximate pin); four show their town
+only. Each page opens with "This is a sample listing … It isn't a real business." The six bare
+"Test Vendor" listings are unpublished once, recorded in the history; the team can show them again.
+**Before launch:** `npm run db:demo -- --supabase-test-project --remove` archives every sample
+business, and later pushes never bring them back.
+**Migrations applied:** none.
+**Destructive?** No (taking them down archives, never deletes).
+**Tests run:** loaded twice, hidden, taken down and re-run on a local copy (nothing came back);
+`npm run check`, unit tests 209/209, business photos browser checks 68/68; pages looked at on
+computer and phone widths.
+
 ### 2026-10-19 — Addresses, the map and Message all from the shortlist (D-56, D-57 step 3)
 
 **Stage:** 1, 2B (E §4.1, §4.3, §7)

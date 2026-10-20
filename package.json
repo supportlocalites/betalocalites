@@ -24,6 +24,8 @@
     "db:migrate": "node scripts/migrate.mjs",
     "db:seed:test": "node scripts/seed-test-data.mjs",
     "db:import:test-businesses": "node scripts/import-test-businesses.mjs",
+    "db:demo": "node scripts/demo/load-demo-businesses.mjs",
+    "demo:pictures": "node scripts/demo/make-demo-photos.mjs",
     "db:types": "node scripts/db-types.mjs"
   },
   "dependencies": {

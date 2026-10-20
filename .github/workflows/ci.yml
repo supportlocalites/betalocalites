@@ -183,6 +183,9 @@ jobs:
       - name: Load the 28 researched test businesses as drafts (once)
         if: env.DATABASE_ADMIN_URL != ''
         run: npm run db:import:test-businesses -- --supabase-test-project
+      - name: Load the sample businesses, filled in with drawings and addresses (until taken down)
+        if: env.DATABASE_ADMIN_URL != ''
+        run: npm run db:demo -- --supabase-test-project
 
   # Puts the website live on Cloudflare, last: only after every check and test above has
   # passed and the test database has its changes, so the new website never looks for a

@@ -48,7 +48,15 @@ export const uploadsOn = (env: ServerEnv) => Boolean(storageBase(env) && env.PHO
 
 export const smallPath = (path: string) => path.replace(/\.(jpg|webp)$/, '-small.$1');
 
+/**
+ * The sample businesses' drawings (scripts/demo/) are part of the site itself, in
+ * public/sample-photos/, not in storage: only the loading script makes these paths, since
+ * every uploaded photo gets a random name.
+ */
+export const SAMPLE_PREFIX = 'samples/';
+
 function publicUrl(env: ServerEnv, path: string): string | null {
+  if (path.startsWith(SAMPLE_PREFIX)) return `/sample-photos/${path.slice(SAMPLE_PREFIX.length)}`;
   const base = storageBase(env);
   return base ? `${base}/object/public/${BUCKET}/${path}` : null;
 }
@@ -212,6 +220,7 @@ export async function storeFile(env: ServerEnv, path: string, bytes: Uint8Array<
 
 /** Deletes a photo's two files. Never throws; true when both are gone (or were never there). */
 export async function deleteFiles(env: ServerEnv, path: string): Promise<boolean> {
+  if (path.startsWith(SAMPLE_PREFIX)) return true; // a sample drawing isn't in storage
   const c = client(env);
   if (!c) return false;
   const results = await Promise.all(
