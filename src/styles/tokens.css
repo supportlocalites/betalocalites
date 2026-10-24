@@ -219,6 +219,10 @@
   --b44-pin-open: 18px;
   --b44-lift: -2px;
   --b44-menu: 200px;
+  /* The owner's additions (24 October 2026): a shorter search, the strip of cards on the full map. */
+  --b44-search-max: 340px;
+  --b44-strip: 136px;
+  --b44-faded: 0.45;
 }
 
 /*

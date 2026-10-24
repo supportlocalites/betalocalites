@@ -4,7 +4,7 @@ import { useListActivity, useVendorActivity } from '@/components/ActivityTracker
 import { ReportLink, ReviewList, type ShownReview } from '@/components/Reviews';
 import { directionsUrl, streetLine } from '@/lib/address';
 import type { DirectoryCard, ShortlistItem } from '@/server/browse.server';
-import { DirectoryMap } from './DirectoryMap';
+import { type Bounds, DirectoryMap, type MapApi } from './DirectoryMap';
 import { ShortlistBar } from './ShortlistBar';
 import { TopBar } from './TopBar';
 import styles from './Directory.module.css';
@@ -87,6 +87,13 @@ const localFavourites = {
   },
 };
 
+type View = 'map' | 'hybrid' | 'list';
+const VIEWS: { value: View; label: string }[] = [
+  { value: 'map', label: 'Map' },
+  { value: 'hybrid', label: 'Hybrid' },
+  { value: 'list', label: 'List' },
+];
+
 export function Directory({
   cards,
   kinds,
@@ -114,8 +121,21 @@ export function Directory({
   const [within, setWithin] = useState('');
   const [rating, setRating] = useState('');
   const [sort, setSort] = useState('top');
-  const [mapBig, setMapBig] = useState(false);
+  // Kinds of business chosen (none: all), and only favourites (the owner, 24 October 2026).
+  const [chosen, setChosen] = useState<string[]>([]);
+  const [favOnly, setFavOnly] = useState(false);
+  // Map, Hybrid (map and rows, the start) or List.
+  const [view, setView] = useState<View>('hybrid');
   const [wide, setWide] = useState(false);
+  // "Search this area": the part of the map searched, and what the filters were then.
+  const [area, setArea] = useState<Bounds | null>(null);
+  const [moved, setMoved] = useState(false);
+  const filterKey = JSON.stringify([query.trim(), within, rating, chosen, favOnly]);
+  const [searchedKey, setSearchedKey] = useState(filterKey);
+  const mapApi = useRef<MapApi | null>(null);
+  const onMapReady = useCallback((api: MapApi | null) => {
+    mapApi.current = api;
+  }, []);
   // ?v= names the open business; on a business's own address it's open until closed (v empty).
   const selected = params.has('v') ? params.get('v') || null : initial;
   const select = useCallback(
@@ -135,6 +155,8 @@ export function Directory({
 
   // Favourites: the account's when signed in, this browser's when not.
   const local = localFavourites.parse(useSyncExternalStore(localFavourites.subscribe, localFavourites.read, () => '[]'));
+  const isFavourite = useCallback((c: DirectoryCard) => (signedIn ? c.saved : local.includes(c.slug)), [signedIn, local]);
+  const favourites = cards.filter((c) => c.kindSlug && isFavourite(c)).length;
 
   // The count and the map follow the rows, as on Base44: a business with no main kind that's
   // showing isn't in a row, but its own address still opens its profile.
@@ -142,9 +164,12 @@ export function Directory({
     const needle = query.trim().toLowerCase();
     const list = cards.filter((c) => {
       if (!c.kindSlug) return false;
+      if (chosen.length > 0 && !chosen.includes(c.kindSlug)) return false;
+      if (favOnly && !isFavourite(c)) return false;
       if (within && (c.km ?? Infinity) > Number(within)) return false;
       if (rating && (c.rating ?? 0) < Number(rating)) return false;
       if (needle && ![c.name, c.tagline ?? '', c.kind ?? '', c.sub ?? '', c.place].join(' ').toLowerCase().includes(needle)) return false;
+      if (area && !(c.lat !== null && c.lng !== null && inside(area, c.lat, c.lng))) return false;
       return true;
     });
     const sorted = [...list];
@@ -153,31 +178,36 @@ export function Directory({
     else if (sort === 'reviews') sorted.sort((a, b) => b.reviews - a.reviews);
     else sorted.sort((a, b) => (b.rating ?? 0) - (a.rating ?? 0));
     return sorted;
-  }, [cards, query, within, rating, sort]);
+  }, [cards, query, within, rating, sort, chosen, favOnly, isFavourite, area]);
+  const filtering = Boolean(query.trim() || within || rating || sort !== 'top' || chosen.length || favOnly || area);
 
   const rails = useMemo(
     () => kinds.map((k) => ({ ...k, items: filtered.filter((c) => c.kindSlug === k.slug) })).filter((r) => r.items.length > 0),
     [kinds, filtered],
   );
+  // Every business the filters show, in the order of the rows: the profile steps through these.
+  const ordered = useMemo(() => rails.flatMap((r) => r.items), [rails]);
   const open = cards.find((c) => c.slug === selected) ?? null;
-  const siblings = useMemo(() => (open ? filtered.filter((c) => c.kindSlug === open.kindSlug) : []), [open, filtered]);
-  const position = siblings.findIndex((c) => c.slug === selected);
-  const similar = useMemo(
-    () =>
-      open
-        ? filtered
-            .filter((c) => c.slug !== open.slug && c.kindSlug === open.kindSlug)
-            .sort((a, b) => (b.rating ?? 0) - (a.rating ?? 0))
-            .slice(0, 3)
-        : [],
-    [open, filtered],
-  );
+  const position = ordered.findIndex((c) => c.slug === selected);
+  // "More … businesses": the same kind, as the filters choose them; with no filters, the best
+  // rated first, then the nearest, then the quickest to reply.
+  const similar = useMemo(() => {
+    if (!open) return [];
+    const same = filtered.filter((c) => c.slug !== open.slug && c.kindSlug === open.kindSlug);
+    if (!filtering) {
+      same.sort(
+        (a, b) =>
+          (b.rating ?? 0) - (a.rating ?? 0) || (a.km ?? Infinity) - (b.km ?? Infinity) || (a.replyMinutes ?? Infinity) - (b.replyMinutes ?? Infinity),
+      );
+    }
+    return same.slice(0, 3);
+  }, [open, filtered, filtering]);
   const step = useCallback(
     (delta: number) => {
-      if (siblings.length < 2 || position < 0) return;
-      select(siblings[(position + delta + siblings.length) % siblings.length]!.slug);
+      if (ordered.length < 2 || position < 0) return;
+      select(ordered[(position + delta + ordered.length) % ordered.length]!.slug);
     },
-    [siblings, position, select],
+    [ordered, position, select],
   );
 
   // A business the filters now hide closes, as on Base44.
@@ -197,16 +227,31 @@ export function Directory({
     return () => window.removeEventListener('keydown', onKey);
   }, [step, select]);
 
-  const isFavourite = (c: DirectoryCard) => (signedIn ? c.saved : local.includes(c.slug));
   const heart = (c: DirectoryCard, big = false) => (
     <Heart card={c} big={big} signedIn={signedIn} on={isFavourite(c)} onLocal={() => localFavourites.toggle(c.slug)} />
   );
+  const onMoved = useCallback(() => setMoved(true), []);
+  // Clickable once the map was moved or a filter changed since the last search.
+  const canSearchArea = moved || filterKey !== searchedKey;
+  const searchArea = () => {
+    const b = mapApi.current?.bounds();
+    if (!b) return;
+    setArea(b);
+    setMoved(false);
+    setSearchedKey(filterKey);
+  };
   const clear = () => {
     setQuery('');
     setWithin('');
     setRating('');
     setSort('top');
+    setChosen([]);
+    setFavOnly(false);
+    setArea(null);
+    setMoved(false);
+    setSearchedKey(JSON.stringify(['', '', '', [], false]));
   };
+  const mapShown = view !== 'list';
 
   return (
     <div className={styles.screen}>
@@ -235,49 +280,74 @@ export function Directory({
           )}
         </div>
         <div className={styles.filters}>
+          <KindsPicker kinds={kinds} chosen={chosen} onChange={setChosen} />
           <Select id="within" label="Within" value={within} onChange={setWithin} options={WITHIN} />
           <Select id="rating" label="Rating" value={rating} onChange={setRating} options={RATING} />
           <Select id="sort" label="Sort" value={sort} onChange={setSort} options={SORT} />
+          <button
+            type="button"
+            onClick={() => setFavOnly((v) => !v)}
+            className={`${styles.chip} ${favOnly ? styles.chipOn : ''}`}
+            aria-pressed={favOnly}
+            title="Only your favourites"
+          >
+            <Icon name="heart" small />
+            Favourites{favourites > 0 ? ` ${favourites}` : ''}
+          </button>
+          <div className={styles.views} role="group" aria-label="View">
+            {VIEWS.map((v) => (
+              <button
+                key={v.value}
+                type="button"
+                onClick={() => setView(v.value)}
+                className={`${styles.viewButton} ${view === v.value ? styles.viewOn : ''}`}
+                aria-pressed={view === v.value}
+              >
+                {v.label}
+              </button>
+            ))}
+          </div>
           <button type="button" onClick={clear} className={styles.clear}>
             Clear
           </button>
         </div>
       </TopBar>
 
-      <div className={styles.body}>
+      <div className={`${styles.body} ${open ? styles.bodyOpen : ''}`}>
         <div className={styles.left}>
-          <DirectoryMap
-            cards={filtered}
-            selected={selected}
-            onSelect={select}
-            expanded={mapBig}
-            className={`${styles.map} ${mapBig ? styles.mapBig : ''}`}
-          >
-            <button type="button" onClick={() => setMapBig((v) => !v)} className={styles.expand}>
-              <Icon name={mapBig ? 'min' : 'max'} small />
-              {mapBig ? 'Collapse' : 'Expand map'}
-            </button>
-          </DirectoryMap>
-
-          {!mapBig && (
-            <div className={styles.viewbar}>
-              <p className={styles.count}>
-                <span className={styles.countNumber}>
-                  {filtered.length} {filtered.length === 1 ? 'business' : 'businesses'}
-                </span>
-                <span className={styles.dotSep} aria-hidden="true">
-                  ·
-                </span>
-                <span className={styles.countHint}>Click a business to open the profile</span>
-              </p>
-            </div>
+          {mapShown && (
+            <DirectoryMap
+              cards={filtered}
+              selected={selected}
+              onSelect={select}
+              layout={`${view}|${open ? 'open' : 'shut'}|${wide}`}
+              onMoved={onMoved}
+              onReady={onMapReady}
+              className={`${styles.map} ${view === 'map' ? styles.mapBig : ''}`}
+            >
+              <div className={`${styles.mapFoot} ${view === 'map' ? styles.mapFootRaised : ''}`}>
+                <button type="button" onClick={searchArea} disabled={!canSearchArea} className={styles.searchArea}>
+                  <Icon name="search" small />
+                  Search this area
+                </button>
+              </div>
+              {view === 'map' && ordered.length > 0 && (
+                <Strip items={ordered} selected={selected} onSelect={select} heart={heart} signedIn={signedIn} />
+              )}
+            </DirectoryMap>
           )}
 
-          <div className={`${styles.rails} ${mapBig ? styles.hidden : ''}`}>
+          <div className={`${styles.rails} ${view === 'map' ? styles.hidden : ''}`}>
             {rails.length === 0 ? (
               <div className={styles.empty}>
-                <p className={styles.emptyTitle}>Nothing matches those filters</p>
-                <p className={styles.emptyHint}>Try widening the distance or clearing the search.</p>
+                <p className={styles.emptyTitle}>{favOnly && favourites === 0 ? 'No favourites yet' : 'Nothing matches those filters'}</p>
+                <p className={styles.emptyHint}>
+                  {favOnly && favourites === 0
+                    ? 'Tap the heart on any business to keep it here.'
+                    : area
+                      ? 'Try moving the map, or clearing the filters.'
+                      : 'Try widening the distance or clearing the search.'}
+                </p>
                 <Link to={`/suggest${query ? `?q=${encodeURIComponent(query)}` : ''}`} className={styles.suggest}>
                   Can’t find it? Suggest a business
                 </Link>
@@ -301,7 +371,7 @@ export function Directory({
               onClose={() => select(null)}
               onSelect={select}
               onStep={step}
-              position={{ index: position + 1, total: siblings.length }}
+              position={{ index: position + 1, total: position >= 0 ? ordered.length : 0 }}
               similar={similar}
               heart={heart}
               signedIn={signedIn}
@@ -317,6 +387,52 @@ export function Directory({
         </div>
       </div>
     </div>
+  );
+}
+
+const inside = (b: Bounds, lat: number, lng: number) => lat >= b.south && lat <= b.north && lng >= b.west && lng <= b.east;
+
+/** Kinds of business to show, several at once (none ticked: every kind). */
+function KindsPicker({
+  kinds,
+  chosen,
+  onChange,
+}: {
+  kinds: { slug: string; name: string }[];
+  chosen: string[];
+  onChange: (next: string[]) => void;
+}) {
+  const words = chosen.length === 0 ? 'All kinds' : chosen.length === 1 ? (kinds.find((k) => k.slug === chosen[0])?.name ?? '1 kind') : `${chosen.length} kinds`;
+  return (
+    <details className={styles.picker}>
+      <summary className={styles.select}>
+        <span className={styles.selectLabel}>Show</span>
+        <span className={styles.selectRow}>
+          <span className={styles.pickerValue}>{words}</span>
+          <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false" className={styles.chevron}>
+            <path d="m6 9 6 6 6-6" />
+          </svg>
+        </span>
+      </summary>
+      <fieldset className={styles.pickerList}>
+        <legend className="visually-hidden">Kinds of business to show</legend>
+        {kinds.map((k) => (
+          <label key={k.slug} className={styles.pickerItem}>
+            <input
+              type="checkbox"
+              checked={chosen.includes(k.slug)}
+              onChange={(e) => onChange(e.target.checked ? [...chosen, k.slug] : chosen.filter((x) => x !== k.slug))}
+            />
+            {k.name}
+          </label>
+        ))}
+        {chosen.length > 0 && (
+          <button type="button" className={styles.pickerAll} onClick={() => onChange([])}>
+            Show all kinds
+          </button>
+        )}
+      </fieldset>
+    </details>
   );
 }
 
@@ -394,27 +510,82 @@ function Rail({
       </div>
       <div ref={scroller} className={styles.row}>
         {rail.items.map((c, i) => (
-          <article key={c.id} className={`${styles.card} ${c.slug === selected ? styles.cardOpen : ''}`} data-pos={i + 1}>
-            <button type="button" className={styles.cardHit} onClick={() => onSelect(c.slug)} aria-label={`Open ${c.name}`} />
-            <span className={styles.stripe} aria-hidden="true" />
-            <p className={styles.cardKind}>
-              {c.sub ?? c.kind}
-              {c.bestRated && <span className={styles.best}>Best rated</span>}
-            </p>
-            <h3 className={styles.cardName}>{c.name}</h3>
-            {c.tagline && <p className={styles.cardTagline}>{c.tagline}</p>}
-            <Meta card={c} />
-            {/* Not on the business's own team's cards (C6): they don't shortlist or save their own. */}
-            {!c.yours && (
-              <div className={styles.cardButtons}>
-                <Plus card={c} signedIn={signedIn} />
-                {heart(c)}
-              </div>
-            )}
-          </article>
+          <MiniCard key={c.id} card={c} pos={i + 1} selected={selected} onSelect={onSelect} heart={heart} signedIn={signedIn} />
         ))}
       </div>
     </section>
+  );
+}
+
+/**
+ * On the full map, every business the filters show in one line along the bottom, in the order
+ * ‹ › steps through; the open one slides into view, whether tapped here or on the map.
+ */
+function Strip({
+  items,
+  selected,
+  onSelect,
+  heart,
+  signedIn,
+}: {
+  items: DirectoryCard[];
+  selected: string | null;
+  onSelect: (slug: string) => void;
+  heart: HeartFn;
+  signedIn: boolean;
+}) {
+  const row = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const i = items.findIndex((c) => c.slug === selected);
+    const card = i >= 0 ? row.current?.children[i] : null;
+    card?.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+  }, [items, selected]);
+  return (
+    <div className={styles.strip}>
+      <div className={styles.row} ref={row}>
+        {items.map((c, i) => (
+          <MiniCard key={c.id} card={c} pos={i + 1} selected={selected} onSelect={onSelect} heart={heart} signedIn={signedIn} />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+/** One small card (Base44's): in a row, and along the bottom of the full map. */
+function MiniCard({
+  card: c,
+  pos,
+  selected,
+  onSelect,
+  heart,
+  signedIn,
+}: {
+  card: DirectoryCard;
+  pos: number;
+  selected: string | null;
+  onSelect: (slug: string) => void;
+  heart: HeartFn;
+  signedIn: boolean;
+}) {
+  return (
+    <article className={`${styles.card} ${c.slug === selected ? styles.cardOpen : ''}`} data-pos={pos}>
+      <button type="button" className={styles.cardHit} onClick={() => onSelect(c.slug)} aria-label={`Open ${c.name}`} />
+      <span className={styles.stripe} aria-hidden="true" />
+      <p className={styles.cardKind}>
+        {c.sub ?? c.kind}
+        {c.bestRated && <span className={styles.best}>Best rated</span>}
+      </p>
+      <h3 className={styles.cardName}>{c.name}</h3>
+      {c.tagline && <p className={styles.cardTagline}>{c.tagline}</p>}
+      <Meta card={c} />
+      {/* Not on the business's own team's cards (C6): they don't shortlist or save their own. */}
+      {!c.yours && (
+        <div className={styles.cardButtons}>
+          <Plus card={c} signedIn={signedIn} />
+          {heart(c)}
+        </div>
+      )}
+    </article>
   );
 }
 
@@ -762,6 +933,12 @@ const PATHS: Record<string, React.ReactNode> = {
   right: <path d="m9 18 6-6-6-6" />,
   arrow: <path d="M5 12h14M13 6l6 6-6 6" />,
   out: <path d="M7 17 17 7M8 7h9v9" />,
+  search: (
+    <>
+      <circle cx="11" cy="11" r="7" />
+      <path d="m20 20-3.5-3.5" />
+    </>
+  ),
 };
 
 function Icon({ name, tiny = false, small = false }: { name: string; tiny?: boolean; small?: boolean }) {

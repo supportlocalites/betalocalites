@@ -14,6 +14,7 @@ const words = (html) => decode(html.replace(/<!-- -->/g, '').replace(/<[^>]*>/g,
 
 const [town] = await sql`select id, slug::text as slug, name from municipality where is_active order by sort_order limit 1`;
 const [kind] = await sql`select id, slug::text as slug, name from category where parent_id is null and is_active order by sort_order limit 1`;
+const [kind2] = await sql`select id, slug::text as slug, name from category where parent_id is null and is_active order by sort_order offset 1 limit 1`;
 const [sub] = await sql`select id, name from category where parent_id = ${kind.id} and is_active order by sort_order limit 1`;
 const business = async (key, name, { status = 'published', claim = 'claimed', tagline = null, pin = null, category = kind } = {}) => {
   const [v] = await sql`
@@ -45,7 +46,8 @@ check('signed out, Browse local shows listed businesses in their main kind’s r
   && r.body.includes(A.name) && r.body.includes(B.name) && r.body.includes(U.name) && !r.body.includes(H.name), String(r.status));
 check('…with the Base44 top bar: search, Within, Rating, Sort and Clear', r.body.includes('Search by name or what they do...')
   && r.body.includes('Within 10 km') && r.body.includes('4.8 &amp; up') && r.body.includes('Fastest reply') && r.body.includes('>Clear<'));
-check('…the count says businesses, not vendors', /\d+ businesses/.test(words(r.body)) && words(r.body).includes('Click a business to open the profile'));
+// The count line under the map is gone (the owner, 24 October 2026).
+check('…no count line under the map', !words(r.body).includes('Click a business to open the profile'));
 check('…the + asks to sign in first and comes back here; the heart works without an account',
   r.body.includes(`href="/join?next=${encodeURIComponent('/explore')}"`) && r.body.includes(`Sign in to add ${A.name} to your shortlist`)
   && r.body.includes(`aria-label="Add ${A.name} to favourites"`));
@@ -132,6 +134,73 @@ await page.click(`button[aria-label="Add ${B.name} to favourites"]`);
 check('signed out, the heart keeps a favourite in this browser', (await page.getAttribute(`button[aria-label="Remove ${B.name} from favourites"]`, 'aria-pressed')) === 'true');
 await page.reload({ waitUntil: 'networkidle' });
 check('…and still after a reload', (await page.$(`button[aria-label="Remove ${B.name} from favourites"]`)) !== null);
+
+console.log('\nThe owner’s additions (24 October 2026)');
+const stepCount = async () => (await page.textContent('aside [class*="stepCount"]'))?.replace(/\s+/g, ' ').trim() ?? '';
+await page.click('button:has-text("Favourites")');
+names = await cardNames();
+check('Favourites shows only the favourites', names.length === 1 && names[0] === B.name, names.join(', '));
+await page.click('button:has-text("Favourites")');
+await page.click('summary:has-text("Show")');
+await page.click(`label:has-text("${kind2.name}")`);
+names = await cardNames();
+check('Show: ticking a kind leaves only that kind', !names.includes(A.name) && !names.includes(B.name));
+await page.click('button:has-text("Show all kinds")');
+names = await cardNames();
+check('…and “Show all kinds” brings every kind back', names.includes(A.name) && names.includes(B.name));
+await page.click('summary:has-text("Show")');
+check('the view starts on Hybrid: map and rows', (await page.getAttribute('button:has-text("Hybrid")', 'aria-pressed')) === 'true'
+  && (await page.$('[aria-label="Map of the businesses that shared an address"]')) !== null && names.length > 0);
+await page.click('button[aria-pressed]:has-text("List")');
+check('List: only the rows, no map', (await page.$('[aria-label="Map of the businesses that shared an address"]')) === null && (await cardNames()).length > 0);
+await page.click('button[aria-pressed]:has-text("Map")');
+await page.waitForSelector('[aria-label="Map of the businesses that shared an address"]');
+const strip = await page.$$eval('[class*="strip"] article h3', (hs) => hs.map((h) => h.textContent));
+check('Map: the businesses in one line along the bottom of the map', strip.includes(A.name) && strip.includes(B.name), strip.length);
+await page.click(`[class*="strip"] button[aria-label="Open ${A.name}"]`);
+await page.waitForSelector(`aside[aria-label="${A.name}"]`);
+check('…tapping one there opens its profile beside the map', page.url().includes(`v=${A.slug}`));
+await page.keyboard.press('Escape');
+await page.click('button[aria-pressed]:has-text("Hybrid")');
+await page.waitForSelector('[aria-label="Map of the businesses that shared an address"]');
+check('“Search this area” waits until there’s something to search', await page.isDisabled('button:has-text("Search this area")'));
+await page.selectOption('#rating', '4');
+check('…a changed filter makes it clickable', !(await page.isDisabled('button:has-text("Search this area")')));
+await page.selectOption('#rating', '');
+check('…changed back, there’s nothing new to search', await page.isDisabled('button:has-text("Search this area")'));
+// Open A and close it, so the map is centred on it before it's moved a little.
+await page.click(`button[aria-label="Open ${A.name}"]`);
+await page.waitForSelector(`aside[aria-label="${A.name}"]`);
+await page.waitForTimeout(1000);
+await page.keyboard.press('Escape');
+await page.waitForTimeout(500);
+const mapBox = await page.$eval('[aria-label="Map of the businesses that shared an address"]', (el) => {
+  const r = el.getBoundingClientRect();
+  return { x: r.x + r.width / 3, y: r.y + r.height / 3 };
+});
+await page.mouse.move(mapBox.x, mapBox.y);
+await page.mouse.down();
+await page.mouse.move(mapBox.x + 40, mapBox.y + 20, { steps: 5 });
+await page.mouse.up();
+check('…moving the map makes it clickable', !(await page.isDisabled('button:has-text("Search this area")')));
+await page.click('button:has-text("Search this area")');
+names = await cardNames();
+check('…it keeps those on the map in view, and leaves out those with no address', names.includes(A.name) && !names.includes(U.name), names.join(', '));
+// The map may still be gliding from the drag; give the button a moment to settle.
+const faded = await page.waitForSelector('button:has-text("Search this area"):disabled', { timeout: 3000 }).then(() => true, () => false);
+check('…and fades again until the map moves or a filter changes', faded);
+await page.click('button:has-text("Clear")');
+names = await cardNames();
+check('Clear brings back the whole area', names.includes(U.name));
+await page.click(`button[aria-label="Open ${A.name}"]`);
+await page.waitForSelector(`aside[aria-label="${A.name}"]`);
+check('‹ › steps through every business the filters show, not just one kind', (await stepCount()).endsWith(`/ ${names.length}`), `${await stepCount()} of ${names.length}`);
+await page.keyboard.press('Escape');
+const phone = await browser.newPage({ viewport: { width: 390, height: 844 } });
+await phone.goto(`${BASE}/vendors/${A.slug}`, { waitUntil: 'networkidle' });
+check('on a phone, an open profile is the whole screen: no rows squeezed beside it',
+  !(await phone.isVisible(`#rail-${kind.slug}`)) && (await phone.isVisible(`aside[aria-label="${A.name}"]`)));
+await phone.close();
 await page.goto(`${BASE}/vendors/${A.slug}`, { waitUntil: 'networkidle' });
 await page.click('button[aria-label="Close profile"]');
 await page.waitForSelector(`aside[aria-label="${A.name}"]`, { state: 'detached' });

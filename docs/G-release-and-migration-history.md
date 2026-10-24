@@ -31,6 +31,24 @@ Every release and every database migration, in order. Appended before each deplo
 
 ## Releases
 
+### 2026-10-24 — Browse local: filters, views and the map (D-61)
+
+**Stage:** 1 and 2 (the redesign)
+**What changed (plain English):** the owner's nine changes. The count line under the map is gone.
+The top bar has **Show** (kinds of business, several at once), a shorter search, **Favourites**
+(only your favourites; signed out, the ones kept in this browser), and **Map / Hybrid / List**
+(starting on Hybrid). **Search this area** sits at the bottom middle of the map, faded until the
+map is moved or a filter changes; pressed, it keeps the businesses in view (with the other filters;
+those without an address are left out) until Clear. With the profile open the map re-centres in the
+part still showing, and it only glides when a different business opens. On the full map every
+business the filters show is in one line along the bottom; tapping one opens it and centres the
+map. ‹ › steps through every business the filters show, in row order. Suggested businesses follow
+the filters; with none, the best rated first, then the nearest, then the quickest to reply. On a
+phone an open profile is the whole screen.
+**Migrations applied:** none. **Destructive?** No.
+**Tests run:** `npm run check`; unit tests 219/219; every browser suite on a fresh database (30
+suites, all passing; Browse local 55/55, run four times in a row).
+
 ### 2026-10-24 — The Base44 design becomes the website, and the new kinds of business (D-59, D-60)
 
 **Stage:** 1 and 2 (the redesign)

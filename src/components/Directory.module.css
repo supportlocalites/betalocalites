@@ -21,7 +21,7 @@
 @media (min-width: 1024px) {
   .search {
     order: 0;
-    flex: 1 1 auto;
+    flex: 0 1 var(--b44-search-max);
   }
 }
 
@@ -1081,4 +1081,214 @@
 
 .star .fill {
   fill: var(--color-gold);
+}
+
+/* ---- The owner's additions (24 October 2026) ----------------------------------------------- */
+
+/* Favourites only: a pill like Clear, gold when on. */
+.chip {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  gap: var(--space-1);
+  height: var(--b44-chip);
+  border-radius: var(--radius-pill);
+  border: var(--hairline) solid var(--color-line);
+  background: none;
+  padding-inline: var(--space-3);
+  font: inherit;
+  font-size: var(--b44-text-count);
+  font-weight: 500;
+  letter-spacing: var(--b44-track-caps);
+  text-transform: uppercase;
+  color: var(--color-muted);
+  cursor: pointer;
+}
+
+.chip:hover {
+  border-color: var(--color-muted-soft);
+  color: var(--color-ink);
+}
+
+.chipOn,
+.chipOn:hover {
+  border-color: var(--color-gold-faint);
+  background: var(--color-gold-soft);
+  color: var(--color-gold-ink);
+}
+
+.chipOn .icon {
+  fill: var(--color-gold);
+  color: var(--color-gold);
+}
+
+/* Map, Hybrid, List: one pill split in three. */
+.views {
+  display: inline-flex;
+  flex-shrink: 0;
+  border-radius: var(--radius-pill);
+  border: var(--hairline) solid var(--color-line);
+  padding: var(--hairline);
+}
+
+.viewButton {
+  height: calc(var(--b44-chip) - var(--hairline) * 4);
+  border: 0;
+  border-radius: var(--radius-pill);
+  background: none;
+  padding-inline: var(--space-3);
+  font: inherit;
+  font-size: var(--b44-text-count);
+  font-weight: 500;
+  letter-spacing: var(--b44-track-caps);
+  text-transform: uppercase;
+  color: var(--color-muted);
+  cursor: pointer;
+}
+
+.viewButton:hover {
+  color: var(--color-ink);
+}
+
+.viewOn,
+.viewOn:hover {
+  background: var(--color-ink);
+  color: var(--color-on-ink);
+}
+
+/* Show: the kinds of business, several at once. */
+.picker {
+  position: relative;
+  flex-shrink: 0;
+}
+
+.picker > summary {
+  list-style: none;
+  cursor: pointer;
+}
+
+.picker > summary::-webkit-details-marker {
+  display: none;
+}
+
+.pickerValue {
+  padding-right: var(--space-4);
+  font-size: var(--b44-text-card);
+  font-weight: 500;
+  letter-spacing: var(--b44-track-select);
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.pickerList {
+  position: fixed;
+  z-index: 30;
+  display: grid;
+  gap: var(--space-1);
+  min-width: var(--b44-menu);
+  margin: var(--space-1) 0 0;
+  padding: var(--space-2);
+  border: var(--hairline) solid var(--color-line);
+  border-radius: var(--radius-sheet);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-card-open);
+}
+
+.pickerItem {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-1) var(--space-2);
+  border-radius: var(--radius-file);
+  font-size: var(--b44-text-search);
+  cursor: pointer;
+}
+
+.pickerItem:hover {
+  background: var(--color-tint);
+}
+
+.pickerAll {
+  justify-self: start;
+  border: 0;
+  background: none;
+  padding: var(--space-1) var(--space-2);
+  font: inherit;
+  font-size: var(--b44-text-count);
+  font-weight: 500;
+  letter-spacing: var(--b44-track-caps);
+  text-transform: uppercase;
+  color: var(--color-ink);
+  cursor: pointer;
+  text-decoration: underline;
+}
+
+/* "Search this area", at the bottom middle of the map: faded until there's something new to search. */
+.mapFoot {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: var(--space-4);
+  z-index: 500;
+  display: flex;
+  justify-content: center;
+  pointer-events: none;
+}
+
+.mapFootRaised {
+  bottom: calc(var(--b44-strip) + var(--space-3));
+}
+
+.searchArea {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  border-radius: var(--radius-pill);
+  border: var(--hairline) solid var(--color-line);
+  background: var(--color-surface);
+  padding: var(--space-2) var(--space-4);
+  font: inherit;
+  font-size: var(--b44-text-count);
+  font-weight: 500;
+  letter-spacing: var(--b44-track-caps);
+  text-transform: uppercase;
+  color: var(--color-ink);
+  box-shadow: var(--shadow-soft);
+  cursor: pointer;
+  pointer-events: auto;
+}
+
+.searchArea:hover:not(:disabled) {
+  border-color: var(--color-gold);
+}
+
+.searchArea:disabled {
+  opacity: var(--b44-faded);
+  box-shadow: none;
+  cursor: default;
+}
+
+/* The full map's businesses, one line along the bottom (like a row). */
+.strip {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 500;
+  padding: var(--space-3) var(--b44-gutter);
+  background: linear-gradient(to top, var(--color-glass), transparent);
+}
+
+/* On a phone the view switch comes first in the row of filters, so it's always in sight. */
+@media (max-width: 1023px) {
+  .views {
+    order: -1;
+  }
+}
+
+/* On a phone, an open profile takes the whole screen; ‹ › steps through what the filters show. */
+@media (max-width: 1023px) {
+  .bodyOpen .left {
+    display: none;
+  }
 }
