@@ -9,7 +9,7 @@ import { readShortlist } from '@/server/browse.server';
 import { actingAs } from '@/server/acting.server';
 import { myEvents, saveVendor, unsaveVendor } from '@/server/events.server';
 import { refusal, todayIso, tooFast } from '@/server/plan-pages.server';
-import { addToShortlist, removeFromShortlist, shortlistToEvent } from '@/server/shortlist.server';
+import { addToShortlist, clearShortlist, removeFromShortlist, shortlistToEvent } from '@/server/shortlist.server';
 import { smallPhotoUrl } from '@/server/photo-store.server';
 import type { Route } from './+types/shortlist';
 import styles from './shortlist.module.css';
@@ -54,6 +54,10 @@ export async function action({ request, context }: Route.ActionArgs) {
       if (!isUuid(eventId)) throw data(null, { status: 400 });
       const n = await shortlistToEvent(env, member.userId, eventId);
       return redirect(`/events/${eventId}?moved=${n}`);
+    }
+    if (intent === 'clear') {
+      await clearShortlist(env, member.userId);
+      return inline ? data({ error: null }) : redirect(back);
     }
     if (!SLUG.test(slug)) throw data(null, { status: 400 });
     if (intent === 'add') await addToShortlist(env, member.userId, slug);

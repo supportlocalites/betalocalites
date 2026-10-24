@@ -3,6 +3,7 @@ import { Link, useFetcher, useLocation, useSearchParams } from 'react-router';
 import { useListActivity, useVendorActivity } from '@/components/ActivityTracker';
 import { ReportLink, ReviewList, type ShownReview } from '@/components/Reviews';
 import { directionsUrl, streetLine } from '@/lib/address';
+import { fuzzyMatch } from '@/lib/fuzzy';
 import type { DirectoryCard, ShortlistItem } from '@/server/browse.server';
 import { type Bounds, DirectoryMap, type MapApi } from './DirectoryMap';
 import { ShortlistBar } from './ShortlistBar';
@@ -128,7 +129,8 @@ export function Directory({
   }, []);
   // ?v= names the open business; on a business's own address it's open until closed (v empty).
   const selected = params.has('v') ? params.get('v') || null : initial;
-  const select = useCallback(
+  // Which business is open, in the address (?v=).
+  const setOpen = useCallback(
     (slug: string | null) =>
       setParams(
         (p) => {
@@ -142,6 +144,18 @@ export function Directory({
       ),
     [setParams, initial],
   );
+  const select = useCallback(
+    (slug: string | null) => {
+      // A business opened from nothing open starts as the drawer, not the sheet.
+      if (slug && !selected) setWide(false);
+      setOpen(slug);
+    },
+    [setOpen, selected],
+  );
+
+  // Closing the profile (×, Esc, or outside the sheet). The sheet stays a sheet until it's gone,
+  // so the drawer never flashes up on the way out.
+  const closeSheet = useCallback(() => select(null), [select]);
 
   // Favourites: the account's when signed in, this browser's when not.
   const local = localFavourites.parse(useSyncExternalStore(localFavourites.subscribe, localFavourites.read, () => '[]'));
@@ -158,7 +172,8 @@ export function Directory({
       if (favOnly && !isFavourite(c)) return false;
       if (within && (c.km ?? Infinity) > Number(within)) return false;
       if (rating && (c.rating ?? 0) < Number(rating)) return false;
-      if (needle && ![c.name, c.tagline ?? '', c.kind ?? '', c.sub ?? '', c.place].join(' ').toLowerCase().includes(needle)) return false;
+      // Forgiving of spelling (the owner, 24 October 2026).
+      if (needle && !fuzzyMatch(needle, [c.name, c.tagline ?? '', c.kind ?? '', c.sub ?? '', c.place, ...c.tags].join(' '))) return false;
       if (area && !(c.lat !== null && c.lng !== null && inside(area, c.lat, c.lng))) return false;
       return true;
     });
@@ -202,20 +217,20 @@ export function Directory({
 
   // A business the filters now hide closes, as on Base44.
   useEffect(() => {
-    if (selected && open?.kindSlug && !filtered.some((c) => c.slug === selected)) select(null);
-  }, [filtered, selected, open, select]);
+    if (selected && open?.kindSlug && !filtered.some((c) => c.slug === selected)) setOpen(null);
+  }, [filtered, selected, open, setOpen]);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       const t = e.target as HTMLElement | null;
       if (t && /^(INPUT|SELECT|TEXTAREA)$/.test(t.tagName)) return;
-      if (e.key === 'Escape') select(null);
+      if (e.key === 'Escape') closeSheet();
       else if (e.key === 'ArrowRight') step(1);
       else if (e.key === 'ArrowLeft') step(-1);
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [step, select]);
+  }, [step, closeSheet]);
 
   const heart = (c: DirectoryCard, big = false) => (
     <Heart card={c} big={big} signedIn={signedIn} on={isFavourite(c)} onLocal={() => localFavourites.toggle(c.slug)} />
@@ -241,6 +256,28 @@ export function Directory({
     setMoved(false);
     setSearchedKey(JSON.stringify(['', '', '', [], false]));
   };
+  const profileView = open ? (
+      <Profile
+        key={open.slug}
+        card={open}
+        wide={wide}
+        onWide={() => setWide((v) => !v)}
+        onClose={closeSheet}
+        onSelect={select}
+        onStep={step}
+        position={{ index: position + 1, total: position >= 0 ? ordered.length : 0 }}
+        similar={similar}
+        heart={heart}
+        signedIn={signedIn}
+        pageTrack={open.slug === initial ? initialTrack : null}
+        pageReviews={open.slug === initial ? initialReviews : null}
+        listPlace={(() => {
+          const t = open.kindSlug ? tracks[open.kindSlug] : null;
+          const pos = cards.filter((c) => c.kindSlug === open.kindSlug).findIndex((c) => c.slug === open.slug);
+          return t && pos >= 0 ? { pos: pos + 1, list: t.list } : null;
+        })()}
+      />
+  ) : null;
   const mapShown = view !== 'list';
 
   return (
@@ -360,30 +397,37 @@ export function Directory({
           {shortlist.length > 0 && <ShortlistBar items={shortlist} />}
         </div>
 
-        <div className={`${styles.panelBox} ${open ? (wide ? styles.panelWide : styles.panelOpen) : ''}`}>
-          {open && (
-            <Profile
-              key={open.slug}
-              card={open}
-              wide={wide}
-              onWide={() => setWide((v) => !v)}
-              onClose={() => select(null)}
-              onSelect={select}
-              onStep={step}
-              position={{ index: position + 1, total: position >= 0 ? ordered.length : 0 }}
-              similar={similar}
-              heart={heart}
-              signedIn={signedIn}
-              pageTrack={open.slug === initial ? initialTrack : null}
-              pageReviews={open.slug === initial ? initialReviews : null}
-              listPlace={(() => {
-                const t = open.kindSlug ? tracks[open.kindSlug] : null;
-                const pos = cards.filter((c) => c.kindSlug === open.kindSlug).findIndex((c) => c.slug === open.slug);
-                return t && pos >= 0 ? { pos: pos + 1, list: t.list } : null;
-              })()}
-            />
-          )}
-        </div>
+        <div className={`${styles.panelBox} ${open && !wide ? styles.panelOpen : ''}`}>{open && !wide && profileView}</div>
+      </div>
+      {/* Expanded, the profile is a sheet over the page (the owner, 24 October 2026): a click
+          anywhere outside it closes it, as does its ×. */}
+      {open && wide && (
+        <Sheet name={open.name} onClose={closeSheet}>
+          {profileView}
+        </Sheet>
+      )}
+    </div>
+  );
+}
+
+/** The expanded profile: a large card over a dimmed page, closed by clicking outside it, its ×, or Esc. */
+function Sheet({ name, onClose, children }: { name: string; onClose: () => void; children: React.ReactNode }) {
+  const card = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    card.current?.focus();
+  }, []);
+  return (
+    <div className={styles.sheetBackdrop} onClick={onClose}>
+      <div
+        ref={card}
+        className={styles.sheet}
+        role="dialog"
+        aria-modal="true"
+        aria-label={name}
+        tabIndex={-1}
+        onClick={(e) => e.stopPropagation()}
+      >
+        {children}
       </div>
     </div>
   );

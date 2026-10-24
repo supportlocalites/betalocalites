@@ -96,6 +96,7 @@
 .message {
   flex: none;
   margin-left: auto;
+  border-radius: var(--radius-button);
   display: flex;
   align-items: center;
   min-height: var(--size-icon-button);
@@ -106,6 +107,30 @@
   letter-spacing: var(--tracking-button);
   text-transform: uppercase;
   text-decoration: none;
+}
+
+/* Clear all: quieter than Message all, on the same dark bar. */
+.clearAll {
+  flex: none;
+  display: flex;
+  align-items: center;
+  min-height: var(--size-icon-button);
+  padding-inline: var(--space-4);
+  border: var(--hairline) solid transparent;
+  border-radius: var(--radius-button);
+  background: none;
+  color: var(--color-on-bar);
+  font: inherit;
+  font-size: var(--text-button);
+  letter-spacing: var(--tracking-button);
+  text-transform: uppercase;
+  text-decoration: underline;
+  text-underline-offset: var(--underline-offset);
+  cursor: pointer;
+}
+
+.clearAll:hover {
+  border-color: var(--color-bar-line);
 }
 
 .go {

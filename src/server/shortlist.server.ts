@@ -45,6 +45,11 @@ export async function removeFromShortlist(env: ServerEnv, userId: string, slug: 
   );
 }
 
+/** Everything off the person's own shortlist ("Clear all", the owner, 24 October 2026). */
+export async function clearShortlist(env: ServerEnv, userId: string): Promise<void> {
+  await planned(actingAs(env, asPerson(userId), (tx) => tx.execute(sql`delete from shortlist where user_id = ${userId}`)));
+}
+
 /**
  * Moves the listed businesses on the shortlist onto one of the person's own events, as
  * Considering (the database's rules apply to each), and takes those off the shortlist. Already

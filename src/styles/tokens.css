@@ -30,6 +30,8 @@
   --shadow-card-open: 0 18px 38px -28px rgba(30, 24, 12, 0.5);
   --shadow-soft: 0 1px 3px rgba(30, 24, 12, 0.12);
   --shadow-pin: 0 1px 6px rgba(30, 24, 12, 0.28);
+  --shadow-sheet: 0 30px 80px -20px rgba(30, 24, 12, 0.45);
+  --color-backdrop: rgba(28, 26, 23, 0.45);
   --filter-map: sepia(0.18) saturate(0.92) brightness(1.03) grayscale(0.55);
   --color-photo-1: #e5dfd6;
   --color-photo-2: #ddd6cb;
@@ -211,7 +213,7 @@
   --b44-map-min: 180px;
   --b44-photo: 168px;
   --b44-photo-wide: 190px;
-  --b44-photo-wider: 212px;
+  --b44-photo-wider: 320px;
   --b44-thumb: 44px;
   --b44-panel: 33%;
   --b44-panel-wide: 58%;
@@ -225,6 +227,8 @@
   --b44-faded: 0.45;
   --b44-range: 110px;
   --b44-range-value: 44px;
+  --b44-sheet: 1080px;
+  --b44-sheet-height: 88vh;
 }
 
 /*

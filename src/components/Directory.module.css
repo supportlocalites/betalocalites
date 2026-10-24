@@ -65,6 +65,7 @@
 }
 
 .searchClear {
+  padding: 0;
   position: absolute;
   right: var(--space-3);
   top: 50%;
@@ -598,6 +599,7 @@
 }
 
 .heart {
+  padding: 0;
   display: grid;
   flex-shrink: 0;
   place-items: center;
@@ -689,8 +691,7 @@
   transition: width 0.3s ease-out;
 }
 
-.panelOpen,
-.panelWide {
+.panelOpen {
   width: 100%;
 }
 
@@ -699,9 +700,6 @@
     width: var(--b44-panel);
   }
 
-  .panelWide {
-    width: var(--b44-panel-wide);
-  }
 }
 
 .panel {
@@ -722,12 +720,12 @@
   background: var(--color-tint);
 }
 
-.panelWide .photo {
+.sheet .photo {
   height: var(--b44-photo-wide);
 }
 
 @media (min-width: 1024px) {
-  .panelWide .photo {
+  .sheet .photo {
     height: var(--b44-photo-wider);
   }
 }
@@ -759,6 +757,7 @@
 }
 
 .tool {
+  padding: 0;
   display: grid;
   place-items: center;
   width: var(--b44-heart-big);
@@ -790,6 +789,7 @@
 }
 
 .stepButton {
+  padding: 0;
   display: grid;
   place-items: center;
   width: var(--b44-step);
@@ -828,7 +828,7 @@
 }
 
 @media (min-width: 1024px) {
-  .panelWide .panelBody {
+  .sheet .panelBody {
     display: grid;
     grid-template-columns: 1.35fr 1fr;
     gap: var(--space-10);
@@ -1008,7 +1008,7 @@
 }
 
 @media (min-width: 1024px) {
-  .panelWide .similar {
+  .sheet .similar {
     margin-top: 0;
   }
 }
@@ -1337,4 +1337,35 @@
   text-transform: uppercase;
   white-space: nowrap;
   font-variant-numeric: tabular-nums;
+}
+
+/* The expanded profile: a sheet over the dimmed page (the owner, 24 October 2026). */
+.sheetBackdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: grid;
+  place-items: center;
+  padding: var(--space-4);
+  background: var(--color-backdrop);
+}
+
+.sheet {
+  width: min(var(--b44-sheet), 100%);
+  height: min(var(--b44-sheet-height), 100%);
+  overflow: hidden;
+  border-radius: var(--radius-sheet);
+  background: var(--color-ground);
+  box-shadow: var(--shadow-sheet);
+  outline: none;
+}
+
+.sheet .panel {
+  border-left: 0;
+}
+
+@media (min-width: 1024px) {
+  .sheetBackdrop {
+    padding: var(--space-8);
+  }
 }

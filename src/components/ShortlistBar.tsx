@@ -25,8 +25,24 @@ export function ShortlistBar({ items }: { items: ShortlistItem[] }) {
         <Link to="/shortlist/message" className={styles.message}>
           Message all
         </Link>
+        <ClearAll back={location.pathname + location.search} />
       </div>
     </aside>
+  );
+}
+
+/** Clear all (the owner, 24 October 2026): everything off the shortlist at once. */
+function ClearAll({ back }: { back: string }) {
+  const fetcher = useFetcher();
+  return (
+    <fetcher.Form method="post" action="/shortlist" preventScrollReset>
+      <input type="hidden" name="intent" value="clear" />
+      <input type="hidden" name="back" value={back} />
+      <input type="hidden" name="inline" value="1" />
+      <button type="submit" className={styles.clearAll} disabled={fetcher.state !== 'idle'}>
+        Clear all
+      </button>
+    </fetcher.Form>
   );
 }
 

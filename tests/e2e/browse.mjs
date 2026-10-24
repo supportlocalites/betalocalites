@@ -106,7 +106,10 @@ const cardNames = async () => page.$$eval('article h3', (hs) => hs.map((h) => h.
 await page.goto(`${BASE}/explore`, { waitUntil: 'networkidle' });
 await page.fill('#q', `alpha bakery ${run}`);
 let names = await cardNames();
-check('typing finds a business by its name, at once', names.length === 1 && names[0] === A.name, names.join(', '));
+check('typing finds a business by its name, at once', names.includes(A.name) && !names.includes(B.name), names.join(', '));
+await page.fill('#q', 'alpa bakry');
+names = await cardNames();
+check('…and forgives spelling (“alpa bakry”)', names.includes(A.name) && !names.includes(B.name), names.join(', '));
 await page.fill('#q', 'cakes for every party');
 names = await cardNames();
 check('…or by what it does', names.includes(A.name) && !names.includes(B.name));
@@ -208,7 +211,26 @@ await page.goto(`${BASE}/vendors/${A.slug}`, { waitUntil: 'networkidle' });
 await page.click('button[aria-label="Close profile"]');
 await page.waitForSelector(`aside[aria-label="${A.name}"]`, { state: 'detached' });
 check('a business’s own address can be closed too', (await page.$(`aside[aria-label="${A.name}"]`)) === null);
+await page.click(`button[aria-label="Open ${A.name}"]`);
+await page.click('button[aria-label="Expand to sheet"]');
+await page.waitForSelector(`[role="dialog"][aria-label="${A.name}"]`);
+check('expanded, the profile is a sheet over the page, with its ×', (await page.$('[role="dialog"] button[aria-label="Close profile"]')) !== null);
+await page.mouse.click(4, 896);
+await page.waitForSelector('[role="dialog"]', { state: 'detached' });
+check('…a click outside it closes it', (await page.$(`aside[aria-label="${A.name}"]`)) === null);
 await browser.close();
+
+console.log('\nClear all on the shortlist bar');
+for (const v of [A, B]) await site('/shortlist', { cookie: cookie.p, method: 'POST', form: { intent: 'add', slug: v.slug, inline: '1' } });
+await site('/shortlist', { cookie: cookie.q, method: 'POST', form: { intent: 'add', slug: A.slug, inline: '1' } });
+r = await site('/explore', { cookie: cookie.p });
+check('the shortlist bar has Clear all beside Message all, and × on each', words(r.body).includes('Clear all') && words(r.body).includes('Message all')
+  && r.body.includes(`Remove ${A.name} from your shortlist`));
+r = await site('/shortlist', { cookie: cookie.p, method: 'POST', form: { intent: 'clear', inline: '1' } });
+const left = async (id) => (await sql`select count(*)::int as n from shortlist where user_id = ${id}`)[0].n;
+check('Clear all empties their own shortlist, and nobody else’s', r.status === 200 && (await left(ids.p)) === 0 && (await left(ids.q)) === 1, String(r.status));
+r = await site('/shortlist', { method: 'POST', form: { intent: 'clear' } });
+check('…signed out, nothing is cleared (sent to sign in)', r.status === 302 && r.location.startsWith('/join') && (await left(ids.q)) === 1, `${r.status} ${r.location}`);
 
 console.log('\nThe team sets the profile details');
 r = await site(`/admin/listings/${A.id}`, { cookie: cookie.t });

@@ -31,6 +31,21 @@ Every release and every database migration, in order. Appended before each deplo
 
 ## Releases
 
+### 2026-10-24 — Browse local: the sheet, forgiving search, Clear all (D-61)
+
+**Stage:** 1 and 2 (the redesign)
+**What changed (plain English):** Expand map is back on the map, with the count line and Expand
+list above the rows (Map / Hybrid / List removed); Clear says Reset; Show starts on All; Within is
+a slider from 1 km to 50 km+. Expanded, a business's profile is a large sheet over the page,
+closed by a click outside it, its × or Esc. Search forgives spelling. The heart and + sit centred
+(the browser's own padding was pushing them aside). The shortlist bar has Clear all, which
+empties only the person's own shortlist.
+**Migrations applied:** none. **Destructive?** No.
+**Tests run:** `npm run check`; unit tests 225/225 (forgiving search: 6 new); Browse local 62/62
+twice (Clear all checked against another person's shortlist and signed out); addresses 34/34;
+look checks 809/812, the 3 failing only on test photos this workspace's pretend storage lost when
+it restarted (all pass on a fresh database).
+
 ### 2026-10-24 — Browse local: filters, views and the map (D-61)
 
 **Stage:** 1 and 2 (the redesign)
