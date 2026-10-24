@@ -17,12 +17,6 @@ import styles from './Directory.module.css';
  * Directions, reviews, and favourites kept with the account when signed in.
  */
 
-const WITHIN = [
-  { value: '', label: 'Any distance' },
-  { value: '3', label: 'Within 3 km' },
-  { value: '5', label: 'Within 5 km' },
-  { value: '10', label: 'Within 10 km' },
-];
 const RATING = [
   { value: '', label: 'Any rating' },
   { value: '4.8', label: '4.8 & up' },
@@ -88,11 +82,6 @@ const localFavourites = {
 };
 
 type View = 'map' | 'hybrid' | 'list';
-const VIEWS: { value: View; label: string }[] = [
-  { value: 'map', label: 'Map' },
-  { value: 'hybrid', label: 'Hybrid' },
-  { value: 'list', label: 'List' },
-];
 
 export function Directory({
   cards,
@@ -124,7 +113,8 @@ export function Directory({
   // Kinds of business chosen (none: all), and only favourites (the owner, 24 October 2026).
   const [chosen, setChosen] = useState<string[]>([]);
   const [favOnly, setFavOnly] = useState(false);
-  // Map, Hybrid (map and rows, the start) or List.
+  // Map and rows (the start), the map expanded, or the list expanded (the owner, 24 October 2026:
+  // Base44's "Expand map" on the map, and an expand for the list above the rows).
   const [view, setView] = useState<View>('hybrid');
   const [wide, setWide] = useState(false);
   // "Search this area": the part of the map searched, and what the filters were then.
@@ -281,7 +271,7 @@ export function Directory({
         </div>
         <div className={styles.filters}>
           <KindsPicker kinds={kinds} chosen={chosen} onChange={setChosen} />
-          <Select id="within" label="Within" value={within} onChange={setWithin} options={WITHIN} />
+          <Distance value={within} onChange={setWithin} />
           <Select id="rating" label="Rating" value={rating} onChange={setRating} options={RATING} />
           <Select id="sort" label="Sort" value={sort} onChange={setSort} options={SORT} />
           <button
@@ -294,21 +284,8 @@ export function Directory({
             <Icon name="heart" small />
             Favourites{favourites > 0 ? ` ${favourites}` : ''}
           </button>
-          <div className={styles.views} role="group" aria-label="View">
-            {VIEWS.map((v) => (
-              <button
-                key={v.value}
-                type="button"
-                onClick={() => setView(v.value)}
-                className={`${styles.viewButton} ${view === v.value ? styles.viewOn : ''}`}
-                aria-pressed={view === v.value}
-              >
-                {v.label}
-              </button>
-            ))}
-          </div>
           <button type="button" onClick={clear} className={styles.clear}>
-            Clear
+            Reset
           </button>
         </div>
       </TopBar>
@@ -334,7 +311,29 @@ export function Directory({
               {view === 'map' && ordered.length > 0 && (
                 <Strip items={ordered} selected={selected} onSelect={select} heart={heart} signedIn={signedIn} />
               )}
+              <button type="button" onClick={() => setView(view === 'map' ? 'hybrid' : 'map')} className={styles.expand}>
+                <Icon name={view === 'map' ? 'min' : 'max'} small />
+                {view === 'map' ? 'Collapse' : 'Expand map'}
+              </button>
             </DirectoryMap>
+          )}
+
+          {view !== 'map' && (
+            <div className={styles.viewbar}>
+              <p className={styles.count}>
+                <span className={styles.countNumber}>
+                  {ordered.length} {ordered.length === 1 ? 'business' : 'businesses'}
+                </span>
+                <span className={styles.dotSep} aria-hidden="true">
+                  ·
+                </span>
+                <span className={styles.countHint}>Click a business to open the profile</span>
+              </p>
+              <button type="button" onClick={() => setView(view === 'list' ? 'hybrid' : 'list')} className={styles.expandList}>
+                <Icon name={view === 'list' ? 'min' : 'max'} small />
+                {view === 'list' ? 'Collapse' : 'Expand list'}
+              </button>
+            </div>
           )}
 
           <div className={`${styles.rails} ${view === 'map' ? styles.hidden : ''}`}>
@@ -392,6 +391,33 @@ export function Directory({
 
 const inside = (b: Bounds, lat: number, lng: number) => lat >= b.south && lat <= b.north && lng >= b.west && lng <= b.east;
 
+/** The farthest a business may be, by a slider: 1 to 50 km, and 50 km+ for any distance (the owner, 24 October 2026). */
+export const MAX_KM = 50;
+function Distance({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+  const km = value ? Number(value) : MAX_KM;
+  return (
+    <label className={styles.select} htmlFor="within">
+      <span className={styles.selectLabel}>Within</span>
+      <span className={styles.distance}>
+        <input
+          id="within"
+          type="range"
+          min={1}
+          max={MAX_KM}
+          step={1}
+          value={km}
+          onChange={(e) => onChange(Number(e.target.value) >= MAX_KM ? '' : e.target.value)}
+          className={styles.range}
+          aria-valuetext={km >= MAX_KM ? 'Any distance' : `Within ${km} km`}
+        />
+        <span className={styles.distanceValue} aria-hidden="true">
+          {km >= MAX_KM ? `${MAX_KM} km+` : `${km} km`}
+        </span>
+      </span>
+    </label>
+  );
+}
+
 /** Kinds of business to show, several at once (none ticked: every kind). */
 function KindsPicker({
   kinds,
@@ -402,7 +428,7 @@ function KindsPicker({
   chosen: string[];
   onChange: (next: string[]) => void;
 }) {
-  const words = chosen.length === 0 ? 'All kinds' : chosen.length === 1 ? (kinds.find((k) => k.slug === chosen[0])?.name ?? '1 kind') : `${chosen.length} kinds`;
+  const words = chosen.length === 0 ? 'All' : chosen.length === 1 ? (kinds.find((k) => k.slug === chosen[0])?.name ?? '1 kind') : `${chosen.length} kinds`;
   return (
     <details className={styles.picker}>
       <summary className={styles.select}>

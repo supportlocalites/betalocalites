@@ -307,6 +307,35 @@
   }
 }
 
+.viewbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2) var(--space-4);
+}
+
+/* Expand list: the same quiet words as the rows' Scroll. */
+.expandList {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  gap: var(--space-1);
+  border: 0;
+  background: none;
+  padding: 0;
+  font: inherit;
+  font-size: var(--b44-text-caps);
+  font-weight: 500;
+  letter-spacing: var(--b44-track-row);
+  text-transform: uppercase;
+  color: var(--color-muted-soft);
+  cursor: pointer;
+}
+
+.expandList:hover {
+  color: var(--color-ink);
+}
+
 .count {
   display: flex;
   align-items: baseline;
@@ -1279,16 +1308,33 @@
   background: linear-gradient(to top, var(--color-glass), transparent);
 }
 
-/* On a phone the view switch comes first in the row of filters, so it's always in sight. */
-@media (max-width: 1023px) {
-  .views {
-    order: -1;
-  }
-}
-
 /* On a phone, an open profile takes the whole screen; ‹ › steps through what the filters show. */
 @media (max-width: 1023px) {
   .bodyOpen .left {
     display: none;
   }
+}
+
+/* Within: a slider from 1 km to 50 km+ (the owner, 24 October 2026). */
+.distance {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.range {
+  width: var(--b44-range);
+  margin: 0;
+  accent-color: var(--color-gold);
+  cursor: pointer;
+}
+
+.distanceValue {
+  min-width: var(--b44-range-value);
+  font-size: var(--b44-text-card);
+  font-weight: 500;
+  letter-spacing: var(--b44-track-select);
+  text-transform: uppercase;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
 }

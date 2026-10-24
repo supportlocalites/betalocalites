@@ -44,10 +44,11 @@ console.log('Rows, cards and the profile');
 let r = await site('/explore');
 check('signed out, Browse local shows listed businesses in their main kind’s row', r.status === 200 && r.body.includes(`id="rail-${kind.slug}"`)
   && r.body.includes(A.name) && r.body.includes(B.name) && r.body.includes(U.name) && !r.body.includes(H.name), String(r.status));
-check('…with the Base44 top bar: search, Within, Rating, Sort and Clear', r.body.includes('Search by name or what they do...')
-  && r.body.includes('Within 10 km') && r.body.includes('4.8 &amp; up') && r.body.includes('Fastest reply') && r.body.includes('>Clear<'));
+check('…with the top bar: search, Show (All), the Within slider at 50 km+, Rating, Sort and Reset', r.body.includes('Search by name or what they do...')
+  && r.body.includes('id="within" type="range"') && r.body.includes('50 km+') && r.body.includes('4.8 &amp; up') && r.body.includes('Fastest reply')
+  && r.body.includes('>Reset<') && r.body.includes('>All<'));
 // The count line under the map is gone (the owner, 24 October 2026).
-check('…no count line under the map', !words(r.body).includes('Click a business to open the profile'));
+check('…the count line under the map, with Expand list', /\d+ businesses · Click a business to open the profile/.test(words(r.body)) && words(r.body).includes('Expand list'));
 check('…the + asks to sign in first and comes back here; the heart works without an account',
   r.body.includes(`href="/join?next=${encodeURIComponent('/explore')}"`) && r.body.includes(`Sign in to add ${A.name} to your shortlist`)
   && r.body.includes(`aria-label="Add ${A.name} to favourites"`));
@@ -112,15 +113,15 @@ check('…or by what it does', names.includes(A.name) && !names.includes(B.name)
 await page.fill('#q', `zzz-nothing-${run}`);
 check('nothing found: Base44’s words, and Suggest a business', (await page.textContent('body')).includes('Nothing matches those filters')
   && (await page.$('a[href^="/suggest"]')) !== null);
-await page.click('button:has-text("Clear")');
-await page.selectOption('#within', '3');
+await page.click('button:has-text("Reset")');
+await page.fill('#within', '3');
 names = await cardNames();
 check('“Within 3 km” keeps the business downtown and leaves out Washago', names.includes(A.name) && !names.includes(B.name) && !names.includes(U.name));
-await page.selectOption('#within', '');
+await page.fill('#within', '50');
 await page.selectOption('#rating', '4.8');
 names = await cardNames();
 check('“4.8 & up” leaves out businesses with no rating yet', !names.includes(A.name) && !names.includes(B.name));
-await page.click('button:has-text("Clear")');
+await page.click('button:has-text("Reset")');
 await page.selectOption('#sort', 'near');
 names = await cardNames();
 check('“Closest” puts downtown before Washago, and no-pin businesses last', names.indexOf(A.name) < names.indexOf(B.name) && names.indexOf(B.name) < names.indexOf(U.name));
@@ -149,11 +150,12 @@ await page.click('button:has-text("Show all kinds")');
 names = await cardNames();
 check('…and “Show all kinds” brings every kind back', names.includes(A.name) && names.includes(B.name));
 await page.click('summary:has-text("Show")');
-check('the view starts on Hybrid: map and rows', (await page.getAttribute('button:has-text("Hybrid")', 'aria-pressed')) === 'true'
-  && (await page.$('[aria-label="Map of the businesses that shared an address"]')) !== null && names.length > 0);
-await page.click('button[aria-pressed]:has-text("List")');
-check('List: only the rows, no map', (await page.$('[aria-label="Map of the businesses that shared an address"]')) === null && (await cardNames()).length > 0);
-await page.click('button[aria-pressed]:has-text("Map")');
+check('it starts with the map and the rows', (await page.$('[aria-label="Map of the businesses that shared an address"]')) !== null && names.length > 0);
+await page.click('button:has-text("Expand list")');
+check('Expand list: only the rows, no map, and Collapse', (await page.$('[aria-label="Map of the businesses that shared an address"]')) === null
+  && (await cardNames()).length > 0 && (await page.$('button:has-text("Collapse")')) !== null);
+await page.click('button:has-text("Collapse")');
+await page.click('button:has-text("Expand map")');
 await page.waitForSelector('[aria-label="Map of the businesses that shared an address"]');
 const strip = await page.$$eval('[class*="strip"] article h3', (hs) => hs.map((h) => h.textContent));
 check('Map: the businesses in one line along the bottom of the map', strip.includes(A.name) && strip.includes(B.name), strip.length);
@@ -161,7 +163,8 @@ await page.click(`[class*="strip"] button[aria-label="Open ${A.name}"]`);
 await page.waitForSelector(`aside[aria-label="${A.name}"]`);
 check('…tapping one there opens its profile beside the map', page.url().includes(`v=${A.slug}`));
 await page.keyboard.press('Escape');
-await page.click('button[aria-pressed]:has-text("Hybrid")');
+check('…and the count line is out of the way', !(await page.isVisible('button:has-text("Expand list")')));
+await page.click('button:has-text("Collapse")');
 await page.waitForSelector('[aria-label="Map of the businesses that shared an address"]');
 check('“Search this area” waits until there’s something to search', await page.isDisabled('button:has-text("Search this area")'));
 await page.selectOption('#rating', '4');
@@ -189,9 +192,9 @@ check('…it keeps those on the map in view, and leaves out those with no addres
 // The map may still be gliding from the drag; give the button a moment to settle.
 const faded = await page.waitForSelector('button:has-text("Search this area"):disabled', { timeout: 3000 }).then(() => true, () => false);
 check('…and fades again until the map moves or a filter changes', faded);
-await page.click('button:has-text("Clear")');
+await page.click('button:has-text("Reset")');
 names = await cardNames();
-check('Clear brings back the whole area', names.includes(U.name));
+check('Reset brings back the whole area', names.includes(U.name));
 await page.click(`button[aria-label="Open ${A.name}"]`);
 await page.waitForSelector(`aside[aria-label="${A.name}"]`);
 check('‹ › steps through every business the filters show, not just one kind', (await stepCount()).endsWith(`/ ${names.length}`), `${await stepCount()} of ${names.length}`);

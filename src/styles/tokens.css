@@ -223,6 +223,8 @@
   --b44-search-max: 340px;
   --b44-strip: 136px;
   --b44-faded: 0.45;
+  --b44-range: 110px;
+  --b44-range-value: 44px;
 }
 
 /*
