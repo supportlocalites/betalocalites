@@ -1,6 +1,5 @@
 import { Form, Link, NavLink, Outlet } from 'react-router';
 import { adminContext, cloudflareContext } from '@/app/context';
-import { ThemeToggle } from '@/components/ThemeToggle';
 import { Wordmark } from '@/components/Wordmark';
 import { teamMenuCounts } from '@/server/admin/team-bookings.server';
 import { countPendingDeletions } from '@/server/account-deletion.server';
@@ -125,7 +124,6 @@ export default function AdminLayout({ loaderData }: Route.ComponentProps) {
               Sign out
             </button>
           </Form>
-          <ThemeToggle />
         </div>
       </header>
       <main className="page">

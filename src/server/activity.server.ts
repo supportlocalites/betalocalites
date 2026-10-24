@@ -138,17 +138,40 @@ export async function viewTrack(env: ServerEnv, request: Request, vendorId: stri
   return quietly(async () => {
     const browser = await pageBrowser(env, request);
     if (!browser) return { track: null, setCookie: null };
-    const src: Source = classifySource(request.headers.get('Referer'), new URL(request.url).origin);
-    const token = await signNote(env.ACTIVITY_KEY, {
-      k: 'view',
-      pv: uuidv7(),
-      v: vendorId,
-      src,
-      b: browser.id,
-      x: expiry(Date.now() / 1000),
-    });
-    return { track: token, setCookie: browser.setCookie };
+    return { track: await viewNote(env, request, browser.id, vendorId), setCookie: browser.setCookie };
   });
+}
+
+function viewNote(env: ServerEnv & { ACTIVITY_KEY: string }, request: Request, browserId: string, vendorId: string) {
+  const src: Source = classifySource(request.headers.get('Referer'), new URL(request.url).origin);
+  return signNote(env.ACTIVITY_KEY, { k: 'view', pv: uuidv7(), v: vendorId, src, b: browserId, x: expiry(Date.now() / 1000) });
+}
+
+/**
+ * The Base44 page's notes (D-59): one for each row and, opened at a business's own address, one
+ * for that visit, all for the same browser, so a first visit gets one visitor cookie that fits
+ * every note (two separate calls would each make a new browser, and one note would be refused).
+ */
+export async function pageTracks(
+  env: ServerEnv,
+  request: Request,
+  lists: { words: string; category: string | null; ids: string[] }[],
+  vendorId: string | null,
+): Promise<{ tracks: (ListTrack | null)[]; view: string | null; setCookie: string | null }> {
+  const none = { tracks: lists.map(() => null), view: null, setCookie: null };
+  if (!trackingOn(env) || !isPerson(request)) return none;
+  try {
+    const browser = await pageBrowser(env, request);
+    if (!browser) return none;
+    const [tracks, view] = await Promise.all([
+      Promise.all(lists.map((l) => listNote(env, browser.id, l))),
+      vendorId ? viewNote(env, request, browser.id, vendorId) : null,
+    ]);
+    return { tracks, view, setCookie: browser.setCookie };
+  } catch (err) {
+    console.error('activity note not made', err instanceof Error ? err.message : err);
+    return none;
+  }
 }
 
 /** The page's answer headers: the visitor cookie for a new browser. */

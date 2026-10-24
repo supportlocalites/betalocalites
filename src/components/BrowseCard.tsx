@@ -45,7 +45,7 @@ function Rating({ reviews, average }: { reviews: number; average: number | null 
 type Choosable = { slug: string; name: string; shortlisted: boolean; saved: boolean };
 
 /**
- * The two buttons at a card's bottom right (D-57): + adds to the shortlist, the bookmark saves
+ * The two buttons at a card's bottom right (D-57): + adds to the shortlist, the heart saves
  * as a favourite. Each posts to /shortlist as the signed-in person; signed out, each asks them
  * to sign in first and brings them back. look 'panel': on a business's page (D-58), the + with
  * its words, on the dark panel; 'bar': icons only, in the phone's bar there.
@@ -64,9 +64,10 @@ export function ChoiceButtons({ card, signedIn, look = 'card' }: { card: Choosab
       {shortlisted ? <path d="M5 12.5l4.5 4.5L19 7.5" /> : <path d="M12 5v14M5 12h14" />}
     </svg>
   );
+  // The heart for favourites (D-59, K8; the bookmark before it).
   const mark = (
-    <svg viewBox="0 0 16 20" aria-hidden="true" focusable="false" className={`${styles.icon} ${saved ? styles.filled : ''}`}>
-      <path d="M2 1.5h12v17l-6-4.2-6 4.2z" />
+    <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false" className={`${styles.icon} ${saved ? styles.filled : ''}`}>
+      <path d="M12 20s-7.5-4.6-9.3-9.2C1.4 7.4 3.6 4 7 4c2 0 3.6 1.1 5 3 1.4-1.9 3-3 5-3 3.4 0 5.6 3.4 4.3 6.8C19.5 15.4 12 20 12 20z" />
     </svg>
   );
   const panel = look === 'panel';

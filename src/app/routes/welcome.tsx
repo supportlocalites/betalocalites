@@ -1,5 +1,4 @@
 import { Link } from 'react-router';
-import { ThemeToggle } from '@/components/ThemeToggle';
 import { Wordmark } from '@/components/Wordmark';
 import { shareMeta } from '@/lib/meta';
 import type { Route } from './+types/welcome';
@@ -14,7 +13,6 @@ export default function Welcome() {
   return (
     <main className={styles.screen}>
       <div className={styles.frame}>
-        <ThemeToggle className={styles.theme} />
         <div className={styles.words}>
           <h1 className={styles.name}>
             <Wordmark />
@@ -27,9 +25,6 @@ export default function Welcome() {
         <div className={styles.actions}>
           <Link to="/explore" className="button button-primary">
             Browse local
-          </Link>
-          <Link to="/events/new" className="button button-secondary">
-            Plan an event
           </Link>
         </div>
       </div>

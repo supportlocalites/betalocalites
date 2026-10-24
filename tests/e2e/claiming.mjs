@@ -188,7 +188,8 @@ console.log('Claiming a business');
 
 // 7. Claiming needs an account.
 r = await site(`/vendors/${bakery.slug}`);
-check('an unclaimed listing invites the business to claim it', r.body.includes(`/vendors/${bakery.slug}/claim`) && r.body.includes('Ask us to remove it'));
+// The Claim link is hidden since the Base44 design (D-59, G10); its page still works for a direct link.
+check('an unclaimed listing offers Inquire, and no Claim link', r.body.includes(`/vendors/${bakery.slug}/inquire`) && !r.body.includes(`/vendors/${bakery.slug}/claim`));
 r = await site(`/vendors/${bakery.slug}/claim`);
 check('signed out: claiming asks you to sign in, then comes back', r.status === 302 && r.location === `/join?next=${encodeURIComponent(`/vendors/${bakery.slug}/claim`)}`, `${r.status} ${r.location}`);
 r = await site(`/vendors/${bakery.slug}/claim`, { method: 'POST', form: { relationship: 'owner', authorised: 'yes' } });
@@ -311,7 +312,7 @@ check('a declined claim can’t be approved afterwards; still one owner', r.stat
 
 // 17. After the decision.
 r = await site(`/vendors/${bakery.slug}`);
-check('the public page says the business manages its own listing', r.body.includes('manages its own listing') && !r.body.includes(`/vendors/${bakery.slug}/claim`));
+check('once claimed, the profile offers Message instead of Inquire', r.body.includes(`/vendors/${bakery.slug}/message`) && !r.body.includes(`/vendors/${bakery.slug}/inquire`));
 r = await site(`/vendors/${bakery.slug}/claim`, { cookie: bobCookie, method: 'POST', form: { relationship: 'owner', authorised: 'yes' } });
 check('a claimed business can’t be claimed again', r.status === 409 && (await countClaims(bakery.id)) === 2, String(r.status));
 r = await site('/account', { cookie: aliceCookie });

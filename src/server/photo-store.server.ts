@@ -103,6 +103,9 @@ export function toPhotos(env: ServerEnv, rows: PhotoRow[]): Photo[] {
   });
 }
 
+/** A stored photo's large version (the Base44 profile panel's photo, D-59). */
+export const photoUrl = (env: ServerEnv, path: string | null) => (path ? publicUrl(env, path) : null);
+
 /** The small version of a stored photo, for lists (search results). */
 export const smallPhotoUrl = (env: ServerEnv, path: string | null) => (path ? publicUrl(env, smallPath(path)) : null);
 

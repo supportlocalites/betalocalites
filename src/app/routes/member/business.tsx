@@ -1,6 +1,5 @@
 import { data, Form, isRouteErrorResponse, Link, redirect, useNavigation, useRouteError, useSearchParams } from 'react-router';
 import { cloudflareContext, memberContext } from '@/app/context';
-import { SideSwitch } from '@/components/SideSwitch';
 import { SiteHeader } from '@/components/SiteHeader';
 import { pageMeta } from '@/lib/meta';
 import { isUuid } from '@/lib/ids.mjs';
@@ -53,7 +52,6 @@ export default function MyBusiness({ loaderData: { businesses } }: Route.Compone
     <>
       <SiteHeader />
       <main className="page">
-        <SideSwitch current="business" />
         <h1 className="title-1">My business</h1>
         <div className="title-rule" aria-hidden="true" />
         {notice && (
@@ -161,8 +159,8 @@ export function ErrorBoundary() {
             ? 'You’re not on a business’s team on Localites. If your business is listed, open its page and choose “Claim this business”.'
             : 'The page didn’t load. Please try again in a moment.'}
         </p>
-        <Link to="/events" className="button button-primary">
-          My events
+        <Link to="/explore" className="button button-primary">
+          Browse local
         </Link>
       </main>
     </>

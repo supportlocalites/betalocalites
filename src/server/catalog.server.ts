@@ -179,3 +179,12 @@ export async function findRenamed(env: ServerEnv, oldSlug: string): Promise<stri
     return row?.slug ?? null;
   });
 }
+
+/** A published listing's id by its web address, or null. */
+export async function getVendorId(env: ServerEnv, slug: string): Promise<string | null> {
+  if (!/^[a-z0-9]+(-[a-z0-9]+)*$/.test(slug)) return null;
+  return withDb(env, async (db) => {
+    const [v] = await db.execute<{ id: string }>(sql`select id from vendor where slug = ${slug} and listing_status = 'published'`);
+    return v?.id ?? null;
+  });
+}

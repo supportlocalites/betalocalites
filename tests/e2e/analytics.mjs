@@ -20,7 +20,17 @@ async function page(path, { cookie, referer, ua = PHONE, ip } = {}) {
   if (referer) headers.Referer = referer;
   const res = await fetch(BASE + path, { headers, redirect: 'manual' });
   const body = await res.text();
-  return { status: res.status, location: res.headers.get('location') ?? '', body, note: NOTE.exec(body)?.[1] ?? null, cookie: res.headers.getSetCookie() };
+  // A business's address also carries its rows' list notes (the Base44 page, D-59): its own visit's note is the "view" one.
+  const notes = [...body.matchAll(new RegExp(NOTE.source, 'g'))].map((m) => m[1]);
+  const kindOf = (n) => {
+    try {
+      return JSON.parse(Buffer.from(n.split('.')[0], 'base64url').toString()).k;
+    } catch {
+      return null;
+    }
+  };
+  const note = path.startsWith('/vendors/') ? (notes.find((n) => kindOf(n) === 'view') ?? null) : (notes[0] ?? null);
+  return { status: res.status, location: res.headers.get('location') ?? '', body, note, cookie: res.headers.getSetCookie() };
 }
 /** A browser report, as the page's script sends it. */
 async function report(body, { cookie, origin = BASE, type = 'application/json', ua = PHONE } = {}) {
@@ -134,14 +144,15 @@ check('an unknown kind of tap is refused', r.status === 400, String(r.status));
 // A script that drops its cookie each time gets only so many new browsers a minute.
 const fresh = [];
 const scriptAddress = `2001:db8:${crypto.getRandomValues(new Uint16Array(1))[0].toString(16)}::1`; // a fresh address each run
-for (let i = 0; i < 25; i++) fresh.push(await page(`/vendors/${b.slug}`, { ip: scriptAddress }));
+// The limit is 20 a minute: 45 visits may straddle the turn of a minute, so at most 40 get a note.
+for (let i = 0; i < 45; i++) fresh.push(await page(`/vendors/${b.slug}`, { ip: scriptAddress }));
 const withNotes = fresh.filter((f) => f.note).length;
-check('new browsers from one address are limited (no note past the limit)', withNotes <= 20 && withNotes >= 1, String(withNotes));
+check('new browsers from one address are limited (no note past the limit)', withNotes <= 40 && withNotes >= 1, String(withNotes));
 const madeUp = [];
 const madeUpAddress = `2001:db8:${crypto.getRandomValues(new Uint16Array(1))[0].toString(16)}::2`;
-for (let i = 0; i < 25; i++) madeUp.push(await page(`/vendors/${b.slug}`, { ip: madeUpAddress, cookie: `__Host-lc_vid=${crypto.randomUUID()}` }));
+for (let i = 0; i < 45; i++) madeUp.push(await page(`/vendors/${b.slug}`, { ip: madeUpAddress, cookie: `__Host-lc_vid=${crypto.randomUUID()}` }));
 const madeUpNotes = madeUp.filter((f) => f.note).length;
-check('…and a made-up visitor cookie counts as a new browser, so it can’t get round that', madeUpNotes <= 20 && madeUpNotes >= 1, String(madeUpNotes));
+check('…and a made-up visitor cookie counts as a new browser, so it can’t get round that', madeUpNotes <= 40 && madeUpNotes >= 1, String(madeUpNotes));
 
 // 3. The owner's and the team's own visits are marked (and left out of totals).
 const [ownerVid, teamVid] = [crypto.randomUUID(), crypto.randomUUID()];

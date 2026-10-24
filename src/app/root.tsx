@@ -1,12 +1,14 @@
+import '@fontsource/playfair-display/400.css';
+import '@fontsource/playfair-display/400-italic.css';
+import '@fontsource/playfair-display/500.css';
 import '@fontsource/playfair-display/600.css';
 import '@fontsource/playfair-display/700.css';
 import '@fontsource/playfair-display/500-italic.css';
-import '@fontsource/jost/400.css';
-import '@fontsource/jost/500.css';
-import '@fontsource/jost/600.css';
+import '@fontsource/inter/400.css';
+import '@fontsource/inter/500.css';
+import '@fontsource/inter/600.css';
 import './globals.css';
-import { Form, isRouteErrorResponse, Link, Links, Meta, Outlet, Scripts, ScrollRestoration, useMatches, useRouteLoaderData } from 'react-router';
-import { SiteFooter } from '@/components/SiteFooter';
+import { Form, isRouteErrorResponse, Link, Links, Meta, Outlet, Scripts, ScrollRestoration } from 'react-router';
 import { SiteHeader } from '@/components/SiteHeader';
 import { TeamOnly, teamOnlyReason } from '@/components/TeamOnly';
 import { pageMeta } from '@/lib/meta';
@@ -39,9 +41,9 @@ export function loader({ request }: Route.LoaderArgs) {
 export const shouldRevalidate = () => true;
 
 export function Layout({ children }: { children: React.ReactNode }) {
-  const theme = useRouteLoaderData<typeof loader>('root')?.theme ?? undefined;
+  // Light only (D-59, K16): the chosen look (D-57) is no longer applied; its code stays for now.
   return (
-    <html lang="en-CA" data-theme={theme}>
+    <html lang="en-CA">
       <head>
         <meta charSet="utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -58,14 +60,8 @@ export function Layout({ children }: { children: React.ReactNode }) {
 }
 
 export default function App() {
-  // The Welcome page is a clean landing page, with no footer (the owner, 19 October 2026).
-  const bare = useMatches().some((m) => (m.handle as { noFooter?: boolean } | undefined)?.noFooter);
-  return (
-    <>
-      <Outlet />
-      {!bare && <SiteFooter />}
-    </>
-  );
+  // No footer: the Base44 design has none (D-59, K19). SiteFooter is kept for now.
+  return <Outlet />;
 }
 
 /** Shown for unknown addresses, unlisted businesses and unexpected errors. */

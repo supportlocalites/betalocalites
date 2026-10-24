@@ -1,10 +1,11 @@
 import { sql } from 'drizzle-orm';
 import { type Sort, SORTS } from '@/lib/browse-terms';
+import { CENTRE } from '@/lib/centre';
 import { actingAs } from './acting.server';
 import { type Db, withDb } from './db.server';
 import type { ServerEnv } from './env';
 import { type CategorySummary, readCategories } from './catalog.server';
-import { smallPhotoUrl } from './photo-store.server';
+import { photoUrl, smallPhotoUrl } from './photo-store.server';
 
 /**
  * Browse local (D-57): listed businesses in one row per kind of business, filtered by the
@@ -223,5 +224,146 @@ export function readFilters(params: URLSearchParams, clean: (s: string) => strin
     sort: SORTS.includes(sort) ? sort : 'match',
     view: params.get('view') === 'map' ? 'map' : 'rows',
     category: null,
+  };
+}
+
+// ======================================================================= the Base44 design (D-59)
+
+
+/** One listed business on the Base44 browsing page: its card, its pin and its profile panel. */
+export type DirectoryCard = {
+  id: string;
+  slug: string;
+  name: string;
+  tagline: string | null;
+  about: string | null;
+  /** Its main kind (a row), by web address and name; none: not in a row. */
+  kindSlug: string | null;
+  kind: string | null;
+  /** Its own kind within the main one (D-60), like "Hair"; the main kind if it has none. */
+  sub: string | null;
+  /** The neighbourhood the team set, else the town. */
+  place: string;
+  town: string;
+  rating: number | null;
+  reviews: number;
+  /** Usual minutes to first reply (0056); none: not enough replies yet. */
+  replyMinutes: number | null;
+  /** From downtown Orillia, by its pin; none: no pin (listed by its town). */
+  km: number | null;
+  lat: number | null;
+  lng: number | null;
+  approximate: boolean;
+  street: string | null;
+  /** The street number; never one the business hides (0054). */
+  number: string | null;
+  bestRated: boolean;
+  tags: string[];
+  curatorNote: string | null;
+  photo: string | null;
+  smallPhoto: string | null;
+  photoAlt: string;
+  claimed: boolean;
+  saved: boolean;
+  shortlisted: boolean;
+  /** The signed-in person is on its team (C6, D-54): they see it as theirs, not as a customer. */
+  yours: 'owner' | 'manager' | 'staff' | null;
+};
+export type Directory = { kinds: { slug: string; name: string }[]; cards: DirectoryCard[]; shortlist: ShortlistItem[] };
+
+/** Kilometres between two points (the earth as a ball: near enough for a town). */
+export function kmBetween(a: { lat: number; lng: number }, b: { lat: number; lng: number }): number {
+  const r = (d: number) => (d * Math.PI) / 180;
+  const h = Math.sin(r(b.lat - a.lat) / 2) ** 2 + Math.cos(r(a.lat)) * Math.cos(r(b.lat)) * Math.sin(r(b.lng - a.lng) / 2) ** 2;
+  return 2 * 6371 * Math.asin(Math.sqrt(h));
+}
+
+/**
+ * "Best rated" (D-59, K6): at least 10 published reviews, and an average in the top 5% of those
+ * that have 10 (always at least the best one). Nobody has it until businesses have that many.
+ */
+export function bestRatedIds(cards: { id: string; reviews: number; rating: number | null }[]): Set<string> {
+  const ranked = cards.filter((c) => c.reviews >= 10 && c.rating !== null).sort((a, b) => b.rating! - a.rating!);
+  if (ranked.length === 0) return new Set();
+  const cut = ranked[Math.max(0, Math.ceil(ranked.length * 0.05) - 1)]!.rating!;
+  return new Set(ranked.filter((c) => c.rating! >= cut).map((c) => c.id));
+}
+
+type DirectoryRow = Omit<DirectoryCard, 'rating' | 'km' | 'bestRated' | 'photo' | 'smallPhoto' | 'replyMinutes' | 'tags' | 'yours'> & {
+  tags: string | null;
+  rating: string | number | null;
+  replyMinutes: number | string | null;
+  photoPath: string | null;
+};
+
+async function readDirectory(db: Db, userId: string | null): Promise<Omit<Directory, 'cards'> & { rows: DirectoryRow[] }> {
+  const me = userId ?? '00000000-0000-0000-0000-000000000000';
+  const [rows, kinds] = await Promise.all([
+    db.execute<DirectoryRow>(sql`
+      with replies as (select * from published_reply_times())
+      select v.id, v.slug::text as slug, v.display_name as name, v.tagline, v.description as about,
+             top.slug::text as "kindSlug", top.name as kind, pc.sub, coalesce(v.neighbourhood, mu.name) as place, mu.name as town,
+             r.average as rating, coalesce(r.review_count, 0) as reviews, rp.reply_minutes as "replyMinutes",
+             v.map_lat as lat, v.map_lng as lng, v.map_approximate as approximate, v.address_street as street,
+             case when v.hide_address_number then null else v.address_number end as number,
+             -- The connection doesn't look up array types: the tags come as one text, split here.
+             array_to_string(v.tags, chr(31)) as tags, v.curator_note as "curatorNote", cp.path as "photoPath", coalesce(cp.alt, '') as "photoAlt",
+             v.claim_status = 'claimed' as claimed,
+             -- Read as the person (RLS): only their own; signed out, nobody's.
+             exists (select 1 from saved_vendor s where s.user_id = ${me}::uuid and s.vendor_id = v.id) as saved,
+             exists (select 1 from shortlist s where s.user_id = ${me}::uuid and s.vendor_id = v.id) as shortlisted
+      from vendor v
+      join municipality mu on mu.id = v.primary_municipality_id
+      left join lateral (
+        select coalesce(c.parent_id, c.id) as top_id, c.name as sub from vendor_category vc join category c on c.id = vc.category_id
+        where vc.vendor_id = v.id and c.is_active order by vc.is_primary desc, c.name limit 1) pc on true
+      left join category top on top.id = pc.top_id and top.is_active
+      left join lateral vendor_rating(v.id) r on true
+      left join replies rp on rp.vendor_id = v.id
+      left join lateral (
+        select a.storage_path as path, a.alt_text as alt
+        from vendor_media vm join media_asset a on a.id = vm.media_asset_id
+        where vm.vendor_id = v.id and vm.role in ('gallery', 'logo') and a.deleted_at is null
+        order by vm.role = 'gallery' desc, vm.sort_order, a.created_at limit 1) cp on true
+      where v.listing_status = 'published'
+      order by r.average desc nulls last, coalesce(r.review_count, 0) desc, v.display_name`),
+    db.execute<{ slug: string; name: string }>(sql`
+      select slug::text as slug, name from category where parent_id is null and is_active order by sort_order, name`),
+  ]);
+  const shortlist = userId ? await readShortlist(db, userId) : [];
+  return { rows: [...rows], kinds: [...kinds], shortlist };
+}
+
+/** Every listed business for the Base44 browsing page, filtered and ordered in the browser (as Base44 does). */
+export async function directory(env: ServerEnv, userId: string | null): Promise<Directory> {
+  const [read, teams] = await Promise.all([
+    userId ? actingAs(env, { side: 'person', userId }, (tx) => readDirectory(tx, userId)) : withDb(env, (db) => readDirectory(db, null)),
+    userId
+      ? withDb(env, (db) =>
+          db.execute<{ vendorId: string; role: DirectoryCard['yours'] }>(sql`
+            select vendor_id as "vendorId", role from vendor_member where user_id = ${userId} and ended_at is null`),
+        )
+      : [],
+  ]);
+  const yours = new Map([...teams].map((t) => [t.vendorId, t.role]));
+  const cards = read.rows.map(({ photoPath, ...r }) => {
+    const km = r.lat !== null && r.lng !== null ? Math.round(kmBetween(CENTRE, { lat: r.lat, lng: r.lng }) * 10) / 10 : null;
+    return {
+      ...r,
+      rating: r.rating == null ? null : Number(r.rating),
+      replyMinutes: r.replyMinutes == null ? null : Number(r.replyMinutes),
+      tags: r.tags ? r.tags.split('\u001f') : [],
+      km,
+      bestRated: false,
+      yours: yours.get(r.id) ?? null,
+      photo: photoUrl(env, photoPath),
+      smallPhoto: smallPhotoUrl(env, photoPath),
+    };
+  });
+  const best = bestRatedIds(cards);
+  return {
+    kinds: read.kinds,
+    cards: cards.map((c) => (best.has(c.id) ? { ...c, bestRated: true } : c)),
+    shortlist: read.shortlist.map((s) => ({ ...s, photo: smallPhotoUrl(env, s.photo) })),
   };
 }

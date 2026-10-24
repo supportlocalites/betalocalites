@@ -18,7 +18,6 @@ import { browserKey, groupToken, inviteToken } from '@/server/invite-cookie.serv
 import { calendarLinks } from '@/lib/calendar';
 import { refusal } from '@/server/plan-pages.server';
 import type { Route } from './+types/invite';
-import { ThemeToggle } from '@/components/ThemeToggle';
 import styles from './invite.module.css';
 import { addressKey } from '@/server/visitor.server';
 
@@ -102,7 +101,6 @@ export default function Invite({ loaderData, actionData }: Route.ComponentProps)
   return (
     <main className={styles.page}>
       <div className={styles.frame}>
-        <ThemeToggle className={styles.theme} />
         <header className={styles.top}>
           <p className={styles.label}>{group ? 'You’re invited' : `You’re invited, ${i.guestName}`}</p>
           <h1 className={styles.title} dir="auto">

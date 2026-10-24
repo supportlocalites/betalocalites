@@ -5,6 +5,7 @@ import { adminContext, cloudflareContext } from '@/app/context';
 import { ListingFields, type ListingValues } from '@/components/admin/ListingFields';
 import { isUuid } from '@/lib/ids.mjs';
 import { pageMeta } from '@/lib/meta';
+import { MAX_NOTE, readProfileDetails } from '@/lib/profile-details';
 import { ADMIN_TRANSITIONS, type ListingStatus, STATUS_LABEL } from '@/lib/listing-status';
 import { fieldErrors, formValues, listingInput, readLoadedListing, readLoadedService, serviceInput } from '@/server/admin/listing-input';
 import {
@@ -14,6 +15,7 @@ import {
   readListing,
   saveService,
   setCostLevel,
+  setProfileDetails,
   setServiceActive,
   updateListing,
 } from '@/server/admin/listings.server';
@@ -159,6 +161,12 @@ export async function action({ params, request, context }: Route.ActionArgs) {
       await setCostLevel(env, admin, params.id, level);
       return back('cost');
     }
+    if (intent === 'profile') {
+      const read = readProfileDetails(form);
+      if ('error' in read) return data({ intent, errors: { profile: read.error } }, { status: 400 });
+      await setProfileDetails(env, admin, params.id, read.value);
+      return back('profile');
+    }
     if (intent === 'address') {
       const read = readAddressForm(form);
       if ('error' in read) return data({ intent, errors: { address: read.error } }, { status: 400 });
@@ -215,6 +223,7 @@ const SAVED: Record<string, string> = {
   created: 'Draft saved. Nobody sees it until you publish it.',
   details: 'Details saved.',
   cost: 'Cost guide saved.',
+  profile: 'Profile details saved.',
   address: 'Address saved.',
   service: 'Services saved.',
   published: 'Published: it’s now on Localites.',
@@ -417,6 +426,46 @@ export default function EditListing({ loaderData, actionData: rawResult }: Route
           </select>
           <button type="submit" className="button button-secondary" disabled={busy}>
             Save cost
+          </button>
+        </Form>
+      </section>
+
+      <section className={styles.section} aria-labelledby="profile-heading">
+        <h2 id="profile-heading">Profile details</h2>
+        <p className="muted">
+          Shown on the business’s profile on Browse local: the neighbourhood beside its kind (none: the town), up to 6 short tags, and a
+          tip from our team as “Curator’s note”.
+        </p>
+        <Form method="post">
+          <input type="hidden" name="intent" value="profile" />
+          <div className="field">
+            <label htmlFor="neighbourhood" className="field-label">
+              Neighbourhood
+            </label>
+            <input id="neighbourhood" name="neighbourhood" className="input" maxLength={60} defaultValue={listing.details.neighbourhood ?? ''} />
+          </div>
+          <div className="field">
+            <label htmlFor="tags" className="field-label">
+              Tags
+            </label>
+            <input id="tags" name="tags" className="input" defaultValue={listing.details.tags.join(', ')} aria-describedby="tags-hint" />
+            <p id="tags-hint" className="field-hint">
+              Commas between them, like: Seats 80, Nut-free kitchen, Comes to you
+            </p>
+          </div>
+          <div className="field">
+            <label htmlFor="curatorNote" className="field-label">
+              Curator’s note
+            </label>
+            <textarea id="curatorNote" name="curatorNote" className="input" maxLength={MAX_NOTE} defaultValue={listing.details.curatorNote ?? ''} />
+          </div>
+          {actionData?.intent === 'profile' && actionData.errors && 'profile' in actionData.errors && (
+            <p className="field-error" role="alert">
+              {String(actionData.errors.profile)}
+            </p>
+          )}
+          <button type="submit" className="button button-secondary" disabled={busy}>
+            Save profile details
           </button>
         </Form>
       </section>

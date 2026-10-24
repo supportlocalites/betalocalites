@@ -82,8 +82,9 @@ check('…and the team gets a “check now” email', alert.length === 1 && aler
   alert.map((m) => m.subject).join(' | '));
 r = await site(`/vendors/${V.slug}`);
 let text = words(r.body);
-check('the page shows the street and number, a map and directions',
-  text.includes(`22A Lakeshore Road, ${town.name}`) && r.body.includes('Map showing where') && r.body.includes('google.com/maps/search') && !text.includes('Approximate location'));
+// The Base44 profile (D-59): the street and number with Directions; the pin is on the map strip.
+check('the profile shows the street and number, and directions',
+  text.includes(`22A Lakeshore Road, ${town.name}`) && r.body.includes('google.com/maps/search') && !text.includes('Approximate location'));
 r = await site(ADDR, { cookie: cookie.o, method: 'POST', form: { street: 'Lakeshore Road', number: '22A' } });
 check('the same again: nothing saved', r.status === 302 && r.location.endsWith('unchanged=1'), `${r.status} ${r.location}`);
 r = await site(ADDR, { cookie: cookie.o, method: 'POST', form: { street: 'Lakeshore Road', number: '22; drop' } });
@@ -145,18 +146,11 @@ check('…a business owner can’t use the team’s page', r.status !== 302 && (
 
 console.log('\nBrowse local’s map');
 await sql`update vendor set map_lat = null, map_lng = null, address_street = null, address_number = null where id = ${U.id}`;
-r = await site(`/explore?view=map&q=${encodeURIComponent(run)}`);
+r = await site('/explore');
 text = words(r.body);
-check('the map view lists all three, and says which are on the map',
-  r.status === 200 && [V, W, U].every((b) => text.includes(b.name)) && text.includes('listed by its town') && text.includes('on the map'),
-  String(r.status));
-// Other suites' businesses may match the search too, so the note is checked against the list itself.
-const townOnly = (text.match(/· listed by its town/g) ?? []).length;
-const note = /Only businesses that share an address are on the map\. (\d+) more (?:is|are) listed by (?:its|their) town\./.exec(text);
-check('…with the note that only those with an address are on it, and how many aren’t', townOnly >= 1 && Number(note?.[1]) === townOnly,
-  `${townOnly} ${note?.[0]}`);
-r = await site(`/explore?q=${encodeURIComponent(`Address ${run}`)}`);
-check('the list view is still the rows, with the Map switch', r.status === 200 && r.body.includes('view=map'));
+// The Base44 map strip (D-59) shows only those that shared an address; every business is in the rows.
+check('Browse local lists all three, with the map strip above', r.status === 200 && [V, W, U].every((b) => text.includes(b.name))
+  && r.body.includes('aria-label="Map of the businesses that shared an address"'), String(r.status));
 
 console.log('\nMessage all from the shortlist');
 for (const b of [V, W, U]) await site('/shortlist', { cookie: cookie.a, method: 'POST', form: { intent: 'add', slug: b.slug, back: '/explore' } });

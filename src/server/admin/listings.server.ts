@@ -1,4 +1,5 @@
 import type { Address } from '@/lib/address';
+import type { ProfileDetails } from '@/lib/profile-details';
 import { readAddress } from '../address.server';
 import { sql } from 'drizzle-orm';
 import { uuidv7 } from '@/lib/ids.mjs';
@@ -120,6 +121,8 @@ export type ListingDetail = VendorRecord & {
   costLevel: number | null;
   /** The business's address and pin (0054). */
   address: Address;
+  /** Neighbourhood, tags and the team's note, shown on the Base44 profile (0056). */
+  details: ProfileDetails;
 };
 
 async function readVendor(
@@ -168,8 +171,18 @@ export async function readListing(db: Db, id: string): Promise<ListingDetail | n
       where a.subject_type = 'vendor' and a.subject_id = ${id} and a.action not like 'activity.%'
       order by a.created_at desc limit 30`),
   ]);
-  const [cost] = await db.execute<{ costLevel: number | null }>(sql`select cost_level as "costLevel" from vendor where id = ${id}`);
-  return { id, ...vendor, services: [...services], history: [...history], costLevel: cost?.costLevel ?? null, address: await readAddress(db, id) };
+  const [extra] = await db.execute<{ costLevel: number | null; neighbourhood: string | null; tags: string | null; curatorNote: string | null }>(sql`
+    select cost_level as "costLevel", neighbourhood, array_to_string(tags, chr(31)) as tags, curator_note as "curatorNote"
+    from vendor where id = ${id}`);
+  return {
+    id,
+    ...vendor,
+    services: [...services],
+    history: [...history],
+    costLevel: extra?.costLevel ?? null,
+    address: await readAddress(db, id),
+    details: { neighbourhood: extra?.neighbourhood ?? null, tags: extra?.tags ? extra.tags.split('\u001f') : [], curatorNote: extra?.curatorNote ?? null },
+  };
 }
 
 async function assertSlugFree(db: Db, slug: string, vendorId: string | null) {
@@ -337,6 +350,41 @@ export async function setCostLevel(env: ServerEnv, admin: Admin, id: string, lev
         changes: { costLevel: { from: before.costLevel, to: level } },
         sessionRef: admin.sessionId,
       });
+    }),
+  );
+}
+
+/**
+ * The neighbourhood, word tags and Curator's note on the Base44 profile (0056, D-59): set by the
+ * team (G36). Only what changed is written, and recorded in the history.
+ */
+export async function setProfileDetails(env: ServerEnv, admin: Admin, id: string, next: ProfileDetails): Promise<void> {
+  await withDb(env, (db) =>
+    db.transaction(async (tx) => {
+      const [before] = await tx.execute<{ status: string; neighbourhood: string | null; tags: string | null; curatorNote: string | null }>(sql`
+        select listing_status as status, neighbourhood, array_to_string(tags, chr(31)) as tags, curator_note as "curatorNote"
+        from vendor where id = ${id} for update`);
+      if (!before) throw new ListingConflict('form', 'This listing no longer exists.');
+      if (before.status === 'archived') throw new ListingConflict('form', 'Archived listings can’t be edited.');
+      const was: ProfileDetails = {
+        neighbourhood: before.neighbourhood,
+        tags: before.tags ? before.tags.split('\u001f') : [],
+        curatorNote: before.curatorNote,
+      };
+      const changes: Record<string, { from: unknown; to: unknown }> = {};
+      if (was.neighbourhood !== next.neighbourhood) changes.neighbourhood = { from: was.neighbourhood, to: next.neighbourhood };
+      if (was.tags.join('\u001f') !== next.tags.join('\u001f')) changes.tags = { from: was.tags, to: next.tags };
+      if (was.curatorNote !== next.curatorNote) changes.curatorNote = { from: was.curatorNote, to: next.curatorNote };
+      if (Object.keys(changes).length === 0) return;
+      // Only what changed is written, so another team member's change to the others stays.
+      const sets = [
+        changes.neighbourhood ? sql`neighbourhood = ${next.neighbourhood}` : null,
+        changes.curatorNote ? sql`curator_note = ${next.curatorNote}` : null,
+        // One text, split in the database (a list here would be sent as separate values).
+        changes.tags ? sql`tags = string_to_array(${next.tags.join('\u001f')}, chr(31))` : null,
+      ].filter((x) => x !== null);
+      await tx.execute(sql`update vendor set ${sql.join(sets, sql`, `)} where id = ${id}`);
+      await audit(tx, { actor: admin.userId, action: 'vendor.profile_details', subjectType: 'vendor', subjectId: id, changes, sessionRef: admin.sessionId });
     }),
   );
 }

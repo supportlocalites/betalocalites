@@ -1,20 +1,36 @@
 /*
- * Localites design tokens (design direction G, docs/design-system.md).
+ * Localites design tokens (the Base44 design, D-59; before it, design direction G).
  * THE ONLY FILE where colours, fonts, sizes and shapes are written as raw values.
  * Everything else uses these variables; `npm run check:tokens` enforces it.
  */
 :root {
   /* Colour (§2) */
-  --color-ground: #f7f5f1;
-  --color-surface: #fbfaf8;
-  --color-ink: #141414;
-  --color-ink-soft: #3d3935;
-  --color-muted: #6b655e;
-  --color-line: #dcd6ce;
-  --color-line-soft: #e7e2da;
-  --color-tint: #ede8e1;
-  --color-gold: #b8955a; /* lines and outlines only, never text, icons or fills */
-  --color-on-ink: #f7f5f1;
+  /* The Base44 design's own colours (D-59): warm paper, near-black ink, gold. */
+  --color-ground: #fcfbfa;
+  --color-surface: #ffffff;
+  --color-ink: #1c1a17;
+  --color-ink-soft: #3e3b37;
+  /* A touch deeper than Base44's greys so small words stay readable (4.5:1, the accessibility checks). */
+  --color-muted: #736c63;
+  --color-muted-soft: #787168;
+  --color-line: #e4dfd8;
+  --color-line-soft: #ece8e2;
+  --color-tint: #f6f4f1;
+  --color-gold: #b5965a;
+  --color-gold-dark: #8b7040;
+  --color-gold-soft: #f7f2e9;
+  --color-gold-faint: rgba(181, 150, 90, 0.4);
+  --color-gold-ring: rgba(181, 150, 90, 0.15);
+  --color-on-ink: #fcfbfa;
+  --color-tag: #242424;
+  --color-on-tag: #ffffff;
+  --color-glass: rgba(252, 251, 250, 0.92);
+  --color-map: #f1efea;
+  --shadow-card: 0 18px 38px -30px rgba(30, 24, 12, 0.35);
+  --shadow-card-open: 0 18px 38px -28px rgba(30, 24, 12, 0.5);
+  --shadow-soft: 0 1px 3px rgba(30, 24, 12, 0.12);
+  --shadow-pin: 0 1px 6px rgba(30, 24, 12, 0.28);
+  --filter-map: sepia(0.18) saturate(0.92) brightness(1.03) grayscale(0.55);
   --color-photo-1: #e5dfd6;
   --color-photo-2: #ddd6cb;
   --color-photo-3: #e9e4dc;
@@ -26,9 +42,9 @@
   --color-viewer: rgba(20, 20, 20, 0.94);
   --color-viewer-button: rgba(20, 20, 20, 0.45);
   --color-on-viewer: #f7f5f1;
-  /* Browse local (D-57): gold words only in this deeper shade (5:1 on ground); the shortlist bar
-     stays dark in both looks, with a gold button. */
-  --color-gold-ink: #7f6129;
+  /* Gold words (D-59, K11: the owner chose Base44's gold writing), a touch deeper than the gold
+     lines so they stay readable (4.7:1 on every background, the accessibility checks). */
+  --color-gold-ink: #86682f;
   --color-bar: #141414;
   --color-on-bar: #f7f5f1;
   --color-bar-gold-ink: #d4b77c;
@@ -40,7 +56,7 @@
 
   /* Type (§3): served with the site from @fontsource, no third party */
   --font-display: 'Playfair Display', Georgia, 'Times New Roman', serif;
-  --font-body: 'Jost', 'Helvetica Neue', Arial, sans-serif;
+  --font-body: 'Inter', ui-sans-serif, system-ui, 'Helvetica Neue', Arial, sans-serif;
 
   /* Shrinks on narrow phones so "Localites." always fits inside the frame (360px and below). */
   --text-welcome: clamp(44px, calc((100vw - 92px) / 4.4), 72px);
@@ -50,7 +66,7 @@
   --text-page-title-narrow: clamp(28px, 5vw, 36px);
   --text-title-2: 26px;
   --text-title-3: 18px;
-  --text-body: 15px;
+  --text-body: 14px;
   --text-small: 13px;
   --text-label: 10.5px;
   --text-button: 13px;
@@ -68,15 +84,18 @@
   --space-6: 24px;
   --space-7: 28px;
   --space-8: 32px;
+  --space-10: 40px;
   --space-12: 48px;
   --space-14: 56px;
   --gutter: 20px;
   --content-max: 1200px;
 
   /* Shape (§5) */
-  --radius-button: 0;
-  --radius-file: 0;
-  --radius-sheet: 0;
+  /* Rounded, as the Base44 design (D-59, K7): pill buttons, softly rounded cards and boxes. */
+  --radius-button: 999px;
+  --radius-file: 8px;
+  --radius-sheet: 12px;
+  --radius-card: 12px;
   --radius-pill: 999px;
   --size-icon-button: 44px;
   --size-theme-icon: 20px;
@@ -87,8 +106,8 @@
   --size-bar-thumb: 44px;
   --size-bar-space: 120px;
   --size-search-min: 320px;
-  --size-button: 52px;
-  --size-button-short: 48px;
+  --size-button: 44px;
+  --size-button-short: 40px;
   --hairline: 1px;
   /* The gold mark beside the open conversation in Messages (D-58). */
   --mark-current: 2px;
@@ -144,12 +163,67 @@
   /* A printed invitation's QR code (guests, part 2): large enough to scan from across a table. */
   --size-qr-print: 288px;
   --size-textarea: 140px;
+
+  /* The Base44 design's own sizes (D-59): the top bar, map strip, rows, cards and profile panel. */
+  --b44-text-logo: 26px;
+  --b44-text-tiny: 8px;
+  --b44-text-eyebrow: 8.5px;
+  --b44-text-caps: 9px;
+  --b44-text-count: 9.5px;
+  --b44-text-meta: 10px;
+  --b44-text-card: 11px;
+  --b44-text-panel: 12.5px;
+  --b44-text-note: 12px;
+  --b44-text-search: 13px;
+  --b44-text-similar: 13.5px;
+  --b44-text-italic: 15px;
+  --b44-text-card-name: 15.5px;
+  --b44-text-rail: 21px;
+  --b44-text-empty: 20px;
+  --b44-text-panel-name: 27px;
+  --b44-track-tight: -0.03em;
+  --b44-track-name: -0.02em;
+  --b44-track-card: -0.01em;
+  --b44-track-select: 0.05em;
+  --b44-track-badge: 0.14em;
+  --b44-track-caps: 0.16em;
+  --b44-track-row: 0.18em;
+  --b44-track-label: 0.2em;
+  --b44-bar-max: 1680px;
+  --b44-gutter: 16px;
+  --b44-gutter-wide: 28px;
+  --b44-gutter-mid: 24px;
+  --b44-search: 40px;
+  --b44-chip: 32px;
+  --b44-icon-xs: 10px;
+  --b44-icon-s: 12px;
+  --b44-icon-m: 14px;
+  --b44-icon: 16px;
+  --b44-heart: 24px;
+  --b44-heart-big: 32px;
+  --b44-step: 24px;
+  --b44-dot: 6px;
+  --b44-stripe: 2px;
+  --b44-card: 248px;
+  --b44-skeleton: 102px;
+  --b44-map: 30vh;
+  --b44-map-wide: 34vh;
+  --b44-map-min: 180px;
+  --b44-photo: 168px;
+  --b44-photo-wide: 190px;
+  --b44-photo-wider: 212px;
+  --b44-thumb: 44px;
+  --b44-panel: 33%;
+  --b44-panel-wide: 58%;
+  --b44-pin: 12px;
+  --b44-pin-open: 18px;
+  --b44-lift: -2px;
+  --b44-menu: 200px;
 }
 
 /*
- * The dark look (D-57): the same page with light words on near-black; the gold lines stay.
- * Chosen with the moon (data-theme="dark", kept in a cookie), or the device's own setting
- * when the visitor hasn't chosen. Both blocks hold the same values.
+ * The dark look (D-57), switched off with the Base44 design (D-59, K16: light only). Kept, not
+ * deleted, until the owner asks what code is unused: nothing sets data-theme="dark" now.
  */
 :root[data-theme='dark'] {
   --color-ground: #141414;
@@ -171,28 +245,6 @@
   color-scheme: dark;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme='light']) {
-    --color-ground: #141414;
-    --color-surface: #1c1b19;
-    --color-ink: #f7f5f1;
-    --color-ink-soft: #d9d3ca;
-    --color-muted: #a39b90;
-    --color-line: #3a3631;
-    --color-line-soft: #2b2926;
-    --color-tint: #242220;
-    --color-on-ink: #141414;
-    --color-photo-1: #2e2b27;
-    --color-photo-2: #34302b;
-    --color-photo-3: #2a2825;
-    --color-photo-4: #3a362f;
-    --color-gold-ink: #d4b77c;
-    --color-bar: #0b0b0b;
-    --color-chosen: #c9a96a;
-    color-scheme: dark;
-  }
-}
-
 @media (min-width: 768px) {
   :root {
     --gutter: 32px;
@@ -208,7 +260,7 @@
     --text-title-1: 44px;
     --text-title-2: 30px;
     --text-title-3: 19px;
-    --text-body: 16px;
+    --text-body: 15px;
     --text-small: 14px;
     --text-label: 11px;
     --frame-inset-photo: 8px;

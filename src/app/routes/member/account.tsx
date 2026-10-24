@@ -3,7 +3,6 @@ import { cloudflareContext, memberContext } from '@/app/context';
 import { NameFields, ProfileFields } from '@/components/ProfileFields';
 import { SiteHeader } from '@/components/SiteHeader';
 import { pageMeta } from '@/lib/meta';
-import { EVENTS_PRIVATE } from '@/lib/plan-terms';
 import { updatePerson } from '@/server/auth/member.server';
 import { NAME_WORDS, NAMES_NEEDED, namesInput, profileInput } from '@/server/member-input';
 import { listMatches } from '@/server/moderation.server';
@@ -121,18 +120,14 @@ export default function Account({ loaderData, actionData }: Route.ComponentProps
           <div className={styles.accountSide}>
             <section aria-labelledby="planning" className={`${styles.section} ${styles.accountCard}`}>
               <h2 id="planning" className="label">
-                Planning
+                Favourites
               </h2>
               <p>
-                <Link to="/events" className="text-link">
-                  My events
-                </Link>{' '}
-                ·{' '}
                 <Link to="/saved" className="text-link">
                   Your favourites
                 </Link>
               </p>
-              <p className="muted">Only you can see your favourites. {EVENTS_PRIVATE}</p>
+              <p className="muted">Only you can see your favourites.</p>
             </section>
 
             <section aria-labelledby="emails-title" className={`${styles.section} ${styles.accountCard}`} id="emails">

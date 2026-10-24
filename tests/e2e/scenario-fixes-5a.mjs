@@ -49,7 +49,8 @@ let r = await site(`/vendors/${V.slug}`, { cookie: cookie.o });
 check('the owner sees their own page as theirs, without Message, Save or Add to event',
   words(r.body).includes('This is your business') && !r.body.includes(`/vendors/${V.slug}/message"`) && !r.body.includes(`/vendors/${V.slug}/add"`));
 r = await site(`/vendors/${V.slug}`, { cookie: cookie.a });
-check('…a customer sees Message and Add to event', r.body.includes(`/vendors/${V.slug}/message"`) && r.body.includes(`/vendors/${V.slug}/add"`) && !words(r.body).includes('This is your business'));
+// Add to event is hidden since the Base44 design (D-59, G8).
+check('…a customer sees Message', r.body.includes(`/vendors/${V.slug}/message"`) && !words(r.body).includes('This is your business'));
 r = await site('/events', { cookie: cookie.o });
 check('the header offers “My business” to someone on a team', r.body.includes('href="/business"'));
 r = await site('/events', { cookie: cookie.a });

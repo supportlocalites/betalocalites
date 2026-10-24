@@ -4,8 +4,8 @@ import styles from './ShortlistBar.module.css';
 
 /**
  * The shortlist bar along the bottom of Browse local (D-57): only when something is on the
- * shortlist. Each business with its kind and an × to take it off; then "Message all" (step 3)
- * and "Add these to an event".
+ * shortlist. Each business with its kind and an × to take it off; then "Message all" (step 3).
+ * "Add these to an event" went with events (D-59, G19 pivoted; its page is kept).
  */
 export function ShortlistBar({ items }: { items: ShortlistItem[] }) {
   const location = useLocation();
@@ -24,9 +24,6 @@ export function ShortlistBar({ items }: { items: ShortlistItem[] }) {
         </ul>
         <Link to="/shortlist/message" className={styles.message}>
           Message all
-        </Link>
-        <Link to="/shortlist" className={styles.go}>
-          Add these to an event
         </Link>
       </div>
     </aside>

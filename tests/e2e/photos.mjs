@@ -185,8 +185,8 @@ check('…shown whole by default (a wide logo), on a soft copy of itself',
   r.body.includes('top:29.167%') && r.body.includes('height:41.667%') && r.body.includes('aria-hidden="true"'));
 r = await site(`/vendors/${V.slug}`);
 const heroImg = r.body.match(/<img src="[^"]*vendor-photos\/([^"]+)" alt="[^"]+"/)?.[1];
-check('the business page shows it beside the name, and still leads with the first page photo',
-  r.body.includes(`alt="Our logo ${run}"`) && heroImg === mgrPhoto.path, heroImg);
+// The Base44 profile shows one photo (D-59, K21): the first page photo, not the logo.
+check('the business’s profile still leads with the first page photo', heroImg === mgrPhoto.path, heroImg);
 const frame = { x: '10', y: '0', w: '50', h: '100' };
 // A second manager sends the refused framings, so no one person passes the 20-changes-a-minute limit.
 r = await post(PAGE(), 'mgr', { intent: 'frame', id: logo.id, ...frame });

@@ -32,16 +32,15 @@ check('the help page answers the common questions, with the team’s email', r.s
 check('…and says plainly that Localites doesn’t process payments', words(r.body).includes('Localites doesn’t process payments'));
 r = await site('/');
 check('the Welcome page is a clean landing page, with no footer', r.status === 200 && !r.body.includes('<footer'));
+// No footer anywhere since the Base44 design (D-59, K19); the help page itself is kept (G13).
 for (const path of ['/explore', `/vendors/${listed.slug}`, '/help']) {
   r = await site(path);
-  check(`the footer on ${path}: help, information pages and the team’s email`,
-    r.body.includes('<footer') && r.body.includes('href="/help"') && r.body.includes('href="/for-businesses"') && r.body.includes('mailto:supportlocalites@gmail.com'));
+  check(`no footer on ${path}`, r.status === 200 && !r.body.includes('<footer'), String(r.status));
 }
 
 r = await site(`/vendors/${listed.slug}`);
-const report = /href="(mailto:supportlocalites@gmail\.com\?subject=[^"]+)"[^>]*>Tell us/.exec(r.body)?.[1] ?? '';
-check('a business page offers “Something wrong with this listing?”, emailing the team with the listing’s address',
-  words(r.body).includes('Something wrong with this listing?') && decodeURIComponent(decode(report)).includes(`/vendors/${listed.slug}`));
+// “Something wrong with this listing?” is hidden since the Base44 design (D-59, G11).
+check('a business’s profile no longer offers “Something wrong with this listing?”', !words(r.body).includes('Something wrong with this listing?'));
 check('…and a link preview: the business’s name, tagline, address and a picture',
   meta(r.body, 'og:title') === `Share Bakery ${run}` && meta(r.body, 'og:description') === 'Fresh bread daily' &&
     meta(r.body, 'og:url') === `${BASE}/vendors/${listed.slug}` && (meta(r.body, 'og:image') ?? '').startsWith('http'), `${meta(r.body, 'og:image')}`);

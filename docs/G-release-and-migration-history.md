@@ -31,6 +31,41 @@ Every release and every database migration, in order. Appended before each deplo
 
 ## Releases
 
+### 2026-10-24 — The Base44 design becomes the website, and the new kinds of business (D-59, D-60)
+
+**Stage:** 1 and 2 (the redesign)
+**What changed (plain English):** the product owner: "I want to use the base44's website exactly as
+is"; "the most important role is that the website looks identical and that we are just rewiring all
+of the work prior to this new website look." Browse local is now the Base44 page: the top bar
+(our wordmark, search, Within, Rating, Sort, Clear, Sign in or the account menu), the map strip
+with Expand map, the count, a row for each main kind of business with small cards (heart, +), and
+the profile panel (photo, ‹ › stepping, kind and neighbourhood, stars, reply time, distance from
+downtown Orillia, the one-liner, About, Curator's note, tags, Message or Inquire, the shortlist,
+Directions, reviews, similar businesses). A business's own address opens this page with its profile
+open. The whole site takes Base44's colours, Inter and Playfair Display, and rounded shapes; light
+only; no footer. Pivoted features (D-59) are hidden from the site; their code stays. The team's
+listing page has Neighbourhood, Tags and Curator's note. 60 sample businesses (10 per main kind,
+D-60) replace the first 10; they have no reviews, ratings or reply times, so their cards say "New".
+Small words are a touch darker than Base44's, and gold words a touch deeper, so they pass the
+accessibility checks (4.5:1).
+**Migrations applied:** `0056_base44_design.sql`.
+**Destructive?** No: new kinds (the old ones hidden, never deleted; each business's move of main
+kind is in audit_log, so it can be undone exactly), three columns and their checks, one read-only
+function.
+**Review:** an independent review (database and access changes) found no leaks; it found a first
+visit by a business's link wasn't counted (one browser is now used for all of a page's notes), that
+the migration could fail on a kind the team had already made (it now keeps it), that the undo
+wasn't recorded (now in audit_log), and that a save wrote all three details (now only those
+changed). The directory loads every listed business on each visit, fine at today's size; to be
+cached when there are many hundreds.
+**Tests run:** `npm run check`; unit tests 219/219; every database check file (0056: 17/17); the
+migration applied to a copy with the test and sample businesses (all moved, none left without a
+main kind) and with a clashing kind the team had made; every browser suite (30 suites, 2,083
+checks, all passing on a fresh database, against a local sign-in server); `npm run build && npm run
+size` (442 KiB, 14%). Tests that checked hidden features (the footer, the moon and sun, Claim, the
+photo viewer, services on the business page) now check that they're hidden; the six fake test
+businesses use the new kinds.
+
 ### 2026-10-20 — Sample businesses for showing how Localites looks
 
 **Stage:** 1 (data only, test project only)

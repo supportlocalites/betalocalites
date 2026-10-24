@@ -1,9 +1,7 @@
-/* Dark in both looks, held to the bottom of the screen (D-57). */
+/* Dark, along the bottom of the list (D-57; in the Base44 page's column since D-59). */
 .bar {
-  position: fixed;
-  left: 0;
-  right: 0;
-  bottom: 0;
+  position: relative;
+  flex-shrink: 0;
   z-index: 10;
   background: var(--color-bar);
   color: var(--color-on-bar);

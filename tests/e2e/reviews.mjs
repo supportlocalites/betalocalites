@@ -195,7 +195,8 @@ r = await page(`/vendors/${V.slug}/reviews`, { cookie: cookie.o });
 check('…and the business isn’t offered a second reply', r.status === 200 && !r.body.includes('name="reply"'), String(r.status));
 r = await page(`/admin/reviews/${rev.id}`, { cookie: cookie.m, method: 'POST', form: { intent: 'remove', reason: `Personal details ${run}` } });
 r = await page(`/vendors/${V.slug}`);
-check('…and the review, with a reason: it’s no longer shown', !r.body.includes(`${BODY}!`) && words(r.body).includes('No reviews yet'));
+// With no reviews the Base44 profile shows no Reviews section at all (D-59).
+check('…and the review, with a reason: it’s no longer shown', !r.body.includes(`${BODY}!`) && !r.body.includes('aria-label="Reviews"'));
 r = await page(REVIEW(past), { cookie: cookie.a });
 check('the author is told it was removed, and why', words(r.body).includes('Our team removed your review') && words(r.body).includes(`Personal details ${run}`));
 

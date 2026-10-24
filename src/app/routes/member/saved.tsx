@@ -3,7 +3,6 @@ import { Link } from 'react-router';
 import { cloudflareContext, memberContext } from '@/app/context';
 import { CardGrid } from '@/components/BrowseCard';
 import { ShortlistBar } from '@/components/ShortlistBar';
-import { SideSwitch } from '@/components/SideSwitch';
 import { SiteHeader } from '@/components/SiteHeader';
 import { pageMeta } from '@/lib/meta';
 import { browse } from '@/server/browse.server';
@@ -28,27 +27,23 @@ export async function loader({ context }: Route.LoaderArgs) {
 }
 
 export default function Saved({ loaderData }: Route.ComponentProps) {
-  const { favourites, shortlist, onTeam } = loaderData;
+  const { favourites, shortlist } = loaderData;
   const ref = useRef<HTMLUListElement>(null);
   return (
     <>
       <SiteHeader />
       <main className={`page ${shortlist.length > 0 ? styles.withBar : ''}`}>
-        {onTeam && <SideSwitch current="events" />}
         <h1 className="title-1">Your favourites</h1>
         <div className="title-rule" aria-hidden="true" />
         <p className="muted">Only you can see this list. Businesses aren’t told when you save them as a favourite.</p>
         {favourites.length === 0 ? (
-          <p>No favourites yet. Tap the bookmark on any business to keep it here.</p>
+          <p>No favourites yet. Tap the heart on any business to keep it here.</p>
         ) : (
           <CardGrid items={favourites} signedIn listId={null} listRef={ref} />
         )}
         <p className="section-gap">
           <Link to="/explore" className="text-link">
             Browse local
-          </Link>{' '}
-          <Link to="/events" className="text-link">
-            My events
           </Link>
         </p>
       </main>

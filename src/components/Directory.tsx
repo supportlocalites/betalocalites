@@ -1,0 +1,778 @@
+import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
+import { Link, useFetcher, useLocation, useSearchParams } from 'react-router';
+import { useListActivity, useVendorActivity } from '@/components/ActivityTracker';
+import { ReportLink, ReviewList, type ShownReview } from '@/components/Reviews';
+import { directionsUrl, streetLine } from '@/lib/address';
+import type { DirectoryCard, ShortlistItem } from '@/server/browse.server';
+import { DirectoryMap } from './DirectoryMap';
+import { ShortlistBar } from './ShortlistBar';
+import { TopBar } from './TopBar';
+import styles from './Directory.module.css';
+
+/**
+ * Browse local in the Base44 design (D-59): the top bar with search, Within, Rating, Sort and
+ * Clear; the map strip; the count; a row for each main kind of business (D-60); small cards with
+ * the heart and the +; and the profile panel beside them. Filtering and ordering happen here in
+ * the browser, as on Base44. What we built in (D-59 part 3): Message or Inquire, the shortlist,
+ * Directions, reviews, and favourites kept with the account when signed in.
+ */
+
+const WITHIN = [
+  { value: '', label: 'Any distance' },
+  { value: '3', label: 'Within 3 km' },
+  { value: '5', label: 'Within 5 km' },
+  { value: '10', label: 'Within 10 km' },
+];
+const RATING = [
+  { value: '', label: 'Any rating' },
+  { value: '4.8', label: '4.8 & up' },
+  { value: '4.5', label: '4.5 & up' },
+  { value: '4', label: '4.0 & up' },
+];
+const SORT = [
+  { value: 'top', label: 'Top rated' },
+  { value: 'near', label: 'Closest' },
+  { value: 'fast', label: 'Fastest reply' },
+  { value: 'reviews', label: 'Most reviewed' },
+];
+
+export type ListTrack = { token: string; list: string } | null;
+
+export const replyLabel = (minutes: number | null) => {
+  if (minutes === null) return '—';
+  const h = minutes / 60;
+  if (h < 12) return `~${Math.max(1, Math.round(h))} hrs`;
+  if (h < 36) return '~1 day';
+  return `~${Math.round(h / 24)} days`;
+};
+export const ratingLabel = (r: number | null) => (r === null ? 'New' : r.toFixed(1));
+export const kmLabel = (km: number | null) => (km === null ? '—' : `${km.toFixed(1)} km`);
+
+/** Favourites without an account stay in this browser only, as on Base44 (D-59, K15). */
+const LOCAL_KEY = 'localites:favourites';
+const LOCAL_EVENT = 'localites:favourites';
+const localFavourites = {
+  subscribe(onChange: () => void) {
+    window.addEventListener('storage', onChange);
+    window.addEventListener(LOCAL_EVENT, onChange);
+    return () => {
+      window.removeEventListener('storage', onChange);
+      window.removeEventListener(LOCAL_EVENT, onChange);
+    };
+  },
+  read(): string {
+    try {
+      return window.localStorage.getItem(LOCAL_KEY) ?? '[]';
+    } catch {
+      return '[]';
+    }
+  },
+  parse(raw: string): string[] {
+    try {
+      const parsed: unknown = JSON.parse(raw);
+      return Array.isArray(parsed) ? parsed.filter((x): x is string => typeof x === 'string') : [];
+    } catch {
+      return [];
+    }
+  },
+  toggle(slug: string) {
+    const now = localFavourites.parse(localFavourites.read());
+    const next = now.includes(slug) ? now.filter((s) => s !== slug) : [...now, slug];
+    try {
+      window.localStorage.setItem(LOCAL_KEY, JSON.stringify(next));
+    } catch {
+      // Storage off: nothing is kept.
+    }
+    window.dispatchEvent(new Event(LOCAL_EVENT));
+  },
+};
+
+export function Directory({
+  cards,
+  kinds,
+  shortlist,
+  signedIn,
+  tracks,
+  initial,
+  initialTrack = null,
+  initialReviews = null,
+}: {
+  cards: DirectoryCard[];
+  kinds: { slug: string; name: string }[];
+  shortlist: ShortlistItem[];
+  signedIn: boolean;
+  tracks: Record<string, ListTrack>;
+  /** The business opened by its own web address (/vendors/:slug). */
+  initial: string | null;
+  /** That visit's note, made with the page (it knows where the visitor came from). */
+  initialTrack?: string | null;
+  /** That business's reviews, sent with the page. */
+  initialReviews?: PanelData['reviews'] | null;
+}) {
+  const [params, setParams] = useSearchParams();
+  const [query, setQuery] = useState('');
+  const [within, setWithin] = useState('');
+  const [rating, setRating] = useState('');
+  const [sort, setSort] = useState('top');
+  const [mapBig, setMapBig] = useState(false);
+  const [wide, setWide] = useState(false);
+  // ?v= names the open business; on a business's own address it's open until closed (v empty).
+  const selected = params.has('v') ? params.get('v') || null : initial;
+  const select = useCallback(
+    (slug: string | null) =>
+      setParams(
+        (p) => {
+          const next = new URLSearchParams(p);
+          if (slug) next.set('v', slug);
+          else if (initial) next.set('v', '');
+          else next.delete('v');
+          return next;
+        },
+        { replace: true, preventScrollReset: true },
+      ),
+    [setParams, initial],
+  );
+
+  // Favourites: the account's when signed in, this browser's when not.
+  const local = localFavourites.parse(useSyncExternalStore(localFavourites.subscribe, localFavourites.read, () => '[]'));
+
+  // The count and the map follow the rows, as on Base44: a business with no main kind that's
+  // showing isn't in a row, but its own address still opens its profile.
+  const filtered = useMemo(() => {
+    const needle = query.trim().toLowerCase();
+    const list = cards.filter((c) => {
+      if (!c.kindSlug) return false;
+      if (within && (c.km ?? Infinity) > Number(within)) return false;
+      if (rating && (c.rating ?? 0) < Number(rating)) return false;
+      if (needle && ![c.name, c.tagline ?? '', c.kind ?? '', c.sub ?? '', c.place].join(' ').toLowerCase().includes(needle)) return false;
+      return true;
+    });
+    const sorted = [...list];
+    if (sort === 'near') sorted.sort((a, b) => (a.km ?? Infinity) - (b.km ?? Infinity));
+    else if (sort === 'fast') sorted.sort((a, b) => (a.replyMinutes ?? Infinity) - (b.replyMinutes ?? Infinity));
+    else if (sort === 'reviews') sorted.sort((a, b) => b.reviews - a.reviews);
+    else sorted.sort((a, b) => (b.rating ?? 0) - (a.rating ?? 0));
+    return sorted;
+  }, [cards, query, within, rating, sort]);
+
+  const rails = useMemo(
+    () => kinds.map((k) => ({ ...k, items: filtered.filter((c) => c.kindSlug === k.slug) })).filter((r) => r.items.length > 0),
+    [kinds, filtered],
+  );
+  const open = cards.find((c) => c.slug === selected) ?? null;
+  const siblings = useMemo(() => (open ? filtered.filter((c) => c.kindSlug === open.kindSlug) : []), [open, filtered]);
+  const position = siblings.findIndex((c) => c.slug === selected);
+  const similar = useMemo(
+    () =>
+      open
+        ? filtered
+            .filter((c) => c.slug !== open.slug && c.kindSlug === open.kindSlug)
+            .sort((a, b) => (b.rating ?? 0) - (a.rating ?? 0))
+            .slice(0, 3)
+        : [],
+    [open, filtered],
+  );
+  const step = useCallback(
+    (delta: number) => {
+      if (siblings.length < 2 || position < 0) return;
+      select(siblings[(position + delta + siblings.length) % siblings.length]!.slug);
+    },
+    [siblings, position, select],
+  );
+
+  // A business the filters now hide closes, as on Base44.
+  useEffect(() => {
+    if (selected && open?.kindSlug && !filtered.some((c) => c.slug === selected)) select(null);
+  }, [filtered, selected, open, select]);
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      const t = e.target as HTMLElement | null;
+      if (t && /^(INPUT|SELECT|TEXTAREA)$/.test(t.tagName)) return;
+      if (e.key === 'Escape') select(null);
+      else if (e.key === 'ArrowRight') step(1);
+      else if (e.key === 'ArrowLeft') step(-1);
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [step, select]);
+
+  const isFavourite = (c: DirectoryCard) => (signedIn ? c.saved : local.includes(c.slug));
+  const heart = (c: DirectoryCard, big = false) => (
+    <Heart card={c} big={big} signedIn={signedIn} on={isFavourite(c)} onLocal={() => localFavourites.toggle(c.slug)} />
+  );
+  const clear = () => {
+    setQuery('');
+    setWithin('');
+    setRating('');
+    setSort('top');
+  };
+
+  return (
+    <div className={styles.screen}>
+      <TopBar onTeam={cards.some((c) => c.yours !== null)}>
+        <div className={styles.search} role="search">
+          <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false" className={styles.searchIcon}>
+            <circle cx="11" cy="11" r="7" />
+            <path d="m20 20-3.5-3.5" />
+          </svg>
+          <label htmlFor="q" className="visually-hidden">
+            Search businesses
+          </label>
+          <input
+            id="q"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Search by name or what they do..."
+            className={styles.searchInput}
+            maxLength={100}
+            autoComplete="off"
+          />
+          {query && (
+            <button type="button" onClick={() => setQuery('')} aria-label="Clear search" className={styles.searchClear}>
+              <Icon name="x" />
+            </button>
+          )}
+        </div>
+        <div className={styles.filters}>
+          <Select id="within" label="Within" value={within} onChange={setWithin} options={WITHIN} />
+          <Select id="rating" label="Rating" value={rating} onChange={setRating} options={RATING} />
+          <Select id="sort" label="Sort" value={sort} onChange={setSort} options={SORT} />
+          <button type="button" onClick={clear} className={styles.clear}>
+            Clear
+          </button>
+        </div>
+      </TopBar>
+
+      <div className={styles.body}>
+        <div className={styles.left}>
+          <DirectoryMap
+            cards={filtered}
+            selected={selected}
+            onSelect={select}
+            expanded={mapBig}
+            className={`${styles.map} ${mapBig ? styles.mapBig : ''}`}
+          >
+            <button type="button" onClick={() => setMapBig((v) => !v)} className={styles.expand}>
+              <Icon name={mapBig ? 'min' : 'max'} small />
+              {mapBig ? 'Collapse' : 'Expand map'}
+            </button>
+          </DirectoryMap>
+
+          {!mapBig && (
+            <div className={styles.viewbar}>
+              <p className={styles.count}>
+                <span className={styles.countNumber}>
+                  {filtered.length} {filtered.length === 1 ? 'business' : 'businesses'}
+                </span>
+                <span className={styles.dotSep} aria-hidden="true">
+                  ·
+                </span>
+                <span className={styles.countHint}>Click a business to open the profile</span>
+              </p>
+            </div>
+          )}
+
+          <div className={`${styles.rails} ${mapBig ? styles.hidden : ''}`}>
+            {rails.length === 0 ? (
+              <div className={styles.empty}>
+                <p className={styles.emptyTitle}>Nothing matches those filters</p>
+                <p className={styles.emptyHint}>Try widening the distance or clearing the search.</p>
+                <Link to={`/suggest${query ? `?q=${encodeURIComponent(query)}` : ''}`} className={styles.suggest}>
+                  Can’t find it? Suggest a business
+                </Link>
+              </div>
+            ) : (
+              rails.map((r) => (
+                <Rail key={r.slug} rail={r} track={tracks[r.slug] ?? null} selected={selected} onSelect={select} heart={heart} signedIn={signedIn} />
+              ))
+            )}
+          </div>
+          {shortlist.length > 0 && <ShortlistBar items={shortlist} />}
+        </div>
+
+        <div className={`${styles.panelBox} ${open ? (wide ? styles.panelWide : styles.panelOpen) : ''}`}>
+          {open && (
+            <Profile
+              key={open.slug}
+              card={open}
+              wide={wide}
+              onWide={() => setWide((v) => !v)}
+              onClose={() => select(null)}
+              onSelect={select}
+              onStep={step}
+              position={{ index: position + 1, total: siblings.length }}
+              similar={similar}
+              heart={heart}
+              signedIn={signedIn}
+              pageTrack={open.slug === initial ? initialTrack : null}
+              pageReviews={open.slug === initial ? initialReviews : null}
+              listPlace={(() => {
+                const t = open.kindSlug ? tracks[open.kindSlug] : null;
+                const pos = cards.filter((c) => c.kindSlug === open.kindSlug).findIndex((c) => c.slug === open.slug);
+                return t && pos >= 0 ? { pos: pos + 1, list: t.list } : null;
+              })()}
+            />
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function Select({
+  id,
+  label,
+  value,
+  onChange,
+  options,
+}: {
+  id: string;
+  label: string;
+  value: string;
+  onChange: (v: string) => void;
+  options: { value: string; label: string }[];
+}) {
+  return (
+    <label className={styles.select} htmlFor={id}>
+      <span className={styles.selectLabel}>{label}</span>
+      <span className={styles.selectRow}>
+        <select id={id} value={value} onChange={(e) => onChange(e.target.value)} className={styles.selectInput}>
+          {options.map((o) => (
+            <option key={o.value} value={o.value}>
+              {o.label}
+            </option>
+          ))}
+        </select>
+        <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false" className={styles.chevron}>
+          <path d="m6 9 6 6 6-6" />
+        </svg>
+      </span>
+    </label>
+  );
+}
+
+type HeartFn = (c: DirectoryCard, big?: boolean) => React.ReactNode;
+
+function Rail({
+  rail,
+  track,
+  selected,
+  onSelect,
+  heart,
+  signedIn,
+}: {
+  rail: { slug: string; name: string; items: DirectoryCard[] };
+  track: ListTrack;
+  selected: string | null;
+  onSelect: (slug: string) => void;
+  heart: HeartFn;
+  signedIn: boolean;
+}) {
+  const scroller = useRef<HTMLDivElement>(null);
+  const [first] = useState(track);
+  useListActivity(first?.token ?? null, scroller, useLocation().key);
+  const forward = () => {
+    const el = scroller.current;
+    if (!el) return;
+    const atEnd = el.scrollLeft + el.clientWidth >= el.scrollWidth - 8;
+    el.scrollBy({ left: atEnd ? -el.scrollWidth : Math.round(el.clientWidth * 0.8), behavior: 'smooth' });
+  };
+  return (
+    <section className={styles.rail} aria-labelledby={`rail-${rail.slug}`}>
+      <div className={styles.railHead}>
+        <div className={styles.railTitle}>
+          <h2 id={`rail-${rail.slug}`} className={styles.railName}>
+            {rail.name}
+          </h2>
+          <span className={styles.railCount}>{rail.items.length}</span>
+        </div>
+        <button type="button" onClick={forward} className={styles.scroll} aria-label={`Scroll ${rail.name}`}>
+          Scroll
+          <Icon name="arrow" />
+        </button>
+      </div>
+      <div ref={scroller} className={styles.row}>
+        {rail.items.map((c, i) => (
+          <article key={c.id} className={`${styles.card} ${c.slug === selected ? styles.cardOpen : ''}`} data-pos={i + 1}>
+            <button type="button" className={styles.cardHit} onClick={() => onSelect(c.slug)} aria-label={`Open ${c.name}`} />
+            <span className={styles.stripe} aria-hidden="true" />
+            <p className={styles.cardKind}>
+              {c.sub ?? c.kind}
+              {c.bestRated && <span className={styles.best}>Best rated</span>}
+            </p>
+            <h3 className={styles.cardName}>{c.name}</h3>
+            {c.tagline && <p className={styles.cardTagline}>{c.tagline}</p>}
+            <Meta card={c} />
+            {/* Not on the business's own team's cards (C6): they don't shortlist or save their own. */}
+            {!c.yours && (
+              <div className={styles.cardButtons}>
+                <Plus card={c} signedIn={signedIn} />
+                {heart(c)}
+              </div>
+            )}
+          </article>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+function Meta({ card }: { card: DirectoryCard }) {
+  return (
+    <div className={styles.meta}>
+      <span className={styles.metaItem}>
+        <Icon name="star" tiny />
+        <span className={styles.strong}>{ratingLabel(card.rating)}</span>
+      </span>
+      <span className={styles.metaItem}>
+        <Icon name="clock" tiny />
+        {replyLabel(card.replyMinutes)}
+      </span>
+      <span className={styles.metaItem}>
+        <Icon name="pin" tiny />
+        {kmLabel(card.km)}
+      </span>
+    </div>
+  );
+}
+
+/** The heart (D-59, K8): the account's favourites when signed in; this browser's when not. */
+function Heart({
+  card,
+  big,
+  signedIn,
+  on,
+  onLocal,
+}: {
+  card: DirectoryCard;
+  big: boolean;
+  signedIn: boolean;
+  on: boolean;
+  onLocal: () => void;
+}) {
+  const location = useLocation();
+  const fetcher = useFetcher();
+  const shown = fetcher.formData ? fetcher.formData.get('intent') === 'save' : on;
+  const className = `${styles.heart} ${big ? styles.heartBig : ''} ${shown ? styles.heartOn : ''}`;
+  const label = shown ? `Remove ${card.name} from favourites` : `Add ${card.name} to favourites`;
+  if (!signedIn) {
+    return (
+      <button type="button" className={className} aria-label={label} aria-pressed={shown} onClick={onLocal}>
+        <Icon name="heart" />
+      </button>
+    );
+  }
+  return (
+    <fetcher.Form method="post" action="/shortlist" preventScrollReset className={styles.inlineForm}>
+      <input type="hidden" name="intent" value={shown ? 'unsave' : 'save'} />
+      <input type="hidden" name="slug" value={card.slug} />
+      <input type="hidden" name="back" value={location.pathname + location.search} />
+      <input type="hidden" name="inline" value="1" />
+      <button type="submit" className={className} aria-label={label} aria-pressed={shown}>
+        <Icon name="heart" />
+      </button>
+    </fetcher.Form>
+  );
+}
+
+/** The + (D-59, K9: kept beside the heart): the shortlist, for Message all. Needs an account. */
+function Plus({ card, signedIn, words = false }: { card: DirectoryCard; signedIn: boolean; words?: boolean }) {
+  const location = useLocation();
+  const fetcher = useFetcher();
+  const back = location.pathname + location.search;
+  const on = fetcher.formData ? fetcher.formData.get('intent') === 'add' : card.shortlisted;
+  const className = words ? `${styles.action} ${styles.actionOutline}` : `${styles.heart} ${on ? styles.heartOn : ''}`;
+  const text = words ? <span>{on ? 'On your shortlist' : 'Add to shortlist'}</span> : null;
+  if (!signedIn) {
+    return (
+      <Link
+        to={`/join?next=${encodeURIComponent(back)}`}
+        className={className}
+        aria-label={`Sign in to add ${card.name} to your shortlist`}
+        title="Add to shortlist"
+      >
+        <Icon name="plus" />
+        {text}
+      </Link>
+    );
+  }
+  const error = fetcher.state === 'idle' ? (fetcher.data as { error?: string } | undefined)?.error : null;
+  return (
+    <fetcher.Form method="post" action="/shortlist" preventScrollReset className={styles.inlineForm}>
+      <input type="hidden" name="intent" value={on ? 'remove' : 'add'} />
+      <input type="hidden" name="slug" value={card.slug} />
+      <input type="hidden" name="back" value={back} />
+      <input type="hidden" name="inline" value="1" />
+      <button
+        type="submit"
+        className={className}
+        aria-label={on ? `Remove ${card.name} from your shortlist` : `Add ${card.name} to your shortlist`}
+        aria-pressed={on}
+        title={on ? 'Remove from shortlist' : 'Add to shortlist'}
+      >
+        <Icon name={on ? 'check' : 'plus'} />
+        {text}
+      </button>
+      {error && (
+        <span role="alert" className={styles.error}>
+          {error}
+        </span>
+      )}
+    </fetcher.Form>
+  );
+}
+
+type PanelData = { reviews: { count: number; average: number | null; reviews: ShownReview[] }; track: string | null };
+
+function Profile({
+  card,
+  wide,
+  onWide,
+  onClose,
+  onSelect,
+  onStep,
+  position,
+  similar,
+  heart,
+  signedIn,
+  pageTrack,
+  pageReviews,
+  listPlace,
+}: {
+  card: DirectoryCard;
+  wide: boolean;
+  onWide: () => void;
+  onClose: () => void;
+  onSelect: (slug: string) => void;
+  onStep: (delta: number) => void;
+  position: { index: number; total: number };
+  similar: DirectoryCard[];
+  heart: HeartFn;
+  signedIn: boolean;
+  pageTrack: string | null;
+  pageReviews: PanelData['reviews'] | null;
+  listPlace: { pos: number; list: string } | null;
+}) {
+  const panel = useFetcher<PanelData>();
+  const { load } = panel;
+  // The business opened by its own address already has its reviews and visit note.
+  const ready = pageReviews !== null;
+  useEffect(() => {
+    if (!ready) void load(`/vendors/${card.slug}/panel`);
+  }, [card.slug, load, ready]);
+  const reviews = pageReviews ?? panel.data?.reviews ?? null;
+  const ref = useRef<HTMLElement>(null);
+  const location = useLocation();
+  // Opening a profile is a visit to the business's page (ADR-030).
+  const onTap = useVendorActivity(pageTrack ?? panel.data?.track ?? null, ref, listPlace, `panel:${card.slug}:${location.key}`);
+  return (
+    <aside className={styles.panel} aria-label={card.name} ref={ref} onClickCapture={onTap}>
+      <div className={styles.photo}>
+        {card.photo ? (
+          <img src={card.photo} alt={card.photoAlt} className={styles.photoImg} />
+        ) : (
+          <span className={styles.photoBlank}>{card.name}</span>
+        )}
+        <div className={styles.tools}>
+          {!card.yours && heart(card, true)}
+          <button type="button" className={styles.tool} onClick={onWide} aria-label={wide ? 'Collapse to drawer' : 'Expand to sheet'}>
+            <Icon name={wide ? 'min' : 'max'} />
+          </button>
+          <button type="button" className={styles.tool} onClick={onClose} aria-label="Close profile">
+            <Icon name="x" />
+          </button>
+        </div>
+        {position.total > 1 && (
+          <div className={styles.stepper}>
+            <button type="button" onClick={() => onStep(-1)} aria-label="Previous business" className={styles.stepButton}>
+              <Icon name="left" />
+            </button>
+            <span className={styles.stepCount}>
+              {position.index} / {position.total}
+            </span>
+            <button type="button" onClick={() => onStep(1)} aria-label="Next business" className={styles.stepButton}>
+              <Icon name="right" />
+            </button>
+          </div>
+        )}
+      </div>
+
+      <div className={styles.panelBody}>
+        <div>
+          <div className={styles.kicker}>
+            <span className={styles.kickerKind}>{card.sub ?? card.kind}</span>
+            <span className={styles.dotSep} aria-hidden="true">
+              ·
+            </span>
+            <span>{card.place}</span>
+          </div>
+          <h2 className={styles.panelName}>{card.name}</h2>
+          <div className={styles.panelMeta}>
+            <span className={styles.metaItem}>
+              <Icon name="star" />
+              <span className={styles.strong}>{ratingLabel(card.rating)}</span>
+              <span className={styles.faint}>({card.reviews})</span>
+            </span>
+            <span className={styles.metaItem}>
+              <Icon name="clock" />
+              Replies {replyLabel(card.replyMinutes)}
+            </span>
+            <span className={styles.metaItem}>
+              <Icon name="pin" />
+              {kmLabel(card.km)}
+            </span>
+          </div>
+          {card.tagline && <p className={styles.panelTagline}>{card.tagline}</p>}
+          {card.about && <p className={styles.panelAbout}>{card.about}</p>}
+          {card.curatorNote && (
+            <div className={styles.note}>
+              <p className={styles.label}>Curator’s note</p>
+              <p className={styles.noteText}>{card.curatorNote}</p>
+            </div>
+          )}
+          {card.tags.length > 0 && (
+            <div className={styles.tags}>
+              {card.tags.map((t) => (
+                <span key={t} className={styles.tag}>
+                  {t}
+                </span>
+              ))}
+            </div>
+          )}
+
+          {/* Built in (D-59, G1, G2, G9, G14): talk to the business, the shortlist, directions. */}
+          {card.yours ? (
+            // C6 (D-54): someone on its team sees what they can do, not the customer's buttons.
+            <div className={styles.yours}>
+              <p className={styles.label}>This is your business</p>
+              <p className={styles.small}>You’re on {card.name}’s team, so this is how customers see it. Messages and favourites are for customers.</p>
+              <div className={styles.actions}>
+                <Link to="/business" className={`${styles.action} ${styles.actionDark}`}>
+                  My business
+                </Link>
+                {card.yours !== 'staff' && (
+                  <Link to={`/vendors/${card.slug}/edit`} className={`${styles.action} ${styles.actionOutline}`}>
+                    Edit your listing
+                  </Link>
+                )}
+              </div>
+            </div>
+          ) : (
+            <>
+              <div className={styles.actions}>
+                {card.claimed ? (
+                  <Link to={`/vendors/${card.slug}/message`} className={`${styles.action} ${styles.actionDark}`}>
+                    Message {card.name}
+                  </Link>
+                ) : (
+                  <Link to={`/vendors/${card.slug}/inquire`} className={`${styles.action} ${styles.actionDark}`}>
+                    Inquire
+                  </Link>
+                )}
+                <Plus card={card} signedIn={signedIn} words />
+              </div>
+              {!card.claimed && <p className={styles.small}>{card.name} isn’t on Localites yet. Inquire and our team will invite them.</p>}
+            </>
+          )}
+          {card.street && (
+            <p className={styles.small}>
+              {card.approximate ? 'Approximate location: ' : ''}
+              {streetLine({ street: card.street, number: card.number, hidden: card.number === null })}, {card.town} ·{' '}
+              <a
+                href={directionsUrl({ street: card.street, number: card.number, hidden: card.number === null }, card.town)}
+                target="_blank"
+                rel="noopener noreferrer"
+                className={styles.link}
+              >
+                Directions
+              </a>
+            </p>
+          )}
+
+          {/* Reviews listed (D-59, K22). */}
+          {reviews && reviews.count > 0 && (
+            <section className={styles.reviews} aria-label="Reviews">
+              <p className={styles.label}>Reviews</p>
+              <ReviewList
+                businessName={card.name}
+                count={reviews.count}
+                average={reviews.average}
+                reviews={reviews.reviews}
+                after={(r) => <ReportLink to={`/reviews/${r.id}/report`} />}
+              />
+            </section>
+          )}
+        </div>
+
+        {similar.length > 0 && (
+          <div className={styles.similar}>
+            <p className={styles.label}>More {(card.kind ?? '').toLowerCase()} businesses</p>
+            <div className={styles.similarList}>
+              {similar.map((s) => (
+                <button key={s.slug} type="button" className={styles.similarItem} onClick={() => onSelect(s.slug)}>
+                  <span className={styles.similarThumb}>{s.smallPhoto && <img src={s.smallPhoto} alt="" />}</span>
+                  <span className={styles.similarWords}>
+                    <span className={styles.similarName}>{s.name}</span>
+                    <span className={styles.similarMeta}>
+                      <Icon name="star" tiny />
+                      <span className={styles.strong}>{ratingLabel(s.rating)}</span>
+                      <span className={styles.dotSep} aria-hidden="true">
+                        ·
+                      </span>
+                      {kmLabel(s.km)}
+                      <span className={styles.dotSep} aria-hidden="true">
+                        ·
+                      </span>
+                      {s.place}
+                    </span>
+                  </span>
+                  <Icon name="out" />
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+    </aside>
+  );
+}
+
+const PATHS: Record<string, React.ReactNode> = {
+  star: <path className={styles.fill} d="M12 2.5l2.9 6 6.6.8-4.9 4.6 1.3 6.6L12 17.3l-5.9 3.2 1.3-6.6-4.9-4.6 6.6-.8z" />,
+  clock: (
+    <>
+      <circle cx="12" cy="12" r="9" />
+      <path d="M12 7v5l3 2" />
+    </>
+  ),
+  pin: (
+    <>
+      <path d="M12 21s-7-6.2-7-11.5a7 7 0 0 1 14 0C19 14.8 12 21 12 21z" />
+      <circle cx="12" cy="9.5" r="2.5" />
+    </>
+  ),
+  heart: <path d="M12 20s-7.5-4.6-9.3-9.2C1.4 7.4 3.6 4 7 4c2 0 3.6 1.1 5 3 1.4-1.9 3-3 5-3 3.4 0 5.6 3.4 4.3 6.8C19.5 15.4 12 20 12 20z" />,
+  plus: <path d="M12 5v14M5 12h14" />,
+  check: <path d="M5 12.5l4.5 4.5L19 7.5" />,
+  max: <path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7" />,
+  min: <path d="M4 14h6v6M20 10h-6V4M14 10l7-7M3 21l7-7" />,
+  x: <path d="M18 6 6 18M6 6l12 12" />,
+  left: <path d="m15 18-6-6 6-6" />,
+  right: <path d="m9 18 6-6-6-6" />,
+  arrow: <path d="M5 12h14M13 6l6 6-6 6" />,
+  out: <path d="M7 17 17 7M8 7h9v9" />,
+};
+
+function Icon({ name, tiny = false, small = false }: { name: string; tiny?: boolean; small?: boolean }) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      aria-hidden="true"
+      focusable="false"
+      className={`${styles.icon} ${tiny ? styles.iconTiny : small ? styles.iconSmall : ''} ${name === 'star' ? styles.star : ''}`}
+    >
+      {PATHS[name]}
+    </svg>
+  );
+}

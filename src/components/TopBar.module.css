@@ -1,0 +1,136 @@
+/* The top bar (the Base44 design, D-59): the wordmark, the page's own controls, then the account. */
+
+.bar {
+  position: relative;
+  z-index: 20;
+  flex-shrink: 0;
+  border-bottom: var(--hairline) solid var(--color-line);
+  background: var(--color-glass);
+  backdrop-filter: blur(var(--space-2));
+}
+
+.inner {
+  max-width: var(--b44-bar-max);
+  margin: 0 auto;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2) var(--space-3);
+  padding: var(--space-3) var(--b44-gutter);
+}
+
+@media (min-width: 1024px) {
+  .inner {
+    flex-wrap: nowrap;
+    gap: var(--space-6);
+    padding: var(--space-3) var(--b44-gutter-wide);
+  }
+}
+
+.logo {
+  flex-shrink: 0;
+  margin-right: auto;
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: var(--b44-text-logo);
+  line-height: 1;
+  letter-spacing: var(--b44-track-tight);
+  color: var(--color-ink);
+  text-decoration: none;
+}
+
+@media (min-width: 1024px) {
+  .logo {
+    margin-right: 0;
+  }
+}
+
+/* Sign in: the same pill as Browse local's Clear. */
+.pill {
+  display: inline-flex;
+  align-items: center;
+  height: var(--b44-chip);
+  flex-shrink: 0;
+  border-radius: var(--radius-pill);
+  border: var(--hairline) solid var(--color-line);
+  padding-inline: var(--space-3);
+  font-size: var(--b44-text-count);
+  font-weight: 500;
+  letter-spacing: var(--b44-track-caps);
+  text-transform: uppercase;
+  color: var(--color-ink);
+  text-decoration: none;
+}
+
+.pill:hover {
+  border-color: var(--color-muted-soft);
+}
+
+.menu {
+  position: relative;
+  flex-shrink: 0;
+}
+
+.avatar {
+  display: grid;
+  place-items: center;
+  width: var(--b44-chip);
+  height: var(--b44-chip);
+  border-radius: var(--radius-pill);
+  border: var(--hairline) solid var(--color-line);
+  background: var(--color-surface);
+  color: var(--color-ink);
+  cursor: pointer;
+  list-style: none;
+}
+
+.avatar::-webkit-details-marker {
+  display: none;
+}
+
+.menu[open] .avatar,
+.avatar:hover {
+  border-color: var(--color-gold);
+}
+
+.icon {
+  width: var(--b44-icon);
+  height: var(--b44-icon);
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.6;
+}
+
+.list {
+  position: absolute;
+  right: 0;
+  top: calc(100% + var(--space-2));
+  min-width: var(--b44-menu);
+  display: grid;
+  padding: var(--space-2);
+  border: var(--hairline) solid var(--color-line);
+  border-radius: var(--radius-sheet);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-card-open);
+}
+
+.list a,
+.list button {
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: var(--space-2) var(--space-3);
+  border: 0;
+  border-radius: var(--radius-file);
+  background: none;
+  font: inherit;
+  font-size: var(--b44-text-search);
+  color: var(--color-ink);
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.list a:hover,
+.list button:hover {
+  background: var(--color-tint);
+}

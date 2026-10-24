@@ -26,12 +26,12 @@ if (!/test|dev/.test(dbName) && !isSupabaseTestProject) {
 }
 
 const vendors = [
-  ['test-vendor-face-painting', 'Test Vendor 1: Face Painting', 'face-painting', 'orillia', 'Face painting for kids’ parties (test listing).', [['Party package, 2 hours', 'fixed', 25000], ['Extra hour', 'hourly', 9000]]],
-  ['test-vendor-magic', 'Test Vendor 2: Magic Shows', 'magicians', 'orillia', 'Close-up magic and stage shows (test listing).', [['Birthday show', 'starting_at', 30000]]],
-  ['test-vendor-cakes', 'Test Vendor 3: Custom Cakes', 'custom-cakes', 'orillia', 'Custom birthday cakes (test listing).', [['Custom cake', 'on_request', null]]],
-  ['test-vendor-party-room', 'Test Vendor 4: Party Room', 'party-rooms', 'severn', 'A party room for up to 30 guests (test listing).', [['Room for 3 hours', 'fixed', 40000]]],
-  ['test-vendor-bouncy', 'Test Vendor 5: Bouncy Castles', 'bouncy-castles', 'oro-medonte', 'Bouncy castle rentals (test listing).', [['Day rental', 'not_listed', null]]],
-  ['test-vendor-photos', 'Test Vendor 6: Party Photos', 'photographers', 'ramara', 'Event photography (test listing).', [['Two hours of coverage', 'starting_at', 35000]]],
+  ['test-vendor-face-painting', 'Test Vendor 1: Face Painting', 'entertainment', 'orillia', 'Face painting for kids’ parties (test listing).', [['Party package, 2 hours', 'fixed', 25000], ['Extra hour', 'hourly', 9000]]],
+  ['test-vendor-magic', 'Test Vendor 2: Magic Shows', 'entertainment', 'orillia', 'Close-up magic and stage shows (test listing).', [['Birthday show', 'starting_at', 30000]]],
+  ['test-vendor-cakes', 'Test Vendor 3: Custom Cakes', 'cakes-and-treats', 'orillia', 'Custom birthday cakes (test listing).', [['Custom cake', 'on_request', null]]],
+  ['test-vendor-party-room', 'Test Vendor 4: Party Room', 'venues', 'severn', 'A party room for up to 30 guests (test listing).', [['Room for 3 hours', 'fixed', 40000]]],
+  ['test-vendor-bouncy', 'Test Vendor 5: Bouncy Castles', 'entertainment', 'oro-medonte', 'Bouncy castle rentals (test listing).', [['Day rental', 'not_listed', null]]],
+  ['test-vendor-photos', 'Test Vendor 6: Party Photos', 'photography-and-video', 'ramara', 'Event photography (test listing).', [['Two hours of coverage', 'starting_at', 35000]]],
 ];
 
 const sql = postgres(url, { max: 1, onnotice: () => {}, ssl: requiresTls(url) ? 'require' : undefined });

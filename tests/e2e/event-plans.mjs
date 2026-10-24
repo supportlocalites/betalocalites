@@ -229,7 +229,8 @@ check('adding it again says it’s already there', r.status === 302 && r.locatio
 r = await site(`/vendors/${V.slug}/add`, { cookie: cookie.a, method: 'POST', form: { intent: 'save', return: 'profile' } });
 check('Save from the business’s page', r.status === 302 && r.location === `/vendors/${V.slug}?saved=1` && (await savesOfV()) === 1, `${r.status} ${r.location}`);
 r = await site(`/vendors/${V.slug}?saved=1`, { cookie: cookie.a });
-check('the business page says it’s saved and private', words(r.body).includes('Saved as a favourite. Only you can see your favourites.'));
+// Since the Base44 design (D-59) the profile's heart shows it's a favourite.
+check('the business’s profile shows it as a favourite', r.body.includes('from favourites"'));
 r = await site('/saved', { cookie: cookie.a });
 check('Your favourites lists it', r.status === 200 && words(r.body).includes(V.name));
 for (const v of [Y, U]) await site(`/vendors/${v.slug}/add`, { cookie: cookie.a, method: 'POST', form: { intent: 'add', eventId } });

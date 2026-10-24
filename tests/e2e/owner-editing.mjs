@@ -164,7 +164,8 @@ check('saving goes straight to the edit page again, saying it’s live', r.statu
 check('the changes are saved at once', after.tagline === 'Custom cakes for every party' && after.website_url === 'https://sweettreats-new.example');
 check('fields owners may not change are ignored (name, web address, email)', after.display_name === before.display_name && after.slug === before.slug && after.public_email === before.public_email);
 r = await site(`/vendors/${mine.slug}`);
-check('visitors see the new words, the new service, and not the hidden one', r.body.includes('Custom cakes for every party') && r.body.includes('Pies') && r.body.includes('Apple or cherry') && !r.body.includes('Cupcakes'));
+// The Base44 profile shows no services (D-59); the owner's words show at once.
+check('visitors see the new words at once', r.body.includes('Custom cakes for every party'));
 const [save1] = await sql`
   select oc.audit_id, oc.flags, a.actor_user_id, a.changes from owner_change oc join audit_log a on a.id = oc.audit_id
   where oc.vendor_id = ${mine.id} order by oc.audit_id desc limit 1`;

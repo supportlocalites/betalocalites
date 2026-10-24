@@ -6,6 +6,8 @@ export default [
   route('explore', 'routes/explore.tsx'),
   route('search', 'routes/search.tsx'),
   route('vendors/:slug', 'routes/vendor.tsx'),
+  // What the Base44 profile panel loads when it opens (D-59): reviews, and the visit's note.
+  route('vendors/:slug/panel', 'routes/vendor-panel.ts'),
   route('api/health', 'routes/health.ts'),
   route('robots.txt', 'routes/robots.ts'),
   route('sitemap.xml', 'routes/sitemap.ts'),
