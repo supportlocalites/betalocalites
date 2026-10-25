@@ -499,13 +499,13 @@ function KindsPicker({
   chosen: string[];
   onChange: (next: string[]) => void;
 }) {
-  const words = chosen.length === 0 ? 'All' : chosen.length === 1 ? (kinds.find((k) => k.slug === chosen[0])?.name ?? '1 kind') : `${chosen.length} kinds`;
+  const words = chosen.length === 0 ? 'All' : chosen.length === 1 ? (kinds.find((k) => k.slug === chosen[0])?.name ?? '1 category') : `${chosen.length} categories`;
   const pop = useRef<HTMLDetailsElement>(null);
   useCloseOutside(pop);
   return (
     <details className={styles.picker} ref={pop}>
       <summary className={styles.select}>
-        <span className={styles.selectLabel}>Show</span>
+        <span className={styles.selectLabel}>Categories</span>
         <span className={styles.selectRow}>
           <span className={styles.pickerValue}>{words}</span>
           <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false" className={styles.chevron}>
@@ -514,7 +514,7 @@ function KindsPicker({
         </span>
       </summary>
       <fieldset className={styles.pickerList}>
-        <legend className="visually-hidden">Kinds of business to show</legend>
+        <legend className="visually-hidden">Categories to show</legend>
         {kinds.map((k) => (
           <label key={k.slug} className={styles.pickerItem}>
             <input
@@ -527,7 +527,7 @@ function KindsPicker({
         ))}
         {chosen.length > 0 && (
           <button type="button" className={styles.pickerAll} onClick={() => onChange([])}>
-            Show all kinds
+            Show all categories
           </button>
         )}
       </fieldset>

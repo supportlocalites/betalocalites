@@ -41,7 +41,7 @@ the profile button; Reset stays beside the filters. The profile menu has Edit pr
 My business (for a business's team) and Sign out; Favourites left the menu (it's in the bar). The
 menu, Show and Within close with a click anywhere else, or Esc. The Curator's note no longer
 shows on any business and is no longer sent to the browser; the notes stay in the database and
-the team's listing page can still edit them.
+the team's listing page can still edit them. The Show filter is now called **Categories**.
 **Migrations applied:** none. **Destructive?** No.
 **Tests run:** `npm run check`; unit tests 225/225; database checks all passed; Browse local 70/70
 twice (8 new: Within hidden until pressed and closing on an outside click, the bar's order, the

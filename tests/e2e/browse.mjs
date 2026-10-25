@@ -44,9 +44,9 @@ console.log('Rows, cards and the profile');
 let r = await site('/explore');
 check('signed out, Browse local shows listed businesses in their main kind’s row', r.status === 200 && r.body.includes(`id="rail-${kind.slug}"`)
   && r.body.includes(A.name) && r.body.includes(B.name) && r.body.includes(U.name) && !r.body.includes(H.name), String(r.status));
-check('…with the top bar: search, Show (All), Within (Any, its slider tucked inside), Rating, Sort and Reset', r.body.includes('Search by name or what they do...')
+check('…with the top bar: search, Categories (All), Within (Any, its slider tucked inside), Rating, Sort and Reset', r.body.includes('Search by name or what they do...')
   && r.body.includes('id="within" type="range"') && words(r.body).includes('50 km+') && words(r.body).includes('Within Any') && r.body.includes('4.8 &amp; up') && r.body.includes('Fastest reply')
-  && r.body.includes('>Reset<') && r.body.includes('>All<'));
+  && r.body.includes('>Reset<') && r.body.includes('>All<') && words(r.body).includes('Categories All'));
 // The count line under the map is gone (the owner, 24 October 2026).
 check('…the count line under the map, with Expand list', /\d+ businesses · Click a business to open the profile/.test(words(r.body)) && words(r.body).includes('Expand list'));
 check('…the + asks to sign in first and comes back here; the heart works without an account',
@@ -155,14 +155,14 @@ await page.click('button:has-text("Favourites")');
 names = await cardNames();
 check('Favourites shows only the favourites', names.length === 1 && names[0] === B.name, names.join(', '));
 await page.click('button:has-text("Favourites")');
-await page.click('summary:has-text("Show")');
+await page.click('summary:has-text("Categories")');
 await page.click(`label:has-text("${kind2.name}")`);
 names = await cardNames();
-check('Show: ticking a kind leaves only that kind', !names.includes(A.name) && !names.includes(B.name));
-await page.click('button:has-text("Show all kinds")');
+check('Categories: ticking a kind leaves only that kind', !names.includes(A.name) && !names.includes(B.name));
+await page.click('button:has-text("Show all categories")');
 names = await cardNames();
-check('…and “Show all kinds” brings every kind back', names.includes(A.name) && names.includes(B.name));
-await page.click('summary:has-text("Show")');
+check('…and “Show all categories” brings every kind back', names.includes(A.name) && names.includes(B.name));
+await page.click('summary:has-text("Categories")');
 check('it starts with the map and the rows', (await page.$('[aria-label="Map of the businesses that shared an address"]')) !== null && names.length > 0);
 await page.click('button:has-text("Expand list")');
 check('Expand list: only the rows, no map, and Collapse', (await page.$('[aria-label="Map of the businesses that shared an address"]')) === null
