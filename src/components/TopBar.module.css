@@ -45,7 +45,23 @@
   }
 }
 
-/* Sign in: the same pill as Browse local's Clear. */
+/* Favourites and the profile button, at the far right (the owner, 25 October 2026). */
+.end {
+  order: 1;
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+@media (min-width: 1024px) {
+  .end {
+    order: 0;
+    margin-left: auto;
+  }
+}
+
+/* Sign in: the same pill as Browse local's Reset. */
 .pill {
   display: inline-flex;
   align-items: center;

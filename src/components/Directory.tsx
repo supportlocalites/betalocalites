@@ -8,6 +8,7 @@ import type { DirectoryCard, ShortlistItem } from '@/server/browse.server';
 import { type Bounds, DirectoryMap, type MapApi } from './DirectoryMap';
 import { ShortlistBar } from './ShortlistBar';
 import { TopBar } from './TopBar';
+import { useCloseOutside } from './useCloseOutside';
 import styles from './Directory.module.css';
 
 /**
@@ -282,7 +283,22 @@ export function Directory({
 
   return (
     <div className={styles.screen}>
-      <TopBar onTeam={cards.some((c) => c.yours !== null)}>
+      <TopBar
+        onTeam={cards.some((c) => c.yours !== null)}
+        end={
+          // Favourites at the far right, beside the profile button (the owner, 25 October 2026).
+          <button
+            type="button"
+            onClick={() => setFavOnly((v) => !v)}
+            className={`${styles.chip} ${favOnly ? styles.chipOn : ''}`}
+            aria-pressed={favOnly}
+            title="Only your favourites"
+          >
+            <Icon name="heart" small />
+            Favourites{favourites > 0 ? ` ${favourites}` : ''}
+          </button>
+        }
+      >
         <div className={styles.search} role="search">
           <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false" className={styles.searchIcon}>
             <circle cx="11" cy="11" r="7" />
@@ -311,16 +327,6 @@ export function Directory({
           <Distance value={within} onChange={setWithin} />
           <Select id="rating" label="Rating" value={rating} onChange={setRating} options={RATING} />
           <Select id="sort" label="Sort" value={sort} onChange={setSort} options={SORT} />
-          <button
-            type="button"
-            onClick={() => setFavOnly((v) => !v)}
-            className={`${styles.chip} ${favOnly ? styles.chipOn : ''}`}
-            aria-pressed={favOnly}
-            title="Only your favourites"
-          >
-            <Icon name="heart" small />
-            Favourites{favourites > 0 ? ` ${favourites}` : ''}
-          </button>
           <button type="button" onClick={clear} className={styles.clear}>
             Reset
           </button>
@@ -439,10 +445,29 @@ const inside = (b: Bounds, lat: number, lng: number) => lat >= b.south && lat <=
 export const MAX_KM = 50;
 function Distance({ value, onChange }: { value: string; onChange: (v: string) => void }) {
   const km = value ? Number(value) : MAX_KM;
+  const words = km >= MAX_KM ? 'Any' : `${km} km`;
+  const pop = useRef<HTMLDetailsElement>(null);
+  useCloseOutside(pop);
+  // The filled part of the track, as a share of it (shown in gold).
+  const filled = `${((km - 1) / (MAX_KM - 1)) * 100}%`;
   return (
-    <label className={styles.select} htmlFor="within">
-      <span className={styles.selectLabel}>Within</span>
-      <span className={styles.distance}>
+    <details className={styles.picker} ref={pop}>
+      <summary className={styles.select}>
+        <span className={styles.selectLabel}>Within</span>
+        <span className={styles.selectRow}>
+          <span className={styles.pickerValue}>{words}</span>
+          <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false" className={styles.chevron}>
+            <path d="m6 9 6 6 6-6" />
+          </svg>
+        </span>
+      </summary>
+      <div className={`${styles.pickerList} ${styles.distancePop}`}>
+        <div className={styles.distanceHead}>
+          <label htmlFor="within" className={styles.selectLabel}>
+            Within
+          </label>
+          <span className={styles.distanceValue}>{km >= MAX_KM ? 'Any distance' : `${km} km`}</span>
+        </div>
         <input
           id="within"
           type="range"
@@ -452,13 +477,15 @@ function Distance({ value, onChange }: { value: string; onChange: (v: string) =>
           value={km}
           onChange={(e) => onChange(Number(e.target.value) >= MAX_KM ? '' : e.target.value)}
           className={styles.range}
+          style={{ '--filled': filled } as React.CSSProperties}
           aria-valuetext={km >= MAX_KM ? 'Any distance' : `Within ${km} km`}
         />
-        <span className={styles.distanceValue} aria-hidden="true">
-          {km >= MAX_KM ? `${MAX_KM} km+` : `${km} km`}
-        </span>
-      </span>
-    </label>
+        <div className={styles.distanceEnds} aria-hidden="true">
+          <span>1 km</span>
+          <span>{MAX_KM} km+</span>
+        </div>
+      </div>
+    </details>
   );
 }
 
@@ -473,8 +500,10 @@ function KindsPicker({
   onChange: (next: string[]) => void;
 }) {
   const words = chosen.length === 0 ? 'All' : chosen.length === 1 ? (kinds.find((k) => k.slug === chosen[0])?.name ?? '1 kind') : `${chosen.length} kinds`;
+  const pop = useRef<HTMLDetailsElement>(null);
+  useCloseOutside(pop);
   return (
-    <details className={styles.picker}>
+    <details className={styles.picker} ref={pop}>
       <summary className={styles.select}>
         <span className={styles.selectLabel}>Show</span>
         <span className={styles.selectRow}>
@@ -866,12 +895,7 @@ function Profile({
           </div>
           {card.tagline && <p className={styles.panelTagline}>{card.tagline}</p>}
           {card.about && <p className={styles.panelAbout}>{card.about}</p>}
-          {card.curatorNote && (
-            <div className={styles.note}>
-              <p className={styles.label}>Curator’s note</p>
-              <p className={styles.noteText}>{card.curatorNote}</p>
-            </div>
-          )}
+          {/* No Curator's note (the owner, 25 October 2026); the team's notes stay in the database. */}
           {card.tags.length > 0 && (
             <div className={styles.tags}>
               {card.tags.map((t) => (

@@ -259,7 +259,6 @@ export type DirectoryCard = {
   number: string | null;
   bestRated: boolean;
   tags: string[];
-  curatorNote: string | null;
   photo: string | null;
   smallPhoto: string | null;
   photoAlt: string;
@@ -307,7 +306,7 @@ async function readDirectory(db: Db, userId: string | null): Promise<Omit<Direct
              v.map_lat as lat, v.map_lng as lng, v.map_approximate as approximate, v.address_street as street,
              case when v.hide_address_number then null else v.address_number end as number,
              -- The connection doesn't look up array types: the tags come as one text, split here.
-             array_to_string(v.tags, chr(31)) as tags, v.curator_note as "curatorNote", cp.path as "photoPath", coalesce(cp.alt, '') as "photoAlt",
+             array_to_string(v.tags, chr(31)) as tags, cp.path as "photoPath", coalesce(cp.alt, '') as "photoAlt",
              v.claim_status = 'claimed' as claimed,
              -- Read as the person (RLS): only their own; signed out, nobody's.
              exists (select 1 from saved_vendor s where s.user_id = ${me}::uuid and s.vendor_id = v.id) as saved,

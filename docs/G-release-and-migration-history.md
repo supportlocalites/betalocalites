@@ -31,6 +31,22 @@ Every release and every database migration, in order. Appended before each deplo
 
 ## Releases
 
+### 2026-10-25 — Browse local: Within tucked away, the menu at the far right, no Curator's note (D-61)
+
+**Stage:** 1 and 2 (the redesign)
+**What changed (plain English):** The distance slider is hidden behind a **Within** button
+(showing "Any" or the distance chosen) and redrawn as a thin gold line with a round handle.
+Favourites and the profile button sit at the far right of the top bar, Favourites just left of
+the profile button; Reset stays beside the filters. The profile menu has Edit profile, Messages,
+My business (for a business's team) and Sign out; Favourites left the menu (it's in the bar). The
+menu, Show and Within close with a click anywhere else, or Esc. The Curator's note no longer
+shows on any business and is no longer sent to the browser; the notes stay in the database and
+the team's listing page can still edit them.
+**Migrations applied:** none. **Destructive?** No.
+**Tests run:** `npm run check`; unit tests 225/225; database checks all passed; Browse local 70/70
+twice (8 new: Within hidden until pressed and closing on an outside click, the bar's order, the
+menu's items and outside click, no Curator's note); addresses 34/34; look checks 812/812.
+
 ### 2026-10-24 — Browse local: the sheet, forgiving search, Clear all (D-61)
 
 **Stage:** 1 and 2 (the redesign)

@@ -1315,28 +1315,63 @@
   }
 }
 
-/* Within: a slider from 1 km to 50 km+ (the owner, 24 October 2026). */
-.distance {
-  display: flex;
-  align-items: center;
-  gap: var(--space-2);
+/* Within: behind its button, a clean slider from 1 km to 50 km+ (the owner, 25 October 2026). */
+.distancePop {
+  gap: var(--space-3);
+  min-width: var(--b44-distance-pop);
+  padding: var(--space-4);
 }
 
-.range {
-  width: var(--b44-range);
-  margin: 0;
-  accent-color: var(--color-gold);
-  cursor: pointer;
+.distanceHead {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-3);
 }
 
 .distanceValue {
-  min-width: var(--b44-range-value);
-  font-size: var(--b44-text-card);
-  font-weight: 500;
+  font-family: var(--font-display);
+  font-size: var(--b44-text-similar);
+  color: var(--color-ink);
+  font-variant-numeric: tabular-nums;
+}
+
+.range {
+  appearance: none;
+  width: 100%;
+  height: var(--b44-stripe);
+  margin: var(--space-2) 0;
+  border-radius: var(--radius-pill);
+  background: linear-gradient(to right, var(--color-gold) var(--filled), var(--color-line) var(--filled));
+  cursor: pointer;
+}
+
+.range::-webkit-slider-thumb {
+  appearance: none;
+  width: var(--b44-thumb-dot);
+  height: var(--b44-thumb-dot);
+  border-radius: var(--radius-pill);
+  border: var(--focus-ring) solid var(--color-gold);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-soft);
+}
+
+.range::-moz-range-thumb {
+  width: var(--b44-thumb-dot);
+  height: var(--b44-thumb-dot);
+  border-radius: var(--radius-pill);
+  border: var(--focus-ring) solid var(--color-gold);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-soft);
+}
+
+.distanceEnds {
+  display: flex;
+  justify-content: space-between;
+  font-size: var(--b44-text-meta);
   letter-spacing: var(--b44-track-select);
   text-transform: uppercase;
-  white-space: nowrap;
-  font-variant-numeric: tabular-nums;
+  color: var(--color-muted);
 }
 
 /* The expanded profile: a sheet over the dimmed page (the owner, 24 October 2026). */

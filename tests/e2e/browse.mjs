@@ -44,8 +44,8 @@ console.log('Rows, cards and the profile');
 let r = await site('/explore');
 check('signed out, Browse local shows listed businesses in their main kind’s row', r.status === 200 && r.body.includes(`id="rail-${kind.slug}"`)
   && r.body.includes(A.name) && r.body.includes(B.name) && r.body.includes(U.name) && !r.body.includes(H.name), String(r.status));
-check('…with the top bar: search, Show (All), the Within slider at 50 km+, Rating, Sort and Reset', r.body.includes('Search by name or what they do...')
-  && r.body.includes('id="within" type="range"') && r.body.includes('50 km+') && r.body.includes('4.8 &amp; up') && r.body.includes('Fastest reply')
+check('…with the top bar: search, Show (All), Within (Any, its slider tucked inside), Rating, Sort and Reset', r.body.includes('Search by name or what they do...')
+  && r.body.includes('id="within" type="range"') && words(r.body).includes('50 km+') && words(r.body).includes('Within Any') && r.body.includes('4.8 &amp; up') && r.body.includes('Fastest reply')
   && r.body.includes('>Reset<') && r.body.includes('>All<'));
 // The count line under the map is gone (the owner, 24 October 2026).
 check('…the count line under the map, with Expand list', /\d+ businesses · Click a business to open the profile/.test(words(r.body)) && words(r.body).includes('Expand list'));
@@ -91,8 +91,8 @@ check('signed in: the shortlist bar shows what’s on it, with Message all and n
   && r.body.includes(`Remove ${A.name} from your shortlist`) && r.body.includes('href="/shortlist/message"') && !r.body.includes('Add these to an event'));
 check('…the card says it’s on the shortlist, and the other is a favourite', r.body.includes(`aria-label="Remove ${A.name} from your shortlist"`)
   && r.body.includes(`aria-label="Remove ${B.name} from favourites"`));
-check('…and the menu has Messages, Favourites and Account, not My events', r.body.includes('href="/messages"') && r.body.includes('href="/saved"')
-  && r.body.includes('href="/account"') && !r.body.includes('href="/events"'));
+check('…and the menu has Edit profile, Messages and Sign out, not My events', words(r.body).includes('Edit profile') && r.body.includes('href="/account"')
+  && r.body.includes('href="/messages"') && words(r.body).includes('Sign out') && !r.body.includes('href="/events"'));
 r = await site('/explore', { cookie: cookie.q });
 check('someone else sees none of it: no bar, nothing marked', !r.body.includes('aria-label="Your shortlist"')
   && r.body.includes(`aria-label="Add ${A.name} to your shortlist"`) && r.body.includes(`aria-label="Add ${B.name} to favourites"`));
@@ -117,10 +117,15 @@ await page.fill('#q', `zzz-nothing-${run}`);
 check('nothing found: Base44’s words, and Suggest a business', (await page.textContent('body')).includes('Nothing matches those filters')
   && (await page.$('a[href^="/suggest"]')) !== null);
 await page.click('button:has-text("Reset")');
+check('the distance slider is hidden until Within is pressed', !(await page.isVisible('#within')));
+await page.click('summary:has-text("Within")');
 await page.fill('#within', '3');
 names = await cardNames();
 check('“Within 3 km” keeps the business downtown and leaves out Washago', names.includes(A.name) && !names.includes(B.name) && !names.includes(U.name));
+check('…and the button says so', (await page.textContent('summary:has-text("Within")')).includes('3 km'));
 await page.fill('#within', '50');
+await page.mouse.click(640, 880);
+check('…a click anywhere else tucks the slider away', !(await page.isVisible('#within')));
 await page.selectOption('#rating', '4.8');
 names = await cardNames();
 check('“4.8 & up” leaves out businesses with no rating yet', !names.includes(A.name) && !names.includes(B.name));
@@ -138,6 +143,11 @@ await page.click(`button[aria-label="Add ${B.name} to favourites"]`);
 check('signed out, the heart keeps a favourite in this browser', (await page.getAttribute(`button[aria-label="Remove ${B.name} from favourites"]`, 'aria-pressed')) === 'true');
 await page.reload({ waitUntil: 'networkidle' });
 check('…and still after a reload', (await page.$(`button[aria-label="Remove ${B.name} from favourites"]`)) !== null);
+const at = async (sel) => page.$eval(sel, (el) => el.getBoundingClientRect().toJSON());
+const [fav, reset, sortBox] = [await at('button:has-text("Favourites")'), await at('button:has-text("Reset")'), await at('#sort')];
+check('Favourites sits at the far right of the bar; Reset stays next to the filters', fav.x > 1280 * 0.8 && reset.x > sortBox.x && reset.x < fav.x,
+  `${Math.round(fav.x)} ${Math.round(reset.x)}`);
+check('…and no Curator’s note on a profile', !(await page.textContent('body')).includes('Curator'));
 
 console.log('\nThe owner’s additions (24 October 2026)');
 const stepCount = async () => (await page.textContent('aside [class*="stepCount"]'))?.replace(/\s+/g, ' ').trim() ?? '';
@@ -218,6 +228,20 @@ check('expanded, the profile is a sheet over the page, with its ×', (await page
 await page.mouse.click(4, 896);
 await page.waitForSelector('[role="dialog"]', { state: 'detached' });
 check('…a click outside it closes it', (await page.$(`aside[aria-label="${A.name}"]`)) === null);
+const signedIn = await browser.newContext({ viewport: { width: 1280, height: 900 } });
+await signedIn.addCookies(cookie.p.split('; ').map((pair) => {
+  const [name, value] = pair.split('=');
+  return { name, value, domain: new URL(BASE).hostname, path: '/', secure: true, httpOnly: true, sameSite: 'Lax' };
+}));
+const me = await signedIn.newPage();
+await me.goto(`${BASE}/explore`, { waitUntil: 'networkidle' });
+const [favAt, menuAt] = [await me.$eval('button:has-text("Favourites")', (el) => el.getBoundingClientRect().x), await me.$eval('summary[aria-label="Your menu"]', (el) => el.getBoundingClientRect().x)];
+check('signed in: the profile button is at the far right, Favourites just left of it', menuAt > favAt && menuAt > 1280 * 0.9, `${Math.round(favAt)} ${Math.round(menuAt)}`);
+await me.click('summary[aria-label="Your menu"]');
+check('…it opens Edit profile and Sign out', await me.isVisible('a:has-text("Edit profile")') && await me.isVisible('button:has-text("Sign out")'));
+await me.mouse.click(640, 600);
+check('…and a click anywhere else closes it', !(await me.isVisible('a:has-text("Edit profile")')));
+await signedIn.close();
 await browser.close();
 
 console.log('\nClear all on the shortlist bar');
@@ -240,7 +264,8 @@ const [details] = await sql`select neighbourhood, tags, curator_note from vendor
 check('…the team saves them, and they’re in the history', r.status === 302 && details.neighbourhood === 'Downtown' && details.curator_note === 'Order the tarts.'
   && (await sql`select count(*)::int as n from audit_log where subject_id = ${A.id} and action = 'vendor.profile_details'`)[0].n === 1, String(r.status));
 r = await site(`/vendors/${A.slug}`);
-check('…and the profile shows them', r.body.includes('Order the tarts.') && r.body.includes('Seats 40') && r.body.includes('Downtown'));
+check('…and the profile shows the neighbourhood and tags, but no Curator’s note (the owner, 25 October 2026)', !r.body.includes('Order the tarts.')
+  && !r.body.includes('Curator') && r.body.includes('Seats 40') && r.body.includes('Downtown'));
 r = await site(`/admin/listings/${A.id}`, { cookie: cookie.o, method: 'POST', form: { intent: 'profile', curatorNote: 'Best in town!' } });
 check('a business owner can’t write the Curator’s note', r.status !== 302 && (await sql`select curator_note from vendor where id = ${A.id}`)[0].curator_note === 'Order the tarts.', String(r.status));
 r = await site(`/admin/listings/${A.id}`, { cookie: cookie.t, method: 'POST', form: { intent: 'profile', tags: 'a,b,c,d,e,f,g' } });

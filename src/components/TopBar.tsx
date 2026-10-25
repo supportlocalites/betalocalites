@@ -1,6 +1,8 @@
+import { useRef } from 'react';
 import type { ReactNode } from 'react';
 import { Form, Link, useRouteLoaderData } from 'react-router';
 import styles from './TopBar.module.css';
+import { useCloseOutside } from './useCloseOutside';
 import { Wordmark } from './Wordmark';
 
 /**
@@ -8,7 +10,18 @@ import { Wordmark } from './Wordmark';
  * the left, then whatever the page puts in it (Browse local's search and filters), then Sign in,
  * or the round button that opens the signed-in person's menu (G3, G4).
  */
-export function TopBar({ children, home = '/explore', onTeam }: { children?: ReactNode; home?: string; onTeam?: boolean }) {
+export function TopBar({
+  children,
+  end,
+  home = '/explore',
+  onTeam,
+}: {
+  children?: ReactNode;
+  /** Beside the profile button, at the far right (Browse local's Favourites). */
+  end?: ReactNode;
+  home?: string;
+  onTeam?: boolean;
+}) {
   return (
     <header className={styles.bar}>
       <div className={styles.inner}>
@@ -16,18 +29,26 @@ export function TopBar({ children, home = '/explore', onTeam }: { children?: Rea
           <Wordmark small />
         </Link>
         {children}
-        <AccountMenu onTeam={onTeam} />
+        <div className={styles.end}>
+          {end}
+          <AccountMenu onTeam={onTeam} />
+        </div>
       </div>
     </header>
   );
 }
 
-/** Sign in, or the person's menu: Messages, Favourites, My business (on a team), Account, Sign out. */
+/**
+ * Sign in, or the person's menu (the owner, 25 October 2026): Edit profile, Messages (until it
+ * finds its own place), My business (on a team), Sign out. Favourites is in Browse local's bar.
+ */
 export function AccountMenu({ onTeam: known }: { onTeam?: boolean } = {}) {
   const signedIn = useRouteLoaderData<{ signedIn: boolean }>('root')?.signedIn ?? false;
   // On pages that need an account, the member layout says whether they're on a business's team (C6).
   // Browse local knows it from its own data (known).
   const onTeam = useRouteLoaderData<{ onTeam: boolean }>('routes/member/layout')?.onTeam ?? known ?? false;
+  const menu = useRef<HTMLDetailsElement>(null);
+  useCloseOutside(menu);
   if (!signedIn) {
     return (
       <Link to="/join" className={styles.pill}>
@@ -36,7 +57,7 @@ export function AccountMenu({ onTeam: known }: { onTeam?: boolean } = {}) {
     );
   }
   return (
-    <details className={styles.menu}>
+    <details className={styles.menu} ref={menu}>
       <summary className={styles.avatar} aria-label="Your menu">
         <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false" className={styles.icon}>
           <circle cx="12" cy="8.5" r="3.5" />
@@ -44,10 +65,9 @@ export function AccountMenu({ onTeam: known }: { onTeam?: boolean } = {}) {
         </svg>
       </summary>
       <nav aria-label="Your pages" className={styles.list}>
+        <Link to="/account">Edit profile</Link>
         <Link to="/messages">Messages</Link>
-        <Link to="/saved">Favourites</Link>
         {onTeam && <Link to="/business">My business</Link>}
-        <Link to="/account">Account</Link>
         <Form method="post" action="/sign-out">
           <button type="submit">Sign out</button>
         </Form>
