@@ -86,7 +86,7 @@ function useNotice(rows: PlanRow[]): string | null {
     const n = Number(params.get('moved')) || 0;
     const what =
       n > 0
-        ? `Added ${n === 1 ? '1 business' : `${n} businesses`} from your shortlist as Considering. They aren’t told.`
+        ? `Added ${n === 1 ? '1 business' : `${n} businesses`} from your picks as Considering. They aren’t told.`
         : 'Those businesses were already on this event.';
     return params.has('created') ? `Event saved. ${what}` : what;
   }

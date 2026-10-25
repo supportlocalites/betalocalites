@@ -51,7 +51,9 @@ export type BrowseCard = {
 export type BrowseRail = { slug: string; name: string; total: number; items: BrowseCard[] };
 /** On the map view: each business with its kind, and its pin if it shared an address. */
 export type MapCard = BrowseCard & { kind: string; lat: number | null; lng: number | null; approximate: boolean };
-export type ShortlistItem = { slug: string; name: string; kind: string; photo: string | null };
+/** On the person's picks: "kind" is the business's own category (Cakes & Treats, not Parties &
+ * Celebrations; the owner, 25 October 2026); canMessage as Message all counts them. */
+export type ShortlistItem = { slug: string; name: string; kind: string; canMessage: boolean; photo: string | null };
 export type Browse = {
   rails: BrowseRail[];
   /** The map view's businesses (empty on the rows view). */
@@ -184,15 +186,19 @@ async function readBrowse(db: Db, f: BrowseFilters, userId: string | null): Prom
 /** The person's shortlist, listed businesses only, in the order they added them (as the person). */
 export async function readShortlist(db: Db, userId: string): Promise<ShortlistItem[]> {
   const rows = await db.execute<Omit<ShortlistItem, 'photo'> & { photoPath: string | null }>(sql`
-    select v.slug::text as slug, v.display_name as name, coalesce(top.name, '') as kind, cp.path as "photoPath"
+    select v.slug::text as slug, v.display_name as name, coalesce(pc.own, top.name, '') as kind, cp.path as "photoPath",
+           -- As the Message all page counts them (shortlistMessagePage): on Localites, not their own.
+           v.claim_status = 'claimed'
+             and not exists (select 1 from vendor_member m where m.vendor_id = v.id and m.user_id = ${userId} and m.ended_at is null) as "canMessage"
     from shortlist s join vendor v on v.id = s.vendor_id
     left join lateral (
-      select coalesce(c.parent_id, c.id) as top_id from vendor_category vc join category c on c.id = vc.category_id
+      select coalesce(c.parent_id, c.id) as top_id, c.name as own from vendor_category vc join category c on c.id = vc.category_id
       where vc.vendor_id = v.id order by vc.is_primary desc, c.name limit 1) pc on true
     left join category top on top.id = pc.top_id
     ${CARD_PHOTO}
     where s.user_id = ${userId} and v.listing_status = 'published'
-    order by s.created_at`);
+    -- Put back together by Undo, several share a time: then by name, so the order holds still.
+    order by s.created_at, v.display_name`);
   return rows.map(({ photoPath, ...r }) => ({ ...r, photo: photoPath }));
 }
 

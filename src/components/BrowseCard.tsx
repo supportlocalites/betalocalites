@@ -74,12 +74,12 @@ export function ChoiceButtons({ card, signedIn, look = 'card' }: { card: Choosab
   // 'bar': the same dark buttons, icons only, in a phone's bar at the bottom of a business's page.
   const box = look === 'card' ? styles.button : `${styles.button} ${styles.panelButton}`;
   const wide = panel ? `${box} ${styles.panelWide}` : box;
-  const words = panel ? <span aria-hidden="true">{shortlisted ? 'On your shortlist' : 'Add to shortlist'}</span> : null;
+  const words = panel ? <span aria-hidden="true">{shortlisted ? 'In my picks' : 'Add to my picks'}</span> : null;
   if (!signedIn) {
     const join = `/join?next=${encodeURIComponent(back)}`;
     return (
       <div className={`${styles.buttons} ${panel ? styles.panelButtons : ''}`}>
-        <Link to={join} className={wide} aria-label={`Sign in to add ${card.name} to your shortlist`} title="Add to shortlist">
+        <Link to={join} className={wide} aria-label={`Sign in to add ${card.name} to your picks`} title="Add to my picks">
           {plus}
           {words}
         </Link>
@@ -93,7 +93,7 @@ export function ChoiceButtons({ card, signedIn, look = 'card' }: { card: Choosab
     (shortlist.state === 'idle' && (shortlist.data as { error?: string } | undefined)?.error) ||
     (favourite.state === 'idle' && (favourite.data as { error?: string } | undefined)?.error) ||
     null;
-  const shortTip = shortlisted ? 'Remove from shortlist' : 'Add to shortlist';
+  const shortTip = shortlisted ? 'Remove from my picks' : 'Add to my picks';
   const saveTip = saved ? 'Remove from favourites' : 'Save as favourite';
   return (
     <div className={`${styles.buttons} ${panel ? styles.panelButtons : ''}`}>
@@ -105,7 +105,7 @@ export function ChoiceButtons({ card, signedIn, look = 'card' }: { card: Choosab
         <button
           type="submit"
           className={`${wide} ${shortlisted ? styles.chosen : ''}`}
-          aria-label={shortlisted ? `Remove ${card.name} from your shortlist` : `Add ${card.name} to your shortlist`}
+          aria-label={shortlisted ? `Remove ${card.name} from my picks` : `Add ${card.name} to my picks`}
           title={shortTip}
         >
           {plus}

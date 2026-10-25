@@ -36,7 +36,7 @@ export default function HowItWorks() {
             </span>
             <h2 id="find">Find local businesses</h2>
             <p>
-              Browse local by kind of business, or search by name or town. Tap + to put the ones you like on your shortlist. Each business
+              Browse local by kind of business, or search by name or town. Tap + to add the ones you like to your picks. Each business
               has its own page with what it offers, its website and phone number, and reviews from people who booked it. No account needed.
             </p>
           </li>

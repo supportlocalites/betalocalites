@@ -31,6 +31,8 @@ const A = await business('a', 'Browse Alpha Bakery', { tagline: 'Cakes for every
 const B = await business('b', 'Browse Beta Bakery', { pin: [44.7504, -79.3329] });
 const U = await business('u', 'Browse Unclaimed Bakery', { claim: 'unclaimed' });
 const H = await business('h', 'Browse Hidden Bakery', { status: 'unpublished' });
+const mine = async (id) => (await sql`select v.slug::text as slug from shortlist s join vendor v on v.id = s.vendor_id where s.user_id = ${id} order by v.slug`).map((x) => x.slug);
+const mineNow = () => mine(ids.p);
 const email = (who) => `e2e-browse-${who}-${run}@example.test`;
 const ids = {};
 for (const who of ['p', 'q', 'o', 't']) ids[who] = await account(email(who));
@@ -50,10 +52,10 @@ check('…with the top bar: search, Categories (All), Within (Any, its slider tu
 // The count line under the map is gone (the owner, 24 October 2026).
 check('…the count line under the map, with Expand list', /\d+ businesses · Click a business to open the profile/.test(words(r.body)) && words(r.body).includes('Expand list'));
 check('…the + asks to sign in first and comes back here; the heart works without an account',
-  r.body.includes(`href="/join?next=${encodeURIComponent('/explore')}"`) && r.body.includes(`Sign in to add ${A.name} to your shortlist`)
+  r.body.includes(`href="/join?next=${encodeURIComponent('/explore')}"`) && r.body.includes(`Sign in to add ${A.name} to your picks`)
   && r.body.includes(`aria-label="Add ${A.name} to favourites"`));
 check('…a card shows its own kind within the main one', !sub || words(r.body).includes(sub.name));
-check('…and no shortlist bar, no footer and no light/dark switch', !r.body.includes('aria-label="Your shortlist"')
+check('…and no shortlist bar, no footer and no light/dark switch', !r.body.includes('aria-label="My picks"')
   && !r.body.includes('<footer') && !r.body.includes('action="/theme"'));
 
 r = await site(`/vendors/${A.slug}`);
@@ -87,15 +89,15 @@ r = await site('/shortlist', { cookie: cookie.p, method: 'POST', form: { intent:
 check('…and it only ever goes back to a page on this site', r.status === 302 && r.location === '/', r.location);
 
 r = await site('/explore', { cookie: cookie.p });
-check('signed in: the shortlist bar shows what’s on it, with Message all and no events button', r.body.includes('aria-label="Your shortlist"')
-  && r.body.includes(`Remove ${A.name} from your shortlist`) && r.body.includes('href="/shortlist/message"') && !r.body.includes('Add these to an event'));
-check('…the card says it’s on the shortlist, and the other is a favourite', r.body.includes(`aria-label="Remove ${A.name} from your shortlist"`)
+check('signed in: My picks shows what’s on it, with “Message 1” and no events button', r.body.includes('aria-label="My picks"')
+  && r.body.includes(`Remove ${A.name} from my picks`) && words(r.body).includes('Message 1') && r.body.includes('href="/shortlist/message"') && !r.body.includes('Add these to an event'));
+check('…the card says it’s on the shortlist, and the other is a favourite', r.body.includes(`aria-label="Remove ${A.name} from my picks"`)
   && r.body.includes(`aria-label="Remove ${B.name} from favourites"`));
 check('…and the menu has Edit profile, Messages and Sign out, not My events', words(r.body).includes('Edit profile') && r.body.includes('href="/account"')
   && r.body.includes('href="/messages"') && words(r.body).includes('Sign out') && !r.body.includes('href="/events"'));
 r = await site('/explore', { cookie: cookie.q });
-check('someone else sees none of it: no bar, nothing marked', !r.body.includes('aria-label="Your shortlist"')
-  && r.body.includes(`aria-label="Add ${A.name} to your shortlist"`) && r.body.includes(`aria-label="Add ${B.name} to favourites"`));
+check('someone else sees none of it: no bar, nothing marked', !r.body.includes('aria-label="My picks"')
+  && r.body.includes(`aria-label="Add ${A.name} to my picks"`) && r.body.includes(`aria-label="Add ${B.name} to favourites"`));
 r = await site('/explore', { cookie: cookie.o });
 check('a business owner’s menu has My business', r.body.includes('href="/business"'));
 
@@ -241,20 +243,72 @@ await me.click('summary[aria-label="Your menu"]');
 check('…it opens Edit profile and Sign out', await me.isVisible('a:has-text("Edit profile")') && await me.isVisible('button:has-text("Sign out")'));
 await me.mouse.click(640, 600);
 check('…and a click anywhere else closes it', !(await me.isVisible('a:has-text("Edit profile")')));
+await me.goto(`${BASE}/explore`, { waitUntil: 'networkidle' });
+check('on a computer, My picks is the dark bar: the business, its own category, Clear all and Message 1',
+  await me.isVisible(`[aria-label="My picks"] button[aria-label="Remove ${A.name} from my picks"]`) && await me.isVisible('[aria-label="My picks"] a:has-text("Message 1")')
+  && (await me.textContent('[aria-label="My picks"]')).includes((sub ?? kind).name));
+await me.click('[aria-label="My picks"] button:has-text("Clear all")');
+await me.waitForSelector('[role="status"]:has-text("Picks cleared")');
+for (let i = 0; i < 30 && (await mineNow()).length > 0; i++) await me.waitForTimeout(100);
+check('Clear all: the bar goes and “Picks cleared · Undo” shows', !(await me.isVisible('[aria-label="My picks"]')) && (await mineNow()).length === 0);
+await me.click('button:has-text("Undo")');
+await me.waitForSelector(`[aria-label="My picks"] button[aria-label="Remove ${A.name} from my picks"]`);
+await me.waitForLoadState('networkidle');
+check('…Undo puts them back', (await mineNow()).includes(A.slug));
+check('on a computer, only the bar: no phone dock as well', !(await me.isVisible('[aria-label="My picks"] summary')));
+await me.click('[aria-label="My picks"] button:has-text("Clear all")');
+await me.waitForSelector('[role="status"]:has-text("Picks cleared")');
+const gone = await me.waitForSelector('[role="status"]:has-text("Picks cleared")', { state: 'detached', timeout: 9000 }).then(() => true, () => false);
+check('…and the note goes by itself after a few seconds, the picks still cleared', gone && (await mineNow()).length === 0);
+await site('/shortlist', { cookie: cookie.p, method: 'POST', form: { intent: 'add', slug: A.slug, inline: '1' } });
+const pocket = await signedIn.newPage();
+await pocket.setViewportSize({ width: 390, height: 844 });
+await pocket.goto(`${BASE}/explore`, { waitUntil: 'networkidle' });
+const onScreen = async (sel) => (await pocket.locator(`${sel}:visible`).count()) > 0;
+const removeA = `[aria-label="My picks"] button[aria-label="Remove ${A.name} from my picks"]`;
+check('on a phone, My picks is the dock: how many, Clear all and Message 1 in reach, the list closed',
+  (await onScreen('[aria-label="My picks"] summary:has-text("1 pick")')) && (await onScreen('[aria-label="My picks"] button:has-text("Clear all")'))
+  && (await onScreen('[aria-label="My picks"] a:has-text("Message 1")')) && !(await onScreen(removeA)));
+await pocket.click('[aria-label="My picks"] summary');
+check('…tapping it opens the list, with an × on each', await onScreen(removeA));
+await pocket.mouse.click(195, 200);
+check('…and tapping anywhere else closes it', !(await onScreen(removeA)));
 await signedIn.close();
 await browser.close();
 
 console.log('\nClear all on the shortlist bar');
-for (const v of [A, B]) await site('/shortlist', { cookie: cookie.p, method: 'POST', form: { intent: 'add', slug: v.slug, inline: '1' } });
+for (const v of [A, B, U]) await site('/shortlist', { cookie: cookie.p, method: 'POST', form: { intent: 'add', slug: v.slug, inline: '1' } });
 await site('/shortlist', { cookie: cookie.q, method: 'POST', form: { intent: 'add', slug: A.slug, inline: '1' } });
 r = await site('/explore', { cookie: cookie.p });
-check('the shortlist bar has Clear all beside Message all, and × on each', words(r.body).includes('Clear all') && words(r.body).includes('Message all')
-  && r.body.includes(`Remove ${A.name} from your shortlist`));
+check('My picks has Clear all beside “Message all 2” (U isn’t on Localites, so not counted), and × on each', words(r.body).includes('Clear all')
+  && words(r.body).includes('Message all 2') && r.body.includes(`Remove ${A.name} from my picks`) && r.body.includes(`Remove ${U.name} from my picks`));
 r = await site('/shortlist', { cookie: cookie.p, method: 'POST', form: { intent: 'clear', inline: '1' } });
 const left = async (id) => (await sql`select count(*)::int as n from shortlist where user_id = ${id}`)[0].n;
 check('Clear all empties their own shortlist, and nobody else’s', r.status === 200 && (await left(ids.p)) === 0 && (await left(ids.q)) === 1, String(r.status));
 r = await site('/shortlist', { method: 'POST', form: { intent: 'clear' } });
 check('…signed out, nothing is cleared (sent to sign in)', r.status === 302 && r.location.startsWith('/join') && (await left(ids.q)) === 1, `${r.status} ${r.location}`);
+r = await site('/shortlist', { cookie: cookie.p, method: 'POST', form: { intent: 'restore', slugs: [A.slug, B.slug, U.slug, H.slug].join(','), inline: '1' } });
+check('Undo puts back what was cleared, listed businesses only (not one taken down)', r.status === 200
+  && JSON.stringify(await mine(ids.p)) === JSON.stringify([A.slug, B.slug, U.slug].sort()) && (await left(ids.q)) === 1, `${r.status} ${await mine(ids.p)}`);
+r = await site('/shortlist', { cookie: cookie.p, method: 'POST', form: { intent: 'restore', slugs: [A.slug, B.slug].join(','), inline: '1' } });
+check('…twice is the same as once', r.status === 200 && (await left(ids.p)) === 3, String(r.status));
+r = await site('/shortlist', { cookie: cookie.p, method: 'POST', form: { intent: 'restore', slugs: `${A.slug},not a slug`, inline: '1' } });
+check('…anything that isn’t a business’s address is refused', r.status === 400, String(r.status));
+r = await site('/shortlist', { cookie: cookie.p, method: 'POST', form: { intent: 'restore', slugs: Array.from({ length: 31 }, (_, i) => `x-${i}`).join(','), inline: '1' } });
+check('…and so are more than the picks can hold', r.status === 400, String(r.status));
+r = await site('/shortlist', { method: 'POST', form: { intent: 'restore', slugs: A.slug } });
+check('…signed out, nothing is put back (sent to sign in)', r.status === 302 && r.location.startsWith('/join'), `${r.status} ${r.location}`);
+await site('/shortlist', { cookie: cookie.q, method: 'POST', form: { intent: 'clear', inline: '1' } });
+await site('/shortlist', { cookie: cookie.p, method: 'POST', form: { intent: 'restore', slugs: A.slug, inline: '1' } });
+check('…and only ever into their own picks', (await left(ids.q)) === 0);
+const fillers = [];
+for (let i = (await left(ids.p)); i < 30; i++) fillers.push(await business(`fill${i}`, `Browse Filler ${i}`));
+for (const f of fillers) await sql`insert into shortlist (user_id, vendor_id) values (${ids.p}, ${f.id})`;
+const Z = await business('z', 'Browse Zeta Bakery');
+r = await site('/shortlist', { cookie: cookie.p, method: 'POST', form: { intent: 'restore', slugs: Z.slug, inline: '1' } });
+check('…with the picks full (30), Undo says not all of them fit, and adds nothing', r.status === 409 && words(r.body).includes('Not all of them fit')
+  && (await left(ids.p)) === 30, String(r.status));
+await sql`delete from shortlist where user_id = ${ids.p} and vendor_id = any(${fillers.map((f) => f.id)}::uuid[])`;
 
 console.log('\nThe team sets the profile details');
 r = await site(`/admin/listings/${A.id}`, { cookie: cookie.t });

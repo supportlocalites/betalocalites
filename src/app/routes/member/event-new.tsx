@@ -124,7 +124,7 @@ export default function NewEvent({ loaderData, actionData }: Route.ComponentProp
           {fromShortlist && !copy && !add && (
             <>
               <input type="hidden" name="fromShortlist" value="1" />
-              <p>The businesses on your shortlist go on this event as Considering.</p>
+              <p>The businesses in your picks go on this event as Considering.</p>
             </>
           )}
           {copy && (

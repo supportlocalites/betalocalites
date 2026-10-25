@@ -400,7 +400,7 @@ export function Directory({
               ))
             )}
           </div>
-          {shortlist.length > 0 && <ShortlistBar items={shortlist} />}
+          <ShortlistBar items={shortlist} />
         </div>
 
         <div className={`${styles.panelBox} ${open && !wide ? styles.panelOpen : ''}`}>{open && !wide && profileView}</div>
@@ -753,14 +753,14 @@ function Plus({ card, signedIn, words = false }: { card: DirectoryCard; signedIn
   const back = location.pathname + location.search;
   const on = fetcher.formData ? fetcher.formData.get('intent') === 'add' : card.shortlisted;
   const className = words ? `${styles.action} ${styles.actionOutline}` : `${styles.heart} ${on ? styles.heartOn : ''}`;
-  const text = words ? <span>{on ? 'On your shortlist' : 'Add to shortlist'}</span> : null;
+  const text = words ? <span>{on ? 'In my picks' : 'Add to my picks'}</span> : null;
   if (!signedIn) {
     return (
       <Link
         to={`/join?next=${encodeURIComponent(back)}`}
         className={className}
-        aria-label={`Sign in to add ${card.name} to your shortlist`}
-        title="Add to shortlist"
+        aria-label={`Sign in to add ${card.name} to your picks`}
+        title="Add to my picks"
       >
         <Icon name="plus" />
         {text}
@@ -777,9 +777,9 @@ function Plus({ card, signedIn, words = false }: { card: DirectoryCard; signedIn
       <button
         type="submit"
         className={className}
-        aria-label={on ? `Remove ${card.name} from your shortlist` : `Add ${card.name} to your shortlist`}
+        aria-label={on ? `Remove ${card.name} from my picks` : `Add ${card.name} to my picks`}
         aria-pressed={on}
-        title={on ? 'Remove from shortlist' : 'Add to shortlist'}
+        title={on ? 'Remove from my picks' : 'Add to my picks'}
       >
         <Icon name={on ? 'check' : 'plus'} />
         {text}

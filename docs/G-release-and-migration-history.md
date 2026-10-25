@@ -31,6 +31,27 @@ Every release and every database migration, in order. Appended before each deplo
 
 ## Releases
 
+### 2026-10-25 — My picks: the new bar and Undo (D-61)
+
+**Stage:** 1 and 2 (the redesign)
+**What changed (plain English):** The shortlist is now called **My picks** everywhere people see
+it (the + says "Add to my picks"; the address stays /shortlist). On a computer the bar along the
+bottom is a quiet dark strip: each business on one line with its own category (Cakes & Treats,
+not Parties & Celebrations) and a round ×, then Clear all and "Message all 2" (counting only the
+businesses that can be messaged, as the Message all page does). On a phone it's a dark dock with
+the photos and "2 picks", which opens the list (a thumb-sized × on each; a tap anywhere else
+closes it), with Clear all and Message all always in reach. After Clear all, "Picks cleared ·
+Undo" shows for six seconds; Undo puts back the listed ones (in name order), into the person's
+own picks only, up to 30, and says so if not all of them fit.
+**Migrations applied:** none. **Destructive?** No.
+**Reviewed:** one independent review of the Undo path (who can write what, limits, races). Two
+findings fixed: the order comment overstated (they come back in name order), and a partial Undo
+now says so.
+**Tests run:** `npm run check`; unit tests 225/225; Browse local 85/85 twice (15 new: both bars,
+the phone list, Undo in the browser and on the server: only one's own, listed only, twice the
+same as once, bad addresses, more than 30, signed out, full picks); addresses 34/34; messages
+147/147; event planning 145/145; look checks 812/812.
+
 ### 2026-10-25 — Browse local: Within tucked away, the menu at the far right, no Curator's note (D-61)
 
 **Stage:** 1 and 2 (the redesign)

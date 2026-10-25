@@ -229,6 +229,32 @@
   --b44-thumb-dot: 16px;
   --b44-sheet: 1080px;
   --b44-sheet-height: 88vh;
+  /* My picks along the bottom (the owner, 25 October 2026): Style A on computers, C on phones. */
+  --color-bar-chip: rgba(255, 255, 255, 0.06);
+  --color-bar-chip-hover: rgba(255, 255, 255, 0.1);
+  --color-bar-press: rgba(255, 255, 255, 0.12);
+  --color-bar-hairline: rgba(255, 255, 255, 0.22);
+  --color-bar-hairline-strong: rgba(255, 255, 255, 0.45);
+  --color-bar-gold-line: rgba(212, 183, 124, 0.35);
+  --color-bar-muted: #a59f96;
+  --shadow-dock: 0 16px 34px -14px rgba(20, 16, 8, 0.55);
+  --fade-right: linear-gradient(to right, #000 calc(100% - 40px), transparent);
+  --b44-pick-max: 300px;
+  --b44-pick-thumb: 40px;
+  --b44-pick-face: 34px;
+  --b44-pick-overlap: -10px;
+  --b44-pick-x: 28px;
+  --b44-pick-x-touch: 36px;
+  --b44-pick-chevron: 30px;
+  --b44-pick-tray: 50vh;
+  --b44-pick-end-space: 40px;
+  --b44-text-pick: 14px;
+  --b44-text-pick-count: 20px;
+  --b44-text-pick-button: 13px;
+  --radius-dock: 24px;
+  --radius-tray: 20px;
+  --b44-undo-shift: 6px;
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
 }
 
 /*

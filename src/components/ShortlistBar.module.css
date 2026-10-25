@@ -1,21 +1,40 @@
-/* Dark, along the bottom of the list (D-57; in the Base44 page's column since D-59). */
+/*
+ * My picks along the bottom of Browse local (D-57; the owner's choice, 25 October 2026): on a
+ * computer Style A, a quiet dark bar; on a phone Style C, a dark dock that opens the list.
+ */
 .bar {
   position: relative;
   flex-shrink: 0;
   z-index: 10;
-  background: var(--color-bar);
-  color: var(--color-on-bar);
-  border-top: var(--hairline) solid var(--color-gold);
 }
 
-.inner {
-  max-width: var(--content-max);
-  margin: 0 auto;
-  padding: var(--space-3) var(--gutter);
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: var(--space-2) var(--space-3);
+.icon {
+  width: var(--b44-icon-m);
+  height: var(--b44-icon-m);
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+/* ---------- Computers: Style A ---------- */
+
+.wide {
+  display: none;
+}
+
+@media (min-width: 1024px) {
+  .wide {
+    display: flex;
+    align-items: center;
+    gap: var(--space-5);
+    padding: var(--space-3) var(--space-5);
+    background: var(--color-bar);
+    color: var(--color-on-bar);
+    border-top: var(--hairline) solid var(--color-bar-gold-line);
+  }
+
 }
 
 .count {
@@ -26,140 +45,373 @@
 }
 
 .label {
-  font-size: var(--text-label);
-  letter-spacing: var(--tracking-label);
+  font-size: var(--b44-text-meta);
+  font-weight: 600;
+  letter-spacing: var(--b44-track-label);
   text-transform: uppercase;
   color: var(--color-bar-gold-ink);
 }
 
 .number {
   font-family: var(--font-display);
-  font-size: var(--text-title-3);
+  font-size: var(--b44-text-pick-count);
+  line-height: 1.1;
+}
+
+/* Extra businesses scroll sideways, fading at the edge, so nothing is cut off mid-word. */
+.scroller {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  overflow-x: auto;
+  scrollbar-width: none;
+  padding-block: var(--hairline);
+  mask-image: var(--fade-right);
+}
+
+.scroller::-webkit-scrollbar {
+  display: none;
 }
 
 .items {
   list-style: none;
   margin: 0;
-  padding: 0;
-  /* On a phone the bar is just the count and the button (D-57's phone design). */
-  display: none;
-  flex: 1 1 auto;
-  min-width: 0;
-  gap: var(--space-3);
-  overflow-x: auto;
+  padding: 0 var(--b44-pick-end-space) 0 0;
+  display: flex;
+  gap: var(--space-2);
+}
+
+.items .item {
+  flex: none;
+  max-width: var(--b44-pick-max);
+  padding: var(--space-2);
+  border-radius: var(--radius-card);
+  background: var(--color-bar-chip);
+  transition: background 0.15s;
+}
+
+.items .item:hover {
+  background: var(--color-bar-chip-hover);
 }
 
 .item {
-  flex: none;
-  width: var(--size-bar-item);
   display: flex;
   align-items: center;
   gap: var(--space-3);
-  padding: var(--space-2) var(--space-2) var(--space-2) var(--space-3);
-  border: var(--hairline) solid var(--color-bar-line);
 }
 
 .thumb {
-  width: var(--size-bar-thumb);
-  height: var(--size-bar-thumb);
   flex: none;
+  width: var(--b44-pick-thumb);
+  height: var(--b44-pick-thumb);
+  border-radius: var(--radius-file);
   object-fit: cover;
+  background: var(--color-bar-chip-hover);
 }
 
 .words {
   flex: 1;
   min-width: 0;
   display: grid;
-  gap: var(--space-1);
+}
+
+.name,
+.kind {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .name {
-  font-family: var(--font-display);
-  line-height: 1.25;
-  overflow-wrap: anywhere;
-  display: -webkit-box;
-  -webkit-box-orient: vertical;
-  -webkit-line-clamp: 2;
-  overflow: hidden;
+  font-size: var(--b44-text-pick);
+  font-weight: 500;
+}
+
+.kind {
+  font-size: var(--b44-text-note);
+  color: var(--color-bar-muted);
 }
 
 .remove {
-  width: var(--size-icon-button);
-  height: var(--size-icon-button);
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: var(--b44-pick-x);
+  height: var(--b44-pick-x);
+  padding: 0;
   border: 0;
-  background: transparent;
-  color: var(--color-on-bar);
-  font-size: var(--text-title-3);
-  cursor: pointer;
-}
-
-.message {
-  flex: none;
-  margin-left: auto;
-  border-radius: var(--radius-button);
-  display: flex;
-  align-items: center;
-  min-height: var(--size-icon-button);
-  padding-inline: var(--space-4);
-  border: var(--hairline) solid var(--color-bar-line);
-  color: var(--color-on-bar);
-  font-size: var(--text-button);
-  letter-spacing: var(--tracking-button);
-  text-transform: uppercase;
-  text-decoration: none;
-}
-
-/* Clear all: quieter than Message all, on the same dark bar. */
-.clearAll {
-  flex: none;
-  display: flex;
-  align-items: center;
-  min-height: var(--size-icon-button);
-  padding-inline: var(--space-4);
-  border: var(--hairline) solid transparent;
-  border-radius: var(--radius-button);
+  border-radius: var(--radius-pill);
   background: none;
-  color: var(--color-on-bar);
-  font: inherit;
-  font-size: var(--text-button);
-  letter-spacing: var(--tracking-button);
-  text-transform: uppercase;
-  text-decoration: underline;
-  text-underline-offset: var(--underline-offset);
+  color: var(--color-bar-muted);
   cursor: pointer;
+}
+
+.remove:hover {
+  background: var(--color-bar-press);
+  color: var(--color-on-bar);
+}
+
+.actions {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+}
+
+/* Clear all: quiet, so it isn't pressed by mistake. */
+.clearAll {
+  font: inherit;
+  font-size: var(--b44-text-pick-button);
+  font-weight: 500;
+  padding: var(--space-2) var(--space-3);
+  border: var(--hairline) solid transparent;
+  border-radius: var(--radius-pill);
+  background: none;
+  color: var(--color-bar-muted);
+  cursor: pointer;
+  white-space: nowrap;
 }
 
 .clearAll:hover {
-  border-color: var(--color-bar-line);
+  color: var(--color-on-bar);
+  background: var(--color-bar-chip-hover);
 }
 
-.go {
-  flex: none;
-  display: flex;
+/* Message all: the one bold button. */
+.message {
+  display: inline-flex;
   align-items: center;
-  min-height: var(--size-icon-button);
-  padding-inline: var(--space-5);
+  justify-content: center;
+  gap: var(--space-2);
+  padding: var(--space-3) var(--space-5);
+  border-radius: var(--radius-pill);
   background: var(--color-gold-fill);
   color: var(--color-on-gold);
-  font-weight: 500;
-  font-size: var(--text-button);
-  letter-spacing: var(--tracking-button);
-  text-transform: uppercase;
+  font-size: var(--b44-text-pick-button);
+  font-weight: 600;
   text-decoration: none;
+  white-space: nowrap;
 }
 
-/* On a computer: everything in one line. */
-@media (min-width: 768px) {
-  .inner {
-    flex-wrap: nowrap;
-    gap: var(--space-4);
-  }
+.message:hover {
+  background: var(--color-bar-gold-ink);
+}
 
-  .items {
-    display: flex;
-  }
+/* ---------- Phones: Style C ---------- */
 
-  .message {
-    margin-left: 0;
+.dock {
+  position: relative;
+  display: grid;
+  gap: var(--space-3);
+  margin: var(--space-2) var(--space-3) calc(var(--space-2) + var(--safe-bottom));
+  padding: var(--space-3);
+  border-radius: var(--radius-dock);
+  background: var(--color-bar);
+  color: var(--color-on-bar);
+  box-shadow: var(--shadow-dock);
+}
+
+.open {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--hairline);
+  border-radius: var(--radius-pill);
+  cursor: pointer;
+  list-style: none;
+}
+
+.open::-webkit-details-marker {
+  display: none;
+}
+
+.faces {
+  flex: none;
+  display: flex;
+}
+
+.faces > * {
+  width: var(--b44-pick-face);
+  height: var(--b44-pick-face);
+  border-radius: var(--radius-pill);
+  border: var(--focus-ring) solid var(--color-bar);
+  background: var(--color-bar-chip-hover);
+  object-fit: cover;
+}
+
+.faces > * + * {
+  margin-left: var(--b44-pick-overlap);
+}
+
+.dockWords {
+  min-width: 0;
+  display: grid;
+}
+
+.dockWords b {
+  font-size: var(--b44-text-pick);
+  font-weight: 500;
+}
+
+.dockWords small {
+  font-size: var(--b44-text-note);
+  color: var(--color-bar-muted);
+}
+
+.hide,
+.tray[open] .see {
+  display: none;
+}
+
+.tray[open] .hide {
+  display: inline;
+}
+
+.chevron {
+  flex: none;
+  margin-left: auto;
+  display: grid;
+  place-items: center;
+  width: var(--b44-pick-chevron);
+  height: var(--b44-pick-chevron);
+  border-radius: var(--radius-pill);
+  background: var(--color-bar-chip-hover);
+  transition: transform 0.2s;
+}
+
+.tray[open] .chevron {
+  transform: rotate(180deg);
+}
+
+/* The list opens above the dock, a white card with a thumb-sized × on each. */
+.list {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: calc(100% + var(--space-2));
+  max-height: var(--b44-pick-tray);
+  overflow-y: auto;
+  list-style: none;
+  margin: 0;
+  padding: var(--space-1);
+  display: grid;
+  gap: var(--hairline);
+  border: var(--hairline) solid var(--color-line);
+  border-radius: var(--radius-tray);
+  background: var(--color-surface);
+  color: var(--color-ink);
+  box-shadow: var(--shadow-sheet);
+}
+
+.tray:not([open]) .list {
+  display: none;
+}
+
+.list .item {
+  padding: var(--space-2);
+}
+
+.list .kind {
+  color: var(--color-muted);
+}
+
+.list .remove {
+  width: var(--b44-pick-x-touch);
+  height: var(--b44-pick-x-touch);
+  background: var(--color-tint);
+  color: var(--color-muted);
+}
+
+.list .remove:hover {
+  color: var(--color-ink);
+}
+
+.dockActions {
+  display: grid;
+  grid-template-columns: 1fr 1.6fr;
+  gap: var(--space-2);
+}
+
+.dockActions .clearAll {
+  width: 100%;
+  padding: var(--space-3);
+  border-color: var(--color-bar-hairline);
+  color: var(--color-on-bar);
+}
+
+.dockActions .clearAll:hover {
+  border-color: var(--color-bar-hairline-strong);
+  background: none;
+}
+
+.dockActions .message {
+  padding: var(--space-3);
+}
+
+/* On a computer, only Style A. */
+@media (min-width: 1024px) {
+  .dock {
+    display: none;
+  }
+}
+
+/* ---------- Picks cleared · Undo ---------- */
+
+.undo {
+  position: fixed;
+  left: 50%;
+  bottom: calc(var(--space-6) + var(--safe-bottom));
+  z-index: 1100;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  padding: var(--space-2) var(--space-2) var(--space-2) var(--space-5);
+  border-radius: var(--radius-pill);
+  background: var(--color-bar);
+  color: var(--color-on-bar);
+  box-shadow: var(--shadow-dock);
+  font-size: var(--b44-text-pick);
+  white-space: nowrap;
+  max-width: calc(100vw - var(--space-8));
+  animation: undo-in 0.18s ease-out both;
+}
+
+.undoWords {
+  white-space: normal;
+}
+
+.undo form {
+  display: contents;
+}
+
+.undoButton {
+  font: inherit;
+  font-weight: 600;
+  padding: var(--space-2) var(--space-4);
+  border: 0;
+  border-radius: var(--radius-pill);
+  background: var(--color-bar-chip-hover);
+  color: var(--color-bar-gold-ink);
+  cursor: pointer;
+}
+
+.undoButton:hover {
+  background: var(--color-bar-press);
+}
+
+@keyframes undo-in {
+  from {
+    opacity: 0;
+    transform: translate(-50%, var(--b44-undo-shift));
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .undo,
+  .chevron,
+  .items .item {
+    animation: none;
+    transition: none;
   }
 }

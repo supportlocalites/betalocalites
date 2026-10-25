@@ -3,13 +3,13 @@ import { cloudflareContext, memberContext } from '@/app/context';
 import { SiteHeader } from '@/components/SiteHeader';
 import { pageMeta } from '@/lib/meta';
 import { isUuid } from '@/lib/ids.mjs';
-import { longDate, TOO_FAST } from '@/lib/plan-terms';
+import { longDate, PLAN_LIMITS, TOO_FAST } from '@/lib/plan-terms';
 import { safeBack } from '@/lib/theme';
 import { readShortlist } from '@/server/browse.server';
 import { actingAs } from '@/server/acting.server';
 import { myEvents, saveVendor, unsaveVendor } from '@/server/events.server';
 import { refusal, todayIso, tooFast } from '@/server/plan-pages.server';
-import { addToShortlist, clearShortlist, removeFromShortlist, shortlistToEvent } from '@/server/shortlist.server';
+import { addToShortlist, clearShortlist, removeFromShortlist, restoreShortlist, shortlistToEvent } from '@/server/shortlist.server';
 import { smallPhotoUrl } from '@/server/photo-store.server';
 import type { Route } from './+types/shortlist';
 import styles from './shortlist.module.css';
@@ -21,7 +21,7 @@ import styles from './shortlist.module.css';
  * signed-in person only. From a page with scripts the answer is just "done"; without, it goes
  * back to the page it came from.
  */
-export const meta: Route.MetaFunction = () => [...pageMeta('Your shortlist'), { name: 'robots', content: 'noindex' }];
+export const meta: Route.MetaFunction = () => [...pageMeta('My picks'), { name: 'robots', content: 'noindex' }];
 
 const SLUG = /^[a-z0-9]+(-[a-z0-9]+)*$/;
 
@@ -59,6 +59,13 @@ export async function action({ request, context }: Route.ActionArgs) {
       await clearShortlist(env, member.userId);
       return inline ? data({ error: null }) : redirect(back);
     }
+    if (intent === 'restore') {
+      const slugs = String(form.get('slugs') ?? '').split(',').filter(Boolean);
+      if (slugs.length > PLAN_LIMITS.shortlistMax || !slugs.every((x) => SLUG.test(x))) throw data(null, { status: 400 });
+      const { full } = await restoreShortlist(env, member.userId, slugs);
+      if (full) return data({ error: `Not all of them fit: your picks hold up to ${PLAN_LIMITS.shortlistMax} businesses.` }, { status: 409 });
+      return inline ? data({ error: null }) : redirect(back);
+    }
     if (!SLUG.test(slug)) throw data(null, { status: 400 });
     if (intent === 'add') await addToShortlist(env, member.userId, slug);
     else if (intent === 'remove') await removeFromShortlist(env, member.userId, slug);
@@ -79,10 +86,10 @@ export default function Shortlist({ loaderData, actionData }: Route.ComponentPro
     <>
       <SiteHeader />
       <main className="page narrow">
-        <h1 className="title-1">Your shortlist</h1>
+        <h1 className="title-1">My picks</h1>
         <div className="title-rule" aria-hidden="true" />
         <p className="muted">
-          Only you see your shortlist. Add it to an event to plan with these businesses; they go on the event as Considering.
+          Only you see your picks. Add them to an event to plan with these businesses; they go on the event as Considering.
         </p>
         {actionData?.error && (
           <p className="notice" role="alert">
@@ -91,7 +98,7 @@ export default function Shortlist({ loaderData, actionData }: Route.ComponentPro
         )}
         {items.length === 0 ? (
           <p className="section-gap">
-            Nothing on your shortlist yet. Tap the + on a business in{' '}
+            Nothing in your picks yet. Tap the + on a business in{' '}
             <Link to="/explore" className="text-link">
               Browse local
             </Link>
@@ -112,7 +119,7 @@ export default function Shortlist({ loaderData, actionData }: Route.ComponentPro
                   <Form method="post">
                     <input type="hidden" name="intent" value="remove" />
                     <input type="hidden" name="slug" value={i.slug} />
-                    <button type="submit" className="text-link" disabled={busy} aria-label={`Remove ${i.name} from your shortlist`}>
+                    <button type="submit" className="text-link" disabled={busy} aria-label={`Remove ${i.name} from my picks`}>
                       Remove
                     </button>
                   </Form>

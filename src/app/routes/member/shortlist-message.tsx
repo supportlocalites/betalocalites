@@ -13,7 +13,7 @@ import type { Route } from './+types/shortlist-message';
  * on the person's shortlist that's on Localites, each in its own conversation (not about an
  * event), through the same step as messaging one: the same limits, blocks and emails.
  */
-export const meta: Route.MetaFunction = () => [...pageMeta('Message your shortlist'), { name: 'robots', content: 'noindex' }];
+export const meta: Route.MetaFunction = () => [...pageMeta('Message your picks'), { name: 'robots', content: 'noindex' }];
 
 export async function loader({ context }: Route.LoaderArgs) {
   const member = context.get(memberContext);
@@ -46,9 +46,9 @@ export async function action({ request, context }: Route.ActionArgs) {
 export default function ShortlistMessage({ loaderData, actionData }: Route.ComponentProps) {
   return (
     <MessageAll
-      back={{ to: '/shortlist', label: 'Your shortlist', again: 'Back to your shortlist' }}
-      title="Message your shortlist"
-      none="None of the businesses on your shortlist can be messaged on Localites yet."
+      back={{ to: '/explore', label: 'Browse local', again: 'Back to Browse local' }}
+      title="Message your picks"
+      none="None of the businesses in your picks can be messaged on Localites yet."
       businesses={loaderData.businesses}
       actionData={actionData}
       intro={

@@ -51,6 +51,42 @@ export async function clearShortlist(env: ServerEnv, userId: string): Promise<vo
 }
 
 /**
+ * Undo after Clear all (the owner, 25 October 2026): the businesses just cleared go back, listed
+ * ones only, up to the limit. They share one added time, so they come back in name order.
+ * Returns how many went back, and whether some didn't fit.
+ */
+export async function restoreShortlist(env: ServerEnv, userId: string, slugs: string[]): Promise<{ back: number; full: boolean }> {
+  if (slugs.length === 0) return { back: 0, full: false };
+  return planned(
+    actingAs(env, asPerson(userId), async (tx) => {
+      // One at a time per person, as adding one is, so the limit holds.
+      await tx.execute(sql`select id from app_user where id = ${userId} for update`);
+      const [n] = await tx.execute<{ n: number }>(sql`
+        select count(*)::int as n from shortlist s join vendor v on v.id = s.vendor_id
+        where s.user_id = ${userId} and v.listing_status = 'published'`);
+      const room = Math.max(0, PLAN_LIMITS.shortlistMax - (n?.n ?? 0));
+      // The slugs were checked against SLUG by the page, so they can go in an array as they are.
+      const wanted = `{${slugs.join(',')}}`;
+      const [c] = await tx.execute<{ n: number }>(sql`
+        select count(*)::int as n from vendor v
+        where v.slug::text = any(${wanted}::text[]) and v.listing_status = 'published'
+          and not exists (select 1 from shortlist s where s.user_id = ${userId} and s.vendor_id = v.id)`);
+      const due = c?.n ?? 0;
+      if (room === 0 || due === 0) return { back: 0, full: due > 0 };
+      const back = await tx.execute(sql`
+        insert into shortlist (user_id, vendor_id)
+        select ${userId}::uuid, v.id from vendor v
+        where v.slug::text = any(${wanted}::text[]) and v.listing_status = 'published'
+          and not exists (select 1 from shortlist s where s.user_id = ${userId} and s.vendor_id = v.id)
+        order by array_position(${wanted}::text[], v.slug::text)
+        limit ${room}
+        on conflict do nothing returning vendor_id`);
+      return { back: back.length, full: due > room };
+    }),
+  );
+}
+
+/**
  * Moves the listed businesses on the shortlist onto one of the person's own events, as
  * Considering (the database's rules apply to each), and takes those off the shortlist. Already
  * on the event: just taken off. Returns how many were added.

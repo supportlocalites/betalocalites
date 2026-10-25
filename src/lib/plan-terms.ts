@@ -85,7 +85,7 @@ export const PLAN_REFUSALS: Record<string, string> = {
   vendorsPerEvent: `This event already has ${PLAN_LIMITS.vendorsPerEvent} businesses on it. Remove one first.`,
   bookedMarksPerDay: 'You’ve marked a lot of businesses booked today. Please try again tomorrow.',
   savedMax: 'Your saved list is full. Remove one first.',
-  LP140: `Your shortlist holds ${PLAN_LIMITS.shortlistMax} businesses. Remove one first.`,
+  LP140: `Your picks hold up to ${PLAN_LIMITS.shortlistMax} businesses. Remove one first.`,
 };
 
 // ------------------------------------------------------------------ dates and times
