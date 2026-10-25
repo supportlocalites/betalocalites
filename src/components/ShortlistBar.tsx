@@ -1,10 +1,11 @@
-import { useEffect, useId, useRef, useState } from 'react';
+import { useEffect, useId, useRef, useState, useSyncExternalStore } from 'react';
 import { Link, useFetcher, useLocation } from 'react-router';
 import type { ShortlistItem } from '@/server/browse.server';
+import { picksUndo } from './picksUndo';
 import { useCloseOutside } from './useCloseOutside';
 import styles from './ShortlistBar.module.css';
 
-/** How long "Picks cleared · Undo" stays (the owner, 25 October 2026). */
+/** How long "… removed · Undo" stays (the owner, 25 October 2026). */
 const UNDO_MS = 6000;
 
 const businesses = (n: number) => `${n} ${n === 1 ? 'business' : 'businesses'}`;
@@ -16,53 +17,44 @@ const messageWords = (n: number) => (n === 1 ? 'Message 1' : n === 0 ? 'Message 
  * Browse local when something is on it. On a computer, Style A: a quiet dark bar with each
  * business, its own category and an ×, then Clear all and Message all. On a phone, Style C: a
  * dark dock with the photos and how many, which opens the list (× on each), and Clear all and
- * Message all always in reach. After Clear all, "Picks cleared · Undo" puts them back.
+ * Message all always in reach. After any removal, one or all, "… removed · Undo" puts them back.
  */
 export function ShortlistBar({ items }: { items: ShortlistItem[] }) {
   const location = useLocation();
   const back = location.pathname + location.search;
   const clear = useFetcher();
   const undo = useFetcher();
-  // What Clear all took off, while Undo is offered; and what Undo is putting back.
-  const [cleared, setCleared] = useState<ShortlistItem[] | null>(null);
-  const [restoring, setRestoring] = useState<ShortlistItem[]>([]);
+  const removed = useSyncExternalStore(picksUndo.subscribe, picksUndo.get, picksUndo.none);
   // Undo couldn't put them all back (the picks filled up meanwhile): said once, until OK.
   const [seen, setSeen] = useState<unknown>(null);
   const undoError = undo.state === 'idle' && seen !== undo.data ? (undo.data as { error?: string | null } | undefined)?.error : null;
 
+  // The note goes by itself; each new removal starts its time again.
   useEffect(() => {
-    if (!cleared) return;
-    const id = setTimeout(() => setCleared(null), UNDO_MS);
+    if (!removed) return;
+    const id = setTimeout(() => picksUndo.done(), UNDO_MS);
     return () => clearTimeout(id);
-  }, [cleared]);
+  }, [removed]);
 
-  const shown = clear.state !== 'idle' ? [] : items.length === 0 && undo.state !== 'idle' ? restoring : items;
+  const shown = clear.state !== 'idle' ? [] : items;
 
   return (
     <>
-      {shown.length > 0 && <Bar items={shown} back={back} clear={clear} onClear={() => setCleared(items)} />}
+      {shown.length > 0 && <Bar items={shown} back={back} clear={clear} onClear={() => picksUndo.cleared(items.map((i) => i.slug))} />}
       {undoError && (
-        <div className={styles.undo} role="status">
+        <div className={`${styles.undo} ${shown.length > 0 ? styles.undoAbove : ''}`} role="status">
           <span className={styles.undoWords}>{undoError}</span>
           <button type="button" className={styles.undoButton} onClick={() => setSeen(undo.data)}>
             OK
           </button>
         </div>
       )}
-      {cleared && shown.length === 0 && (
-        <div className={styles.undo} role="status">
-          <span>Picks cleared</span>
-          <undo.Form
-            method="post"
-            action="/shortlist"
-            preventScrollReset
-            onSubmit={() => {
-              setRestoring(cleared);
-              setCleared(null);
-            }}
-          >
+      {removed && !undoError && (
+        <div className={`${styles.undo} ${shown.length > 0 ? styles.undoAbove : ''}`} role="status">
+          <span className={styles.undoWords}>{removed.words}</span>
+          <undo.Form method="post" action="/shortlist" preventScrollReset onSubmit={() => picksUndo.done()}>
             <input type="hidden" name="intent" value="restore" />
-            <input type="hidden" name="slugs" value={cleared.map((i) => i.slug).join(',')} />
+            <input type="hidden" name="slugs" value={removed.slugs.join(',')} />
             <input type="hidden" name="back" value={back} />
             <input type="hidden" name="inline" value="1" />
             <button type="submit" className={styles.undoButton}>
@@ -155,7 +147,7 @@ function Item({ item, back }: { item: ShortlistItem; back: string }) {
         <span className={styles.name}>{item.name}</span>
         <span className={styles.kind}>{item.kind}</span>
       </span>
-      <fetcher.Form method="post" action="/shortlist" preventScrollReset>
+      <fetcher.Form method="post" action="/shortlist" preventScrollReset onSubmit={() => picksUndo.removed(item.slug, item.name)}>
         <input type="hidden" name="intent" value="remove" />
         <input type="hidden" name="slug" value={item.slug} />
         <input type="hidden" name="back" value={back} />

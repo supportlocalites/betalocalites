@@ -254,6 +254,8 @@
   --radius-dock: 24px;
   --radius-tray: 20px;
   --b44-undo-shift: 6px;
+  --b44-undo-lift: 150px;
+  --b44-undo-lift-wide: 96px;
   --safe-bottom: env(safe-area-inset-bottom, 0px);
 }
 

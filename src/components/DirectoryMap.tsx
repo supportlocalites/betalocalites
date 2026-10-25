@@ -30,16 +30,27 @@ function drawPins(s: MapState | null, { pins, selected, onSelect }: Latest) {
   // while the map is hidden (a phone showing a profile).
   if (open && open.slug !== s.flownTo && s.map.getSize().x > 0) {
     s.flownTo = open.slug;
-    // The map moving itself isn't the visitor moving it ("Search this area" stays as it was).
-    s.flying = true;
-    s.map.flyTo([open.lat!, open.lng!], Math.max(s.map.getZoom(), 13), { duration: 0.6 });
-    setTimeout(() => (s.flying = false), 900);
+    showIfHidden(s, open);
   }
 }
 
 /**
+ * The map stays where the visitor left it while they switch between businesses, and only the
+ * open one's dot changes, so they can see where the others are (the owner, 25 October 2026). It
+ * moves only to bring a dot that's out of sight (or right at the edge) into view.
+ */
+function showIfHidden(s: MapState, open: DirectoryCard) {
+  const at = s.L.latLng(open.lat!, open.lng!);
+  if (s.map.getBounds().pad(-0.1).contains(at)) return;
+  // The map moving itself isn't the visitor moving it ("Search this area" stays as it was).
+  s.flying = true;
+  s.map.panTo(at, { animate: true, duration: 0.5 });
+  setTimeout(() => (s.flying = false), 900);
+}
+
+/**
  * The map strip of the Base44 design (D-59): every business that shared an address as a small
- * white dot with a gold ring; the open one larger, in gold, and the map glides to it. The map
+ * white dot with a gold ring; the open one larger, in gold (the map moves only if it's out of sight). The map
  * is OpenStreetMap's, free (D-59, K5), tinted to Base44's grey. Tapping a dot opens the profile.
  */
 export function DirectoryMap({
@@ -116,19 +127,15 @@ export function DirectoryMap({
   }, [key]);
 
   // The map grows or shrinks (the view changes, the profile panel opens beside it): once that has
-  // happened it measures itself again, so its middle is the middle of what can be seen, and the
-  // open business is put back there.
+  // happened it measures itself again, and moves only if the open business is now out of sight.
   useEffect(() => {
     const id = setTimeout(() => {
       const s = state.current;
       if (!s) return;
-      s.map.invalidateSize();
+      // Keeps its top left where it was, so the dots don't shift on screen as the panel opens.
+      s.map.invalidateSize({ pan: false });
       const open = latest.current.pins.find((c) => c.slug === latest.current.selected);
-      if (open && s.map.getSize().x > 0) {
-        s.flying = true;
-        s.map.panTo([open.lat!, open.lng!], { animate: true });
-        setTimeout(() => (s.flying = false), 900);
-      }
+      if (open && s.map.getSize().x > 0) showIfHidden(s, open);
     }, 320);
     return () => clearTimeout(id);
   }, [layout]);

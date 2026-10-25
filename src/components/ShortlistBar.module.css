@@ -377,6 +377,17 @@
   animation: undo-in 0.18s ease-out both;
 }
 
+/* With the bar still showing, the note sits just above it. */
+.undoAbove {
+  bottom: calc(var(--b44-undo-lift) + var(--safe-bottom));
+}
+
+@media (min-width: 1024px) {
+  .undoAbove {
+    bottom: var(--b44-undo-lift-wide);
+  }
+}
+
 .undoWords {
   white-space: normal;
 }

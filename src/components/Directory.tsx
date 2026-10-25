@@ -6,6 +6,7 @@ import { directionsUrl, streetLine } from '@/lib/address';
 import { fuzzyMatch } from '@/lib/fuzzy';
 import type { DirectoryCard, ShortlistItem } from '@/server/browse.server';
 import { type Bounds, DirectoryMap, type MapApi } from './DirectoryMap';
+import { picksUndo } from './picksUndo';
 import { ShortlistBar } from './ShortlistBar';
 import { TopBar } from './TopBar';
 import { useCloseOutside } from './useCloseOutside';
@@ -752,7 +753,11 @@ function Plus({ card, signedIn, words = false }: { card: DirectoryCard; signedIn
   const fetcher = useFetcher();
   const back = location.pathname + location.search;
   const on = fetcher.formData ? fetcher.formData.get('intent') === 'add' : card.shortlisted;
-  const className = words ? `${styles.action} ${styles.actionOutline}` : `${styles.heart} ${on ? styles.heartOn : ''}`;
+  // Picked, it's a solid dark circle with a white tick, plainly different from the + (the owner,
+  // 25 October 2026: "whatever it uses right now is indistinguishable").
+  const className = words
+    ? `${styles.action} ${on ? styles.actionPicked : styles.actionOutline}`
+    : `${styles.heart} ${on ? styles.plusOn : ''}`;
   const text = words ? <span>{on ? 'In my picks' : 'Add to my picks'}</span> : null;
   if (!signedIn) {
     return (
@@ -769,7 +774,15 @@ function Plus({ card, signedIn, words = false }: { card: DirectoryCard; signedIn
   }
   const error = fetcher.state === 'idle' ? (fetcher.data as { error?: string } | undefined)?.error : null;
   return (
-    <fetcher.Form method="post" action="/shortlist" preventScrollReset className={styles.inlineForm}>
+    <fetcher.Form
+      method="post"
+      action="/shortlist"
+      preventScrollReset
+      className={styles.inlineForm}
+      onSubmit={() => {
+        if (on) picksUndo.removed(card.slug, card.name);
+      }}
+    >
       <input type="hidden" name="intent" value={on ? 'remove' : 'add'} />
       <input type="hidden" name="slug" value={card.slug} />
       <input type="hidden" name="back" value={back} />

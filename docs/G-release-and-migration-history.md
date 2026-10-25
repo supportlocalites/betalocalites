@@ -31,6 +31,21 @@ Every release and every database migration, in order. Appended before each deplo
 
 ## Releases
 
+### 2026-10-25 — Undo for one, a clear tick, a map that stays put (D-61)
+
+**Stage:** 1 and 2 (the redesign)
+**What changed (plain English):** Taking one business off My picks (its × on the bar, or its tick
+on a card) now offers "Sugar Maple Bakehouse removed · Undo" as Clear all does; several in a row
+are undone together. A picked business's + is a solid dark circle with a bold white tick (in the
+profile, a gold "In my picks"). The map stays where it is while someone switches between
+businesses: only the open one's dot changes, and the map moves only if that dot is out of sight.
+Opening or closing the profile panel beside the map no longer shifts it either.
+**Migrations applied:** none. **Destructive?** No.
+**Tests run:** `npm run check`; unit tests 225/225; Browse local 91/91 twice (6 new: Undo after one
+×, after unticking a card, the dark tick, the map staying put, and moving for a business out of
+sight); addresses 34/34; look checks 809/812, the 3 failing only on test photos this workspace's
+pretend storage lost when it restarted (all pass on a fresh database).
+
 ### 2026-10-25 — My picks: the new bar and Undo (D-61)
 
 **Stage:** 1 and 2 (the redesign)

@@ -636,6 +636,17 @@
   height: var(--b44-icon);
 }
 
+.plusOn,
+.plusOn:hover {
+  border-color: var(--color-ink);
+  background: var(--color-ink);
+  color: var(--color-surface);
+}
+
+.plusOn .icon {
+  stroke-width: 2.6;
+}
+
 .heartOn {
   border-color: var(--color-gold-faint);
   background: var(--color-gold-soft);
@@ -974,6 +985,17 @@
 
 .actionOutline:hover {
   border-color: var(--color-gold);
+}
+
+/* In my picks: gold, with a bold tick, so it isn't mistaken for Message (dark). */
+.actionPicked {
+  background: var(--color-gold-soft);
+  color: var(--color-ink);
+  border: var(--hairline) solid var(--color-gold);
+}
+
+.actionPicked .icon {
+  stroke-width: 2.6;
 }
 
 .yours {

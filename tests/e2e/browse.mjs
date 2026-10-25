@@ -30,6 +30,8 @@ const business = async (key, name, { status = 'published', claim = 'claimed', ta
 const A = await business('a', 'Browse Alpha Bakery', { tagline: 'Cakes for every party', pin: [44.6086, -79.4184], category: sub ?? kind });
 const B = await business('b', 'Browse Beta Bakery', { pin: [44.7504, -79.3329] });
 const U = await business('u', 'Browse Unclaimed Bakery', { claim: 'unclaimed' });
+// N is a block from A, so both dots fit on the map together.
+const N = await business('n', 'Browse Near Bakery', { pin: [44.6094, -79.4170] });
 const H = await business('h', 'Browse Hidden Bakery', { status: 'unpublished' });
 const mine = async (id) => (await sql`select v.slug::text as slug from shortlist s join vendor v on v.id = s.vendor_id where s.user_id = ${id} order by v.slug`).map((x) => x.slug);
 const mineNow = () => mine(ids.p);
@@ -141,6 +143,20 @@ check('tapping a card opens its profile, and its address names it', page.url().i
 await page.keyboard.press('Escape');
 await page.waitForSelector(`aside[aria-label="${A.name}"]`, { state: 'detached' });
 check('Esc closes it', !page.url().includes('v='));
+const mapAt = () => page.$eval('.leaflet-map-pane', (el) => el.style.transform);
+await page.click(`button[aria-label="Open ${A.name}"]`);
+await page.waitForTimeout(1200);
+const before = await mapAt();
+await page.click(`button[aria-label="Open ${N.name}"]`);
+await page.waitForSelector(`aside[aria-label="${N.name}"]`);
+await page.waitForTimeout(1200);
+check('switching to a business already on the map leaves the map where it is; only its dot changes', (await mapAt()) === before
+  && (await page.$$('[class*="dotOpen"]')).length === 1, `${before} → ${await mapAt()}`);
+await page.click(`button[aria-label="Open ${B.name}"]`);
+await page.waitForSelector(`aside[aria-label="${B.name}"]`);
+await page.waitForTimeout(1200);
+check('…one out of sight (Washago) brings the map to it', (await mapAt()) !== before);
+await page.keyboard.press('Escape');
 await page.click(`button[aria-label="Add ${B.name} to favourites"]`);
 check('signed out, the heart keeps a favourite in this browser', (await page.getAttribute(`button[aria-label="Remove ${B.name} from favourites"]`, 'aria-pressed')) === 'true');
 await page.reload({ waitUntil: 'networkidle' });
@@ -256,6 +272,21 @@ await me.waitForSelector(`[aria-label="My picks"] button[aria-label="Remove ${A.
 await me.waitForLoadState('networkidle');
 check('…Undo puts them back', (await mineNow()).includes(A.slug));
 check('on a computer, only the bar: no phone dock as well', !(await me.isVisible('[aria-label="My picks"] summary')));
+await me.click(`[aria-label="My picks"] button[aria-label="Remove ${A.name} from my picks"]`);
+await me.waitForSelector(`[role="status"]:has-text("${A.name} removed")`);
+check('taking one business off with its × offers Undo too', (await me.isVisible('button:has-text("Undo")')));
+await me.click('button:has-text("Undo")');
+await me.waitForSelector(`[aria-label="My picks"] button[aria-label="Remove ${A.name} from my picks"]`);
+check('…and Undo puts it back', (await mineNow()).includes(A.slug));
+const tick = `[class*="cardButtons"] button[aria-label="Remove ${A.name} from my picks"]`;
+await me.waitForSelector(tick);
+check('a picked business’s + is a solid dark circle with a tick, not the outline +', (await me.$eval(tick, (el) => el.ownerDocument.defaultView.getComputedStyle(el).backgroundColor)) === 'rgb(28, 26, 23)');
+await me.click(tick);
+await me.waitForSelector(`[role="status"]:has-text("${A.name} removed")`);
+await me.click('button:has-text("Undo")');
+await me.waitForSelector(tick);
+for (let i = 0; i < 30 && !(await mineNow()).includes(A.slug); i++) await me.waitForTimeout(100);
+check('…unticking it on the card offers Undo as well', (await mineNow()).includes(A.slug));
 await me.click('[aria-label="My picks"] button:has-text("Clear all")');
 await me.waitForSelector('[role="status"]:has-text("Picks cleared")');
 const gone = await me.waitForSelector('[role="status"]:has-text("Picks cleared")', { state: 'detached', timeout: 9000 }).then(() => true, () => false);
