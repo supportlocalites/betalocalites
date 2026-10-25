@@ -257,6 +257,10 @@
   --b44-undo-lift: 150px;
   --b44-undo-lift-wide: 96px;
   --safe-bottom: env(safe-area-inset-bottom, 0px);
+  /* Messages in Style A (D-62): a business has replied, in green; a group's name box. */
+  --color-ok: #3a5e3d;
+  --color-ok-soft: #e8f0e6;
+  --b44-rename: 420px;
 }
 
 /*

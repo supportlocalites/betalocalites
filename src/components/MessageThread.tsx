@@ -113,8 +113,11 @@ export function MessageList({
   canEdit = false,
   reportPath,
   filePath,
+  sentWith,
 }: {
   messages: ShownMessage[];
+  /** The person's side only: which of their messages went with which of their groups (D-62). */
+  sentWith?: Record<string, string>;
   canRemove: boolean;
   /** While messages can be sent: the author can change their own (M2, D-54). */
   canEdit?: boolean;
@@ -128,6 +131,7 @@ export function MessageList({
         const gone = m.removed || m.hidden;
         return (
           <li key={m.id} className={`${styles.message} ${m.mine ? styles.mine : ''} ${gone ? styles.removed : ''}`}>
+            {sentWith?.[m.id] && <span className={styles.sentWith}>{`Sent with your group “${sentWith[m.id]}”`}</span>}
             <span className={styles.byline}>
               {m.mine ? 'You' : m.author} · {when.format(new Date(m.createdAt))}
             </span>

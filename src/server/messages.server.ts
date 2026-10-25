@@ -1,5 +1,6 @@
 import { sql } from 'drizzle-orm';
 import { uuidv7 } from '@/lib/ids.mjs';
+import { groupNameFor } from '@/lib/group-name';
 import { MESSAGE_LIMITS, MESSAGE_REFUSALS } from '@/lib/message-terms';
 import { type Acting, actAs, actingAs, errorCode, PlanCapped, PlanNotFound, PlanRefused } from './acting.server';
 import { type Db, withDb } from './db.server';
@@ -48,7 +49,7 @@ export async function talked<T>(work: Promise<T>): Promise<T> {
 }
 
 const asPerson = (userId: string): Acting => ({ side: 'person', userId });
-const snippet = (body: string | null, removed: boolean, hidden = false) =>
+export const snippet = (body: string | null, removed: boolean, hidden = false) =>
   hidden
     ? 'Message hidden by Localites'
     : removed
@@ -131,9 +132,9 @@ const VERSION = sql`format('%s|%s|%s|%s|%s|%s|%s|%s|%s', c.status, c.ended_at, c
   (select max(greatest(m.removed_at, m.hidden_by_team_at, m.edited_at)) from message m where m.conversation_id = c.id))`;
 
 /** For the person: the business isn't on Localites (its team ended, or it was archived): nobody can write. */
-const LEFT = sql`(c.ended_at is not null or v.claim_status <> 'claimed' or v.listing_status = 'archived')`;
+export const LEFT = sql`(c.ended_at is not null or v.claim_status <> 'claimed' or v.listing_status = 'archived')`;
 /** For the person: the conversation ended, and the business has since joined Localites again (a new team). */
-const REJOINED = sql`(c.ended_at is not null and v.claim_status = 'claimed' and v.listing_status = 'published')`;
+export const REJOINED = sql`(c.ended_at is not null and v.claim_status = 'claimed' and v.listing_status = 'published')`;
 
 export type ThreadMessage = {
   id: string;
@@ -222,8 +223,12 @@ export type ConversationCard = {
   snippet: string | null;
   lastFromMe: boolean;
   unread: number;
-  /** Which of the person's events it's about, if any: Messages groups by it (D-58). */
+  /** Which of the person's events it's about, if any (D-58; events are paused, D-59 G19). */
   event: { id: string; name: string; date: string } | null;
+  /** The business's own category (Cakes & Treats), shown under its name. */
+  kind: string | null;
+  /** The person's own groups it's in (D-62), oldest first. */
+  groups: { id: string; name: string }[];
   blocked: boolean;
   /** The business isn't on Localites any more (left, or no one runs it): the conversation has ended. */
   left: boolean;
@@ -246,6 +251,7 @@ export async function myConversations(env: ServerEnv, userId: string): Promise<C
             eventId: string | null;
             eventName: string | null;
             eventDate: string | null;
+            groupsJson: string;
           }
       >(sql`
         select c.id, v.slug::text as "vendorSlug", v.display_name as "vendorName", c.last_message_at::text as "lastMessageAt",
@@ -257,6 +263,12 @@ export async function myConversations(env: ServerEnv, userId: string): Promise<C
                (select count(*) from message m where m.conversation_id = c.id and m.author_side = 'vendor' and m.removed_at is null and m.hidden_by_team_at is null
                   and m.created_at > coalesce(r.last_read_at, '-infinity'))::int as unread,
                ev.id as "eventId", ep.title as "eventName", ev.event_date::text as "eventDate",
+               (select cat.name from vendor_category vc join category cat on cat.id = vc.category_id
+                where vc.vendor_id = v.id order by vc.is_primary desc, cat.name limit 1) as kind,
+               -- Read as the person (RLS): only their own groups.
+               coalesce((select json_agg(json_build_object('id', g.id, 'name', g.name) order by g.created_at)
+                         from message_group_member gm join message_group g on g.id = gm.group_id
+                         where gm.conversation_id = c.id), '[]')::text as "groupsJson",
                ${LIST_PHOTO_COLUMNS}
         from conversation c join vendor v on v.id = c.vendor_id
         left join conversation_read r on r.conversation_id = c.id and r.user_id = ${userId}
@@ -271,10 +283,11 @@ export async function myConversations(env: ServerEnv, userId: string): Promise<C
         where c.consumer_user_id = ${userId}
         order by c.last_message_at desc nulls last
         limit 200`);
-      return rows.map(({ lastBody, lastRemoved, lastHidden, listed, eventId, eventName, eventDate, ...r }) => ({
+      return rows.map(({ lastBody, lastRemoved, lastHidden, listed, eventId, eventName, eventDate, groupsJson, ...r }) => ({
         ...withListPhoto(env, r, listed),
         snippet: snippet(lastBody, lastRemoved, lastHidden),
         event: eventId && eventName && eventDate ? { id: eventId, name: eventName, date: eventDate } : null,
+        groups: JSON.parse(groupsJson) as { id: string; name: string }[],
       }));
     }),
   );
@@ -405,7 +418,15 @@ export async function shortlistMessagePage(env: ServerEnv, userId: string): Prom
   );
 }
 
-export type MessageAllResult = { sent: Written[]; sentTo: string[]; notSent: { name: string; why: string }[] };
+export type MessageAllResult = {
+  sent: Written[];
+  sentTo: string[];
+  notSent: { name: string; why: string }[];
+  /** The group the sent ones are in (D-62); null when nothing was sent. */
+  groupId: string | null;
+  /** Sent, but not put in the group (a hiccup): said plainly, never called "kept together". */
+  notGrouped: string[];
+};
 
 /**
  * Sends the same words to each chosen business on the event's Considering list, or on the
@@ -417,17 +438,30 @@ export type MessageAllResult = { sent: Written[]; sentTo: string[]; notSent: { n
 export async function messageAll(
   env: ServerEnv,
   userId: string,
-  from: { eventId: string } | 'shortlist',
+  from: { eventId: string } | { groupId: string } | 'shortlist',
   slugs: string[],
   body: string,
+  /** A new group's name (blank: the date), for a Message all from the shortlist or an event (D-62). */
+  groupName = '',
 ): Promise<MessageAllResult> {
-  const businesses = from === 'shortlist' ? await shortlistMessagePage(env, userId) : (await messageAllPage(env, userId, from.eventId)).businesses;
-  const eventId = from === 'shortlist' ? null : from.eventId;
+  const businesses =
+    from === 'shortlist'
+      ? await shortlistMessagePage(env, userId)
+      : 'groupId' in from
+        ? await groupBusinesses(env, userId, from.groupId)
+        : (await messageAllPage(env, userId, from.eventId)).businesses;
+  const eventId = from !== 'shortlist' && 'eventId' in from ? from.eventId : null;
   const chosen = businesses.filter((b) => slugs.includes(b.slug));
   if (chosen.length === 0) throw new PlanRefused('Choose at least one business.');
   if (chosen.length > MESSAGE_LIMITS.messageAllMax)
     throw new PlanRefused(`Choose up to ${MESSAGE_LIMITS.messageAllMax} businesses at a time.`);
-  const result: MessageAllResult = { sent: [], sentTo: [], notSent: [] };
+  const result: MessageAllResult = {
+    sent: [],
+    sentTo: [],
+    notSent: [],
+    groupId: from !== 'shortlist' && 'groupId' in from ? from.groupId : null,
+    notGrouped: [],
+  };
   for (const [i, b] of chosen.entries()) {
     try {
       const written = await startConversation(env, userId, b.slug, { body, eventId });
@@ -436,6 +470,10 @@ export async function messageAll(
       else {
         result.sent.push(written);
         result.sentTo.push(b.name);
+        // Into the group (made with the first one sent), marked as sent with it.
+        const grouped = await addToGroup(env, userId, result.groupId, groupName, written);
+        if (grouped) result.groupId = grouped;
+        else result.notGrouped.push(b.name);
       }
     } catch (err) {
       if (err instanceof PlanCapped) {
@@ -927,4 +965,154 @@ export function readBody(form: FormData, withFile = false): { body: string } | {
   if (!body && !withFile) return { error: MESSAGE_REFUSALS.empty };
   if (body.length > MESSAGE_LIMITS.body) return { error: MESSAGE_REFUSALS.tooLong };
   return { body };
+}
+
+// ======================================================================= groups (D-62)
+
+/**
+ * Puts a conversation just written to in the person's group, and marks the message as sent
+ * with it; makes the group first if there isn't one yet. Returns the group's id, or null if this
+ * step failed: the message has still been sent, so it's logged and the person told, not refused.
+ */
+async function addToGroup(env: ServerEnv, userId: string, groupId: string | null, name: string, written: Written): Promise<string | null> {
+  try {
+    return await actingAs(env, asPerson(userId), async (tx) => {
+      let id = groupId;
+      if (!id) {
+        const [g] = await tx.execute<{ id: string }>(sql`
+          insert into message_group (user_id, name) values (${userId}, ${groupNameFor(name)}) returning id`);
+        id = g!.id;
+      }
+      await tx.execute(sql`
+        insert into message_group_member (group_id, conversation_id) values (${id}, ${written.conversationId}) on conflict do nothing`);
+      await tx.execute(sql`
+        insert into message_group_send (message_id, group_id) values (${written.messageId}, ${id}) on conflict do nothing`);
+      return id;
+    });
+  } catch (err) {
+    console.error('message not added to its group:', err instanceof Error ? err.message : err);
+    return null;
+  }
+}
+
+/** The businesses in the person's group that can be written to now (on Localites, listed, not their own). */
+async function groupBusinesses(env: ServerEnv, userId: string, groupId: string): Promise<MessageAllPage['businesses']> {
+  return talked(
+    actingAs(env, asPerson(userId), async (tx) => {
+      const [g] = await tx.execute<{ id: string }>(sql`select id from message_group where id = ${groupId}`);
+      if (!g) throw new PlanNotFound();
+      return [
+        ...(await tx.execute<MessageAllPage['businesses'][number]>(sql`
+          select distinct on (v.id) v.slug::text as slug, v.display_name as name
+          from message_group_member gm join conversation c on c.id = gm.conversation_id join vendor v on v.id = c.vendor_id
+          where gm.group_id = ${groupId} and c.person_deleted_at is null
+            and v.listing_status = 'published' and v.claim_status = 'claimed'
+            and not exists (select 1 from vendor_member m where m.vendor_id = v.id and m.user_id = ${userId} and m.ended_at is null)
+          order by v.id`)),
+      ];
+    }),
+  );
+}
+
+export type GroupMember = {
+  conversationId: string;
+  vendorSlug: string;
+  vendorName: string;
+  kind: string | null;
+  photo: ListPhoto | null;
+  lastMessageAt: string | null;
+  snippet: string | null;
+  lastFromMe: boolean;
+  unread: number;
+  /** Since the group's first message to it: the business replied, wrote last (you), or hasn't yet. */
+  state: 'replied' | 'you' | 'waiting';
+  /** Can't be written to now (left, paused or blocked): the words say why. */
+  note: string | null;
+};
+export type GroupPage = {
+  group: { id: string; name: string; createdAt: string };
+  /** The first words sent with the group, if any are still there. */
+  asked: string | null;
+  members: GroupMember[];
+};
+
+/** One of the person's own groups (D-62): what was asked, and where each business has got to. */
+export async function groupPage(env: ServerEnv, userId: string, groupId: string): Promise<GroupPage> {
+  return talked(
+    actingAs(env, asPerson(userId), async (tx) => {
+      const [group] = await tx.execute<GroupPage['group']>(sql`
+        select id, name, created_at::text as "createdAt" from message_group where id = ${groupId}`);
+      if (!group) throw new PlanNotFound();
+      const [ask] = await tx.execute<{ body: string }>(sql`
+        select m.body from message_group_send s join message m on m.id = s.message_id
+        where s.group_id = ${groupId} and m.removed_at is null and m.hidden_by_team_at is null
+        order by m.created_at limit 1`);
+      const rows = await tx.execute<
+        Omit<GroupMember, 'photo' | 'snippet' | 'note' | 'state'> &
+          ListPhotoColumns & { listed: boolean; left: boolean; paused: boolean; blocked: boolean; lastBody: string | null; lastRemoved: boolean; lastHidden: boolean; vendorAfter: boolean }
+      >(sql`
+        select c.id as "conversationId", v.slug::text as "vendorSlug", v.display_name as "vendorName",
+               (select cat.name from vendor_category vc join category cat on cat.id = vc.category_id
+                where vc.vendor_id = v.id order by vc.is_primary desc, cat.name limit 1) as kind,
+               c.last_message_at::text as "lastMessageAt", v.listing_status = 'published' as listed,
+               ${LEFT} as left, not ${LEFT} and v.listing_status <> 'published' as paused, c.status <> 'open' as blocked,
+               lm.body as "lastBody", coalesce(lm.removed, false) as "lastRemoved", coalesce(lm.hidden, false) as "lastHidden",
+               coalesce(lm.mine, false) as "lastFromMe",
+               (select count(*) from message m where m.conversation_id = c.id and m.author_side = 'vendor' and m.removed_at is null and m.hidden_by_team_at is null
+                  and m.created_at > coalesce(r.last_read_at, '-infinity'))::int as unread,
+               exists (select 1 from message m where m.conversation_id = c.id and m.author_side = 'vendor'
+                       and m.created_at > coalesce((select min(m2.created_at) from message_group_send s join message m2 on m2.id = s.message_id
+                                                    where s.group_id = ${groupId} and m2.conversation_id = c.id), gm.added_at)) as "vendorAfter",
+               ${LIST_PHOTO_COLUMNS}
+        from message_group_member gm join conversation c on c.id = gm.conversation_id join vendor v on v.id = c.vendor_id
+        left join conversation_read r on r.conversation_id = c.id and r.user_id = ${userId}
+        left join lateral (
+          select case when m.hidden_by_team_at is null then m.body end as body, m.removed_at is not null as removed,
+                 m.hidden_by_team_at is not null as hidden, m.author_side = 'consumer' as mine
+          from message m where m.conversation_id = c.id order by m.created_at desc limit 1
+        ) lm on true
+        ${LIST_PHOTO}
+        where gm.group_id = ${groupId} and c.person_deleted_at is null
+        order by c.last_message_at desc nulls last`);
+      // One row per business: if it left and joined again, its newest conversation.
+      const seenVendors = new Set<string>();
+      const newest = [...rows]
+        .sort((a, b) => (b.lastMessageAt ?? '').localeCompare(a.lastMessageAt ?? ''))
+        .filter((r) => !seenVendors.has(r.vendorSlug) && seenVendors.add(r.vendorSlug));
+      const members = newest.map(({ lastBody, lastRemoved, lastHidden, listed, left, paused, blocked, vendorAfter, ...r }) => ({
+        ...withListPhoto(env, r, listed),
+        snippet: snippet(lastBody, lastRemoved, lastHidden),
+        state: (!vendorAfter ? 'waiting' : r.lastFromMe ? 'you' : 'replied') as GroupMember['state'],
+        note: left ? 'No longer on Localites' : paused ? 'Paused' : blocked ? 'Blocked' : null,
+      }));
+      return { group, asked: ask?.body ?? null, members };
+    }),
+  );
+}
+
+/** Renames the person's own group (D-62: "or if we want to edit it"). */
+export async function renameGroup(env: ServerEnv, userId: string, groupId: string, name: string): Promise<void> {
+  await talked(
+    actingAs(env, asPerson(userId), async (tx) => {
+      const done = await tx.execute(sql`update message_group set name = ${name} where id = ${groupId} returning id`);
+      if (done.length === 0) throw new PlanNotFound();
+    }),
+  );
+}
+
+/** For one of the person's conversations: the groups it's in, and which of their messages went with which. */
+export async function conversationGroups(
+  env: ServerEnv,
+  userId: string,
+  conversationId: string,
+): Promise<{ groups: { id: string; name: string }[]; sentWith: Record<string, string> }> {
+  return actingAs(env, asPerson(userId), async (tx) => {
+    const groups = await tx.execute<{ id: string; name: string }>(sql`
+      select g.id, g.name from message_group_member gm join message_group g on g.id = gm.group_id
+      where gm.conversation_id = ${conversationId} order by g.created_at`);
+    const sends = await tx.execute<{ messageId: string; name: string }>(sql`
+      select s.message_id as "messageId", g.name from message_group_send s join message_group g on g.id = s.group_id
+      join message m on m.id = s.message_id where m.conversation_id = ${conversationId}`);
+    return { groups: [...groups], sentWith: Object.fromEntries(sends.map((x) => [x.messageId, x.name])) };
+  });
 }

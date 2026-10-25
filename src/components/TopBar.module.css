@@ -150,3 +150,60 @@
 .list button:hover {
   background: var(--color-tint);
 }
+
+/* Browse local · Messages · Community (the owner, 25 October 2026). */
+.nav {
+  order: 2;
+  flex-basis: 100%;
+  display: flex;
+  gap: var(--hairline);
+  padding: var(--space-1);
+  border-radius: var(--radius-pill);
+  background: var(--color-tint);
+}
+
+@media (min-width: 1024px) {
+  .nav {
+    order: 0;
+    flex-basis: auto;
+  }
+
+  .navLink {
+    padding-inline: var(--space-4);
+  }
+}
+
+.navLink {
+  flex: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  min-width: 0;
+  padding: var(--space-2);
+  border-radius: var(--radius-pill);
+  font-size: var(--b44-text-search);
+  font-weight: 500;
+  color: var(--color-muted);
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.navLink:hover {
+  color: var(--color-ink);
+}
+
+.navOn {
+  background: var(--color-surface);
+  color: var(--color-ink);
+  box-shadow: var(--shadow-soft);
+}
+
+.navCount {
+  border-radius: var(--radius-pill);
+  padding: 0 var(--space-2);
+  background: var(--color-gold-fill);
+  color: var(--color-on-gold);
+  font-size: var(--b44-text-card);
+  font-weight: 600;
+}

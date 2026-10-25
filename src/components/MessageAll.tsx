@@ -1,8 +1,9 @@
 import { Form, Link, useNavigation } from 'react-router';
 import { SiteHeader } from '@/components/SiteHeader';
+import { GROUP_NAME_MAX } from '@/lib/group-name';
 import { MESSAGE_LIMITS, NO_PAYMENTS_IN_CONVERSATION, SHARE_CAREFULLY } from '@/lib/message-terms';
 
-type Result = { sentTo: string[]; notSent: { name: string; why: string }[] } | null;
+type Result = { sentTo: string[]; notSent: { name: string; why: string }[]; groupId: string | null; notGrouped: string[] } | null;
 
 /**
  * "Message all" (D-58, D-57 step 3): choose the businesses, write once, and each gets it in its
@@ -41,7 +42,14 @@ export function MessageAll({
           <>
             {result.sentTo.length > 0 && (
               <p className="notice" role="status">
-                {`Sent to ${result.sentTo.join(', ')}. Each is its own conversation in your Messages; we’ll email you when they reply.`}
+                {result.groupId && result.notGrouped.length === 0
+                  ? `Sent to ${result.sentTo.join(', ')}. Each is its own conversation, kept together as a group in your Messages; we’ll email you when they reply.`
+                  : `Sent to ${result.sentTo.join(', ')}. Each is its own conversation in your Messages; we’ll email you when they reply.`}
+              </p>
+            )}
+            {result.notGrouped.length > 0 && (
+              <p className="notice" role="status">
+                {`${result.notGrouped.join(', ')} got your message, but ${result.notGrouped.length === 1 ? 'isn’t' : 'aren’t'} in the group. You’ll find ${result.notGrouped.length === 1 ? 'it' : 'them'} in Messages.`}
               </p>
             )}
             {result.notSent.length > 0 && (
@@ -55,8 +63,8 @@ export function MessageAll({
               </div>
             )}
             <p className="section-gap">
-              <Link to="/messages" className="button button-secondary">
-                See your messages
+              <Link to={result.groupId ? `/messages/groups/${result.groupId}` : '/messages'} className="button button-primary">
+                {result.groupId ? 'Open the group in Messages' : 'See your messages'}
               </Link>{' '}
               <Link to={back.to} className="button button-secondary">
                 {back.again}
@@ -81,6 +89,16 @@ export function MessageAll({
               </p>
             )}
             <Form method="post">
+              <div className="field">
+                <label htmlFor="groupName" className="field-label">
+                  Name this group
+                </label>
+                <input id="groupName" name="groupName" className="input" maxLength={GROUP_NAME_MAX} placeholder="For example, Dinosaur party" />
+                <p className="field-hint">
+                  Only you see it, and you can change it any time. Left blank, it’s called by today’s date. Messages keeps these
+                  conversations together under this name.
+                </p>
+              </div>
               <fieldset className="field">
                 <legend className="field-label">
                   {many ? `Send to (up to ${MESSAGE_LIMITS.messageAllMax} at a time)` : 'Send to'}

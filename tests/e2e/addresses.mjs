@@ -167,8 +167,8 @@ const HELLO = `Are you free in June? ${run}`;
 r = await site('/shortlist/message', { cookie: cookie.a, method: 'POST', form: [['body', HELLO], ['slug', V.slug], ['slug', W.slug]] });
 const convs = await sql`select c.vendor_id, c.event_id from conversation c join message m on m.conversation_id = c.id
   where c.consumer_user_id = ${ids.a} and m.body = ${HELLO}`;
-check('sent to each, each its own conversation, not about an event',
-  r.status === 200 && words(r.body).includes(`Sent to ${V.name}, ${W.name}`) && convs.length === 2 && convs.every((c) => c.event_id === null),
-  `${r.status} ${convs.length}`);
+check('sent to each, each its own conversation, not about an event, then on to their new group (D-62)',
+  r.status === 302 && r.location.startsWith('/messages/groups/') && convs.length === 2 && convs.every((c) => c.event_id === null),
+  `${r.status} ${r.location} ${convs.length}`);
 
 await finish('address and map');

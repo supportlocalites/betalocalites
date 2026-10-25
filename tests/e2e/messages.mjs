@@ -145,11 +145,13 @@ await new Promise((res) => setTimeout(res, 3000)); // the site waits 2 seconds h
 check('a second reply before they’ve read it: no second email', (await newMail('a', beforeReply)).length === 1);
 r = await page('/messages', { cookie: cookie.a });
 check('the person sees 2 new', words(r.body).includes('2 new'));
-check('…By event: under their own event’s name (only they see it)', words(r.body).includes(SECRET_TITLE) && /aria-current="true"[^>]*>By event</.test(r.body));
+check('…Messages opens on Groups (D-62)', /aria-current="true"[^>]*>Groups</.test(r.body));
+r = await page('/messages?view=event', { cookie: cookie.a });
+check('…By event, kept by its address while events are paused: under their own event’s name (only they see it)', words(r.body).includes(SECRET_TITLE));
 r = await page('/messages?view=unread', { cookie: cookie.a });
 check('…Unread shows it, with the count', words(r.body).includes(V.name) && words(r.body).includes('Unread · 1'));
 r = await page('/messages?view=recent', { cookie: cookie.a });
-check('…Most recent shows it too', words(r.body).includes(V.name) && /aria-current="true"[^>]*>Most recent</.test(r.body));
+check('…All (what Most recent was) shows it too', words(r.body).includes(V.name) && /aria-current="true"[^>]*>All</.test(r.body));
 r = await page(THREAD, { cookie: cookie.a });
 text = words(r.body);
 check('the open conversation has the list beside it, read now', r.body.includes('aria-current="page"') && !text.includes('2 new'));
@@ -547,9 +549,9 @@ let before5e = await countFrom();
 const ALL_WORDS = `Are you free that day? ${run}`;
 r = await page(ALL, { cookie: cookie.a, method: 'POST', form: [['body', ALL_WORDS], ['slug', V.slug], ['slug', W.slug]] });
 const toW = await sql`select c.id, c.event_id from conversation c where c.consumer_user_id = ${ids.a} and c.vendor_id = ${W.id} and c.ended_at is null`;
-check('Message all sends to each, in its own conversation about the event',
-  r.status === 200 && words(r.body).includes(`Sent to ${V.name}, ${W.name}`) && (await countFrom()) === before5e + 2 && toW[0]?.event_id === aEvent,
-  `${r.status} ${(await countFrom()) - before5e}`);
+check('Message all sends to each, in its own conversation about the event, and goes to their new group (D-62)',
+  r.status === 302 && /^\/messages\/groups\/[0-9a-f-]{36}\?sent=2$/.test(r.location) && (await countFrom()) === before5e + 2 && toW[0]?.event_id === aEvent,
+  `${r.status} ${r.location} ${(await countFrom()) - before5e}`);
 const [vConv] = await sql`select event_id from conversation where id = ${conversationId}`;
 check('…the one already there gets it, now about this event', vConv.event_id === aEvent && (await messagesIn(conversationId)).at(-1)?.body === ALL_WORDS);
 r = await page(BIZ_THREAD, { cookie: cookie.o });

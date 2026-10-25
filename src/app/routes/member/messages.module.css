@@ -82,7 +82,8 @@
 .message {
   max-width: min(100%, var(--size-form-wide));
   justify-self: start;
-  border: var(--hairline) solid var(--color-line-soft);
+  border: var(--hairline) solid var(--color-line);
+  border-radius: var(--radius-card) var(--radius-card) var(--radius-card) var(--space-1);
   background: var(--color-surface);
   padding: var(--space-3) var(--space-4);
   display: grid;
@@ -93,6 +94,7 @@
 /* Your own on the right, dark (D-58); theirs on the surface. */
 .message.mine {
   justify-self: end;
+  border-radius: var(--radius-card) var(--radius-card) var(--space-1) var(--radius-card);
   background: var(--color-ink);
   border-color: var(--color-ink);
   color: var(--color-on-ink);
@@ -285,4 +287,214 @@ details.messageActions form {
   font-weight: 700;
   font-size: var(--text-title-2);
   overflow-wrap: anywhere;
+}
+
+/* ---------- Style A (D-62): titles, groups and their page ---------- */
+
+.paneTitle {
+  margin: 0 0 var(--space-3);
+  font-family: var(--font-display);
+  font-size: var(--b44-text-panel-name);
+  font-weight: 700;
+}
+
+/* "Sent with your group …" above a message (the person's side only). */
+.sentWith {
+  justify-self: start;
+  border-radius: var(--radius-pill);
+  padding: 0 var(--space-2);
+  background: var(--color-gold-soft);
+  color: var(--color-gold-ink);
+  font-size: var(--b44-text-note);
+  font-weight: 500;
+}
+
+.message.mine .sentWith {
+  justify-self: end;
+}
+
+.inGroups {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1);
+}
+
+.groupTag {
+  border-radius: var(--radius-pill);
+  padding: 0 var(--space-2);
+  background: var(--color-gold-soft);
+  color: var(--color-gold-ink);
+  font-size: var(--b44-text-note);
+  font-weight: 500;
+  text-decoration: none;
+}
+
+.groupTag:hover {
+  text-decoration: underline;
+  text-underline-offset: var(--underline-offset);
+}
+
+.groupKicker {
+  margin: 0;
+  font-size: var(--b44-text-meta);
+  font-weight: 600;
+  letter-spacing: var(--b44-track-row);
+  text-transform: uppercase;
+  color: var(--color-gold-ink);
+}
+
+.groupTitle {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2) var(--space-3);
+  margin: var(--space-1) 0 var(--space-2);
+}
+
+.rename[open] {
+  flex-basis: 100%;
+}
+
+.pillButton {
+  display: inline-flex;
+  align-items: center;
+  padding: var(--space-1) var(--space-3);
+  border: var(--hairline) solid var(--color-line);
+  border-radius: var(--radius-pill);
+  background: var(--color-surface);
+  font-size: var(--b44-text-search);
+  font-weight: 500;
+  cursor: pointer;
+  list-style: none;
+}
+
+.pillButton::-webkit-details-marker {
+  display: none;
+}
+
+.rename[open] .pillButton {
+  display: none;
+}
+
+.renameForm {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.renameForm input {
+  flex: 1 1 auto;
+  min-width: 0;
+  max-width: var(--b44-rename);
+}
+
+.asked {
+  margin: var(--space-4) 0;
+  padding: var(--space-3) var(--space-4);
+  border: var(--hairline) solid var(--color-line);
+  border-left: var(--b44-stripe) solid var(--color-gold);
+  border-radius: var(--radius-file);
+  background: var(--color-surface);
+}
+
+.askedLabel {
+  display: block;
+  font-size: var(--b44-text-note);
+  color: var(--color-muted);
+}
+
+.tally {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin: 0 0 var(--space-3);
+}
+
+.state {
+  flex: none;
+  border-radius: var(--radius-pill);
+  padding: 0 var(--space-2);
+  font-size: var(--b44-text-note);
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.replied {
+  background: var(--color-ok-soft);
+  color: var(--color-ok);
+}
+
+.waiting {
+  background: var(--color-tint);
+  color: var(--color-muted);
+}
+
+.fresh {
+  background: var(--color-gold-soft);
+  color: var(--color-gold-ink);
+}
+
+.track {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: var(--space-2);
+}
+
+.trackRow {
+  display: flex;
+  gap: var(--space-3);
+  padding: var(--space-3);
+  border: var(--hairline) solid var(--color-line);
+  border-radius: var(--radius-card);
+  background: var(--color-surface);
+  color: var(--color-ink);
+  text-decoration: none;
+}
+
+.trackRow:hover {
+  border-color: var(--color-gold);
+}
+
+.trackPhoto {
+  flex: none;
+  width: var(--b44-pick-thumb);
+  height: var(--b44-pick-thumb);
+  border-radius: var(--radius-file);
+}
+
+.trackWords {
+  flex: 1;
+  min-width: 0;
+  display: grid;
+  gap: var(--hairline);
+}
+
+.trackTop {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-1) var(--space-2);
+}
+
+.trackName {
+  font-weight: 600;
+}
+
+.trackKind {
+  font-size: var(--b44-text-note);
+  color: var(--color-muted);
+}
+
+.trackSnippet {
+  font-size: var(--b44-text-search);
+  color: var(--color-ink-soft);
+  overflow-wrap: anywhere;
+}
+
+.trackNew {
+  color: var(--color-ink);
+  font-weight: 600;
 }

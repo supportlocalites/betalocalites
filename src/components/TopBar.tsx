@@ -1,6 +1,6 @@
 import { useRef } from 'react';
 import type { ReactNode } from 'react';
-import { Form, Link, useRouteLoaderData } from 'react-router';
+import { Form, Link, useLocation, useRouteLoaderData } from 'react-router';
 import styles from './TopBar.module.css';
 import { useCloseOutside } from './useCloseOutside';
 import { Wordmark } from './Wordmark';
@@ -35,6 +35,35 @@ export function TopBar({
         </div>
       </div>
     </header>
+  );
+}
+
+/**
+ * Browse local · Messages · Community (the owner, 25 October 2026: "a nav bar at the top that
+ * allows it - where you can go back to localites, messages, or community"), on Messages and
+ * Community. Messages shows how many conversations have something new, when the page knows.
+ */
+export function MainNav({ unread = 0 }: { unread?: number }) {
+  const path = useLocation().pathname;
+  const links: [string, string, boolean][] = [
+    ['/explore', 'Browse local', path === '/explore'],
+    ['/messages', 'Messages', path.startsWith('/messages')],
+    ['/community', 'Community', path.startsWith('/community')],
+  ];
+  return (
+    <nav aria-label="Main" className={styles.nav}>
+      {links.map(([to, label, on]) => (
+        <Link key={to} to={to} className={`${styles.navLink} ${on ? styles.navOn : ''}`} aria-current={on ? 'page' : undefined}>
+          {label}
+          {label === 'Messages' && unread > 0 && (
+            <span className={styles.navCount}>
+              {unread}
+              <span className="visually-hidden"> new</span>
+            </span>
+          )}
+        </Link>
+      ))}
+    </nav>
   );
 }
 

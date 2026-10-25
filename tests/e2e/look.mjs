@@ -209,6 +209,9 @@ check('set-up: search finds the business, so its result row is looked at', found
 // ---- the pages, as each kind of visitor sees them
 // Browse local signed in (D-57): one business on the shortlist, so its bar shows; a cost set.
 await sql`insert into shortlist (user_id, vendor_id) values (${ids.person}, ${W.id}) on conflict do nothing`;
+// A group in Messages (D-62) with that conversation in it.
+const [lookGroup] = await sql`insert into message_group (user_id, name) values (${ids.person}, ${`Look group ${run}`}) returning id`;
+await sql`insert into message_group_member (group_id, conversation_id) values (${lookGroup.id}, ${conversationId})`;
 await sql`update vendor set cost_level = 2 where id = ${V.id}`;
 // Step 3: one business at its address, one with its number hidden (an approximate pin).
 await sql`update vendor set address_street = 'Mississaga Street', address_number = '10', map_lat = 44.6083, map_lng = -79.4197 where id = ${V.id}`;
@@ -219,6 +222,7 @@ const PAGES = [
   { who: null, path: '/explore', label: 'Explore' },
   { who: 'person', path: '/explore', label: 'Browse local, with a shortlist' },
   { who: 'person', path: '/shortlist', label: 'My picks' },
+  { who: 'person', path: `/messages/groups/${lookGroup.id}`, label: 'A group in Messages' },
   { who: 'person', path: '/shortlist/message', label: 'Message your picks' },
   { who: 'person', path: `/events/${eventId}/message-all`, label: 'Message the businesses for an event' },
   { who: null, path: `/search?q=${run}`, label: 'Search results' },
@@ -227,6 +231,7 @@ const PAGES = [
   { who: null, path: '/sign-in', label: 'Team sign-in' },
   { who: null, path: '/suggest', label: 'Suggest a business' },
   { who: null, path: '/how-it-works', label: 'How it works' },
+  { who: null, path: '/community', label: 'Community' },
   { who: null, path: '/suspended', label: 'Your account is suspended' },
   { who: null, path: '/help', label: 'Help' },
   { who: null, path: '/for-businesses', label: 'For businesses' },

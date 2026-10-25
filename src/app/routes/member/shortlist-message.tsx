@@ -1,7 +1,8 @@
-import { data } from 'react-router';
+import { data, redirect } from 'react-router';
 import { cloudflareContext, memberContext } from '@/app/context';
 import { MessageAll } from '@/components/MessageAll';
 import { SLUG } from '@/lib/ids.mjs';
+import { readGroupName } from '@/lib/group-name';
 import { pageMeta } from '@/lib/meta';
 import { TOO_FAST } from '@/lib/plan-terms';
 import { emailAboutMessage, messageAll, readBody, shortlistMessagePage } from '@/server/messages.server';
@@ -27,16 +28,21 @@ export async function action({ request, context }: Route.ActionArgs) {
   const read = readBody(form);
   if ('error' in read) return data({ error: read.error, result: null }, { status: 400 });
   const slugs = [...new Set(form.getAll('slug').map(String))].filter((s) => SLUG.test(s)).slice(0, 50);
+  const named = readGroupName(form);
+  if ('error' in named) return data({ error: named.error, result: null }, { status: 400 });
   if (await tooFast(env, member.userId)) return data({ error: TOO_FAST, result: null }, { status: 429 });
   try {
-    const result = await messageAll(env, member.userId, 'shortlist', slugs, read.body);
+    const result = await messageAll(env, member.userId, 'shortlist', slugs, read.body, named.name);
     const url = siteUrl(env, request);
     afterwards(
       ctx,
       Promise.all(result.sent.map((w) => emailAboutMessage(env, { side: 'person', userId: member.userId }, w, url))),
       'message email',
     );
-    return { error: null, result: { sentTo: result.sentTo, notSent: result.notSent } };
+    // All sent: straight to the group in Messages (D-62); otherwise, who wasn't sent it and why.
+    if (result.groupId && result.notSent.length === 0 && result.notGrouped.length === 0)
+      return redirect(`/messages/groups/${result.groupId}?sent=${result.sent.length}`);
+    return { error: null, result: { sentTo: result.sentTo, notSent: result.notSent, groupId: result.groupId, notGrouped: result.notGrouped } };
   } catch (err) {
     const { error, status } = refusal(err);
     return data({ error, result: null }, { status });

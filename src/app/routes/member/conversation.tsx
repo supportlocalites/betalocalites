@@ -1,15 +1,15 @@
 import { data, Form, Link, redirect, useNavigation, useSearchParams } from 'react-router';
 import { cloudflareContext, memberContext } from '@/app/context';
 import { MessageList, ReplyBox, useRefresh } from '@/components/MessageThread';
-import { Inbox, inboxView } from '@/components/Inbox';
-import { SiteHeader } from '@/components/SiteHeader';
+import { Inbox, inboxOrder, inboxQuery, inboxView } from '@/components/Inbox';
+import { MainNav, TopBar } from '@/components/TopBar';
 import { SquarePhoto } from '@/components/SquarePhoto';
 import { isUuid } from '@/lib/ids.mjs';
 import { MESSAGE_REFUSALS, NO_PAYMENTS_IN_CONVERSATION, SHARE_CAREFULLY } from '@/lib/message-terms';
 import { pageMeta } from '@/lib/meta';
 import { cleanUpConversationFiles, filesOn, MAX_FILE_UPLOAD, readAttachment } from '@/server/conversation-files.server';
 import { shortDate, TOO_FAST } from '@/lib/plan-terms';
-import { emailAboutMessage, myConversations, personChange, personSend, personThread, readBody } from '@/server/messages.server';
+import { conversationGroups, emailAboutMessage, myConversations, personChange, personSend, personThread, readBody } from '@/server/messages.server';
 import { afterwards, found, refusal, siteUrl, todayIso, tooFast } from '@/server/plan-pages.server';
 import type { Route } from './+types/conversation';
 import styles from './messages.module.css';
@@ -31,9 +31,11 @@ export async function loader({ params, context }: Route.LoaderArgs) {
   const { env } = context.get(cloudflareContext);
   // Opening it marks it read first, so the list beside it (D-58) doesn't count it as unread.
   const thread = await found(personThread(env, member.userId, params.id));
+  const [conversations, inGroups] = await Promise.all([myConversations(env, member.userId), conversationGroups(env, member.userId, params.id)]);
   return {
     thread,
-    conversations: await myConversations(env, member.userId),
+    conversations,
+    inGroups,
     today: todayIso(),
     canAttach: filesOn(env),
   };
@@ -119,30 +121,37 @@ export async function action({ request, params, context }: Route.ActionArgs) {
   }
 }
 
-export default function Conversation({ loaderData: { thread, conversations, today, canAttach }, actionData }: Route.ComponentProps) {
+export default function Conversation({ loaderData: { thread, conversations, inGroups, today, canAttach }, actionData }: Route.ComponentProps) {
   useRefresh(`/messages/${thread.id}/check`, thread.version);
   const error = actionData?.error;
   // Sent here from Message a business when a conversation already existed (scenario tests, C3).
   const [params] = useSearchParams();
   const unsent = params.get('unsent') === '1';
   const view = inboxView(params.get('view'));
+  const order = inboxOrder(params.get('order'));
   const busy = useNavigation().state === 'submitting';
   const { vendor, status } = thread;
   const canWrite = status === 'open' && !vendor.left && !vendor.paused;
   return (
     <>
-      <SiteHeader />
+      <TopBar>
+        <MainNav unread={conversations.filter((c) => c.unread > 0).length} />
+      </TopBar>
       <main className={`page ${styles.split} ${styles.withList}`}>
         <section aria-labelledby="all-messages" className={styles.listPane}>
-          <h2 id="all-messages" className="title-2">
+          <h2 id="all-messages" className={styles.paneTitle}>
             Messages
           </h2>
-          <Inbox conversations={conversations} view={view} currentId={thread.id} today={today} />
+          <Inbox conversations={conversations} view={view} order={order} currentId={thread.id} today={today} />
         </section>
         <div className={styles.readPane}>
           <p className={styles.backLink}>
-            <Link to={view === 'event' ? '/messages' : `/messages?view=${view}`} className="text-link">
-              ← All messages
+            {/* Back to its group when it's in one and the list shows groups; otherwise to Messages. */}
+            <Link
+              to={view === 'groups' && inGroups.groups[0] ? `/messages/groups/${inGroups.groups[0].id}${inboxQuery(view, order)}` : `/messages${inboxQuery(view, order)}`}
+              className="text-link"
+            >
+              {view === 'groups' && inGroups.groups[0] ? `← ${inGroups.groups[0].name}` : '← Messages'}
             </Link>
           </p>
           <div className={styles.head}>
@@ -159,10 +168,19 @@ export default function Conversation({ loaderData: { thread, conversations, toda
                   See their page
                 </Link>
               )}
+              {inGroups.groups.length > 0 && (
+                <span className={styles.inGroups}>
+                  {inGroups.groups.map((g) => (
+                    <Link key={g.id} to={`/messages/groups/${g.id}${inboxQuery(view, order)}`} className={styles.groupTag}>
+                      {g.name}
+                    </Link>
+                  ))}
+                </span>
+              )}
             </span>
           </div>
 
-          {!vendor.left && (
+          {!vendor.left && (thread.events.length > 0 || thread.event) && (
             <Form method="post" className={styles.eventBox}>
               <input type="hidden" name="intent" value="event" />
               <label htmlFor="eventId" className="field-label">
@@ -205,9 +223,10 @@ export default function Conversation({ loaderData: { thread, conversations, toda
             canEdit={canWrite}
             reportPath={`/messages/${thread.id}/report`}
             filePath={`/messages/${thread.id}/files`}
+            sentWith={inGroups.sentWith}
           />
           {canWrite ? (
-            <ReplyBox label={`Message ${vendor.name}`} busy={busy} canAttach={canAttach} />
+            <ReplyBox label={inGroups.groups.length > 0 ? `Reply to ${vendor.name} only` : `Message ${vendor.name}`} busy={busy} canAttach={canAttach} />
           ) : (
             <p className="notice" role="status">
               {thread.ended && vendor.yourTeam ? (

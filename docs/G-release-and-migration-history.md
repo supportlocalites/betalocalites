@@ -31,6 +31,40 @@ Every release and every database migration, in order. Appended before each deplo
 
 ## Releases
 
+### 2026-10-25 — Messages in Style A: groups, Unread, All; the top bar; Community's page (D-62)
+
+**Stage:** 2 (the redesign)
+**What changed (plain English):** Messages opens on **Groups**: each Message all is kept as the
+person's own group (named when sending, or "Message all · 25 Oct"), shown as a box of its
+businesses, then the conversations in no group; **Unread** shows only new replies, each tagged
+with its group; **All** shows everything; newest or oldest first. A group has its own page: what
+was asked, each business's place (new reply, replied, you wrote last, waiting), Rename, and
+"Write to everyone" (each business gets it privately, as Message all does). A conversation in a
+group links to it, says "Sent with your group …" above those messages (the person's side only),
+and its reply box says "Reply to … only". After a Message all where every message went, the
+person lands on the new group. Past Message alls are grouped by the day they were sent. Messages
+pages have the bar Browse local · Messages · Community; Community is its own page, saying plainly
+it isn't open yet. The event box on a conversation shows only when the person has an event.
+**Migrations applied:** 0057_message_groups (three new tables, private to the person; past
+Message alls grouped: the same words of 20 letters or more to 2 to 10 businesses within 2
+minutes, from accounts still open; Download your data has the groups; an account deleted takes
+its groups).
+**Destructive?** No: rows added only.
+**Reviewed:** one independent review (who can see or change a group, the businesses' side, the
+grouping of past Message alls, rows left behind, partial failures). No way found for anyone else
+to see or change a group. Fixed from it: past grouping skips deleted accounts and no longer
+mistakes the same short reply in two chats for a Message all (20 letters, 2 minutes, at most 10);
+two on one day are told apart by the time; a business not added to its group is said plainly
+(never "kept together"); a business that left and joined again shows once in a group; the past
+grouping is now a function the database checks try with sample messages. Left as is: a group whose
+conversations are all deleted stays reachable by its own link, saying it has none left.
+**Tests run:** `npm run check`; unit tests 229/229 (group names: 4 new); database checks all
+passed (0057: 25 new); a fresh test database; message groups 26/26 (new suite: naming, the
+group's page, Unread, one-to-one replies, rename, write to everyone, another person, the
+business, signed out, the date); messages 148/148; addresses 34/34; Browse local 91/91;
+events 145/145; scenario fixes 2, 3, 4; account deletion; accounts; business teams; look checks
+836/836 (the group page and Community added).
+
 ### 2026-10-25 — Undo for one, a clear tick, a map that stays put (D-61)
 
 **Stage:** 1 and 2 (the redesign)

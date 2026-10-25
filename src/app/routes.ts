@@ -14,6 +14,8 @@ export default [
   route('api/activity', 'routes/api-activity.ts'),
   route('suggest', 'routes/suggest.tsx'),
   route('how-it-works', 'routes/how-it-works.tsx'),
+  // Community (D-62): its own page, not built yet; the page says so.
+  route('community', 'routes/community.tsx'),
   route('for-businesses', 'routes/for-businesses.tsx'),
   route('help', 'routes/help.tsx'),
   route('join', 'routes/join.tsx'),
@@ -74,6 +76,8 @@ export default [
     route('vendors/:slug/inquire', 'routes/member/inquire.tsx'),
     // Messages (Stage 2B): /messages… act as the person; /vendors/:slug/messages… as the business.
     route('messages', 'routes/member/messages.tsx'),
+    // A person's group in Messages (D-62).
+    route('messages/groups/:id', 'routes/member/message-group.tsx'),
     route('messages/:id', 'routes/member/conversation.tsx'),
     route('vendors/:slug/message', 'routes/member/message-start.tsx'),
     route('vendors/:slug/messages', 'routes/member/business-messages.tsx'),
