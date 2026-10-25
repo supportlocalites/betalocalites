@@ -476,7 +476,9 @@ r = await site('/events/new', { cookie: cookie.c, method: 'POST', form: { intent
 check('the 11th in a day is refused (429), saying so plainly',
   r.status === 429 && words(r.body).includes('You’ve planned a lot of events today. Please try again tomorrow.') && (await eventsOf('c')) === 10, String(r.status));
 let limited = null;
-for (let i = 0; i < 45 && !limited; i++) {
+// The limit is 30 a minute, counted per clock minute: 65 in a few seconds trips it even when
+// they straddle the turn of a minute (it reset halfway through 45 once, on GitHub).
+for (let i = 0; i < 65 && !limited; i++) {
   r = await site(`/vendors/${Y.slug}/add`, { cookie: cookie.d, method: 'POST', form: { intent: i % 2 ? 'unsave' : 'save' } });
   if (r.status === 429) limited = r;
 }
