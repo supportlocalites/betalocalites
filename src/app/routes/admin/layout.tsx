@@ -5,6 +5,7 @@ import { teamMenuCounts } from '@/server/admin/team-bookings.server';
 import { countPendingDeletions } from '@/server/account-deletion.server';
 import { adminGate } from '@/server/auth/admin.server';
 import { countOpenClaims } from '@/server/claims.server';
+import { countOpenRemovals } from '@/server/business-requests.server';
 import { countNewSuggestions } from '@/server/suggestions.server';
 import type { Route } from './+types/layout';
 import styles from './admin.module.css';
@@ -29,11 +30,12 @@ export const middleware: Route.MiddlewareFunction[] = [
 export async function loader({ context }: Route.LoaderArgs) {
   const admin = context.get(adminContext);
   const { env } = context.get(cloudflareContext);
-  const [newSuggestions, openClaims, { openFlags, checkIns, inquiries, openReports, waitingReviews, heldChanges }, deletions] = await Promise.all([
+  const [newSuggestions, openClaims, { openFlags, checkIns, inquiries, openReports, waitingReviews, heldChanges }, deletions, removals] = await Promise.all([
     countNewSuggestions(env),
     countOpenClaims(env),
     teamMenuCounts(env, admin),
     countPendingDeletions(env, admin),
+    countOpenRemovals(env),
   ]);
   return {
     name: admin.name,
@@ -47,6 +49,7 @@ export async function loader({ context }: Route.LoaderArgs) {
     openReports,
     waitingReviews,
     heldChanges,
+    removals,
   };
 }
 
@@ -82,6 +85,9 @@ export default function AdminLayout({ loaderData }: Route.ComponentProps) {
           </NavLink>
           <NavLink to="/admin/suggestions" className="text-link">
             Suggestions{loaderData.newSuggestions > 0 ? ` (${loaderData.newSuggestions} new)` : ''}
+          </NavLink>
+          <NavLink to="/admin/removals" className="text-link">
+            Removal requests{loaderData.removals > 0 ? ` (${loaderData.removals} waiting)` : ''}
           </NavLink>
           <NavLink to="/admin/activity" className="text-link">
             Activity

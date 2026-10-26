@@ -1,8 +1,9 @@
 import { data, Form, Link, redirect, useNavigation } from 'react-router';
 import { cloudflareContext, memberContext } from '@/app/context';
+import { RelationshipChoice } from '@/components/RelationshipChoice';
 import { SiteHeader } from '@/components/SiteHeader';
 import { pageMeta } from '@/lib/meta';
-import { OPEN_CLAIMS_PER_PERSON, RELATIONSHIPS } from '@/lib/claim-terms';
+import { OPEN_CLAIMS_PER_PERSON } from '@/lib/claim-terms';
 import { claimInput } from '@/server/member-input';
 import { emailClaimReceived } from '@/server/claim-emails.server';
 import { ClaimRefused, claimTarget, submitClaim } from '@/server/claims.server';
@@ -68,7 +69,7 @@ export default function Claim({ loaderData, actionData }: Route.ComponentProps) 
   if (state !== 'can_claim') {
     const message = {
       waiting: 'Thanks. Your claim is waiting for our team. We’ll check it with the business and email you when it’s decided.',
-      manager: 'You’re already this business’s owner on Localites. It’s listed on your account page.',
+      manager: 'You’re already this business’s owner on Localites. It’s listed under Businesses in Edit profile.',
       claimed: 'This business is already managed on Localites. If you think that’s wrong, email supportlocalites@gmail.com.',
       too_many: `You can have ${OPEN_CLAIMS_PER_PERSON} claims waiting at a time. Please wait for our team to answer one.`,
     }[state];
@@ -80,8 +81,8 @@ export default function Claim({ loaderData, actionData }: Route.ComponentProps) 
           <div className="title-rule" aria-hidden="true" />
           <p role="status">{message}</p>
           <p>
-            <Link to="/account" className="button button-primary">
-              Your account
+            <Link to="/account?tab=businesses" className="button button-primary">
+              Your businesses
             </Link>
           </p>
           {back}
@@ -111,20 +112,7 @@ export default function Claim({ loaderData, actionData }: Route.ComponentProps) 
           </p>
         )}
         <Form method="post" noValidate>
-          <fieldset className={styles.choices} aria-describedby={errors.relationship ? 'relationship-error' : undefined}>
-            <legend>How are you connected to {vendor.name}?</legend>
-            {Object.entries(RELATIONSHIPS).map(([value, label]) => (
-              <label key={value} className={styles.choice}>
-                <input type="radio" name="relationship" value={value} required />
-                {label}
-              </label>
-            ))}
-            {errors.relationship && (
-              <p className="field-error" id="relationship-error">
-                {errors.relationship}
-              </p>
-            )}
-          </fieldset>
+          <RelationshipChoice legend={`How are you connected to ${vendor.name}?`} error={errors.relationship} />
           <div className="field">
             <label htmlFor="note" className="field-label">
               Anything that will help us confirm it (optional)

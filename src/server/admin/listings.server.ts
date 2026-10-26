@@ -1,6 +1,7 @@
 import type { Address } from '@/lib/address';
 import type { ProfileDetails } from '@/lib/profile-details';
 import { readAddress } from '../address.server';
+import { claimFromSuggestion } from '../business-requests.server';
 import { sql } from 'drizzle-orm';
 import { uuidv7 } from '@/lib/ids.mjs';
 import type { Admin } from '../auth/admin.server';
@@ -257,6 +258,8 @@ export async function createListing(
           changes: { vendorId: { from: null, to: id } },
           sessionRef: admin.sessionId,
         });
+        // Their own business (D-63): a claim is started for them, confirmed as any claim is.
+        await claimFromSuggestion(tx, admin, fromSuggestionId, id);
       }
       return id;
     }),

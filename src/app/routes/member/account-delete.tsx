@@ -68,7 +68,8 @@ export default function DeleteAccount({ loaderData, actionData }: Route.Componen
               <li>your events, your plans for them, your favourites and your picks are deleted, and the invitations you sent guests stop working;</li>
               <li>your name, email address and personal details are erased;</li>
               <li>if you run a business on Localites, you leave its team; if you were its only owner, it goes back to unclaimed;</li>
-              <li>any claim you’re waiting on is withdrawn;</li>
+              <li>any claim you’re waiting on is withdrawn, and so is a request to remove a business;</li>
+              <li>for businesses you added as yours, the address, phone or email and note you gave are erased;</li>
               <li>businesses you marked as booked no longer see your booking;</li>
               <li>your published reviews stay, shown as “A Localites member”;</li>
               <li>your messages stay in the business’s conversation, shown as “Former Localites member”; the files you sent are deleted unless someone reported them;</li>

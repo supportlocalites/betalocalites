@@ -16,7 +16,12 @@ export type Member = {
   accessToken: string;
   /** On a business's team now (C6, D-54): the header offers My business. */
   onTeam: boolean;
+  /** The businesses they're on the team of (not archived), for the account switch (D-63). */
+  businesses: TeamBusiness[];
 };
+
+/** A business the person runs, as the profile menu's account switch shows it (D-63). */
+export type TeamBusiness = { slug: string; name: string; role: 'owner' | 'manager' | 'staff'; analytics: boolean };
 
 type Person = {
   name: string;
@@ -26,6 +31,7 @@ type Person = {
   closed: boolean;
   suspended: boolean;
   onTeam: boolean;
+  businesses: TeamBusiness[];
 };
 
 /**
@@ -34,14 +40,21 @@ type Person = {
  */
 export async function findPerson(env: ServerEnv, userId: string, visitorId: string | null = null): Promise<Person | null> {
   const [person] = await withDb(env, (db) =>
-    db.execute<Person>(sql`
+    db.execute<Omit<Person, 'businesses'> & { businessesJson: string }>(sql`
       ${linkVisitor(visitorId, userId)}select display_name as name, given_name as "firstName", family_name as "lastName", email::text as email,
              deleted_at is not null as closed,
              exists (select 1 from account_suspension s where s.user_id = app_user.id) as suspended,
-             exists (select 1 from vendor_member m where m.user_id = app_user.id and m.ended_at is null) as "onTeam"
+             exists (select 1 from vendor_member m where m.user_id = app_user.id and m.ended_at is null) as "onTeam",
+             coalesce((select json_agg(json_build_object('slug', v.slug::text, 'name', v.display_name, 'role', m.role,
+                                                         'analytics', exists (select 1 from vendor_analytics a where a.vendor_id = v.id and a.enabled))
+                                       order by v.display_name)
+                       from vendor_member m join vendor v on v.id = m.vendor_id
+                       where m.user_id = app_user.id and m.ended_at is null and v.listing_status <> 'archived'), '[]')::text as "businessesJson"
       from app_user where id = ${userId}`),
   );
-  return person ?? null;
+  if (!person) return null;
+  const { businessesJson, ...rest } = person;
+  return { ...rest, businesses: JSON.parse(businessesJson) as TeamBusiness[] };
 }
 
 /**
@@ -69,6 +82,25 @@ export async function updatePerson(env: ServerEnv, userId: string, names: Names,
         update app_user set display_name = ${names.display}, given_name = ${names.firstName}, family_name = ${names.lastName}
         where id = ${userId} and deleted_at is null returning id`);
       if (updated.length > 0) await writeProfile(tx, userId, profile);
+    }),
+  );
+}
+
+/** Edit profile's Profile tab (D-63): the name only, so the details on another tab stay as they are. */
+export async function updateNames(env: ServerEnv, userId: string, names: Names): Promise<void> {
+  await withDb(env, (db) =>
+    db.execute(sql`
+      update app_user set display_name = ${names.display}, given_name = ${names.firstName}, family_name = ${names.lastName}
+      where id = ${userId} and deleted_at is null`),
+  );
+}
+
+/** Edit profile's About you tab (D-63): the personal details only. */
+export async function updateDetails(env: ServerEnv, userId: string, profile: Profile): Promise<void> {
+  await withDb(env, (db) =>
+    db.transaction(async (tx) => {
+      const [open] = await tx.execute(sql`select id from app_user where id = ${userId} and deleted_at is null`);
+      if (open) await writeProfile(tx, userId, profile);
     }),
   );
 }
@@ -101,6 +133,7 @@ export async function memberGate(request: Request, env: ServerEnv): Promise<{ me
     email: person.email,
     accessToken: session.accessToken,
     onTeam: person.onTeam,
+    businesses: person.businesses,
   };
   return { member, setCookies };
 }

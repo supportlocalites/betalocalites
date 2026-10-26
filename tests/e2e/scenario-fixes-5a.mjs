@@ -52,9 +52,9 @@ r = await site(`/vendors/${V.slug}`, { cookie: cookie.a });
 // Add to event is hidden since the Base44 design (D-59, G8).
 check('…a customer sees Message', r.body.includes(`/vendors/${V.slug}/message"`) && !words(r.body).includes('This is your business'));
 r = await site('/events', { cookie: cookie.o });
-check('the header offers “My business” to someone on a team', r.body.includes('href="/business"'));
+check('the menu offers their business to switch to, for someone on a team', r.body.includes(`href="/business?b=${V.slug}"`));
 r = await site('/events', { cookie: cookie.a });
-check('…and not to someone who isn’t', !r.body.includes('href="/business"'));
+check('…and not to someone who isn’t', !r.body.includes('href="/business'));
 
 console.log('\nHiding the page');
 r = await site(TEAM, { cookie: cookie.m, method: 'POST', form: { intent: 'hide' } });

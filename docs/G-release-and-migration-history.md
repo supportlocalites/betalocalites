@@ -31,6 +31,34 @@ Every release and every database migration, in order. Appended before each deplo
 
 ## Releases
 
+### 2026-10-26 — Edit profile in Style C; the account switch; adding and removing a business (D-63)
+
+**Stage:** 1 and 2 (the redesign)
+**What changed (plain English):** Edit profile is now four parts down the side (Profile, About
+you, Businesses, Privacy), each saved on its own, without favourites. The profile menu lists
+Personal and each business you're on, and a business's own pages show a dark bar with its links
+and "Switch to personal". With no business yet, Businesses offers **Claim a business** (a
+searchable list of businesses no one runs yet) or **Add my business** (name, kind, unit, street
+number, street, town, postal code, "keep my street number private", the business's phone or
+email, how you're connected, a note). The team sees it under Suggestions; listing it, or marking
+it as already listed, starts a claim for the person, confirmed as any claim. An owner can **ask
+to remove** their business: our team sees who it affects (team, recent conversations, upcoming
+bookings, saves) under Removal requests, gets in touch, and marks it done only once the listing
+is archived, or declines it with a note. The claim page's "I own it" choice is four tiles.
+**Migrations applied:** 0058 (columns added to vendor_suggestion, all empty; business_removal_request
+added; my_data() also lists both). **Destructive?** No.
+**Privacy:** a private street number is never stored; an added business's address, contact and
+note are erased once their claim on it is decided, with the contact a year after it's declined,
+and when the person deletes their account; a deleted account's open removal request is withdrawn
+and its words erased. The team's counts of who it affects come from the database as counts only
+(the team still can't read the conversations, bookings or saves themselves).
+**Review:** one independent review before pushing; its one blocking finding (the team's counts
+would have read as 0) and six smaller ones were fixed.
+**Tests run:** `npm run check`; unit tests 229/229; database checks all passed (0058: 35/35);
+Edit profile 23/23; Add and remove a business 45/45; admin access 43/43; claiming 74/74;
+accounts 35/35; account deletion 22/22; owner editing 55/55; business teams 39/39; scenario
+fixes 5a 36/36; analytics 53/53; photos 68/68; Browse local 93/93; look checks 908/908.
+
 ### 2026-10-26 — Messages and Community in Browse local's bar (D-61)
 
 **Stage:** 1 and 2 (the redesign)

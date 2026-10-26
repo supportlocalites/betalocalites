@@ -2,66 +2,83 @@ import { data, Form, Link, redirect, useNavigation, useSearchParams } from 'reac
 import { cloudflareContext, memberContext } from '@/app/context';
 import { NameFields, ProfileFields } from '@/components/ProfileFields';
 import { SiteHeader } from '@/components/SiteHeader';
+import { businessHome } from '@/components/TopBar';
 import { pageMeta } from '@/lib/meta';
-import { updatePerson } from '@/server/auth/member.server';
+import { type TeamBusiness, updateDetails, updateNames, updatePerson } from '@/server/auth/member.server';
 import { NAME_WORDS, NAMES_NEEDED, namesInput, profileInput } from '@/server/member-input';
 import { listMatches } from '@/server/moderation.server';
 import { getProfile } from '@/server/profile.server';
+import { myOwnRequests } from '@/server/business-requests.server';
 import { myAccount } from '@/server/claims.server';
-import { reviewRequestsOn, setReviewRequests } from '@/server/review-requests.server';
-import { REVIEW_REQUESTS } from '@/lib/review-terms';
+import { setReviewRequests } from '@/server/review-requests.server';
 import type { Route } from './+types/account';
-import styles from './member.module.css';
+import styles from './account.module.css';
 
 /**
- * Screens A4, V1 and V5, first version: your account (D-29). One login for personal use
+ * Screens A4, V1 and V5: Edit profile (D-29; Style C, D-63). One login for personal use
  * and the businesses a person manages. Only ever shows this person's own details,
  * businesses and claims.
  */
-export const meta: Route.MetaFunction = () => [...pageMeta('Your account'), { name: 'robots', content: 'noindex' }];
+export const meta: Route.MetaFunction = () => [...pageMeta('Edit profile'), { name: 'robots', content: 'noindex' }];
 
 export async function loader({ context }: Route.LoaderArgs) {
   const member = context.get(memberContext);
   const { env } = context.get(cloudflareContext);
-  const [{ businesses, claims }, profile, reviewRequests] = await Promise.all([
+  const [{ businesses, claims }, profile, added] = await Promise.all([
     myAccount(env, member.userId),
     getProfile(env, member.userId),
-    reviewRequestsOn(env, member.userId),
+    myOwnRequests(env, member.userId),
   ]);
   // Accounts made before first and last names were asked (the team's) start with the
   // whole name in the first box.
   const first = member.firstName ?? member.name;
-  return { first, last: member.lastName, email: member.email, profile, businesses, claims, reviewRequests };
+  return { first, last: member.lastName, email: member.email, profile, businesses, claims, added };
 }
 
 export async function action({ request, context }: Route.ActionArgs) {
   const member = context.get(memberContext);
+  const { env } = context.get(cloudflareContext);
   const form = await request.formData();
-  if (form.get('intent') === 'emails') {
-    // Only ever this person's own choice: the id comes from the session.
-    await setReviewRequests(context.get(cloudflareContext).env, member.userId, form.get('reviewRequests') === 'on');
+  const intent = String(form.get('intent') ?? '');
+  if (intent === 'emails') {
+    // Kept while events are paused (D-59, G19): the page no longer shows it. Only this person's own choice.
+    await setReviewRequests(env, member.userId, form.get('reviewRequests') === 'on');
     return redirect('/account?emails=1#emails');
   }
-  if (form.get('intent') !== 'details') throw data(null, { status: 400 });
+  if (intent !== 'details' && intent !== 'names' && intent !== 'about') throw data(null, { status: 400 });
   const fields = Object.fromEntries(form);
-  const names = namesInput.safeParse(fields);
-  const profile = profileInput.safeParse(fields);
-  if (!names.success || !profile.success) {
+  const names = intent === 'about' ? null : namesInput.safeParse(fields);
+  const profile = intent === 'names' ? null : profileInput.safeParse(fields);
+  if ((names && !names.success) || (profile && !profile.success)) {
     const errors: Record<string, string> = {};
-    for (const issue of [...(names.error?.issues ?? []), ...(profile.error?.issues ?? [])]) errors[String(issue.path[0])] ??= issue.message;
-    const nameMissing = !String(fields.firstName ?? '').trim() || !String(fields.lastName ?? '').trim();
-    return data({ error: nameMissing ? NAMES_NEEDED : 'Please check what’s marked below.', errors }, { status: 400 });
+    for (const issue of [...(names?.error?.issues ?? []), ...(profile?.error?.issues ?? [])]) errors[String(issue.path[0])] ??= issue.message;
+    const nameMissing = names !== null && (!String(fields.firstName ?? '').trim() || !String(fields.lastName ?? '').trim());
+    return data({ error: nameMissing ? NAMES_NEEDED : 'Please check what’s marked below.', errors, tab: intent }, { status: 400 });
   }
   // Names show on reviews and to businesses: the language check's word list runs on them too,
   // on a part being changed only, so someone whose real name is on the list can still save the
   // rest of their details (independent review).
-  const changed = [names.data.firstName, names.data.lastName].filter((n, i) => n !== [member.firstName, member.lastName][i]);
-  if (listMatches(changed).length > 0) {
-    return data({ error: NAME_WORDS, errors: { firstName: NAME_WORDS } }, { status: 400 });
+  if (names?.success) {
+    const changed = [names.data.firstName, names.data.lastName].filter((n, i) => n !== [member.firstName, member.lastName][i]);
+    if (listMatches(changed).length > 0) {
+      return data({ error: NAME_WORDS, errors: { firstName: NAME_WORDS }, tab: intent }, { status: 400 });
+    }
   }
   // Only ever this person's own record: the id comes from the session, never the form.
-  await updatePerson(context.get(cloudflareContext).env, member.userId, names.data, profile.data);
-  return redirect('/account?saved=1');
+  if (intent === 'names' && names?.success) {
+    await updateNames(env, member.userId, names.data);
+    return redirect('/account?saved=1');
+  }
+  if (intent === 'about' && profile?.success) {
+    await updateDetails(env, member.userId, profile.data);
+    return redirect('/account?tab=about&saved=1');
+  }
+  // The older form with everything at once (kept for anything still sending it).
+  if (names?.success && profile?.success) {
+    await updatePerson(env, member.userId, names.data, profile.data);
+    return redirect('/account?saved=1');
+  }
+  throw data(null, { status: 400 });
 }
 
 const when = new Intl.DateTimeFormat('en-CA', { dateStyle: 'medium', timeZone: 'America/Toronto' });
@@ -72,183 +89,255 @@ const CLAIM_STATUS = {
   withdrawn: 'Withdrawn',
 } as const;
 const ROLE = { owner: 'Owner', manager: 'Manager', staff: 'Staff' } as Record<string, string>;
+const TABS = [
+  ['profile', 'Profile'],
+  ['about', 'About you'],
+  ['businesses', 'Businesses'],
+  ['privacy', 'Privacy'],
+] as const;
+type Tab = (typeof TABS)[number][0];
+const tabOf = (v: string | null | undefined): Tab => (TABS.some(([k]) => k === v) ? (v as Tab) : 'profile');
 
+/**
+ * Edit profile in Style C (D-63): tabs at the side (along the top on a phone) for Profile, About
+ * you, Businesses and Privacy; one part shown at a time (all four are in the page, so it works
+ * without scripts too). Only ever this person's own details, businesses and claims.
+ */
 export default function Account({ loaderData, actionData }: Route.ComponentProps) {
-  const { first, last, email, profile, businesses, claims, reviewRequests } = loaderData;
+  const { first, last, email, profile, businesses, claims, added } = loaderData;
   const busy = useNavigation().state !== 'idle';
   const [params] = useSearchParams();
+  const tab = tabOf(actionData?.tab === 'about' ? 'about' : actionData?.tab ? 'profile' : params.get('tab'));
   const saved = params.has('saved') && !actionData;
   const errors = actionData?.errors ?? {};
+  const initials = `${(first ?? '').trim().charAt(0)}${(last ?? '').trim().charAt(0)}`.toUpperCase();
+  const notice = (here: Tab) =>
+    tab === here && (
+      <>
+        {actionData?.error && (
+          <p className="notice" role="alert">
+            {actionData.error}
+          </p>
+        )}
+        {saved && (
+          <p className={styles.saved} role="status">
+            Saved
+          </p>
+        )}
+      </>
+    );
+  const open = businesses.filter((b) => !b.archived);
   return (
     <>
       <SiteHeader />
-      <main className="page">
-        <h1 className="title-1">Your account</h1>
-        <div className="title-rule" aria-hidden="true" />
+      <main className={`page ${styles.page}`}>
+        <div className={styles.side}>
+          <div className={styles.who}>
+            <span className={styles.avatar} aria-hidden="true">
+              {initials}
+            </span>
+            <span>
+              <span className={styles.whoName}>{`${first ?? ''} ${last ?? ''}`.trim()}</span>
+              <h1 className={styles.whoTitle}>Edit profile</h1>
+            </span>
+          </div>
+          <nav aria-label="Edit profile" className={styles.tabs}>
+            {TABS.map(([k, label]) => (
+              <Link
+                key={k}
+                to={k === 'profile' ? '/account' : `/account?tab=${k}`}
+                className={`${styles.tab} ${tab === k ? styles.tabOn : ''}`}
+                aria-current={tab === k ? 'page' : undefined}
+                preventScrollReset
+              >
+                {label}
+              </Link>
+            ))}
+          </nav>
+        </div>
 
-        {/* The approved look (D-55): your details beside the rest, each part a card. */}
-        <div className={styles.accountGrid}>
-          <section aria-labelledby="details" className={`${styles.section} ${styles.accountCard}`}>
-            <h2 id="details" className="label">
-              Your details
+        <div className={styles.main}>
+          <section aria-labelledby="profile-title" className={styles.panel} hidden={tab !== 'profile'}>
+            <h2 id="profile-title" className={styles.panelTitle}>
+              Profile
             </h2>
-            <p>
-              Email: {email}
-              <br />
-              <span className="muted">We email a sign-in code to this address each time you sign in.</span>
-            </p>
-            <Form method="post" noValidate>
-              <input type="hidden" name="intent" value="details" />
-              {actionData?.error && (
-                <p className="notice" role="alert">
-                  {actionData.error}
-                </p>
-              )}
-              {saved && (
-                <p className="notice" role="status">
-                  Saved.
-                </p>
-              )}
-              <NameFields first={first} last={last} errors={errors} />
-              <ProfileFields values={profile} errors={errors} />
-              <button type="submit" className="button button-secondary" disabled={busy}>
-                Save details
-              </button>
+            <p className={styles.panelHint}>How businesses see you when you message them.</p>
+            {notice('profile')}
+            <Form method="post" noValidate className={styles.form}>
+              <input type="hidden" name="intent" value="names" />
+              <NameFields first={first} last={last} errors={tab === 'profile' ? errors : {}} />
+              <div className={styles.email}>
+                <span className="field-label">Email</span>
+                <span className={styles.emailRow}>
+                  <strong>{email}</strong>
+                  <span className={styles.pill}>Sign-in codes go here</span>
+                </span>
+              </div>
+              <p>
+                <button type="submit" className="button button-primary" disabled={busy}>
+                  Save changes
+                </button>
+              </p>
             </Form>
           </section>
 
-          <div className={styles.accountSide}>
-            <section aria-labelledby="planning" className={`${styles.section} ${styles.accountCard}`}>
-              <h2 id="planning" className="label">
-                Favourites
-              </h2>
+          <section aria-labelledby="about-title" className={styles.panel} hidden={tab !== 'about'}>
+            <h2 id="about-title" className={styles.panelTitle}>
+              About you
+            </h2>
+            <p className={styles.panelHint}>Optional, and never shown to businesses.</p>
+            {notice('about')}
+            <Form method="post" noValidate className={styles.form}>
+              <input type="hidden" name="intent" value="about" />
+              <ProfileFields values={profile} errors={tab === 'about' ? errors : {}} />
               <p>
-                <Link to="/saved" className="text-link">
-                  Your favourites
-                </Link>
-              </p>
-              <p className="muted">Only you can see your favourites.</p>
-            </section>
-
-            <section aria-labelledby="emails-title" className={`${styles.section} ${styles.accountCard}`} id="emails">
-              <h2 id="emails-title" className="label">
-                Emails
-              </h2>
-              <Form method="post">
-                <input type="hidden" name="intent" value="emails" />
-                <label className={styles.check}>
-                  <input type="checkbox" name="reviewRequests" defaultChecked={reviewRequests} /> {REVIEW_REQUESTS.label}
-                </label>
-                <p className="muted">{REVIEW_REQUESTS.hint}</p>
-                <button type="submit" className="button button-secondary" disabled={busy}>
-                  Save
+                <button type="submit" className="button button-primary" disabled={busy}>
+                  Save changes
                 </button>
-                {params.has('emails') && (
-                  <p role="status" className="muted">
-                    Saved.
-                  </p>
-                )}
-              </Form>
-            </section>
+              </p>
+            </Form>
+          </section>
 
-            <section aria-labelledby="businesses" className={`${styles.section} ${styles.accountCard}`}>
-              <h2 id="businesses" className="label">
-                Your businesses
-              </h2>
-              {businesses.length === 0 ? (
-                <p className="muted">None yet. If your business is on Localites, open its page and choose “Claim this business”.</p>
-              ) : (
-                <>
-                  <ul className={styles.list}>
-                    {businesses.map((b) => (
-                      <li key={b.id}>
-                        {b.listed ? <Link to={`/vendors/${b.slug}`}>{b.name}</Link> : <span>{b.name}</span>}
-                        <span className="muted">{ROLE[b.role] ?? b.role}</span>
-                        {(b.role === 'owner' || b.role === 'manager') && !b.archived && (
-                          <span>
-                            <Link to={`/vendors/${b.slug}/bookings`} className="text-link">
-                              Bookings marked
-                            </Link>
-                          </span>
-                        )}
-                        {b.role === 'owner' && !b.archived && (
-                          <span>
-                            <Link to={`/vendors/${b.slug}/team`} className="text-link">
-                              Team
-                            </Link>
-                          </span>
-                        )}
-                        {b.role === 'staff' && !b.archived && (
-                          <span>
-                            <Link to={`/vendors/${b.slug}/messages`} className="text-link">
-                              Messages
-                            </Link>
-                          </span>
-                        )}
-                        {(b.role === 'owner' || b.role === 'manager') && !b.archived && (
-                          <span>
-                            <Link to={`/vendors/${b.slug}/edit`} className="button button-primary">
-                              Edit your listing
-                            </Link>{' '}
-                            <Link to={`/vendors/${b.slug}/photos`} className="button button-secondary">
-                              Photos
-                            </Link>
-                            {b.analytics && (
-                              <>
-                                {' '}
-                                <Link to={`/vendors/${b.slug}/analytics`} className="button button-secondary">
-                                  Analytics
-                                </Link>
-                              </>
-                            )}
-                          </span>
-                        )}
-                        {b.archived && (
-                          <span className="muted">No longer on Localites. Email supportlocalites@gmail.com with questions.</span>
-                        )}
-                      </li>
-                    ))}
-                  </ul>
-                </>
-              )}
-            </section>
-
-            {claims.length > 0 && (
-              <section aria-labelledby="claims-title" className={`${styles.section} ${styles.accountCard}`} id="claims">
-                <h2 id="claims-title" className="label">
-                  Your claims
-                </h2>
-                <ul className={styles.list}>
-                  {claims.map((c) => (
-                    <li key={c.id}>
-                      <Link to={`/vendors/${c.slug}`}>{c.business}</Link>
-                      <span className="muted">
-                        {CLAIM_STATUS[c.status]} · sent {when.format(new Date(c.createdAt))}
+          <section aria-labelledby="businesses-title" className={styles.panel} hidden={tab !== 'businesses'}>
+            <h2 id="businesses-title" className={styles.panelTitle}>
+              Businesses
+            </h2>
+            <p className={styles.panelHint}>
+              {businesses.length > 0 ? 'Businesses you run. Switch to one from the menu at the top right.' : 'Run a local business? Connect it to your account.'}
+            </p>
+            {businesses.length > 0 && (
+              <ul className={styles.rows}>
+                {businesses.map((b) => (
+                  <li key={b.id} className={styles.row}>
+                    <span className={styles.rowWords}>
+                      {b.listed ? (
+                        <Link to={`/vendors/${b.slug}`} className={styles.rowName}>
+                          {b.name}
+                        </Link>
+                      ) : (
+                        <span className={styles.rowName}>{b.name}</span>
+                      )}
+                      <span className={styles.rowMeta}>
+                        {b.archived ? 'No longer on Localites. Email supportlocalites@gmail.com with questions.' : `${ROLE[b.role] ?? b.role} · ${b.listed ? 'Listed' : 'Not listed at the moment'}`}
                       </span>
-                      {c.reason && <span className={styles.reason}>Reason: {c.reason}</span>}
-                    </li>
-                  ))}
-                </ul>
-              </section>
+                      {!b.archived && (
+                        <span className={styles.rowLinks}>
+                          <Link to={`/vendors/${b.slug}/messages`}>Inbox</Link>
+                          {(b.role === 'owner' || b.role === 'manager') && (
+                            <>
+                              <Link to={`/vendors/${b.slug}/edit`}>Listing</Link>
+                              <Link to={`/vendors/${b.slug}/photos`}>Photos</Link>
+                              {b.analytics && <Link to={`/vendors/${b.slug}/analytics`}>Analytics</Link>}
+                            </>
+                          )}
+                          {b.role === 'owner' && <Link to={`/vendors/${b.slug}/team`}>Team</Link>}
+                          {b.role === 'owner' && (
+                            <Link to={`/vendors/${b.slug}/remove`} className={styles.danger}>
+                              Remove from Localites…
+                            </Link>
+                          )}
+                        </span>
+                      )}
+                    </span>
+                    {!b.archived && (
+                      <Link to={businessHome({ slug: b.slug, name: b.name, role: b.role as TeamBusiness['role'], analytics: b.analytics })} className={styles.pillButton}>
+                        Switch to it
+                      </Link>
+                    )}
+                  </li>
+                ))}
+              </ul>
             )}
-
-            <div className={`${styles.section} ${styles.accountCard}`}>
-              <p>
-                <Link to="/account/data" className="text-link">
-                  Download your data
-                </Link>
-                {' · '}
-                <Link to="/account/delete" className="text-link">
-                  Delete your account
-                </Link>
+            {params.has('added') && (
+              <p className="notice" role="status">
+                Thanks. Our team will be in touch to confirm your business, then list it with you.
               </p>
-              <Form method="post" action="/sign-out">
-                <button type="submit" className="button button-secondary">
-                  Sign out
-                </button>
-              </Form>
-            </div>
-          </div>
+            )}
+            {added.length > 0 && (
+              <ul className={styles.rows} aria-label="Businesses you added">
+                {added.map((a) => (
+                  <li key={a.id} className={styles.row}>
+                    <span className={styles.rowWords}>
+                      <span className={styles.rowName}>{a.business}</span>
+                      <span className={styles.rowMeta}>
+                        {a.status === 'new'
+                          ? `You added it · ${when.format(new Date(a.createdAt))} · our team will be in touch`
+                          : 'Our team couldn’t add it. Email supportlocalites@gmail.com with questions.'}
+                      </span>
+                    </span>
+                    <span className={`${styles.pill} ${a.status === 'new' ? styles.pillWait : ''}`}>{a.status === 'new' ? 'With our team' : 'Not added'}</span>
+                  </li>
+                ))}
+              </ul>
+            )}
+            {claims.length > 0 && (
+              <ul className={styles.rows} aria-label="Your claims" id="claims">
+                {claims.map((c) => (
+                  <li key={c.id} className={styles.row}>
+                    <span className={styles.rowWords}>
+                      {c.listed ? (
+                        <Link to={`/vendors/${c.slug}`} className={styles.rowName}>
+                          {c.business}
+                        </Link>
+                      ) : (
+                        <span className={styles.rowName}>{c.business}</span>
+                      )}
+                      <span className={styles.rowMeta}>{`Your claim · sent ${when.format(new Date(c.createdAt))}`}</span>
+                      {c.reason && <span className={styles.rowMeta}>Reason: {c.reason}</span>}
+                    </span>
+                    <span className={`${styles.pill} ${c.status === 'approved' ? styles.pillOk : c.status === 'submitted' ? styles.pillWait : ''}`}>
+                      {CLAIM_STATUS[c.status]}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            )}
+            {open.length === 0 ? (
+              <div className={styles.choose}>
+                <Link to="/account/claim" className={styles.choice}>
+                  <span className={styles.choiceTitle}>Claim a business</span>
+                  <span>It’s already on Localites. Find it and tell us it’s yours.</span>
+                </Link>
+                <Link to="/account/add-business" className={styles.choice}>
+                  <span className={styles.choiceTitle}>Add my business</span>
+                  <span>It isn’t on Localites yet. Give us the basics and we’ll set it up with you.</span>
+                </Link>
+              </div>
+            ) : (
+              <p className={styles.more}>
+                <Link to="/account/claim">Claim another business</Link>
+                <Link to="/account/add-business">Add another business</Link>
+              </p>
+            )}
+            <p className={styles.panelHint}>Either way, our team confirms it with you before anything changes. It’s free.</p>
+          </section>
+
+          <section aria-labelledby="privacy-title" className={styles.panel} hidden={tab !== 'privacy'}>
+            <h2 id="privacy-title" className={styles.panelTitle}>
+              Privacy
+            </h2>
+            <p className={styles.panelHint}>Your data is yours.</p>
+            <ul className={styles.rows}>
+              <li className={styles.row}>
+                <span className={styles.rowWords}>
+                  <span className={styles.rowName}>Download your data</span>
+                  <span className={styles.rowMeta}>Everything we keep about you, in a readable file.</span>
+                </span>
+                <Link to="/account/data" className={styles.pillButton}>
+                  Download
+                </Link>
+              </li>
+              <li className={styles.row}>
+                <span className={styles.rowWords}>
+                  <span className={styles.rowName}>Delete your account</span>
+                  <span className={styles.rowMeta}>Erases your name, email and details, and your favourites and picks. This can’t be undone.</span>
+                </span>
+                <Link to="/account/delete" className={`${styles.pillButton} ${styles.danger}`}>
+                  Delete…
+                </Link>
+              </li>
+            </ul>
+          </section>
         </div>
       </main>
     </>

@@ -147,3 +147,27 @@ export type Profile = z.output<typeof profileInput>;
 
 /** True when someone gave none of the details, so nothing needs keeping. */
 export const isEmptyProfile = (p: Profile) => Object.values(p).every((v) => v === null);
+
+/**
+ * Add my business (D-63): the basics our team needs to confirm it and list it. The street,
+ * number and "keep my street number private" are read with the address form's own rules
+ * (readAddressForm, as a listing's); these are the rest.
+ */
+export const ownBusinessInput = z.object({
+  businessName: optionalLine(200, 'Keep the name under 200 characters.').pipe(z.string({ error: 'Enter the business’s name.' })),
+  category: z
+    .string()
+    .default('')
+    .transform((s) => (/^[a-z0-9-]{1,80}$/.test(s) ? s : null)),
+  town: optionalLine(100, 'Keep the town under 100 characters.').pipe(z.string({ error: 'Enter the town it’s in.' })),
+  unit: optionalLine(40, 'Keep the unit under 40 characters.'),
+  postalCode,
+  contact: optionalLine(200, 'Keep this under 200 characters.').pipe(
+    z.string({ error: 'Enter the business’s phone number or email, so our team can confirm it.' }),
+  ),
+  website: optionalLine(500, 'Keep this under 500 characters.'),
+  relationship: claimInput.shape.relationship,
+  note: claimInput.shape.note,
+  authorised: claimInput.shape.authorised,
+});
+export type OwnBusinessInput = z.output<typeof ownBusinessInput>;

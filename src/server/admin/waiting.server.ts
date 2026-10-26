@@ -17,6 +17,7 @@ export type WaitingKind =
   | 'flags'
   | 'check_ins'
   | 'suggestions'
+  | 'removals'
   | 'inquiries';
 
 /**
@@ -49,6 +50,8 @@ export async function waitingWork(env: ServerEnv, admin: Admin): Promise<Waiting
       select 'check_ins', taken_down_booking_count(), null
       union all
       select 'suggestions', count(*)::int, min(created_at)::text from vendor_suggestion where status = 'new'
+      union all
+      select 'removals', count(*)::int, min(created_at)::text from business_removal_request where status = 'new'
       union all
       select 'inquiries', count(*)::int, min(vi.created_at)::text
         from vendor_interest vi join vendor v on v.id = vi.vendor_id

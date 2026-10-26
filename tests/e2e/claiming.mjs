@@ -316,7 +316,7 @@ check('once claimed, the profile offers Message instead of Inquire', r.body.incl
 r = await site(`/vendors/${bakery.slug}/claim`, { cookie: bobCookie, method: 'POST', form: { relationship: 'owner', authorised: 'yes' } });
 check('a claimed business can’t be claimed again', r.status === 409 && (await countClaims(bakery.id)) === 2, String(r.status));
 r = await site('/account', { cookie: aliceCookie });
-check('Alice’s account lists the business she now manages', r.body.includes('Your businesses') && r.body.includes(`/vendors/${bakery.slug}`) && r.body.includes('Owner'));
+check('Alice’s Edit profile lists the business she now manages', r.body.includes(`href="/vendors/${bakery.slug}/edit"`) && r.body.includes(`href="/business?b=${bakery.slug}"`) && r.body.includes('Owner'));
 r = await site('/account', { cookie: bobCookie });
 check('Bob’s account shows his claim wasn’t approved, and why', r.body.includes('Not approved') && r.body.includes('Another claim for this business was approved.'));
 

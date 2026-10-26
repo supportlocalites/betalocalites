@@ -34,7 +34,8 @@ export const middleware: Route.MiddlewareFunction[] = [
 
 /** For the header (C6, D-54): someone on a business's team gets a My business link. */
 export function loader({ context }: Route.LoaderArgs) {
-  return { onTeam: context.get(memberContext).onTeam };
+  const member = context.get(memberContext);
+  return { onTeam: member.onTeam, businesses: member.businesses };
 }
 
 export default function MemberLayout() {

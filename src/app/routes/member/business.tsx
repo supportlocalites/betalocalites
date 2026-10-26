@@ -16,7 +16,10 @@ export const meta: Route.MetaFunction = () => [...pageMeta('My business'), { nam
 
 export async function loader({ request, context }: Route.LoaderArgs) {
   const member = context.get(memberContext);
-  const businesses = await myBusinesses(context.get(cloudflareContext).env, member.userId);
+  const all = await myBusinesses(context.get(cloudflareContext).env, member.userId);
+  // Switched to one business from the profile menu (D-63): just that one; otherwise all of them.
+  const only = new URL(request.url).searchParams.get('b');
+  const businesses = only && all.some((b) => b.slug === only) ? all.filter((b) => b.slug === only) : all;
   // Just stepped back from the only one (D-54): said here, not as "not on a team".
   const stepped = ['off', 'handed', 'left'].some((k) => new URL(request.url).searchParams.has(k));
   if (businesses.length === 0 && !stepped) throw data(null, { status: 404 });

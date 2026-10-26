@@ -261,6 +261,13 @@
   --color-ok: #3a5e3d;
   --color-ok-soft: #e8f0e6;
   --b44-rename: 420px;
+  /* Edit profile in Style C (D-63). */
+  --b44-profile-side: 220px;
+  --color-danger: #8f3b2e;
+  --b44-profile-max: 980px;
+  --b44-profile-avatar: 46px;
+  --b44-profile-row: 220px;
+  --b44-profile-narrow: 720px;
 }
 
 /*

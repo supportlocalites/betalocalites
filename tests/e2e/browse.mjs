@@ -101,7 +101,7 @@ r = await site('/explore', { cookie: cookie.q });
 check('someone else sees none of it: no bar, nothing marked', !r.body.includes('aria-label="My picks"')
   && r.body.includes(`aria-label="Add ${A.name} to my picks"`) && r.body.includes(`aria-label="Add ${B.name} to favourites"`));
 r = await site('/explore', { cookie: cookie.o });
-check('a business owner’s menu has My business', r.body.includes('href="/business"'));
+check('a business owner’s menu lists their business to switch to', r.body.includes('href="/business?b='));
 
 console.log('\nIn the browser: search, filters, sort and the panel');
 const browser = await chromium.launch();

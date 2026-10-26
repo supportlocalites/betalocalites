@@ -1,0 +1,367 @@
+/* Edit profile in Style C (D-63): tabs at the side, one part at a time. Tokens only. */
+
+.page {
+  display: grid;
+  gap: var(--space-5);
+  align-items: start;
+}
+
+@media (min-width: 1024px) {
+  .page {
+    grid-template-columns: var(--b44-profile-side) minmax(0, 1fr);
+    gap: var(--space-8);
+    max-width: var(--b44-profile-max);
+  }
+}
+
+.side {
+  display: grid;
+  gap: var(--space-4);
+  min-width: 0;
+}
+
+.who {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.avatar {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: var(--b44-profile-avatar);
+  height: var(--b44-profile-avatar);
+  border: var(--hairline) solid var(--color-gold);
+  border-radius: var(--radius-pill);
+  background: var(--color-gold-soft);
+  color: var(--color-gold-ink);
+  font-family: var(--font-display);
+  font-size: var(--b44-text-card-name);
+  font-weight: 700;
+}
+
+.whoName {
+  display: block;
+  font-family: var(--font-display);
+  font-size: var(--b44-text-similar);
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.whoTitle {
+  margin: 0;
+  font-family: var(--font-body);
+  font-size: var(--b44-text-note);
+  font-weight: 400;
+  color: var(--color-muted);
+}
+
+/* Along the top on a phone, down the side on a computer. */
+.tabs {
+  display: flex;
+  gap: var(--space-1);
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+@media (min-width: 1024px) {
+  .tabs {
+    display: grid;
+    overflow: visible;
+  }
+}
+
+.tab {
+  flex: none;
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-file);
+  color: var(--color-muted);
+  font-size: var(--b44-text-similar);
+  font-weight: 500;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.tab:hover {
+  color: var(--color-ink);
+}
+
+.tabOn {
+  background: var(--color-surface);
+  color: var(--color-ink);
+  box-shadow: var(--shadow-soft);
+}
+
+.main {
+  min-width: 0;
+}
+
+.panel {
+  display: grid;
+  gap: var(--space-4);
+  padding: var(--space-5);
+  border: var(--hairline) solid var(--color-line);
+  border-radius: var(--radius-card);
+  background: var(--color-surface);
+}
+
+@media (min-width: 1024px) {
+  .panel {
+    padding: var(--space-6);
+  }
+}
+
+/* Only the chosen part shows (the others are in the page, hidden, so it works without JavaScript). */
+.panel[hidden] {
+  display: none;
+}
+
+.panelTitle {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: var(--b44-text-panel-name);
+  font-weight: 700;
+}
+
+.panelHint {
+  margin: 0;
+  color: var(--color-muted);
+  font-size: var(--b44-text-search);
+}
+
+.panelTitle + .panelHint {
+  margin-top: calc(-1 * var(--space-3));
+}
+
+.saved {
+  justify-self: start;
+  margin: 0;
+  border-radius: var(--radius-pill);
+  padding: var(--space-1) var(--space-3);
+  background: var(--color-ok-soft);
+  color: var(--color-ok);
+  font-size: var(--b44-text-search);
+  font-weight: 500;
+}
+
+.form {
+  display: grid;
+  gap: var(--space-3);
+}
+
+.email {
+  display: grid;
+  gap: var(--space-1);
+}
+
+.emailRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+  overflow-wrap: anywhere;
+}
+
+.emailRow strong {
+  font-weight: 500;
+}
+
+.pill {
+  flex: none;
+  border-radius: var(--radius-pill);
+  padding: 0 var(--space-2);
+  background: var(--color-tint);
+  color: var(--color-muted);
+  font-size: var(--b44-text-note);
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.pillOk {
+  background: var(--color-ok-soft);
+  color: var(--color-ok);
+}
+
+.pillWait {
+  background: var(--color-gold-soft);
+  color: var(--color-gold-ink);
+}
+
+.rows {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: var(--space-2);
+}
+
+.row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2) var(--space-3);
+  padding: var(--space-3);
+  border: var(--hairline) solid var(--color-line);
+  border-radius: var(--radius-card);
+}
+
+.rowWords {
+  flex: 1 1 var(--b44-profile-row);
+  min-width: 0;
+  display: grid;
+  gap: var(--hairline);
+}
+
+.rowName {
+  font-weight: 600;
+  color: var(--color-ink);
+  text-decoration: none;
+  overflow-wrap: anywhere;
+}
+
+a.rowName:hover {
+  text-decoration: underline;
+  text-underline-offset: var(--underline-offset);
+}
+
+.rowMeta {
+  color: var(--color-muted);
+  font-size: var(--b44-text-note);
+}
+
+.rowLinks {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1) var(--space-3);
+  font-size: var(--b44-text-note);
+}
+
+.rowLinks a {
+  color: var(--color-ink);
+  text-underline-offset: var(--underline-offset);
+}
+
+.pillButton {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  padding: var(--space-2) var(--space-4);
+  border: var(--hairline) solid var(--color-line);
+  border-radius: var(--radius-pill);
+  background: var(--color-surface);
+  color: var(--color-ink);
+  font-size: var(--b44-text-search);
+  font-weight: 500;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.pillButton:hover {
+  border-color: var(--color-gold);
+}
+
+.danger {
+  color: var(--color-danger);
+}
+
+/* No business yet: claim one, or add yours. */
+.choose {
+  display: grid;
+  gap: var(--space-3);
+}
+
+@media (min-width: 640px) {
+  .choose {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+.choice {
+  display: grid;
+  gap: var(--space-2);
+  align-content: start;
+  padding: var(--space-5);
+  border: var(--hairline) solid var(--color-line);
+  border-radius: var(--radius-card);
+  background: var(--color-ground);
+  color: var(--color-muted);
+  font-size: var(--b44-text-search);
+  text-decoration: none;
+}
+
+.choice:hover {
+  border-color: var(--color-gold);
+}
+
+.choiceTitle {
+  font-family: var(--font-display);
+  font-size: var(--b44-text-card-name);
+  font-weight: 700;
+  color: var(--color-ink);
+}
+
+.more {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2) var(--space-5);
+  margin: 0;
+  font-size: var(--b44-text-search);
+}
+
+.more a {
+  color: var(--color-ink);
+  text-underline-offset: var(--underline-offset);
+}
+
+/* Claim a business and Add my business: one column. */
+.narrow {
+  max-width: var(--b44-profile-narrow);
+}
+
+.narrow > .panel {
+  margin-top: var(--space-5);
+}
+
+.search input {
+  border-radius: var(--radius-pill);
+}
+
+/* Add my business: unit, number and street side by side on a computer. */
+.addressRow {
+  display: grid;
+  gap: 0 var(--space-3);
+}
+
+@media (min-width: 640px) {
+  .addressRow {
+    grid-template-columns: 1fr 1fr 2fr;
+  }
+
+  .addressRow:has(> :nth-child(2):last-child) {
+    grid-template-columns: 2fr 1fr;
+  }
+}
+
+.keep {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-2);
+  color: var(--color-muted);
+  font-size: var(--b44-text-search);
+}
+
+.keep input {
+  flex: none;
+  margin-top: var(--space-1);
+}
+
+.keep strong {
+  color: var(--color-ink);
+  font-weight: 600;
+}
+
+.dangerButton {
+  background: var(--color-danger);
+  border-color: var(--color-danger);
+}

@@ -207,3 +207,91 @@
   font-size: var(--b44-text-card);
   font-weight: 600;
 }
+
+/* ---------- A business's own pages (D-63): the bar is the business's, dark ---------- */
+.barBusiness {
+  background: var(--color-bar);
+  color: var(--color-on-bar);
+  border-bottom-color: var(--color-bar-hairline);
+}
+
+.barBusiness .logo {
+  color: var(--color-on-bar);
+}
+
+.bizName {
+  flex-shrink: 1;
+  min-width: 0;
+  font-size: var(--b44-text-count);
+  font-weight: 500;
+  letter-spacing: var(--b44-track-caps);
+  text-transform: uppercase;
+  color: var(--color-bar-gold-ink);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.bizNav {
+  order: 2;
+  flex-basis: 100%;
+  display: flex;
+  gap: var(--space-1);
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+@media (min-width: 1024px) {
+  .bizNav {
+    order: 0;
+    flex-basis: auto;
+  }
+}
+
+.bizLink {
+  flex: none;
+  padding: var(--space-1) var(--space-3);
+  border-radius: var(--radius-pill);
+  font-size: var(--b44-text-search);
+  color: var(--color-bar-muted);
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.bizLink:hover {
+  color: var(--color-on-bar);
+}
+
+.bizOn {
+  background: var(--color-bar-chip-hover);
+  color: var(--color-on-bar);
+}
+
+.pillDark {
+  border-color: var(--color-bar-hairline);
+  color: var(--color-on-bar);
+}
+
+.pillDark:hover {
+  border-color: var(--color-bar-hairline-strong);
+}
+
+/* The menu's account switch. */
+.listHead {
+  padding: var(--space-2) var(--space-3) var(--space-1);
+  font-size: var(--b44-text-meta);
+  font-weight: 600;
+  letter-spacing: var(--b44-track-row);
+  text-transform: uppercase;
+  color: var(--color-muted);
+}
+
+.list .acctOn {
+  background: var(--color-gold-soft);
+  font-weight: 600;
+}
+
+.listRule {
+  margin: var(--space-1) 0;
+  border-top: var(--hairline) solid var(--color-line-soft);
+}

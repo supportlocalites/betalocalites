@@ -163,6 +163,11 @@ export function Directory({
   const local = localFavourites.parse(useSyncExternalStore(localFavourites.subscribe, localFavourites.read, () => '[]'));
   const isFavourite = useCallback((c: DirectoryCard) => (signedIn ? c.saved : local.includes(c.slug)), [signedIn, local]);
   const favourites = cards.filter((c) => c.kindSlug && isFavourite(c)).length;
+  // The businesses they run, for the profile menu's account switch (D-63); listed ones are on this page.
+  const yourBusinesses = useMemo(
+    () => cards.filter((c) => c.yours !== null).map((c) => ({ slug: c.slug, name: c.name, role: c.yours!, analytics: false })),
+    [cards],
+  );
 
   // The count and the map follow the rows, as on Base44: a business with no main kind that's
   // showing isn't in a row, but its own address still opens its profile.
@@ -286,6 +291,7 @@ export function Directory({
     <div className={styles.screen}>
       <TopBar
         onTeam={cards.some((c) => c.yours !== null)}
+        businesses={yourBusinesses}
         end={
           // Favourites at the far right, beside the profile button (the owner, 25 October 2026).
           <>

@@ -1,5 +1,6 @@
 import { data, Form, Link, redirect, useNavigation } from 'react-router';
 import { adminContext, cloudflareContext } from '@/app/context';
+import { RELATIONSHIPS } from '@/lib/claim-terms';
 import { isUuid } from '@/lib/ids.mjs';
 import { pageMeta } from '@/lib/meta';
 import { siteUrl } from '@/server/plan-pages.server';
@@ -105,6 +106,25 @@ export default function Suggestions({ loaderData, actionData }: Route.ComponentP
               <span>
                 Phone or email (team only): {s.contact ?? <span className="muted">not given</span>}
               </span>
+              {s.own && (
+                <>
+                  <span className={styles.status}>Added by its owner (D-63)</span>
+                  <span>
+                    {s.own.person ? `${s.own.person.name} <${s.own.person.email}>` : 'Their account has been deleted'}, “{RELATIONSHIPS[s.own.relationship]}”
+                  </span>
+                  <span>
+                    Address (team only):{' '}
+                    {[s.own.unit, [s.own.number, s.own.street].filter(Boolean).join(' '), s.own.town, s.own.postalCode].filter(Boolean).join(', ') || (
+                      <span className="muted">not given</span>
+                    )}
+                    {s.own.hidden && ' · they keep their street number private: tick “Hide the number” when you add the address'}
+                  </span>
+                  {s.own.note && <span>Their note: “{s.own.note}”</span>}
+                  {s.status === 'new' && s.own.person && (
+                    <span className="muted">Adding it as a draft, or marking it as already listed, starts a claim for them: confirm it on Claims as usual.</span>
+                  )}
+                </>
+              )}
               {s.status !== 'new' ? (
                 <span className="muted">
                   {s.vendorId && (

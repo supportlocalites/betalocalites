@@ -64,7 +64,8 @@ jobs:
   admin-access:
     name: Sign-in, admin and claiming tests
     runs-on: ubuntu-24.04
-    timeout-minutes: 20
+    # 30, not 20: a slow browser download once took 12 minutes and the run stopped part-way (26 October 2026).
+    timeout-minutes: 30
     services:
       postgres:
         image: postgis/postgis:16-3.4
@@ -134,7 +135,13 @@ jobs:
             sleep 1
           done
           echo "The site or sign-in server didn't start"; exit 1
-      # The browser for the look checks (tests/e2e/look.mjs), at the version package.json pins.
+      # The browser for the look checks (tests/e2e/look.mjs), at the version package.json pins,
+      # kept between runs (free) so a slow download doesn't hold the tests up.
+      - name: Saved copy of the browser
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
       - name: Browser for the look checks
         run: npx playwright install --with-deps chromium
       - name: Sign-in, admin and claiming tests

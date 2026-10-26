@@ -1,5 +1,11 @@
 import { z } from 'zod';
 
+/** Suggest a business (D-25, ADR-027). Limits keep spam and the email budget in check (also Add my business, D-63). */
+export const PER_VISITOR_PER_HOUR = 5;
+export const ALL_VISITORS_PER_DAY = 100;
+/** One home connection a day (M22, D-54): fresh browsers can't use up everyone's 100. */
+export const PER_CONNECTION_PER_DAY = 10;
+
 /** Suggest a business (D-25, ADR-027): three questions, only the name required. */
 const text = (max: number, message: string) =>
   z

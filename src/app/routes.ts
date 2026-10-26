@@ -37,6 +37,9 @@ export default [
   // Needs an account: every request passes the gate in routes/member/layout.tsx (D-27).
   layout('routes/member/layout.tsx', [
     route('account', 'routes/member/account.tsx'),
+    // Edit profile's Businesses tab (D-63): find a business to claim.
+    route('account/claim', 'routes/member/account-claim.tsx'),
+    route('account/add-business', 'routes/member/account-add-business.tsx'),
     route('account/delete', 'routes/member/account-delete.tsx'),
     route('account/data', 'routes/member/account-data.tsx'),
     route('account/data/download', 'routes/member/account-data-download.ts'),
@@ -98,6 +101,8 @@ export default [
     route('vendors/:slug/reviews/:id/report', 'routes/member/review-report.tsx', { id: 'business-review-report' }),
     // A business owner's team (V4, E §3).
     route('vendors/:slug/team', 'routes/member/team.tsx'),
+    // Asking our team to take a business off Localites (D-63): owner only.
+    route('vendors/:slug/remove', 'routes/member/business-remove.tsx'),
     route('team-invite/:token', 'routes/member/team-invite.tsx'),
   ]),
   // Team only: every request under /admin passes the gate in routes/admin/layout.tsx.
@@ -111,6 +116,7 @@ export default [
     route('activity/searches/:day', 'routes/admin/activity-searches.tsx'),
     route('claims', 'routes/admin/claims.tsx'),
     route('suggestions', 'routes/admin/suggestions.tsx'),
+    route('removals', 'routes/admin/removals.tsx'),
     route('event-types', 'routes/admin/event-types.tsx'),
     route('booking-flags', 'routes/admin/booking-flags.tsx'),
     route('bookings', 'routes/admin/bookings.tsx'),

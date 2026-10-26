@@ -31,6 +31,28 @@ export type ClaimTarget = {
   evidence: DomainEvidence['result'];
 };
 
+export type Claimable = { slug: string; name: string; kind: string | null; town: string | null; mine: boolean };
+
+/**
+ * Edit profile's "Claim a business" (D-63): the listed businesses nobody runs yet, to pick
+ * yours from; each opens its usual claim form, and the team confirms as before (D-33).
+ */
+export async function claimableBusinesses(env: ServerEnv, userId: string): Promise<Claimable[]> {
+  const rows = await withDb(env, (db) =>
+    db.execute<Claimable>(sql`
+      select v.slug::text as slug, v.display_name as name, mu.name as town,
+             (select cat.name from vendor_category vc join category cat on cat.id = vc.category_id
+              where vc.vendor_id = v.id order by vc.is_primary desc, cat.name limit 1) as kind,
+             exists (select 1 from vendor_claim c where c.vendor_id = v.id and c.claimant_user_id = ${userId} and c.status = 'submitted') as mine
+      from vendor v left join municipality mu on mu.id = v.primary_municipality_id
+      where v.listing_status = 'published' and v.claim_status <> 'claimed'
+        and not exists (select 1 from vendor_member m where m.vendor_id = v.id and m.ended_at is null)
+      order by v.display_name
+      limit 1000`),
+  );
+  return [...rows];
+}
+
 /** A published listing and whether this person can claim it. Null if there's no such public listing. */
 export async function claimTarget(env: ServerEnv, slug: string, member: Member): Promise<ClaimTarget | null> {
   const [row] = await withDb(env, (db) =>
@@ -132,6 +154,8 @@ export type MyClaim = {
   status: 'submitted' | 'approved' | 'rejected' | 'withdrawn';
   reason: string | null;
   createdAt: string;
+  /** Its page is public (a claim the team started on a new draft has none yet, D-63). */
+  listed: boolean;
 };
 export type MyBusiness = { id: string; name: string; slug: string; role: string; listed: boolean; archived: boolean; analytics: boolean };
 
@@ -148,7 +172,8 @@ export async function myAccount(env: ServerEnv, userId: string): Promise<{ busin
         order by v.display_name`),
       db.execute<MyClaim>(sql`
         select c.id, v.display_name as business, v.slug::text as slug, c.status,
-               case when c.status = 'rejected' then c.decision_note end as reason, c.created_at::text as "createdAt"
+               case when c.status = 'rejected' then c.decision_note end as reason, c.created_at::text as "createdAt",
+               v.listing_status = 'published' as listed
         from vendor_claim c join vendor v on v.id = c.vendor_id
         where c.claimant_user_id = ${userId}
         order by c.created_at desc

@@ -20,6 +20,8 @@ const SECTIONS: [string, string][] = [
   ['suggested_businesses', 'Businesses you suggested'],
   ['reports_you_made', 'Reports you made'],
   ['claims', 'Businesses you claimed'],
+  ['businesses_you_added', 'Businesses you added as yours'],
+  ['asked_to_remove', 'Businesses you asked us to remove'],
   ['business_teams', 'Business teams you’re or were on'],
   ['for_your_businesses', 'What you did for your businesses'],
   ['activity', 'How you used Localites'],

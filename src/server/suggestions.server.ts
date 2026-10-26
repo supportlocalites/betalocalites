@@ -2,17 +2,14 @@ import { sql } from 'drizzle-orm';
 import { uuidv7 } from '@/lib/ids.mjs';
 import type { Admin } from './auth/admin.server';
 import { audit } from './admin/audit.server';
+import { claimFromSuggestion } from './business-requests.server';
 import { isUniqueViolation, withDb } from './db.server';
 import { sendEmail, TEAM_ADDRESS } from './email.server';
 import { emailPerson, renderEmail } from './email-templates.server';
 import type { ServerEnv } from './env';
-import { type SuggestionInput, teamEmail } from './suggestion-input';
+import { ALL_VISITORS_PER_DAY, PER_CONNECTION_PER_DAY, PER_VISITOR_PER_HOUR, type SuggestionInput, teamEmail } from './suggestion-input';
 
-/** Suggest a business (D-25, ADR-027). Limits keep spam and the email budget in check. */
-export const PER_VISITOR_PER_HOUR = 5;
-export const ALL_VISITORS_PER_DAY = 100;
-/** One home connection a day (M22, D-54): fresh browsers can't use up everyone's 100. */
-export const PER_CONNECTION_PER_DAY = 10;
+export { ALL_VISITORS_PER_DAY, PER_CONNECTION_PER_DAY, PER_VISITOR_PER_HOUR } from './suggestion-input';
 
 export type SaveResult = { saved: true; id: string } | { saved: false; reason: 'visitor_limit' | 'daily_limit' | 'connection_limit' };
 
@@ -94,6 +91,18 @@ export type SuggestionRow = {
   emailError: string | null;
   createdAt: string;
   matches: { id: string; name: string; status: string }[];
+  /** Added by its owner (D-63): who, how they're connected, and the address. Null for a public suggestion. */
+  own: {
+    relationship: 'owner' | 'manager' | 'employee' | 'other';
+    person: { name: string; email: string } | null;
+    town: string | null;
+    unit: string | null;
+    number: string | null;
+    street: string | null;
+    postalCode: string | null;
+    hidden: boolean;
+    note: string | null;
+  } | null;
 };
 
 export async function countNewSuggestions(env: ServerEnv): Promise<number> {
@@ -111,6 +120,11 @@ export async function listSuggestions(env: ServerEnv, show: 'new' | 'all'): Prom
              s.status, s.vendor_id as "vendorId", v.display_name as "vendorName", s.decline_reason as "declineReason",
              r.display_name as "reviewedBy", s.team_email_status as "emailStatus", s.team_email_error as "emailError",
              s.created_at::text as "createdAt",
+             case when s.relationship is null then null else json_build_object(
+               'relationship', s.relationship,
+               'person', case when u.id is null then null else json_build_object('name', u.display_name, 'email', u.email) end,
+               'town', s.town, 'unit', s.address_unit, 'number', s.address_number, 'street', s.address_street,
+               'postalCode', s.postal_code, 'hidden', s.hide_address_number, 'note', s.note) end as own,
              -- Likely duplicates: similar names, or the same website.
              coalesce((
                select json_agg(m order by m.score desc) from (
@@ -127,6 +141,7 @@ export async function listSuggestions(env: ServerEnv, show: 'new' | 'all'): Prom
       left join category c on c.id = s.category_id
       left join vendor v on v.id = s.vendor_id
       left join app_user r on r.id = s.reviewed_by
+      left join app_user u on u.id = s.suggested_by and u.deleted_at is null
       where ${show} = 'all' or s.status = 'new'
       order by (s.status = 'new') desc, s.created_at desc
       limit 200`)),
@@ -156,6 +171,8 @@ async function decide(
             reviewed_by = ${admin.userId}, reviewed_at = now()
         where id = ${id} and status = 'new' returning id`);
       if (updated.length === 0) throw new SuggestionConflict('This suggestion was already dealt with.');
+      // Their own business, already listed (D-63): a claim is started for them.
+      if (to === 'duplicate' && vendorId) await claimFromSuggestion(tx, admin, id, vendorId);
       await audit(tx, {
         actor: admin.userId,
         action: `vendor_suggestion.${to}`,
