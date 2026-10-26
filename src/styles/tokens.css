@@ -274,6 +274,8 @@
   --b44-filters-top: 140px;
   /* An open conversation's name and details before its tools wrap below (Messages, D-62). */
   --b44-head-words: 12rem;
+  /* A small card in the row of businesses under an open profile on a phone (D-64). */
+  --b44-peek: 168px;
 }
 
 /*

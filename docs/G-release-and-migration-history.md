@@ -31,6 +31,19 @@ Every release and every database migration, in order. Appended before each deplo
 
 ## Releases
 
+### 2026-10-26 — The other businesses under an open profile on a phone; the icons' order (D-64)
+
+**Stage:** 2 (the redesign)
+**What changed (plain English):** On a phone, a business's open profile keeps a row of small
+cards along the bottom with every business the search and filters show, the open one outlined in
+gold and kept in view; a tap opens another (the owner: "feel like they can still navigate other
+vendors while looking at the current vendor"). The bar's icons: Favourites first, then Messages
+and Community, the profile button last; no Browse icon on Browse local itself (elsewhere it comes
+after Favourites); Messages is no longer in the profile menu (it has its own icon).
+**Migrations applied:** none. **Destructive?** No.
+**Tests run:** `npm run check`; Browse local 98/100 (the two not passing are "moving the map",
+which fails on this workspace for the version before this change too).
+
 ### 2026-10-26 — Community (D-62)
 
 **Stage:** 2 (the redesign)

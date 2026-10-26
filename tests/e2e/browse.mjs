@@ -204,10 +204,11 @@ check('…and still after a reload', (await page.$(`button[aria-label="Remove ${
 const at = async (sel) => page.$eval(sel, (el) => el.getBoundingClientRect().toJSON());
 const [fav, search, filters, msgs, comm] = [await at('header button:has-text("Favourites")'), await at('[role="search"]'), await at('summary[aria-label^="Filters"]'),
   await at('header a[aria-label="Messages"]'), await at('header a[aria-label="Community"]')];
-// The owner, 26 October 2026: "I like the icons" at the right, and "search first", Filters inside it.
-check('the search in the middle with Filters inside it; Messages, Community, Favourites at the right',
+// The owner, 26 October 2026: "I like the icons" at the right, and "search first", Filters inside it;
+// then Favourites leftmost, no Browse on Browse local, Messages and Community, the profile last.
+check('the search in the middle with Filters inside it; Favourites, Messages, Community at the right, no Browse here',
   Math.abs(search.x + search.width / 2 - 640) < 160 && filters.x > search.x && filters.x + filters.width <= search.x + search.width
-  && msgs.x > search.x + search.width && msgs.x < comm.x && comm.x < fav.x,
+  && fav.x > search.x + search.width && fav.x < msgs.x && msgs.x < comm.x && (await page.$('header a[aria-label="Browse"]')) === null,
   `${Math.round(search.x)}+${Math.round(search.width)} ${Math.round(filters.x)} ${Math.round(msgs.x)} ${Math.round(comm.x)} ${Math.round(fav.x)}`);
 check('…and no Curator’s note on a profile', !(await page.textContent('body')).includes('Curator'));
 
@@ -281,6 +282,13 @@ const phone = await browser.newPage({ viewport: { width: 390, height: 844 } });
 await phone.goto(`${BASE}/vendors/${A.slug}`, { waitUntil: 'networkidle' });
 check('on a phone, an open profile is the whole screen: no rows squeezed beside it',
   !(await phone.isVisible(`#rail-${kind.slug}`)) && (await phone.isVisible(`aside[aria-label="${A.name}"]`)));
+// The other businesses stay in reach along the bottom (the owner, 26 October 2026).
+const PEEK = 'nav[aria-label="Other businesses in your search"]';
+check('…with the other businesses in a row along the bottom, the open one marked', await phone.isVisible(PEEK)
+  && (await phone.textContent(`${PEEK} [aria-current="true"]`))?.includes(A.name));
+await phone.click(`${PEEK} button:has-text("${B.name}")`);
+await phone.waitForSelector(`aside[aria-label="${B.name}"]`);
+check('…a tap there opens another', phone.url().includes(`v=${B.slug}`) && (await phone.textContent(`${PEEK} [aria-current="true"]`))?.includes(B.name));
 await phone.close();
 await page.goto(`${BASE}/vendors/${A.slug}`, { waitUntil: 'networkidle' });
 await page.click('button[aria-label="Close profile"]');
@@ -303,10 +311,11 @@ await me.goto(`${BASE}/explore`, { waitUntil: 'networkidle' });
 
 const [favAt, menuAt] = [await me.$eval('header button:has-text("Favourites")', (el) => el.getBoundingClientRect().x), await me.$eval('summary[aria-label="Your menu"]', (el) => el.getBoundingClientRect().x)];
 const commAt = await me.$eval('header a[aria-label="Community"]', (el) => el.getBoundingClientRect().x);
-check('signed in: the profile button is at the far right, with Messages, Community and Favourites left of it',
-  menuAt > favAt && favAt > commAt && menuAt > 1280 * 0.9, `${Math.round(commAt)} ${Math.round(favAt)} ${Math.round(menuAt)}`);
+check('signed in: the profile button is at the far right, with Favourites and Community left of it',
+  menuAt > commAt && commAt > favAt && menuAt > 1280 * 0.9, `${Math.round(commAt)} ${Math.round(favAt)} ${Math.round(menuAt)}`);
 await me.click('summary[aria-label="Your menu"]');
-check('…it opens Edit profile and Sign out', await me.isVisible('a:has-text("Edit profile")') && await me.isVisible('button:has-text("Sign out")'));
+check('…it opens Edit profile and Sign out (Messages is its own icon, not in the menu)', await me.isVisible('a:has-text("Edit profile")') && await me.isVisible('button:has-text("Sign out")')
+  && (await me.$('nav[aria-label="Your pages"] a[href="/messages"]')) === null);
 await me.mouse.click(640, 600);
 check('…and a click anywhere else closes it', !(await me.isVisible('a:has-text("Edit profile")')));
 await me.goto(`${BASE}/explore`, { waitUntil: 'networkidle' });

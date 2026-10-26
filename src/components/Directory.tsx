@@ -405,7 +405,12 @@ export function Directory({
           <ShortlistBar items={shortlist} />
         </div>
 
-        <div className={`${styles.panelBox} ${open && !wide ? styles.panelOpen : ''}`}>{open && !wide && profileView}</div>
+        <div className={`${styles.panelBox} ${open && !wide ? styles.panelOpen : ''}`}>
+          {open && !wide && profileView}
+          {/* On a phone, the other businesses stay in reach along the bottom (the owner, 26 October 2026:
+              "feel like they can still navigate other vendors while looking at the current vendor"). */}
+          {open && !wide && ordered.length > 1 && <PeekRow items={ordered} selected={selected} onSelect={select} />}
+        </div>
       </div>
       {/* Expanded, the profile is a sheet over the page (the owner, 24 October 2026): a click
           anywhere outside it closes it, as does its ×. */}
@@ -642,6 +647,45 @@ function Strip({
         ))}
       </div>
     </div>
+  );
+}
+
+/**
+ * On a phone with a profile open: every business the filters show, as small cards in one line
+ * along the bottom, the open one marked and kept in view; a tap opens another.
+ */
+function PeekRow({ items, selected, onSelect }: { items: DirectoryCard[]; selected: string | null; onSelect: (slug: string) => void }) {
+  const row = useRef<HTMLUListElement>(null);
+  useEffect(() => {
+    const i = items.findIndex((c) => c.slug === selected);
+    const el = i >= 0 ? row.current?.children[i] : null;
+    // Only the row scrolls sideways; the page itself never jumps.
+    if (el instanceof HTMLElement && row.current) {
+      row.current.scrollTo({ left: el.offsetLeft - (row.current.clientWidth - el.clientWidth) / 2, behavior: 'smooth' });
+    }
+  }, [items, selected]);
+  return (
+    <nav className={styles.peek} aria-label="Other businesses in your search">
+      <ul ref={row} className={styles.peekRow}>
+        {items.map((c) => (
+          <li key={c.id}>
+            <button
+              type="button"
+              className={`${styles.peekCard} ${c.slug === selected ? styles.peekOn : ''}`}
+              aria-current={c.slug === selected ? 'true' : undefined}
+              onClick={() => onSelect(c.slug)}
+            >
+              <span className={styles.peekKind}>{c.sub ?? c.kind}</span>
+              <span className={styles.peekName}>{c.name}</span>
+              <span className={styles.peekMeta}>
+                <Icon name="star" tiny />
+                {ratingLabel(c.rating)}
+              </span>
+            </button>
+          </li>
+        ))}
+      </ul>
+    </nav>
   );
 }
 

@@ -1405,6 +1405,99 @@ a.chip {
   }
 }
 
+/* On a phone, the other businesses along the bottom of an open profile (the owner, 26 October 2026). */
+.peek {
+  display: none;
+}
+
+@media (max-width: 1023px) {
+  .panelOpen {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .panelOpen > .panel {
+    flex: 1;
+    min-height: 0;
+    height: auto;
+  }
+
+  .peek {
+    display: block;
+    flex: none;
+    border-top: var(--hairline) solid var(--color-line);
+    background: var(--color-glass);
+    padding: var(--space-2) 0 calc(var(--space-2) + var(--safe-bottom));
+  }
+}
+
+.peekRow {
+  list-style: none;
+  margin: 0;
+  padding: 0 var(--b44-gutter);
+  display: flex;
+  gap: var(--space-2);
+  overflow-x: auto;
+  scroll-snap-type: x proximity;
+  scrollbar-width: none;
+}
+
+.peekRow::-webkit-scrollbar {
+  display: none;
+}
+
+.peekRow > li {
+  flex: none;
+  scroll-snap-align: center;
+}
+
+.peekCard {
+  display: grid;
+  gap: var(--hairline);
+  width: var(--b44-peek);
+  padding: var(--space-2) var(--space-3);
+  border: var(--hairline) solid var(--color-line);
+  border-radius: var(--radius-card);
+  background: var(--color-surface);
+  color: var(--color-ink);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.peekOn {
+  border-color: var(--color-gold);
+  box-shadow: 0 0 0 var(--hairline) var(--color-gold);
+}
+
+.peekKind {
+  font-size: var(--b44-text-eyebrow);
+  font-weight: 500;
+  letter-spacing: var(--b44-track-row);
+  text-transform: uppercase;
+  color: var(--color-gold-ink);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.peekName {
+  font-family: var(--font-display);
+  font-size: var(--b44-text-search);
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.peekMeta {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  font-size: var(--b44-text-meta);
+  color: var(--color-muted);
+}
+
 /* The expanded profile: a sheet over the dimmed page (the owner, 24 October 2026). */
 .sheetBackdrop {
   position: fixed;

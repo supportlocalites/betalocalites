@@ -139,40 +139,38 @@ const NavIcon = ({ name }: { name: keyof typeof ICONS }) => (
 );
 
 /**
- * Browse, Messages, Community and Favourites as small labelled icons at the right of the bar,
- * beside the account button (the owner, 26 October 2026: "I like the icons"), on every page but
- * a business's own. The words go on a narrow screen; each keeps its name for screen readers. On a
- * phone Browse goes too, so the bar fits one line: the wordmark beside them goes to Browse.
+ * Small labelled icons at the right of the bar, beside the account button, on every page but a
+ * business's own (the owner, 26 October 2026: "I like the icons"; then "favourites ... the most
+ * left icon, remove the browse (when on the browse page) and then have messages and community to
+ * the right with the profile furthest right"). Elsewhere Browse follows Favourites. The words go on
+ * a narrow screen, where Browse goes too (the wordmark beside them goes to Browse); each keeps its
+ * name for screen readers.
  */
 function IconNav({ unread, favourites }: { unread: number; favourites?: { on: boolean; count: number; toggle: () => void } }) {
   const path = useLocation().pathname;
-  const links: [string, keyof typeof ICONS, string, boolean][] = [
-    ['/explore', 'browse', 'Browse', path === '/explore'],
-    ['/messages', 'messages', 'Messages', path.startsWith('/messages')],
-    ['/community', 'community', 'Community', path.startsWith('/community')],
-  ];
+  const link = (to: string, icon: keyof typeof ICONS, label: string, on: boolean) => (
+    <Link
+      key={to}
+      to={to}
+      // The label replaces what's inside for screen readers, so it carries the count itself.
+      aria-label={icon === 'messages' && unread > 0 ? `${label}, ${unread} new` : label}
+      title={label}
+      className={`${styles.navLink} ${on ? styles.navOn : ''} ${icon === 'browse' ? styles.navBrowse : ''}`}
+      aria-current={on ? 'page' : undefined}
+    >
+      <NavIcon name={icon} />
+      <span className={styles.navWord}>{label}</span>
+      {icon === 'messages' && unread > 0 && (
+        <span className={styles.navCount} aria-hidden="true">
+          {unread}
+        </span>
+      )}
+    </Link>
+  );
   return (
     <nav aria-label="Main" className={styles.nav}>
-      {links.map(([to, icon, label, on]) => (
-        <Link
-          key={to}
-          to={to}
-          // The label replaces what's inside for screen readers, so it carries the count itself.
-          aria-label={icon === 'messages' && unread > 0 ? `${label}, ${unread} new` : label}
-          title={label}
-          className={`${styles.navLink} ${on ? styles.navOn : ''} ${icon === 'browse' ? styles.navBrowse : ''}`}
-          aria-current={on ? 'page' : undefined}
-        >
-          <NavIcon name={icon} />
-          <span className={styles.navWord}>{label}</span>
-          {icon === 'messages' && unread > 0 && (
-            <span className={styles.navCount} aria-hidden="true">
-              {unread}
-            </span>
-          )}
-        </Link>
-      ))}
       {favourites ? (
+        // Browse local's own Favourites: a switch for "only my favourites" there, not a link.
         <button
           type="button"
           onClick={favourites.toggle}
@@ -190,12 +188,17 @@ function IconNav({ unread, favourites }: { unread: number; favourites?: { on: bo
           <span className={styles.navWord}>Favourites</span>
         </Link>
       )}
+      {/* Not on Browse local itself (where its own Favourites switch is). */}
+      {!favourites && link('/explore', 'browse', 'Browse', path === '/explore')}
+      {link('/messages', 'messages', 'Messages', path.startsWith('/messages'))}
+      {link('/community', 'community', 'Community', path.startsWith('/community'))}
     </nav>
   );
 }
 
 /**
- * Sign in, or the person's menu (the owner, 25 October 2026): Edit profile, Messages, Sign out;
+ * Sign in, or the person's menu (the owner, 25 October 2026): Edit profile and Sign out (Messages
+ * is its own icon beside it, the owner, 26 October 2026);
  * for someone on a business's team, a switch between their personal account and each business
  * (D-63). Favourites is in Browse local's bar.
  */
@@ -238,7 +241,6 @@ export function AccountMenu({ onTeam: known, businesses = [] }: { onTeam?: boole
           </>
         )}
         <Link to="/account">Edit profile</Link>
-        <Link to="/messages">Messages</Link>
         {onTeam && businesses.length === 0 && <Link to="/business">My business</Link>}
         <Form method="post" action="/sign-out">
           <button type="submit">Sign out</button>
