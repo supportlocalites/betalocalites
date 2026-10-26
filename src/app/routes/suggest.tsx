@@ -8,6 +8,7 @@ import { connectionFingerprint, notifyTeam, saveSuggestion } from '@/server/sugg
 import { torontoDate } from '@/lib/activity';
 import { addressKey, visitor } from '@/server/visitor.server';
 import type { Route } from './+types/suggest';
+import styles from './member/account.module.css';
 import { cleanText } from '@/lib/clean-text';
 
 /**
@@ -79,18 +80,23 @@ export default function Suggest({ loaderData, actionData }: Route.ComponentProps
     return (
       <>
         <SiteHeader />
-        <main className="page narrow">
-          <h1 className="title-1">Thanks</h1>
-          <div className="title-rule" aria-hidden="true" />
-          <p role="status">
-            Our team will look into this business and add it if it’s a fit.
-            {'linked' in actionData && actionData.linked ? ' We’ll email you when it’s on Localites.' : ''}
-          </p>
-          <p className="section-gap">
-            <Link to="/explore" className="button button-primary">
-              Back to Explore
-            </Link>
-          </p>
+        <main className={`page ${styles.narrow}`}>
+          <div className={styles.panel}>
+            <p className={styles.saved} role="status">
+              Thanks
+            </p>
+            <h1 className={styles.panelTitle}>We’ve got it</h1>
+            <p>
+              Our team will look into this business and add it if it’s a fit.
+              {'linked' in actionData && actionData.linked ? ' We’ll email you when it’s on Localites.' : ''}
+            </p>
+            <p className={styles.more}>
+              <Link to="/explore" className="button button-primary">
+                Back to Browse local
+              </Link>
+              <Link to="/suggest">Suggest another</Link>
+            </p>
+          </div>
         </main>
       </>
     );
@@ -125,22 +131,33 @@ export default function Suggest({ loaderData, actionData }: Route.ComponentProps
   return (
     <>
       <SiteHeader />
-      <main className="page narrow">
+      <main className={`page ${styles.narrow}`}>
+        <p>
+          <Link to="/explore" className="text-link">
+            ← Browse local
+          </Link>
+        </p>
         <h1 className="title-1">Suggest a business</h1>
-        <div className="title-rule" aria-hidden="true" />
         <p className="muted">
-          Know a local business that should be on Localites? Tell us, and our team will look into it.
+          Know a local business that should be on Localites? Tell us what you know, and our team will look into it. It’s free, for you and
+          for them.
         </p>
         {error && (
           <p className="notice" role="alert">
             {error}
           </p>
         )}
-        <Form method="post" noValidate>
+        <Form method="post" noValidate className={styles.panel}>
           <input type="hidden" name="category" value={loaderData.category} />
           <input type="hidden" name="q" value={loaderData.q} />
-          {field('businessName', 'Business name', '', { required: true, maxLength: 200, autoComplete: 'off' })}
-          {field('website', 'Website or social page (if you know it)', '', { maxLength: 500, inputMode: 'url', autoComplete: 'off' })}
+          <h2 className={styles.panelTitle}>The business</h2>
+          {field('businessName', 'Its name', '', { required: true, maxLength: 200, autoComplete: 'off' })}
+          {field('website', 'Website or social page (if you know it)', '', {
+            maxLength: 500,
+            inputMode: 'url',
+            autoComplete: 'off',
+            placeholder: 'Like instagram.com/theirbusiness',
+          })}
           {field('contact', 'Their phone number or email (if you know it)', 'Only used by our team to reach the business. Never shown on Localites.', {
             maxLength: 200,
             autoComplete: 'off',
@@ -149,10 +166,19 @@ export default function Suggest({ loaderData, actionData }: Route.ComponentProps
             <label htmlFor="company_url">Leave this empty</label>
             <input id="company_url" name="company_url" tabIndex={-1} autoComplete="off" />
           </div>
-          <button type="submit" className="button button-primary" disabled={busy}>
-            {busy ? 'Sending…' : 'Send suggestion'}
-          </button>
+          <p>
+            <button type="submit" className="button button-primary" disabled={busy}>
+              {busy ? 'Sending…' : 'Send suggestion'}
+            </button>
+          </p>
         </Form>
+        <div className={`${styles.choice} ${styles.ownNudge}`}>
+          <span className={styles.choiceTitle}>Is it your own business?</span>
+          <span>
+            Add it yourself instead, with its address and how to reach you, and our team will confirm it with you.{' '}
+            <Link to="/account/add-business">Add my business</Link>
+          </span>
+        </div>
       </main>
     </>
   );

@@ -31,6 +31,22 @@ Every release and every database migration, in order. Appended before each deplo
 
 ## Releases
 
+### 2026-10-26 — Suggest a business in the new design; ready for the package updates
+
+**Stage:** 1 and 2 (the redesign)
+**What changed (plain English):** Suggest a business now looks like Add my business: a back link to
+Browse local, the form in one card, and a note for owners pointing to Add my business; the thanks
+page is a card with "Back to Browse local" and "Suggest another". Same questions and limits as
+before. Separately, the site's build settings now tell Cloudflare's newest build tool to stay
+local during tests (it no longer reads the old setting), which is what made the package-update
+request fail; with it, the updates start and pass the browser-free tests.
+**Migrations applied:** none. **Destructive?** No.
+**Tests run:** suggestion emails 9/9; admin access 43/43; scenario fixes 5a 36/36; Add and remove a
+business 45/45; look checks 905/908 (the 3 are test photos the workspace lost on restart). With the
+updated packages: admin access, claiming, accounts, account deletion, owner editing, business
+teams, Edit profile, messages, reviews, inquiries all passed; the browser tests weren't run here
+(the new Playwright's browser can't be downloaded in this workspace; GitHub runs them).
+
 ### 2026-10-26 — A unit in a business's address; Undo fades away (D-63, D-61)
 
 **Stage:** 1 and 2 (the redesign)

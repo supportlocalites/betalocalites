@@ -365,3 +365,14 @@ a.rowName:hover {
   background: var(--color-danger);
   border-color: var(--color-danger);
 }
+
+/* Suggest a business: the note for owners under the form. */
+.ownNudge {
+  margin-top: var(--space-5);
+}
+
+.ownNudge a {
+  color: var(--color-ink);
+  font-weight: 600;
+  text-underline-offset: var(--underline-offset);
+}
