@@ -1161,6 +1161,21 @@
   color: var(--color-ink);
 }
 
+a.chip {
+  text-decoration: none;
+}
+
+/* On phones Messages and Community are just their icons (each link is named for screen readers). */
+.chipWords {
+  display: none;
+}
+
+@media (min-width: 1024px) {
+  .chipWords {
+    display: inline;
+  }
+}
+
 .chipOn,
 .chipOn:hover {
   border-color: var(--color-gold-faint);

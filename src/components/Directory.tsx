@@ -288,16 +288,27 @@ export function Directory({
         onTeam={cards.some((c) => c.yours !== null)}
         end={
           // Favourites at the far right, beside the profile button (the owner, 25 October 2026).
-          <button
-            type="button"
-            onClick={() => setFavOnly((v) => !v)}
-            className={`${styles.chip} ${favOnly ? styles.chipOn : ''}`}
-            aria-pressed={favOnly}
-            title="Only your favourites"
-          >
-            <Icon name="heart" small />
-            Favourites{favourites > 0 ? ` ${favourites}` : ''}
-          </button>
+          <>
+            <button
+              type="button"
+              onClick={() => setFavOnly((v) => !v)}
+              className={`${styles.chip} ${favOnly ? styles.chipOn : ''}`}
+              aria-pressed={favOnly}
+              title="Only your favourites"
+            >
+              <Icon name="heart" small />
+              Favourites{favourites > 0 ? ` ${favourites}` : ''}
+            </button>
+            {/* Messages and Community, between Favourites and the profile button (the owner, 26 October 2026). */}
+            <Link to="/messages" className={styles.chip} aria-label="Messages" title="Messages">
+              <Icon name="chat" small />
+              <span className={styles.chipWords}>Messages</span>
+            </Link>
+            <Link to="/community" className={styles.chip} aria-label="Community" title="Community">
+              <Icon name="people" small />
+              <span className={styles.chipWords}>Community</span>
+            </Link>
+          </>
         }
       >
         <div className={styles.search} role="search">
@@ -1033,6 +1044,13 @@ const PATHS: Record<string, React.ReactNode> = {
   ),
   heart: <path d="M12 20s-7.5-4.6-9.3-9.2C1.4 7.4 3.6 4 7 4c2 0 3.6 1.1 5 3 1.4-1.9 3-3 5-3 3.4 0 5.6 3.4 4.3 6.8C19.5 15.4 12 20 12 20z" />,
   plus: <path d="M12 5v14M5 12h14" />,
+  chat: <path d="M4 5h16v11H9l-5 4z" />,
+  people: (
+    <>
+      <circle cx="9" cy="8" r="3" />
+      <path d="M3 19c.8-3.2 3.2-5 6-5s5.2 1.8 6 5M17 6.6a2.4 2.4 0 1 1 0 4.8M18 14c1.6.5 2.6 2 3 5" />
+    </>
+  ),
   check: <path d="M5 12.5l4.5 4.5L19 7.5" />,
   max: <path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7" />,
   min: <path d="M4 14h6v6M20 10h-6V4M14 10l7-7M3 21l7-7" />,

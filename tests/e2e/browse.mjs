@@ -185,9 +185,11 @@ check('signed out, the heart keeps a favourite in this browser', (await page.get
 await page.reload({ waitUntil: 'networkidle' });
 check('…and still after a reload', (await page.$(`button[aria-label="Remove ${B.name} from favourites"]`)) !== null);
 const at = async (sel) => page.$eval(sel, (el) => el.getBoundingClientRect().toJSON());
-const [fav, reset, sortBox] = [await at('button:has-text("Favourites")'), await at('button:has-text("Reset")'), await at('#sort')];
-check('Favourites sits at the far right of the bar; Reset stays next to the filters', fav.x > 1280 * 0.8 && reset.x > sortBox.x && reset.x < fav.x,
-  `${Math.round(fav.x)} ${Math.round(reset.x)}`);
+const [fav, reset, sortBox, msgs, comm] = [await at('button:has-text("Favourites")'), await at('button:has-text("Reset")'), await at('#sort'),
+  await at('header a[aria-label="Messages"]'), await at('header a[aria-label="Community"]')];
+check('at the right of the bar: Favourites, Messages, Community (then the profile or Sign in); Reset stays next to the filters',
+  fav.x > 1280 * 0.6 && fav.x < msgs.x && msgs.x < comm.x && reset.x > sortBox.x && reset.x < fav.x,
+  `${Math.round(reset.x)} ${Math.round(fav.x)} ${Math.round(msgs.x)} ${Math.round(comm.x)}`);
 check('…and no Curator’s note on a profile', !(await page.textContent('body')).includes('Curator'));
 
 console.log('\nThe owner’s additions (24 October 2026)');
@@ -277,7 +279,9 @@ await signedIn.addCookies(cookie.p.split('; ').map((pair) => {
 const me = await signedIn.newPage();
 await me.goto(`${BASE}/explore`, { waitUntil: 'networkidle' });
 const [favAt, menuAt] = [await me.$eval('button:has-text("Favourites")', (el) => el.getBoundingClientRect().x), await me.$eval('summary[aria-label="Your menu"]', (el) => el.getBoundingClientRect().x)];
-check('signed in: the profile button is at the far right, Favourites just left of it', menuAt > favAt && menuAt > 1280 * 0.9, `${Math.round(favAt)} ${Math.round(menuAt)}`);
+const commAt = await me.$eval('header a[aria-label="Community"]', (el) => el.getBoundingClientRect().x);
+check('signed in: the profile button is at the far right, with Favourites, Messages and Community left of it',
+  menuAt > commAt && commAt > favAt && menuAt > 1280 * 0.9, `${Math.round(favAt)} ${Math.round(commAt)} ${Math.round(menuAt)}`);
 await me.click('summary[aria-label="Your menu"]');
 check('…it opens Edit profile and Sign out', await me.isVisible('a:has-text("Edit profile")') && await me.isVisible('button:has-text("Sign out")'));
 await me.mouse.click(640, 600);

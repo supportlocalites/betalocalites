@@ -31,6 +31,17 @@ Every release and every database migration, in order. Appended before each deplo
 
 ## Releases
 
+### 2026-10-26 — Messages and Community in Browse local's bar (D-61)
+
+**Stage:** 1 and 2 (the redesign)
+**What changed (plain English):** Browse local's top bar has Messages and Community buttons at the
+right, after Favourites and before the profile button (on phones, just their icons, each named
+for screen readers).
+**Migrations applied:** none. **Destructive?** No.
+**Tests run:** `npm run check`; unit tests 229/229; Browse local 93/93 (the bar's order checked
+signed out and signed in); look checks 833/836, the 3 failing only on test photos this
+workspace's pretend storage lost when it restarted.
+
 ### 2026-10-26 — The map fits beside an open profile (D-61)
 
 **Stage:** 1 and 2 (the redesign)
