@@ -37,6 +37,8 @@ function canDraw(): boolean {
 
 /** Puts the map under the pins: OpenFreeMap's Bright, quieter; or OpenStreetMap's if that can't be drawn. */
 export async function addBaseMap(L: L, map: LeafletMap, osmClass?: string): Promise<void> {
+  // Only ever in the browser: this keeps MapLibre out of the server's own bundle altogether.
+  if (import.meta.env.SSR) return;
   try {
     if (!canDraw()) throw new Error('no WebGL');
     const res = await fetch(STYLE, { signal: AbortSignal.timeout(6000) });
