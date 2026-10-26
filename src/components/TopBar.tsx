@@ -17,14 +17,20 @@ export function TopBar({
   home = '/explore',
   onTeam,
   businesses: known,
+  unread = 0,
+  favourites,
 }: {
   children?: ReactNode;
-  /** Beside the profile button, at the far right (Browse local's Favourites). */
+  /** Before the icons at the right. */
   end?: ReactNode;
   home?: string;
   onTeam?: boolean;
   /** The businesses the person runs, where the page knows them (Browse local); the member layout says otherwise. */
   businesses?: TeamBusiness[];
+  /** How many conversations have something new, where the page knows (Messages). */
+  unread?: number;
+  /** Browse local's own Favourites: a switch for "only my favourites" there, not a link. */
+  favourites?: { on: boolean; count: number; toggle: () => void };
 }) {
   const businesses = useTeamBusinesses(known);
   const here = useBusinessHere(businesses);
@@ -58,6 +64,7 @@ export function TopBar({
         {children}
         <div className={styles.end}>
           {end}
+          <IconNav unread={unread} favourites={favourites} />
           <AccountMenu onTeam={onTeam} businesses={businesses} />
         </div>
       </div>
@@ -108,24 +115,48 @@ function BusinessNav({ business: b }: { business: TeamBusiness }) {
   );
 }
 
+const ICONS = {
+  browse: (
+    <>
+      <circle cx="12" cy="12" r="8" />
+      <path d="m15 9-2 5-4 1 2-5z" />
+    </>
+  ),
+  messages: <path d="M5 6h14v9H9l-4 3z" />,
+  community: (
+    <>
+      <circle cx="9" cy="9" r="3" />
+      <circle cx="17" cy="10" r="2.4" />
+      <path d="M3.5 19c.8-3 3-4.6 5.5-4.6s4.7 1.6 5.5 4.6M15 14.6c2.4 0 4.3 1.3 5 4" />
+    </>
+  ),
+  favourites: <path d="M12 20s-7-4.4-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.6-7 10-7 10z" />,
+};
+const NavIcon = ({ name }: { name: keyof typeof ICONS }) => (
+  <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false" className={styles.navIcon}>
+    {ICONS[name]}
+  </svg>
+);
+
 /**
- * Browse local · Messages · Community (the owner, 25 October 2026: "a nav bar at the top that
- * allows it - where you can go back to localites, messages, or community"), on Messages and
- * Community. Messages shows how many conversations have something new, when the page knows.
+ * Browse, Messages, Community and Favourites as small labelled icons at the right of the bar,
+ * beside the account button (the owner, 26 October 2026: "I like the icons"), on every page but
+ * a business's own. The words go on a narrow screen; each keeps its name for screen readers.
  */
-export function MainNav({ unread = 0 }: { unread?: number }) {
+function IconNav({ unread, favourites }: { unread: number; favourites?: { on: boolean; count: number; toggle: () => void } }) {
   const path = useLocation().pathname;
-  const links: [string, string, boolean][] = [
-    ['/explore', 'Browse local', path === '/explore'],
-    ['/messages', 'Messages', path.startsWith('/messages')],
-    ['/community', 'Community', path.startsWith('/community')],
+  const links: [string, keyof typeof ICONS, string, boolean][] = [
+    ['/explore', 'browse', 'Browse', path === '/explore'],
+    ['/messages', 'messages', 'Messages', path.startsWith('/messages')],
+    ['/community', 'community', 'Community', path.startsWith('/community')],
   ];
   return (
     <nav aria-label="Main" className={styles.nav}>
-      {links.map(([to, label, on]) => (
-        <Link key={to} to={to} className={`${styles.navLink} ${on ? styles.navOn : ''}`} aria-current={on ? 'page' : undefined}>
-          {label}
-          {label === 'Messages' && unread > 0 && (
+      {links.map(([to, icon, label, on]) => (
+        <Link key={to} to={to} aria-label={label} title={label} className={`${styles.navLink} ${on ? styles.navOn : ''}`} aria-current={on ? 'page' : undefined}>
+          <NavIcon name={icon} />
+          <span className={styles.navWord}>{label}</span>
+          {icon === 'messages' && unread > 0 && (
             <span className={styles.navCount}>
               {unread}
               <span className="visually-hidden"> new</span>
@@ -133,6 +164,24 @@ export function MainNav({ unread = 0 }: { unread?: number }) {
           )}
         </Link>
       ))}
+      {favourites ? (
+        <button
+          type="button"
+          onClick={favourites.toggle}
+          className={`${styles.navLink} ${favourites.on ? styles.navOn : ''}`}
+          aria-pressed={favourites.on}
+          title="Only your favourites"
+        >
+          <NavIcon name="favourites" />
+          <span className={styles.navWord}>Favourites</span>
+          {favourites.count > 0 && <span className={styles.navCount}>{favourites.count}</span>}
+        </button>
+      ) : (
+        <Link to="/saved" aria-label="Favourites" title="Favourites" className={`${styles.navLink} ${path === '/saved' ? styles.navOn : ''}`}>
+          <NavIcon name="favourites" />
+          <span className={styles.navWord}>Favourites</span>
+        </Link>
+      )}
     </nav>
   );
 }

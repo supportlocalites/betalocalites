@@ -45,7 +45,7 @@ r = await site('/account', { cookie: cookie.p });
 let w = words(page(r.body));
 check('it has the four parts', r.status === 200 && ['Profile', 'About you', 'Businesses', 'Privacy'].every((t) => w.includes(t))
   && r.body.includes('href="/account?tab=businesses"'), String(r.status));
-check('…no favourites on it any more', !w.includes('Favourites'));
+check('…no favourites on it any more (only the top bar’s icon)', !words(main(r.body)).includes('Favourites'));
 check('…and with no business, it offers to claim one or add yours', r.body.includes('href="/account/claim"') && r.body.includes('href="/account/add-business"'));
 
 await sql`insert into person_profile (user_id, town) values (${ids.p}, 'Orillia') on conflict (user_id) do update set town = 'Orillia'`;
@@ -57,6 +57,22 @@ r = await site('/account', { cookie: cookie.p, method: 'POST', form: { intent: '
 check('saving About you goes back to that part, saved', r.status === 302 && r.location === '/account?tab=about&saved=1', `${r.status} ${r.location}`);
 [row] = await sql`select u.given_name, pp.town from app_user u left join person_profile pp on pp.user_id = u.id where u.id = ${ids.p}`;
 check('…the town changed, and your name was left alone', row.given_name === 'Robin' && row.town === 'Barrie', JSON.stringify(row));
+// Distances from home (D-64): saving an address finds where it is, for that person only.
+const homeOf = async () => (await sql`select home_lat as lat, home_lng as lng, home_lookup as lookup from person_profile where user_id = ${ids.p}`)[0];
+const waitHome = async (want) => {
+  for (let i = 0; i < 40; i++) {
+    const h = await homeOf();
+    if (h?.lookup === want) return h;
+    await new Promise((res) => setTimeout(res, 150));
+  }
+  return homeOf();
+};
+r = await site('/account', { cookie: cookie.p, method: 'POST', form: { intent: 'about', streetAddress: '12 Lakeshore Road', town: 'Orillia', province: 'ON', postalCode: '', gender: '' } });
+let home = await waitHome('found');
+check('saving an address finds the home on the map, for distances', r.status === 302 && home?.lookup === 'found' && home.lat !== null, JSON.stringify(home));
+r = await site('/account', { cookie: cookie.p, method: 'POST', form: { intent: 'about', streetAddress: '1 Nowhere Lane', town: 'Orillia', province: 'ON', postalCode: '', gender: '' } });
+home = await waitHome('not_found');
+check('…a new address replaces it; one the search can’t find keeps no point', home?.lookup === 'not_found' && home.lat === null, JSON.stringify(home));
 r = await site('/account', { cookie: cookie.p, method: 'POST', form: { intent: 'names', firstName: '', lastName: 'Lake' } });
 check('an empty first name is refused', r.status === 400 && words(r.body).includes('first and last name'), String(r.status));
 r = await site('/account', { cookie: cookie.p, method: 'POST', form: { intent: 'nonsense' } });

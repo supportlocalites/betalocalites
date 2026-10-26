@@ -1,7 +1,7 @@
 import { useSearchParams } from 'react-router';
 import { cloudflareContext, memberContext } from '@/app/context';
 import { Inbox, inboxOrder, inboxView } from '@/components/Inbox';
-import { MainNav, TopBar } from '@/components/TopBar';
+import { TopBar } from '@/components/TopBar';
 import { pageMeta } from '@/lib/meta';
 import { myConversations } from '@/server/messages.server';
 import { todayIso } from '@/server/plan-pages.server';
@@ -28,9 +28,7 @@ export default function Messages({ loaderData: { conversations, today } }: Route
   const deleted = params.has('deleted');
   return (
     <>
-      <TopBar>
-        <MainNav unread={conversations.filter((c) => c.unread > 0).length} />
-      </TopBar>
+      <TopBar unread={conversations.filter((c) => c.unread > 0).length} />
       <main className={`page ${styles.split}`}>
         <section aria-labelledby="messages" className={styles.listPane}>
           <h1 id="messages" className={styles.paneTitle}>

@@ -2,7 +2,7 @@ import { data, Form, Link, redirect, useNavigation, useSearchParams } from 'reac
 import { cloudflareContext, memberContext } from '@/app/context';
 import { Inbox, inboxOrder, inboxQuery, inboxView } from '@/components/Inbox';
 import { SquarePhoto } from '@/components/SquarePhoto';
-import { MainNav, TopBar } from '@/components/TopBar';
+import { TopBar } from '@/components/TopBar';
 import { GROUP_NAME_MAX, readGroupName } from '@/lib/group-name';
 import { isUuid, SLUG } from '@/lib/ids.mjs';
 import { MESSAGE_LIMITS, NO_PAYMENTS_IN_CONVERSATION } from '@/lib/message-terms';
@@ -91,9 +91,7 @@ export default function MessageGroup({ loaderData: { page, conversations, today 
   const news = members.filter((m) => m.unread > 0).length;
   return (
     <>
-      <TopBar>
-        <MainNav unread={conversations.filter((c) => c.unread > 0).length} />
-      </TopBar>
+      <TopBar unread={conversations.filter((c) => c.unread > 0).length} />
       <main className={`page ${styles.split} ${styles.withList}`}>
         <section aria-labelledby="all-messages" className={styles.listPane}>
           <h2 id="all-messages" className={styles.paneTitle}>

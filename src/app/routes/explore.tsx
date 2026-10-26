@@ -10,13 +10,14 @@ export const meta: Route.MetaFunction = ({ matches }) => shareMeta(matches, '/ex
 export const handle = { noFooter: true };
 
 export async function loader({ request, context }: Route.LoaderArgs) {
-  return loadDirectory(request, context.get(cloudflareContext).env);
+  const { env, ctx } = context.get(cloudflareContext);
+  return loadDirectory(request, env, ctx);
 }
 
 // The visitor cookie a new browser gets with the page (ADR-030).
 export const headers: Route.HeadersFunction = ({ loaderHeaders }) => loaderHeaders;
 
 export default function Explore({ loaderData }: Route.ComponentProps) {
-  const { cards, kinds, shortlist, signedIn, tracks } = loaderData;
-  return <Directory cards={cards} kinds={kinds} shortlist={shortlist} signedIn={signedIn} tracks={tracks} initial={null} />;
+  const { cards, kinds, shortlist, signedIn, tracks, home, hasAddress } = loaderData;
+  return <Directory cards={cards} kinds={kinds} shortlist={shortlist} signedIn={signedIn} tracks={tracks} home={home} hasAddress={hasAddress} initial={null} />;
 }

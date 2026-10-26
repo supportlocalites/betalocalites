@@ -2,7 +2,7 @@ import { data, Form, Link, redirect, useNavigation, useSearchParams } from 'reac
 import { cloudflareContext, memberContext } from '@/app/context';
 import { MessageList, ReplyBox, useRefresh } from '@/components/MessageThread';
 import { Inbox, inboxOrder, inboxQuery, inboxView } from '@/components/Inbox';
-import { MainNav, TopBar } from '@/components/TopBar';
+import { TopBar } from '@/components/TopBar';
 import { SquarePhoto } from '@/components/SquarePhoto';
 import { isUuid } from '@/lib/ids.mjs';
 import { MESSAGE_REFUSALS, NO_PAYMENTS_IN_CONVERSATION, SHARE_CAREFULLY } from '@/lib/message-terms';
@@ -134,9 +134,7 @@ export default function Conversation({ loaderData: { thread, conversations, inGr
   const canWrite = status === 'open' && !vendor.left && !vendor.paused;
   return (
     <>
-      <TopBar>
-        <MainNav unread={conversations.filter((c) => c.unread > 0).length} />
-      </TopBar>
+      <TopBar unread={conversations.filter((c) => c.unread > 0).length} />
       <main className={`page ${styles.split} ${styles.withList}`}>
         <section aria-labelledby="all-messages" className={styles.listPane}>
           <h2 id="all-messages" className={styles.paneTitle}>

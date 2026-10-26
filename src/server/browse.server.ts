@@ -1,4 +1,5 @@
 import { sql } from 'drizzle-orm';
+import { kmBetween } from '@/lib/distance';
 import { type Sort, SORTS } from '@/lib/browse-terms';
 import { CENTRE } from '@/lib/centre';
 import { actingAs } from './acting.server';
@@ -278,12 +279,7 @@ export type DirectoryCard = {
 };
 export type Directory = { kinds: { slug: string; name: string }[]; cards: DirectoryCard[]; shortlist: ShortlistItem[] };
 
-/** Kilometres between two points (the earth as a ball: near enough for a town). */
-export function kmBetween(a: { lat: number; lng: number }, b: { lat: number; lng: number }): number {
-  const r = (d: number) => (d * Math.PI) / 180;
-  const h = Math.sin(r(b.lat - a.lat) / 2) ** 2 + Math.cos(r(a.lat)) * Math.cos(r(b.lat)) * Math.sin(r(b.lng - a.lng) / 2) ** 2;
-  return 2 * 6371 * Math.asin(Math.sqrt(h));
-}
+export { kmBetween } from '@/lib/distance';
 
 /**
  * "Best rated" (D-59, K6): at least 10 published reviews, and an average in the top 5% of those

@@ -268,6 +268,30 @@
   border-color: var(--color-gold-dark);
 }
 
+/* The person's own home (D-64): a small dark house, only on their own map. */
+.home {
+  display: grid;
+  place-items: center;
+  border-radius: var(--radius-pill);
+  background: var(--color-ink);
+  border: var(--focus-ring) solid var(--color-surface);
+  box-shadow: var(--shadow-pin);
+}
+
+.home svg {
+  width: 60%;
+  height: 60%;
+  fill: var(--color-surface);
+}
+
+/* Where they are now ("Current location"), never sent to Localites. */
+.here {
+  border-radius: var(--radius-pill);
+  background: var(--color-ink);
+  border: var(--focus-ring) solid var(--color-surface);
+  box-shadow: 0 0 0 var(--space-2) var(--color-ink-ring);
+}
+
 .expand {
   position: absolute;
   right: var(--space-3);
@@ -1364,6 +1388,57 @@ a.chip {
   align-items: baseline;
   justify-content: space-between;
   gap: var(--space-3);
+}
+
+/* Within, greyed until it can be used (D-64): signed out, or no home and no current location. */
+.pickerOff .select {
+  opacity: 0.55;
+}
+
+.pickerOff .select:hover {
+  opacity: 0.8;
+}
+
+.distanceWhy {
+  margin: 0;
+  color: var(--color-muted);
+  font-size: var(--b44-text-search);
+  line-height: 1.45;
+}
+
+.fromRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.fromChip {
+  border: var(--hairline) solid var(--color-line);
+  border-radius: var(--radius-pill);
+  background: var(--color-surface);
+  color: var(--color-ink);
+  padding: var(--space-1) var(--space-3);
+  font: inherit;
+  font-size: var(--b44-text-search);
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.fromChip[aria-disabled='true'] {
+  color: var(--color-muted);
+  border-style: dashed;
+  cursor: not-allowed;
+}
+
+.fromOn {
+  background: var(--color-ink);
+  border-color: var(--color-ink);
+  color: var(--color-on-ink);
+}
+
+.range:disabled {
+  opacity: 0.4;
 }
 
 .distanceValue {

@@ -3,6 +3,7 @@ import { Link, useFetcher, useLocation, useSearchParams } from 'react-router';
 import { useListActivity, useVendorActivity } from '@/components/ActivityTracker';
 import { ReportLink, ReviewList, type ShownReview } from '@/components/Reviews';
 import { directionsUrl, streetLine } from '@/lib/address';
+import { kmBetween, type Point } from '@/lib/distance';
 import { fuzzyMatch } from '@/lib/fuzzy';
 import type { DirectoryCard, ShortlistItem } from '@/server/browse.server';
 import { type Bounds, DirectoryMap, type MapApi } from './DirectoryMap';
@@ -87,7 +88,7 @@ const localFavourites = {
 type View = 'map' | 'hybrid' | 'list';
 
 export function Directory({
-  cards,
+  cards: rawCards,
   kinds,
   shortlist,
   signedIn,
@@ -95,7 +96,13 @@ export function Directory({
   initial,
   initialTrack = null,
   initialReviews = null,
+  home = null,
+  hasAddress = false,
 }: {
+  /** The signed-in person's own home (D-64): distances are worked out here, in their browser. */
+  home?: Point | null;
+  /** They gave an address (it may not have been found on the map yet). */
+  hasAddress?: boolean;
   cards: DirectoryCard[];
   kinds: { slug: string; name: string }[];
   shortlist: ShortlistItem[];
@@ -109,6 +116,48 @@ export function Directory({
   initialReviews?: PanelData['reviews'] | null;
 }) {
   const [params, setParams] = useSearchParams();
+  // Distances (D-64): from their home, or from where they are now (the browser's, never sent to
+  // Localites). Signed out, or with neither, there are none, and Within says why.
+  const [from, setFrom] = useState<From>(home ? 'home' : 'here');
+  const [here, setHere] = useState<Point | null>(null);
+  const [locating, setLocating] = useState(false);
+  const [hereError, setHereError] = useState<string | null>(null);
+  const origin = !signedIn ? null : from === 'home' ? home : here;
+  const cards = useMemo(
+    () =>
+      rawCards.map((c) => ({
+        ...c,
+        km: origin && c.lat !== null && c.lng !== null ? Math.round(kmBetween(origin, { lat: c.lat, lng: c.lng }) * 10) / 10 : null,
+      })),
+    [rawCards, origin],
+  );
+  const chooseFrom = useCallback(
+    (next: From) => {
+      setHereError(null);
+      if (next === 'home') {
+        setFrom('home');
+        return;
+      }
+      if (!('geolocation' in navigator)) {
+        setHereError('This browser can’t share where you are.');
+        return;
+      }
+      setLocating(true);
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          setHere({ lat: pos.coords.latitude, lng: pos.coords.longitude });
+          setFrom('here');
+          setLocating(false);
+        },
+        () => {
+          setHereError('Your browser didn’t share your location. Allow it in the browser’s settings, then try again.');
+          setLocating(false);
+        },
+        { enableHighAccuracy: false, timeout: 10000, maximumAge: 300000 },
+      );
+    },
+    [],
+  );
   const [query, setQuery] = useState('');
   const [within, setWithin] = useState('');
   const [rating, setRating] = useState('');
@@ -177,7 +226,7 @@ export function Directory({
       if (!c.kindSlug) return false;
       if (chosen.length > 0 && !chosen.includes(c.kindSlug)) return false;
       if (favOnly && !isFavourite(c)) return false;
-      if (within && (c.km ?? Infinity) > Number(within)) return false;
+      if (within && origin && (c.km ?? Infinity) > Number(within)) return false;
       if (rating && (c.rating ?? 0) < Number(rating)) return false;
       // Forgiving of spelling (the owner, 24 October 2026).
       if (needle && !fuzzyMatch(needle, [c.name, c.tagline ?? '', c.kind ?? '', c.sub ?? '', c.place, ...c.tags].join(' '))) return false;
@@ -185,12 +234,12 @@ export function Directory({
       return true;
     });
     const sorted = [...list];
-    if (sort === 'near') sorted.sort((a, b) => (a.km ?? Infinity) - (b.km ?? Infinity));
+    if (sort === 'near' && origin) sorted.sort((a, b) => (a.km ?? Infinity) - (b.km ?? Infinity));
     else if (sort === 'fast') sorted.sort((a, b) => (a.replyMinutes ?? Infinity) - (b.replyMinutes ?? Infinity));
     else if (sort === 'reviews') sorted.sort((a, b) => b.reviews - a.reviews);
     else sorted.sort((a, b) => (b.rating ?? 0) - (a.rating ?? 0));
     return sorted;
-  }, [cards, query, within, rating, sort, chosen, favOnly, isFavourite, area]);
+  }, [cards, query, within, rating, sort, chosen, favOnly, isFavourite, area, origin]);
   const filtering = Boolean(query.trim() || within || rating || sort !== 'top' || chosen.length || favOnly || area);
 
   const rails = useMemo(
@@ -292,30 +341,7 @@ export function Directory({
       <TopBar
         onTeam={cards.some((c) => c.yours !== null)}
         businesses={yourBusinesses}
-        end={
-          // Favourites at the far right, beside the profile button (the owner, 25 October 2026).
-          <>
-            <button
-              type="button"
-              onClick={() => setFavOnly((v) => !v)}
-              className={`${styles.chip} ${favOnly ? styles.chipOn : ''}`}
-              aria-pressed={favOnly}
-              title="Only your favourites"
-            >
-              <Icon name="heart" small />
-              Favourites{favourites > 0 ? ` ${favourites}` : ''}
-            </button>
-            {/* Messages and Community, between Favourites and the profile button (the owner, 26 October 2026). */}
-            <Link to="/messages" className={styles.chip} aria-label="Messages" title="Messages">
-              <Icon name="chat" small />
-              <span className={styles.chipWords}>Messages</span>
-            </Link>
-            <Link to="/community" className={styles.chip} aria-label="Community" title="Community">
-              <Icon name="people" small />
-              <span className={styles.chipWords}>Community</span>
-            </Link>
-          </>
-        }
+        favourites={{ on: favOnly, count: favourites, toggle: () => setFavOnly((v) => !v) }}
       >
         <div className={styles.search} role="search">
           <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false" className={styles.searchIcon}>
@@ -342,9 +368,20 @@ export function Directory({
         </div>
         <div className={styles.filters}>
           <KindsPicker kinds={kinds} chosen={chosen} onChange={setChosen} />
-          <Distance value={within} onChange={setWithin} />
+          <Distance
+            value={within}
+            onChange={setWithin}
+            signedIn={signedIn}
+            from={from}
+            onFrom={chooseFrom}
+            home={home}
+            hasAddress={hasAddress}
+            here={here}
+            locating={locating}
+            hereError={hereError}
+          />
           <Select id="rating" label="Rating" value={rating} onChange={setRating} options={RATING} />
-          <Select id="sort" label="Sort" value={sort} onChange={setSort} options={SORT} />
+          <Select id="sort" label="Sort" value={!origin && sort === 'near' ? 'top' : sort} onChange={setSort} options={origin ? SORT : SORT.filter((o) => o.value !== 'near')} />
           <button type="button" onClick={clear} className={styles.clear}>
             Reset
           </button>
@@ -362,6 +399,8 @@ export function Directory({
               panelOpen={Boolean(open) && !wide}
               onMoved={onMoved}
               onReady={onMapReady}
+              home={signedIn ? home : null}
+              here={signedIn && from === 'here' ? here : null}
               className={`${styles.map} ${view === 'map' ? styles.mapBig : ''}`}
             >
               <div className={`${styles.mapFoot} ${view === 'map' ? styles.mapFootRaised : ''}`}>
@@ -462,16 +501,52 @@ const inside = (b: Bounds, lat: number, lng: number) => lat >= b.south && lat <=
 
 /** The farthest a business may be, by a slider: 1 to 50 km, and 50 km+ for any distance (the owner, 24 October 2026). */
 export const MAX_KM = 50;
-function Distance({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+type From = 'home' | 'here';
+
+/**
+ * Within (D-64): distances from home or from where you are now ("From: Home or Current
+ * Location", the owner, 26 October 2026). Greyed until it can be used: signed out, it says to
+ * sign in; with no home found, Home says to add the address in Edit profile.
+ */
+function Distance({
+  value,
+  onChange,
+  signedIn,
+  from,
+  onFrom,
+  home,
+  hasAddress,
+  here,
+  locating,
+  hereError,
+}: {
+  value: string;
+  onChange: (v: string) => void;
+  signedIn: boolean;
+  from: From;
+  onFrom: (next: From) => void;
+  home: Point | null;
+  hasAddress: boolean;
+  here: Point | null;
+  locating: boolean;
+  hereError: string | null;
+}) {
+  const origin = !signedIn ? null : from === 'home' ? home : here;
   const km = value ? Number(value) : MAX_KM;
-  const words = km >= MAX_KM ? 'Any' : `${km} km`;
+  const words = !origin ? 'Off' : km >= MAX_KM ? 'Any' : `${km} km`;
   const pop = useRef<HTMLDetailsElement>(null);
   useCloseOutside(pop);
+  const homeWhy = !home
+    ? hasAddress
+      ? 'We couldn’t place your address on the map yet. Check it in Edit profile.'
+      : 'Add your address in Edit profile to measure from home.'
+    : null;
+  const why = !signedIn ? 'Sign in to filter by distance from your home or where you are now.' : !origin ? homeWhy : null;
   // The filled part of the track, as a share of it (shown in gold).
   const filled = `${((km - 1) / (MAX_KM - 1)) * 100}%`;
   return (
-    <details className={styles.picker} ref={pop}>
-      <summary className={styles.select}>
+    <details className={`${styles.picker} ${!origin ? styles.pickerOff : ''}`} ref={pop}>
+      <summary className={styles.select} title={why ?? undefined}>
         <span className={styles.selectLabel}>Within</span>
         <span className={styles.selectRow}>
           <span className={styles.pickerValue}>{words}</span>
@@ -481,28 +556,72 @@ function Distance({ value, onChange }: { value: string; onChange: (v: string) =>
         </span>
       </summary>
       <div className={`${styles.pickerList} ${styles.distancePop}`}>
-        <div className={styles.distanceHead}>
-          <label htmlFor="within" className={styles.selectLabel}>
-            Within
-          </label>
-          <span className={styles.distanceValue}>{km >= MAX_KM ? 'Any distance' : `${km} km`}</span>
-        </div>
-        <input
-          id="within"
-          type="range"
-          min={1}
-          max={MAX_KM}
-          step={1}
-          value={km}
-          onChange={(e) => onChange(Number(e.target.value) >= MAX_KM ? '' : e.target.value)}
-          className={styles.range}
-          style={{ '--filled': filled } as React.CSSProperties}
-          aria-valuetext={km >= MAX_KM ? 'Any distance' : `Within ${km} km`}
-        />
-        <div className={styles.distanceEnds} aria-hidden="true">
-          <span>1 km</span>
-          <span>{MAX_KM} km+</span>
-        </div>
+        {!signedIn ? (
+          <p className={styles.distanceWhy}>
+            {why}{' '}
+            <Link to="/join" className={styles.link}>
+              Sign in
+            </Link>
+          </p>
+        ) : (
+          <>
+            <div className={styles.fromRow} role="group" aria-label="Measure from">
+              <span className={styles.selectLabel}>From:</span>
+              <button
+                type="button"
+                className={`${styles.fromChip} ${from === 'home' && home ? styles.fromOn : ''}`}
+                aria-pressed={from === 'home' && Boolean(home)}
+                aria-disabled={!home}
+                title={homeWhy ?? 'Your home, from your address in Edit profile'}
+                onClick={() => home && onFrom('home')}
+              >
+                Home
+              </button>
+              <button
+                type="button"
+                className={`${styles.fromChip} ${from === 'here' && here ? styles.fromOn : ''}`}
+                aria-pressed={from === 'here' && Boolean(here)}
+                title="Where you are now. Your browser asks first; it isn’t saved or sent to Localites."
+                onClick={() => onFrom('here')}
+                disabled={locating}
+              >
+                {locating ? 'Finding you…' : 'Current location'}
+              </button>
+            </div>
+            {hereError && <p className={styles.distanceWhy}>{hereError}</p>}
+            {!origin && homeWhy && (
+              <p className={styles.distanceWhy}>
+                {homeWhy}{' '}
+                <Link to="/account?tab=about" className={styles.link}>
+                  Edit profile
+                </Link>
+              </p>
+            )}
+            <div className={styles.distanceHead}>
+              <label htmlFor="within" className={styles.selectLabel}>
+                Within
+              </label>
+              <span className={styles.distanceValue}>{!origin ? '—' : km >= MAX_KM ? 'Any distance' : `${km} km`}</span>
+            </div>
+            <input
+              id="within"
+              type="range"
+              min={1}
+              max={MAX_KM}
+              step={1}
+              value={km}
+              disabled={!origin}
+              onChange={(e) => onChange(Number(e.target.value) >= MAX_KM ? '' : e.target.value)}
+              className={styles.range}
+              style={{ '--filled': filled } as React.CSSProperties}
+              aria-valuetext={km >= MAX_KM ? 'Any distance' : `Within ${km} km`}
+            />
+            <div className={styles.distanceEnds} aria-hidden="true">
+              <span>1 km</span>
+              <span>{MAX_KM} km+</span>
+            </div>
+          </>
+        )}
       </div>
     </details>
   );
@@ -718,10 +837,12 @@ function Meta({ card }: { card: DirectoryCard }) {
         <Icon name="clock" tiny />
         {replyLabel(card.replyMinutes)}
       </span>
-      <span className={styles.metaItem}>
-        <Icon name="pin" tiny />
-        {kmLabel(card.km)}
-      </span>
+      {card.km !== null && (
+        <span className={styles.metaItem}>
+          <Icon name="pin" tiny />
+          {kmLabel(card.km)}
+        </span>
+      )}
     </div>
   );
 }
@@ -919,10 +1040,12 @@ function Profile({
               <Icon name="clock" />
               Replies {replyLabel(card.replyMinutes)}
             </span>
-            <span className={styles.metaItem}>
-              <Icon name="pin" />
-              {kmLabel(card.km)}
-            </span>
+            {card.km !== null && (
+              <span className={styles.metaItem}>
+                <Icon name="pin" />
+                {kmLabel(card.km)}
+              </span>
+            )}
           </div>
           {card.tagline && <p className={styles.panelTagline}>{card.tagline}</p>}
           {card.about && <p className={styles.panelAbout}>{card.about}</p>}
@@ -1017,10 +1140,14 @@ function Profile({
                       <span className={styles.dotSep} aria-hidden="true">
                         ·
                       </span>
-                      {kmLabel(s.km)}
-                      <span className={styles.dotSep} aria-hidden="true">
-                        ·
-                      </span>
+                      {s.km !== null && (
+                        <>
+                          {kmLabel(s.km)}
+                          <span className={styles.dotSep} aria-hidden="true">
+                            ·
+                          </span>
+                        </>
+                      )}
                       {s.place}
                     </span>
                   </span>

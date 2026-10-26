@@ -76,6 +76,47 @@ export async function findPin(
   }
 }
 
+const PROVINCE_NAMES: Record<string, string> = {
+  AB: 'Alberta', BC: 'British Columbia', MB: 'Manitoba', NB: 'New Brunswick', NL: 'Newfoundland and Labrador',
+  NS: 'Nova Scotia', NT: 'Northwest Territories', NU: 'Nunavut', ON: 'Ontario', PE: 'Prince Edward Island',
+  QC: 'Quebec', SK: 'Saskatchewan', YT: 'Yukon',
+};
+
+/**
+ * Where a person's own address is (D-64): exact, for their own distances only. Needs a street or
+ * a postal code (a town alone is too rough to measure from). Null when it isn't found.
+ */
+export async function findHomePoint(
+  env: ServerEnv,
+  a: { street: string | null; town: string | null; province: string | null; postalCode: string | null },
+): Promise<{ lat: number; lng: number } | null | 'failed'> {
+  if (!a.street && !a.postalCode) return null;
+  if (env.GEOCODE_LIMIT && !(await env.GEOCODE_LIMIT.limit({ key: 'nominatim' })).success) return 'failed';
+  const url = new URL(searchUrl(env));
+  url.searchParams.set('format', 'jsonv2');
+  url.searchParams.set('limit', '1');
+  url.searchParams.set('countrycodes', 'ca');
+  if (a.street) url.searchParams.set('street', a.street);
+  if (a.town) url.searchParams.set('city', a.town);
+  if (a.province && PROVINCE_NAMES[a.province]) url.searchParams.set('state', PROVINCE_NAMES[a.province]!);
+  if (a.postalCode) url.searchParams.set('postalcode', a.postalCode);
+  try {
+    const res = await fetch(url, {
+      headers: { 'User-Agent': 'Localites (supportlocalites@gmail.com)', Accept: 'application/json' },
+      signal: AbortSignal.timeout(4000),
+    });
+    if (!res.ok) return 'failed';
+    const [hit] = (await res.json()) as { lat?: string; lon?: string }[];
+    const lat = Number(hit?.lat);
+    const lng = Number(hit?.lon);
+    if (!Number.isFinite(lat) || !Number.isFinite(lng) || lat < 41 || lat > 57 || lng < -96 || lng > -74) return null;
+    return { lat: Math.round(lat * 100000) / 100000, lng: Math.round(lng * 100000) / 100000 };
+  } catch (err) {
+    console.error('home address search failed:', err instanceof Error ? err.message : err);
+    return 'failed';
+  }
+}
+
 /** Not answering (down, busy, or over the limit): said plainly, and nothing is saved. */
 export const SEARCH_DOWN = 'The map’s address search isn’t answering right now, so nothing was saved. Please try again in a few minutes.';
 

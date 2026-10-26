@@ -27,7 +27,7 @@ export const meta: Route.MetaFunction = ({ loaderData, matches }) =>
 export const handle = { noFooter: true };
 
 export async function loader({ request, params, context }: Route.LoaderArgs) {
-  const { env } = context.get(cloudflareContext);
+  const { env, ctx } = context.get(cloudflareContext);
   const found = await getVendor(env, params.slug);
   if (!found) {
     // A renamed listing: its old web address keeps working (shared links, Google).
@@ -37,7 +37,7 @@ export async function loader({ request, params, context }: Route.LoaderArgs) {
   }
   // This visit's note is made with the page, where it's known where the visitor came from (Google,
   // a shared link), which the profile panel's own request can't know (ADR-030).
-  const [page, reviews] = await Promise.all([loadDirectory(request, env, found.id), withDb(env, (db) => publicReviews(db, found.id))]);
+  const [page, reviews] = await Promise.all([loadDirectory(request, env, ctx, found.id), withDb(env, (db) => publicReviews(db, found.id))]);
   return data(
     {
       ...page.data,
@@ -54,8 +54,19 @@ export async function loader({ request, params, context }: Route.LoaderArgs) {
 export const headers: Route.HeadersFunction = ({ loaderHeaders }) => loaderHeaders;
 
 export default function VendorProfile({ loaderData }: Route.ComponentProps) {
-  const { cards, kinds, shortlist, signedIn, tracks, slug, track, reviews } = loaderData;
+  const { cards, kinds, shortlist, signedIn, tracks, slug, track, reviews, home, hasAddress } = loaderData;
   return (
-    <Directory cards={cards} kinds={kinds} shortlist={shortlist} signedIn={signedIn} tracks={tracks} initial={slug} initialTrack={track} initialReviews={reviews} />
+    <Directory
+      cards={cards}
+      kinds={kinds}
+      shortlist={shortlist}
+      signedIn={signedIn}
+      tracks={tracks}
+      home={home}
+      hasAddress={hasAddress}
+      initial={slug}
+      initialTrack={track}
+      initialReviews={reviews}
+    />
   );
 }

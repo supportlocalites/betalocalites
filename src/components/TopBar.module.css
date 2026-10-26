@@ -151,42 +151,31 @@
   background: var(--color-tint);
 }
 
-/* Browse local · Messages · Community (the owner, 25 October 2026). */
+/* Browse, Messages, Community, Favourites: small labelled icons (the owner, 26 October 2026). */
 .nav {
-  order: 2;
-  flex-basis: 100%;
   display: flex;
+  align-items: center;
   gap: var(--hairline);
-  padding: var(--space-1);
-  border-radius: var(--radius-pill);
-  background: var(--color-tint);
-}
-
-@media (min-width: 1024px) {
-  .nav {
-    order: 0;
-    flex-basis: auto;
-  }
-
-  .navLink {
-    padding-inline: var(--space-4);
-  }
 }
 
 .navLink {
-  flex: 1;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: var(--space-2);
-  min-width: 0;
-  padding: var(--space-2);
-  border-radius: var(--radius-pill);
-  font-size: var(--b44-text-search);
-  font-weight: 500;
+  position: relative;
+  display: grid;
+  justify-items: center;
+  gap: var(--hairline);
+  min-width: var(--size-icon-button);
+  padding: var(--space-1) var(--space-2);
+  border: 0;
+  border-radius: var(--radius-file);
+  background: none;
   color: var(--color-muted);
+  font: inherit;
+  font-size: var(--b44-text-card);
+  font-weight: 500;
+  line-height: 1.2;
   text-decoration: none;
   white-space: nowrap;
+  cursor: pointer;
 }
 
 .navLink:hover {
@@ -194,18 +183,53 @@
 }
 
 .navOn {
-  background: var(--color-surface);
+  background: var(--color-tint);
   color: var(--color-ink);
-  box-shadow: var(--shadow-soft);
+}
+
+.navIcon {
+  width: var(--b44-nav-icon);
+  height: var(--b44-nav-icon);
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.7;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+/* Icons only on a narrow screen; the words come back on a computer. */
+.navWord {
+  position: absolute;
+  width: var(--hairline);
+  height: var(--hairline);
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+@media (min-width: 1024px) {
+  .navWord {
+    position: static;
+    width: auto;
+    height: auto;
+    overflow: visible;
+    clip-path: none;
+  }
 }
 
 .navCount {
+  position: absolute;
+  top: 0;
+  right: var(--space-1);
+  min-width: var(--space-4);
   border-radius: var(--radius-pill);
-  padding: 0 var(--space-2);
+  padding: 0 var(--space-1);
   background: var(--color-gold-fill);
   color: var(--color-on-gold);
   font-size: var(--b44-text-card);
-  font-weight: 600;
+  font-weight: 700;
+  line-height: 1.4;
+  text-align: center;
 }
 
 /* ---------- A business's own pages (D-63): the bar is the business's, dark ---------- */

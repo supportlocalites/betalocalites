@@ -1,5 +1,5 @@
 import { Link } from 'react-router';
-import { MainNav, TopBar } from '@/components/TopBar';
+import { TopBar } from '@/components/TopBar';
 import { shareMeta } from '@/lib/meta';
 import type { Route } from './+types/community';
 import styles from './info.module.css';
@@ -15,9 +15,7 @@ export const meta: Route.MetaFunction = ({ matches }) =>
 export default function Community() {
   return (
     <>
-      <TopBar>
-        <MainNav />
-      </TopBar>
+      <TopBar />
       <main className="page">
         <h1 className="title-1">Community</h1>
         <div className="title-rule" aria-hidden="true" />
