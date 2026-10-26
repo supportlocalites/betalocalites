@@ -227,10 +227,10 @@ function refused(err: unknown): never {
   if (err instanceof CommunityRefused) throw err;
   const code = errorCode(err);
   const words = `${err instanceof Error ? err.message : ''} ${String((err as { cause?: unknown })?.cause ?? '')}`;
-  if (code === '23505') throw new CommunityRefused(/community_answer_one_per_business/.test(words) ? 'twice' : 'gone');
+  if (code === '23505') throw new CommunityRefused(/community_answer_one_per_(business|name)/.test(words) ? 'twice' : 'gone');
   if (code === 'LP100' || code === 'LP101') {
     throw new CommunityRefused(
-      /on the team of/.test(words) ? 'own' : /own answer/.test(words) ? 'ownVote' : /own post/.test(words) ? 'ownReport' : /isn't listed/.test(words) ? 'unlisted' : 'gone',
+      /on the team of/.test(words) ? 'own' : /own answer/.test(words) ? 'ownVote' : /own business/.test(words) ? 'ownBusiness' : /own post/.test(words) ? 'ownReport' : /isn't listed/.test(words) ? 'unlisted' : 'gone',
     );
   }
   throw err;
@@ -289,6 +289,12 @@ export async function answerQuestion(
         const [v] = await tx.execute<{ id: string }>(sql`select id from vendor where slug = ${input.vendorSlug} and listing_status = 'published'`);
         if (!v) throw new CommunityRefused('unlisted');
         vendorId = v.id;
+      } else if (input.businessName) {
+        // A typed name that's a business on Localites is that business, so the database's checks
+        // (never your own, once per question) apply to it too.
+        const [v] = await tx.execute<{ id: string }>(sql`
+          select id from vendor where lower(display_name) = lower(${input.businessName}) and listing_status = 'published' limit 1`);
+        vendorId = v?.id ?? null;
       }
       await tx.execute(sql`
         insert into community_answer (id, question_id, author_user_id, body, vendor_id, business_name, status, language_flag)
@@ -371,8 +377,9 @@ export async function postToReport(
           select id as "questionId", title as words, reviewer_name(author_user_id) as author
           from community_question where id = ${post.id} and status = 'shown'`)
       : db.execute<{ questionId: string; words: string; author: string }>(sql`
-          select question_id as "questionId", body as words, reviewer_name(author_user_id) as author
-          from community_answer where id = ${post.id} and status = 'shown'`),
+          select a.question_id as "questionId", a.body as words, reviewer_name(a.author_user_id) as author
+          from community_answer a join community_question q on q.id = a.question_id
+          where a.id = ${post.id} and a.status = 'shown' and q.status = 'shown'`),
   );
   return row ?? null;
 }
@@ -384,6 +391,8 @@ export type TeamPost = {
   id: string;
   questionId: string;
   questionTitle: string;
+  /** Whether the question is showing, so the team's page only links to one that is. */
+  questionShown: boolean;
   words: string;
   business: string | null;
   author: string;
@@ -397,12 +406,13 @@ export type TeamPost = {
 export async function communityQueue(env: ServerEnv, admin: Admin): Promise<TeamPost[]> {
   return actingAs(env, { side: 'team', userId: admin.userId }, async (db) => {
     const posts = await db.execute<Omit<TeamPost, 'reports'>>(sql`
-      select 'question' as kind, q.id, q.id as "questionId", q.title as "questionTitle", coalesce(q.detail, '') as words,
+      select 'question' as kind, q.id, q.id as "questionId", q.title as "questionTitle", q.status = 'shown' as "questionShown",
+             coalesce(q.detail, '') as words,
              null::text as business, reviewer_name(q.author_user_id) as author, q.status, q.language_flag as flag, q.created_at::text as "createdAt"
       from community_question q
       where q.status = 'held' or exists (select 1 from community_report r where r.question_id = q.id and r.decision is null)
       union all
-      select 'answer', a.id, q.id, q.title, a.body, coalesce(v.display_name, a.business_name), reviewer_name(a.author_user_id),
+      select 'answer', a.id, q.id, q.title, q.status = 'shown', a.body, coalesce(v.display_name, a.business_name), reviewer_name(a.author_user_id),
              a.status, a.language_flag, a.created_at::text
       from community_answer a join community_question q on q.id = a.question_id left join vendor v on v.id = a.vendor_id
       where a.status = 'held' or exists (select 1 from community_report r where r.answer_id = a.id and r.decision is null)
@@ -453,6 +463,24 @@ export async function decidePost(
   if (!isUuid(post.id)) throw new CommunityRefused('gone', 404);
   const table = sql.raw(post.kind === 'question' ? 'community_question' : 'community_answer');
   const column = sql.raw(post.kind === 'question' ? 'question_id' : 'answer_id');
+  try {
+    await decide(env, admin, post, to, note, table, column);
+  } catch (err) {
+    // Showing an answer about a business someone has suggested since: it's there already.
+    if (errorCode(err) === '23505') throw new CommunityRefused('twice');
+    throw err;
+  }
+}
+
+async function decide(
+  env: ServerEnv,
+  admin: Admin,
+  post: { kind: 'question' | 'answer'; id: string },
+  to: 'show' | 'remove',
+  note: string | null,
+  table: ReturnType<typeof sql.raw>,
+  column: ReturnType<typeof sql.raw>,
+): Promise<void> {
   await actingAs(env, { side: 'team', userId: admin.userId }, async (tx) => {
     const [now] = await tx.execute<{ status: string; removedBy: string | null }>(sql`
       select status, removed_by as "removedBy" from ${table} where id = ${post.id} for update`);

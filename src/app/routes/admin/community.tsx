@@ -60,9 +60,13 @@ export default function TeamCommunity({ loaderData: { posts }, actionData }: Rou
               </span>
               <span>
                 On:{' '}
-                <Link to={`/community/${p.questionId}`} className="text-link">
-                  {p.questionTitle}
-                </Link>
+                {p.questionShown ? (
+                  <Link to={`/community/${p.questionId}`} className="text-link">
+                    {p.questionTitle}
+                  </Link>
+                ) : (
+                  `${p.questionTitle} (not showing)`
+                )}
               </span>
               {p.words && <span>“{p.words}”</span>}
               {p.business && <span>Business suggested: {p.business}</span>}

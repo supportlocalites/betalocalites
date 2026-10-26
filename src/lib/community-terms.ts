@@ -21,6 +21,7 @@ export const COMMUNITY_PROBLEMS = {
   twice: 'That business is already suggested here. Vote it up instead, so it isn’t listed twice.',
   own: 'You can’t suggest a business you’re on the team of.',
   ownVote: 'You can’t vote on your own answer.',
+  ownBusiness: 'You can’t vote on an answer about a business you’re on the team of.',
   ownReport: 'You can’t report your own post.',
   reported: 'You’ve already reported this. Our team will look at it.',
   unlisted: 'That business isn’t listed on Localites at the moment.',

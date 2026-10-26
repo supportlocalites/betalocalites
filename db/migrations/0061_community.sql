@@ -19,8 +19,8 @@
 -- Shown to everyone (signed out too): questions and answers with status 'shown'. A post the
 -- language check flags is 'held': only its author and the team see it until the team shows it.
 -- Only the team takes a post down ('removed'); an author can take down their own. A business's
--- team can't suggest their own business. An account deleted takes its posts down and its votes
--- and reports' names with it. Download your data includes all of it.
+-- team can't suggest (or vote on) their own business. An account deleted takes its posts and
+-- their words down, and its votes and reports' names with it. Download your data includes it all.
 --
 -- Not destructive: four tables, their rules, and my_data() wrapped (my_data_0058 kept, renamed).
 -- =============================================================================
@@ -63,9 +63,12 @@ create table community_answer (
 );
 create index community_answer_by_question on community_answer (question_id);
 create index community_answer_by_author on community_answer (author_user_id);
--- One answer per business on Localites per question: a second is a vote for the first.
+-- One answer per business per question, on Localites or typed: a second is a vote for the first.
+-- Shown ones only, so one held for the team (which nobody else can see) never blocks it.
 create unique index community_answer_one_per_business on community_answer (question_id, vendor_id)
-  where vendor_id is not null and status <> 'removed';
+  where vendor_id is not null and status = 'shown';
+create unique index community_answer_one_per_name on community_answer (question_id, lower(business_name))
+  where business_name is not null and status = 'shown';
 comment on table community_answer is 'Community (0061): an answer, maybe suggesting one business. Vote counts kept here; who voted is private.';
 
 create table community_vote (
@@ -85,7 +88,8 @@ create table community_report (
   reporter_user_id  uuid references app_user(id) on delete set null,
   reason            text not null check (reason in ('rude', 'untrue', 'spam', 'self_promotion', 'personal', 'other')),
   details           text check (details is null or (char_length(details) between 1 and 500)),
-  decision          text check (decision in ('removed', 'kept')),
+  -- 'gone': its author (or a deleted account) took the post down first.
+  decision          text check (decision in ('removed', 'kept', 'gone')),
   decided_by        uuid references app_user(id) on delete set null,
   decided_at        timestamptz,
   created_at        timestamptz not null default now(),
@@ -181,6 +185,11 @@ begin
   if exists (select 1 from community_answer a where a.id = new.answer_id and a.author_user_id = acting_user()) then
     raise exception 'you can''t vote on your own answer' using errcode = 'LP100';
   end if;
+  -- Nor on an answer suggesting a business they're on the team of (it can't praise itself).
+  if exists (select 1 from community_answer a join vendor_member m on m.vendor_id = a.vendor_id
+             where a.id = new.answer_id and m.user_id = acting_user() and m.ended_at is null) then
+    raise exception 'you can''t vote on your own business' using errcode = 'LP100';
+  end if;
   return new;
 end $$;
 create trigger community_vote_rules before insert or update or delete on community_vote
@@ -216,7 +225,8 @@ begin
       raise exception 'a new report waits for the team' using errcode = 'LP100';
     end if;
     if (new.question_id is not null and not exists (select 1 from community_question q where q.id = new.question_id and q.status = 'shown'))
-       or (new.answer_id is not null and not exists (select 1 from community_answer a where a.id = new.answer_id and a.status = 'shown')) then
+       or (new.answer_id is not null and not exists (select 1 from community_answer a join community_question q on q.id = a.question_id
+                                                     where a.id = new.answer_id and a.status = 'shown' and q.status = 'shown')) then
       raise exception 'that post isn''t shown' using errcode = 'LP101';
     end if;
     if exists (select 1 from community_question q where q.id = new.question_id and q.author_user_id = acting_user())
@@ -243,14 +253,37 @@ create trigger community_report_rules before insert or update on community_repor
 create function community_goes_with_account() returns trigger
 language plpgsql security definer set search_path = public, extensions, pg_temp as $$
 begin
-  update community_question set status = 'removed', removed_by = 'account_deleted', removed_at = now()
-  where author_user_id = new.id and status <> 'removed';
-  update community_answer set status = 'removed', removed_by = 'account_deleted', removed_at = now()
-  where author_user_id = new.id and status <> 'removed';
+  -- Their words go too (as the rest of an account's own writing does), not just from view.
+  update community_question set status = 'removed', removed_by = 'account_deleted', removed_at = coalesce(removed_at, now()),
+         title = 'A question from a deleted account', detail = null
+  where author_user_id = new.id;
+  update community_answer set status = 'removed', removed_by = 'account_deleted', removed_at = coalesce(removed_at, now()),
+         body = 'An answer from a deleted account', business_name = null
+  where author_user_id = new.id;
   delete from community_vote where user_id = new.id;
   update community_report set reporter_user_id = null, details = null where reporter_user_id = new.id;
   return new;
 end $$;
+-- A post its author took down (or a deleted account's): its open reports, and those on a question's
+-- answers, are closed as 'gone', so they don't wait for the team for ever.
+create function community_reports_gone() returns trigger
+language plpgsql security definer set search_path = public, extensions, pg_temp as $$
+begin
+  if tg_table_name = 'community_question' then
+    update community_report set decision = 'gone', decided_at = now()
+    where decision is null and (question_id = new.id or answer_id in (select a.id from community_answer a where a.question_id = new.id));
+  else
+    update community_report set decision = 'gone', decided_at = now() where decision is null and answer_id = new.id;
+  end if;
+  return null;
+end $$;
+create trigger community_question_reports_gone after update of status on community_question
+  for each row when (new.status = 'removed' and old.status <> 'removed' and new.removed_by in ('author', 'account_deleted'))
+  execute function community_reports_gone();
+create trigger community_answer_reports_gone after update of status on community_answer
+  for each row when (new.status = 'removed' and old.status <> 'removed' and new.removed_by in ('author', 'account_deleted'))
+  execute function community_reports_gone();
+
 create trigger app_user_community_goes after update of deleted_at on app_user
   for each row when (old.deleted_at is null and new.deleted_at is not null)
   execute function community_goes_with_account();
@@ -339,7 +372,8 @@ begin
       from community_answer a join community_question q on q.id = a.question_id
       left join vendor v on v.id = a.vendor_id where a.author_user_id = me), '[]'),
     'community_votes', coalesce((
-      select jsonb_agg(jsonb_build_object('answer', a.body, 'vote', case when cv.value = 1 then 'up' else 'down' end, 'when', cv.created_at)
+      select jsonb_agg(jsonb_build_object('answer', case when a.status = 'shown' then a.body end,
+                                          'vote', case when cv.value = 1 then 'up' else 'down' end, 'when', cv.created_at)
              order by cv.created_at)
       from community_vote cv join community_answer a on a.id = cv.answer_id where cv.user_id = me), '[]'),
     'community_reports', coalesce((
@@ -349,13 +383,13 @@ begin
 end $$;
 
 revoke all on function my_data(), my_data_0058(), community_post_rules(), community_vote_rules(), community_vote_counts(),
-  community_report_rules(), community_goes_with_account() from public;
+  community_report_rules(), community_goes_with_account(), community_reports_gone() from public;
 do $$
 declare r text;
 begin
   foreach r in array array['anon', 'authenticated', 'service_role'] loop
     if exists (select 1 from pg_roles where rolname = r) then
-      execute format('revoke all on function my_data(), my_data_0058(), community_post_rules(), community_vote_rules(), community_vote_counts(), community_report_rules(), community_goes_with_account() from %I', r);
+      execute format('revoke all on function my_data(), my_data_0058(), community_post_rules(), community_vote_rules(), community_vote_counts(), community_report_rules(), community_goes_with_account(), community_reports_gone() from %I', r);
     end if;
   end loop;
 end $$;

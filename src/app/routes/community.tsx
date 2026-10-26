@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { Form, Link, useSearchParams } from 'react-router';
+import { data, Form, Link, useSearchParams } from 'react-router';
 import { cloudflareContext } from '@/app/context';
 import { TopBar } from '@/components/TopBar';
 import { answersWords, COMMUNITY_LIMITS, communityDate, problemWords } from '@/lib/community-terms';
@@ -23,8 +23,12 @@ export async function loader({ request, context }: Route.LoaderArgs) {
   const kind = new URL(request.url).searchParams.get('kind');
   const kinds = await communityKinds(env);
   const chosen = kinds.find((k) => k.slug === kind) ?? null;
-  return { signedIn: Boolean(userId), kinds, kind: chosen?.slug ?? null, questions: await communityFeed(env, userId, chosen?.slug ?? null) };
+  const page = { signedIn: Boolean(userId), kinds, kind: chosen?.slug ?? null, questions: await communityFeed(env, userId, chosen?.slug ?? null) };
+  // Signed in, the page has their own held posts: never kept by a shared cache.
+  return data(page, hasSessionCookie(request) ? { headers: { 'Cache-Control': 'private, no-store' } } : undefined);
 }
+
+export const headers: Route.HeadersFunction = ({ loaderHeaders }) => loaderHeaders;
 
 /** Words of four letters or more, to spot a question already asked while typing a new one. */
 const keyWords = (text: string) => new Set(text.toLowerCase().split(/[^a-z]+/).filter((w) => w.length >= 4));

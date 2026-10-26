@@ -83,6 +83,8 @@ r = await post(`/community/${qId}/act`, 'p', { intent: 'answer', mode: 'business
 check('a name not on the list from “Search Localites” is refused, saying what to do', r.status === 302 && r.location.includes('problem=notFound'), r.location);
 r = await post(`/community/${qId}/act`, 'o', { intent: 'answer', mode: 'business', vendor: OWEN.slug, body: 'We are the very best party shop, honestly!' });
 check('Owen can’t suggest his own business', r.status === 302 && r.location.includes('problem=own'), r.location);
+r = await post(`/community/${qId}/act`, 'o', { intent: 'answer', mode: 'business', businessName: OWEN.name, body: 'Typing our own name instead, sneaky!' });
+check('…not even by typing its name', r.status === 302 && r.location.includes('problem=own'), r.location);
 r = await post(`/community/${qId}/act`, 'o', { intent: 'answer', mode: 'advice', body: 'Order early: bakeries book up three weeks out.' });
 check('…but can give advice', r.status === 302 && r.location.includes('#a-'), r.location);
 const aAdvice = r.location.split('#a-')[1];
@@ -103,6 +105,10 @@ check('two votes up count on the answer', counts.up === 2 && counts.down === 0, 
 r = await post(`/community/${qId}/act`, 'p', { intent: 'vote', answer: aCakes, value: '1' });
 [counts] = await sql`select up_votes as up from community_answer where id = ${aCakes}`;
 check('voting the same way again takes the vote back', counts.up === 1, JSON.stringify(counts));
+await sql`insert into vendor_member (vendor_id, user_id, role) values (${CAKES.id}, ${ids.o}, 'manager')`;
+r = await post(`/community/${qId}/act`, 'o', { intent: 'vote', answer: aCakes, value: '-1' });
+check('someone on a business’s team can’t vote on answers about it', r.location.includes('problem=ownBusiness'), r.location);
+await sql`delete from vendor_member where vendor_id = ${CAKES.id} and user_id = ${ids.o}`;
 r = await post(`/community/${qId}/act`, 'q', { intent: 'vote', answer: aCakes, value: '1' });
 check('nobody votes on their own answer', r.location.includes('problem=ownVote') && (await sql`select up_votes from community_answer where id = ${aCakes}`)[0].up_votes === 1, r.location);
 r = await site(`/community/${qId}/act`, { method: 'POST', form: { intent: 'vote', answer: aCakes, value: '1' } });

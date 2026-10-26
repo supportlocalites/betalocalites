@@ -47,9 +47,17 @@ for you. Not yet: merging duplicate questions; emails about new answers.
 community_report; their rules; account deletion; Download your data). **Destructive?** No.
 **Privacy:** posts are public with the first name and last initial; who voted is never shown;
 the privacy policy, security model (§4.4a) and team handbook say so.
-**Review:** one independent review before pushing (findings below).
-**Tests run:** `npm run check`; unit tests 234/234; database checks all passed (0061: 42/42);
-Community 51/51.
+**Review:** one independent review before pushing; its findings fixed: reports on a post its
+author took down (or a deleted account's) close by themselves instead of waiting for ever; an
+answer under a question the team took down can't be reported; Download your data leaves out the
+words of an answer taken down that you voted on; a business's team can't vote on answers about it,
+nor suggest it by typing its name; a typed name counts once per question, as a business on
+Localites does; an answer held for the team never blocks the same business being suggested; an
+account deleted takes its posts' words too; the team's page doesn't link to a question that isn't
+showing, and showing an answer that's since been suggested again says so; signed in, the pages
+aren't kept by shared caches. Kept as is: the daily caps are a soft limit (counted, then added).
+**Tests run:** `npm run check`; unit tests 234/234; database checks all passed (0061: 47/47);
+Community 53/53; the look checks (with Community's pages).
 
 ### 2026-10-26 — Messages as the Style A mock-up (D-62 fix)
 

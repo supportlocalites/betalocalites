@@ -31,11 +31,12 @@ begin
           set_config('localites.vendor_id', '', true);
 end $$;
 
--- Pat (a1) asks; Kim (a2) answers; Owen (a3) owns the business c1; Ted (a5) is on the team.
+-- Pat (a1) asks; Kim (a2) answers; Owen (a3) owns the business c1; Mia (a4) votes; Ted (a5) is on the team.
 insert into app_user (id, display_name, given_name, family_name, email) values
   ('00000000-0000-7000-8000-0000000061a1', 'Pat Q.', 'Pat', 'Quill', 'pat-61@example.com'),
   ('00000000-0000-7000-8000-0000000061a2', 'Kim R.', 'Kim', 'Reed', 'kim-61@example.com'),
   ('00000000-0000-7000-8000-0000000061a3', 'Owen S.', 'Owen', 'Stone', 'owen-61@example.com'),
+  ('00000000-0000-7000-8000-0000000061a4', 'Mia T.', 'Mia', 'Tran', 'mia-61@example.com'),
   ('00000000-0000-7000-8000-0000000061a5', 'Ted U.', 'Ted', 'Ung', 'ted-61@example.com');
 insert into platform_role (user_id, role) values ('00000000-0000-7000-8000-0000000061a5', 'admin');
 insert into municipality (id, slug, name, region, is_active) values
@@ -98,20 +99,20 @@ select pg_temp.expect('Owen can''t take down Kim''s answer (nothing changes)',
 -- ------------------------------------------------------------------ Voting
 select pg_temp.act('person', '00000000-0000-7000-8000-0000000061a1');
 insert into community_vote (answer_id, user_id, value) values ('00000000-0000-7000-8000-0000000061e1', '00000000-0000-7000-8000-0000000061a1', 1);
-select pg_temp.act('person', '00000000-0000-7000-8000-0000000061a3');
-insert into community_vote (answer_id, user_id, value) values ('00000000-0000-7000-8000-0000000061e1', '00000000-0000-7000-8000-0000000061a3', -1);
+select pg_temp.act('person', '00000000-0000-7000-8000-0000000061a4');
+insert into community_vote (answer_id, user_id, value) values ('00000000-0000-7000-8000-0000000061e1', '00000000-0000-7000-8000-0000000061a4', -1);
 select pg_temp.expect('the answer counts one up and one down', (select up_votes = 1 and down_votes = 1 from community_answer where id = '00000000-0000-7000-8000-0000000061e1'));
-select pg_temp.expect('who voted is private: Owen sees only his own vote', (select count(*) = 1 from community_vote));
-update community_vote set value = 1 where answer_id = '00000000-0000-7000-8000-0000000061e1' and user_id = '00000000-0000-7000-8000-0000000061a3';
+select pg_temp.expect('who voted is private: Mia sees only her own vote', (select count(*) = 1 from community_vote));
+update community_vote set value = 1 where answer_id = '00000000-0000-7000-8000-0000000061e1' and user_id = '00000000-0000-7000-8000-0000000061a4';
 select pg_temp.expect('changing a vote moves the counts', (select up_votes = 2 and down_votes = 0 from community_answer where id = '00000000-0000-7000-8000-0000000061e1'));
-delete from community_vote where answer_id = '00000000-0000-7000-8000-0000000061e1' and user_id = '00000000-0000-7000-8000-0000000061a3';
+delete from community_vote where answer_id = '00000000-0000-7000-8000-0000000061e1' and user_id = '00000000-0000-7000-8000-0000000061a4';
 select pg_temp.expect('taking it back too', (select up_votes = 1 from community_answer where id = '00000000-0000-7000-8000-0000000061e1'));
 select pg_temp.expect_code('nobody votes as someone else',
   $q$insert into community_vote (answer_id, user_id, value) values ('00000000-0000-7000-8000-0000000061e2', '00000000-0000-7000-8000-0000000061a1', 1)$q$, 'LP101');
-insert into community_vote (answer_id, user_id, value) values ('00000000-0000-7000-8000-0000000061e1', '00000000-0000-7000-8000-0000000061a3', -1);
+insert into community_vote (answer_id, user_id, value) values ('00000000-0000-7000-8000-0000000061e1', '00000000-0000-7000-8000-0000000061a4', -1);
 select pg_temp.expect_code('one vote each',
-  $q$insert into community_vote (answer_id, user_id, value) values ('00000000-0000-7000-8000-0000000061e1', '00000000-0000-7000-8000-0000000061a3', 1)$q$, '23505');
-delete from community_vote where user_id = '00000000-0000-7000-8000-0000000061a3';
+  $q$insert into community_vote (answer_id, user_id, value) values ('00000000-0000-7000-8000-0000000061e1', '00000000-0000-7000-8000-0000000061a4', 1)$q$, '23505');
+delete from community_vote where user_id = '00000000-0000-7000-8000-0000000061a4';
 select pg_temp.expect_code('nobody writes the counts themselves',
   $q$update community_answer set up_votes = 99 where id = '00000000-0000-7000-8000-0000000061e2'$q$, '42501');
 select pg_temp.act('person', '00000000-0000-7000-8000-0000000061a2');
@@ -126,7 +127,14 @@ select pg_temp.act('person', '00000000-0000-7000-8000-0000000061a3');
 select pg_temp.expect_code('a business''s owner can''t suggest their own business',
   $q$insert into community_answer (question_id, author_user_id, body, vendor_id) values ('00000000-0000-7000-8000-0000000061d1', '00000000-0000-7000-8000-0000000061a3', 'We are the best, honestly!', '00000000-0000-7000-8000-0000000061c1')$q$, 'LP100');
 
+select pg_temp.expect_code('…nor vote on an answer suggesting it',
+  $q$insert into community_vote (answer_id, user_id, value) values ('00000000-0000-7000-8000-0000000061e1', '00000000-0000-7000-8000-0000000061a3', 1)$q$, 'LP100');
+select pg_temp.act('person', '00000000-0000-7000-8000-0000000061a2');
+select pg_temp.expect_code('the same typed name twice on one question is a vote instead',
+  $q$insert into community_answer (question_id, author_user_id, body, business_name) values ('00000000-0000-7000-8000-0000000061d1', '00000000-0000-7000-8000-0000000061a2', 'Maple crumbs again, so good', 'maple crumbs')$q$, '23505');
+
 -- ------------------------------------------------------------------ Reports
+select pg_temp.act('person', '00000000-0000-7000-8000-0000000061a3');
 insert into community_report (id, answer_id, reporter_user_id, reason, details)
 values ('00000000-0000-7000-8000-0000000061f1', '00000000-0000-7000-8000-0000000061e2', '00000000-0000-7000-8000-0000000061a3', 'untrue', 'Not true');
 select pg_temp.expect_code('a post is reported once by each person',
@@ -166,15 +174,43 @@ select pg_temp.act('team', '00000000-0000-7000-8000-0000000061a5');
 select pg_temp.expect_code('…and the team can''t put it back up',
   $q$update community_question set status = 'shown', removed_by = null, removed_at = null where id = '00000000-0000-7000-8000-0000000061d2'$q$, 'LP100');
 
+-- ------------------------------------------------------------------ Loose ends
+-- Kim's answer is reported, then she takes it down herself: the report closes, not left waiting.
+select pg_temp.act('person', '00000000-0000-7000-8000-0000000061a4');
+insert into community_report (answer_id, reporter_user_id, reason) values ('00000000-0000-7000-8000-0000000061e1', '00000000-0000-7000-8000-0000000061a4', 'spam');
+select pg_temp.act('person', '00000000-0000-7000-8000-0000000061a2');
+insert into community_answer (id, question_id, author_user_id, body, business_name, status, language_flag)
+values ('00000000-0000-7000-8000-0000000061e3', '00000000-0000-7000-8000-0000000061d1', '00000000-0000-7000-8000-0000000061a2',
+        'A held one about Maple Crumbs', 'Maple Crumbs', 'held', 'Word list: x');
+select pg_temp.expect('a held answer never blocks the same business being suggested (only shown ones count)',
+  (select status = 'held' from community_answer where id = '00000000-0000-7000-8000-0000000061e3'));
+update community_answer set status = 'removed', removed_by = 'author', removed_at = now() where id = '00000000-0000-7000-8000-0000000061e1';
+reset role;
+select pg_temp.expect('a post its author takes down: its open reports close as gone',
+  (select decision = 'gone' from community_report where answer_id = '00000000-0000-7000-8000-0000000061e1'));
+set local role app_server;
+-- A question the team took down: its answers can't be reported any more.
+select pg_temp.act('person', '00000000-0000-7000-8000-0000000061a1');
+insert into community_question (id, author_user_id, title) values ('00000000-0000-7000-8000-0000000061d3', '00000000-0000-7000-8000-0000000061a1', 'Best balloon arches in town?');
+select pg_temp.act('person', '00000000-0000-7000-8000-0000000061a2');
+insert into community_answer (id, question_id, author_user_id, body) values ('00000000-0000-7000-8000-0000000061e4', '00000000-0000-7000-8000-0000000061d3', '00000000-0000-7000-8000-0000000061a2', 'Ask at the party shop downtown.');
+select pg_temp.act('team', '00000000-0000-7000-8000-0000000061a5');
+update community_question set status = 'removed', removed_by = 'team', removed_at = now() where id = '00000000-0000-7000-8000-0000000061d3';
+select pg_temp.act('person', '00000000-0000-7000-8000-0000000061a4');
+select pg_temp.expect_code('an answer under a question taken down can''t be reported',
+  $q$insert into community_report (answer_id, reporter_user_id, reason) values ('00000000-0000-7000-8000-0000000061e4', '00000000-0000-7000-8000-0000000061a4', 'spam')$q$, 'LP101');
+
 -- ------------------------------------------------------------------ Download your data, and an account deleted
 select pg_temp.act('person', '00000000-0000-7000-8000-0000000061a2');
-select pg_temp.expect('Download your data has Kim''s answers', (select jsonb_array_length(my_data()->'community_answers') = 2));
+select pg_temp.expect('Download your data has Kim''s answers', (select jsonb_array_length(my_data()->'community_answers') = 4));
 select pg_temp.act('person', '00000000-0000-7000-8000-0000000061a1');
-select pg_temp.expect('…and Pat''s questions and vote', (select jsonb_array_length(my_data()->'community_questions') = 2 and jsonb_array_length(my_data()->'community_votes') = 1));
+select pg_temp.expect('…and Pat''s questions and vote, without the words of an answer taken down', (select jsonb_array_length(my_data()->'community_questions') = 3 and jsonb_array_length(my_data()->'community_votes') = 1
+  and my_data()->'community_votes'->0->>'answer' is null));
 reset role;
 update app_user set deleted_at = now() where id = '00000000-0000-7000-8000-0000000061a1';
-select pg_temp.expect('an account deleted: its question comes down, its vote goes',
-  (select status = 'removed' and removed_by = 'account_deleted' from community_question where id = '00000000-0000-7000-8000-0000000061d1')
+select pg_temp.expect('an account deleted: its question comes down with its words, its vote goes',
+  (select status = 'removed' and removed_by = 'account_deleted' and title = 'A question from a deleted account' and detail is null
+   from community_question where id = '00000000-0000-7000-8000-0000000061d1')
   and (select up_votes = 0 from community_answer where id = '00000000-0000-7000-8000-0000000061e1'));
 
 rollback;

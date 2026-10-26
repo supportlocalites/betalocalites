@@ -23,8 +23,12 @@ export async function loader({ request, params, context }: Route.LoaderArgs) {
   const order = new URL(request.url).searchParams.get('sort') === 'newest' ? 'newest' : 'helpful';
   const question = await communityQuestion(env, userId, params.id, order);
   if (!question) throw data(null, { status: 404 });
-  return { signedIn: Boolean(userId), order, question, choices: userId && !question.held ? await businessChoices(env, userId) : null };
+  const page = { signedIn: Boolean(userId), order, question, choices: userId && !question.held ? await businessChoices(env, userId) : null };
+  // Signed in, the page has their own votes and held posts: never kept by a shared cache.
+  return data(page, hasSessionCookie(request) ? { headers: { 'Cache-Control': 'private, no-store' } } : undefined);
 }
+
+export const headers: Route.HeadersFunction = ({ loaderHeaders }) => loaderHeaders;
 
 const ARROW = { up: 'M12 19V5M6 11l6-6 6 6', down: 'M12 5v14M6 13l6 6 6-6' } as const;
 
