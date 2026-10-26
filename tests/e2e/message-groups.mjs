@@ -123,6 +123,6 @@ check('a business in two groups shows both on its conversation', r.body.includes
 
 console.log('\nCommunity');
 r = await site('/community');
-check('Community is its own page, saying plainly it isn’t open yet', r.status === 200 && words(r.body).includes('It isn’t open yet'), String(r.status));
+check('Community is its own page, open to read (tests/e2e/community.mjs covers the rest)', r.status === 200 && words(r.body).includes('Sign in to ask a question'), String(r.status));
 
 await finish('message groups');
