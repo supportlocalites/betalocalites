@@ -145,7 +145,7 @@ await page.waitForSelector(`aside[aria-label="${A.name}"]`, { state: 'detached' 
 check('Esc closes it', !page.url().includes('v='));
 // Where each dot is on screen, and whether it's inside the map as it's now shown.
 const dots = () => page.$$eval('.leaflet-marker-icon', (els) => {
-  const box = document.querySelector('[aria-label="Map of the businesses that shared an address"]').getBoundingClientRect();
+  const box = els[0].ownerDocument.querySelector('[aria-label="Map of the businesses that shared an address"]').getBoundingClientRect();
   return els.map((el) => {
     const r = el.getBoundingClientRect();
     const x = r.x + r.width / 2;
