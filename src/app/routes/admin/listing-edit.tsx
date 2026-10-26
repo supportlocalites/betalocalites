@@ -474,7 +474,7 @@ export default function EditListing({ loaderData, actionData: rawResult }: Route
         <h2 id="address-heading">Address and map</h2>
         <p className="muted">
           {streetLine(listing.address)
-            ? `Shows as ${streetLine(listing.address)}${listing.address.hidden ? ' (number hidden by the business)' : ''}. `
+            ? `Shows as ${streetLine(listing.address)}${listing.address.hidden ? ' (number and unit hidden by the business)' : ''}. `
             : 'Only the town shows, and it isn’t on the map. '}
           {listing.address.lat === null
             ? listing.address.street
@@ -495,9 +495,13 @@ export default function EditListing({ loaderData, actionData: rawResult }: Route
             Number
           </label>
           <input id="team-number" name="number" className="input" maxLength={13} defaultValue={listing.address.number ?? ''} />
+          <label htmlFor="team-unit" className="field-label">
+            Unit or suite
+          </label>
+          <input id="team-unit" name="unit" className="input" maxLength={30} defaultValue={listing.address.unit ?? ''} />
           <label className="field-hint">
-            <input type="checkbox" name="hideNumber" value="yes" defaultChecked={listing.address.hidden} /> Hide the number (never shown, and
-            no longer kept; the pin is near the street).{' '}
+            <input type="checkbox" name="hideNumber" value="yes" defaultChecked={listing.address.hidden} /> Hide the number and unit (never shown,
+            and no longer kept; the pin is near the street).{' '}
             {listing.address.hidden && 'The business chose this: leave it ticked unless they ask you to change it.'}
           </label>
           {actionData?.intent === 'address' && actionData.errors && 'address' in actionData.errors && (

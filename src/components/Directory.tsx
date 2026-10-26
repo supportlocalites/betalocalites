@@ -974,9 +974,10 @@ function Profile({
           {card.street && (
             <p className={styles.small}>
               {card.approximate ? 'Approximate location: ' : ''}
-              {streetLine({ street: card.street, number: card.number, hidden: card.number === null })}, {card.town} ·{' '}
+              {/* Never a hidden number or unit: they aren't kept (0054, 0059). */}
+              {streetLine({ street: card.street, number: card.number, unit: card.unit, hidden: false })}, {card.town} ·{' '}
               <a
-                href={directionsUrl({ street: card.street, number: card.number, hidden: card.number === null }, card.town)}
+                href={directionsUrl({ street: card.street, number: card.number, hidden: false }, card.town)}
                 target="_blank"
                 rel="noopener noreferrer"
                 className={styles.link}

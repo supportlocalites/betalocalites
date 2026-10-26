@@ -134,7 +134,9 @@ export function planUndo(changes: ChangeSet, current: Record<string, unknown>): 
       lines.push({ key, restore: false, possible: current[key] === true, now: current[key] });
       continue;
     }
-    lines.push({ key, restore: c.from, possible: same(current[key], c.to), now: current[key] });
+    // An address saved before 0059 has no unit: as none (it couldn't have had one).
+    const to = key === 'address' && c.to && typeof c.to === 'object' ? { unit: null, ...c.to } : c.to;
+    lines.push({ key, restore: c.from, possible: same(current[key], to), now: current[key] });
   }
   return lines;
 }

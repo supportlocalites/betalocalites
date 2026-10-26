@@ -55,9 +55,9 @@ set local role app_server;
 insert into vendor_suggestion (id, business_name, contact, suggested_by, visitor_id, relationship, town, address_unit,
                                address_street, postal_code, hide_address_number, note)
 values ('00000000-0000-7000-8000-0000000058d1', 'Pat''s Cakes', '705-555-0101', '00000000-0000-7000-8000-0000000058a1',
-        gen_random_uuid(), 'owner', 'Orillia', 'Unit 2', 'Lakeshore Road', 'L3V 1A1', true, 'Call after 4');
-select pg_temp.expect('their own business keeps its address, unit, postal code and note',
-  (select town = 'Orillia' and address_unit = 'Unit 2' and address_street = 'Lakeshore Road' and postal_code = 'L3V 1A1'
+        gen_random_uuid(), 'owner', 'Orillia', null, 'Lakeshore Road', 'L3V 1A1', true, 'Call after 4');
+select pg_temp.expect('their own business keeps its address, postal code and note',
+  (select town = 'Orillia' and address_street = 'Lakeshore Road' and postal_code = 'L3V 1A1'
           and hide_address_number and note = 'Call after 4' and address_number is null
    from vendor_suggestion where id = '00000000-0000-7000-8000-0000000058d1'));
 select pg_temp.expect_code('a private street number is never kept',
@@ -158,7 +158,7 @@ select pg_temp.act(null, null);
 select pg_temp.act('person', '00000000-0000-7000-8000-0000000058a1');
 select pg_temp.expect('Download your data has the businesses you added, with the address',
   (select jsonb_array_length(my_data()->'businesses_you_added') = 2
-          and my_data()->'businesses_you_added'->0->>'unit' = 'Unit 2'
+          and my_data()->'businesses_you_added'->0->>'street' = 'Lakeshore Road'
           and (my_data()->'businesses_you_added'->0->>'street_number_private')::boolean));
 select pg_temp.expect('…and still everything 0057 had', my_data() ? 'message_groups' and my_data() ? 'suggested_businesses');
 select pg_temp.act('person', '00000000-0000-7000-8000-0000000058a3');

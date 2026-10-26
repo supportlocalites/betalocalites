@@ -55,9 +55,9 @@ check('a number without its street is refused', r.status === 400 && words(page(r
 r = await add('p');
 check('sent: back to Businesses, thanked', r.status === 302 && r.location === '/account?tab=businesses&added=1', `${r.status} ${r.location}`);
 let [row] = await sql`select * from vendor_suggestion where suggested_by = ${ids.p} and business_name = ${NAME}`;
-check('saved as theirs, with the unit, street, town and postal code', row && row.relationship === 'owner' && row.address_unit === 'Unit 2'
+check('saved as theirs, with the street, town and postal code', row && row.relationship === 'owner'
   && row.address_street === 'Lakeshore Road' && row.town === 'Orillia' && row.postal_code === 'L3V 1A1' && row.note === 'Call after 4' && row.contact === '705-555-0101');
-check('…the private street number was never kept', row && row.hide_address_number === true && row.address_number === null);
+check('…the private street number and unit were never kept', row && row.hide_address_number === true && row.address_number === null && row.address_unit === null);
 const [log] = await sql`select count(*)::int as n from audit_log where action = 'vendor_suggestion.own' and subject_id = ${row?.id ?? null}`;
 check('…and recorded', log.n === 1);
 r = await site('/account?tab=businesses&added=1', { cookie: cookie.p });
@@ -66,8 +66,8 @@ check('Businesses shows it, with our team', w.includes(NAME) && w.includes('With
 r = await site('/account?tab=businesses', { cookie: cookie.q });
 check('…but not to anyone else', !words(page(r.body)).includes(NAME));
 r = await add('p', { businessName: `${NAME} two`, hideNumber: '' });
-const [two] = await sql`select address_number from vendor_suggestion where business_name = ${`${NAME} two`}`;
-check('a street number not kept private is kept', r.status === 302 && two?.address_number === '22');
+const [two] = await sql`select address_number, address_unit from vendor_suggestion where business_name = ${`${NAME} two`}`;
+check('a street number and unit not kept private are kept', r.status === 302 && two?.address_number === '22' && two.address_unit === 'Unit 2');
 await add('p', { businessName: `${NAME} three` });
 r = await add('p', { businessName: `${NAME} four` });
 check('at most 3 waiting at a time', r.status === 409 && words(page(r.body)).includes('3 businesses waiting'), String(r.status));
@@ -78,7 +78,7 @@ check('not on the team: the suggestions page is closed', r.status === 302 || r.s
 r = await site('/admin/suggestions', { cookie: cookie.team });
 w = words(page(r.body));
 check('the team sees it was added by its owner, who, and the address', r.status === 200 && w.includes('Added by its owner') && w.includes(email('p'))
-  && w.includes('Unit 2, Lakeshore Road, Orillia, L3V 1A1') && w.includes('keep their street number private'), String(r.status));
+  && w.includes('Lakeshore Road, Orillia, L3V 1A1') && w.includes('Unit 2, 22 Lakeshore Road, Orillia, L3V 1A1') && w.includes('keep their street number private'), String(r.status));
 r = await site(`/admin/listings/new?suggestion=${row.id}`, {
   cookie: cookie.team,
   method: 'POST',

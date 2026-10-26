@@ -88,7 +88,7 @@ export async function addOwnBusiness(
                                        hide_address_number, note, connection_hash)
         values (${id}, ${input.businessName}, ${input.website}, ${input.contact},
                 (select id from category where slug = ${input.category} and is_active), ${member.userId},
-                ${input.relationship}, ${input.town}, ${input.unit}, ${address.number}, ${address.street}, ${input.postalCode},
+                ${input.relationship}, ${input.town}, ${address.unit}, ${address.number}, ${address.street}, ${input.postalCode},
                 ${address.hidden}, ${input.note}, case when ${connection}::text is null then null else decode(${connection}, 'hex') end)`);
       await audit(tx, {
         actor: member.userId,
@@ -113,7 +113,7 @@ export function ownTeamEmail(
     '',
     `Business: ${s.businessName}`,
     `Kind: ${s.kind ?? '(not chosen)'}`,
-    `Address: ${[s.unit, street, s.town, s.postalCode].filter(Boolean).join(', ')}${s.address.hidden ? ' (they keep their street number private)' : ''}`,
+    `Address: ${[s.address.unit, street, s.town, s.postalCode].filter(Boolean).join(', ')}${s.address.hidden ? ' (they keep their street number and unit private)' : ''}`,
     `Phone or email for the business: ${s.contact}`,
     `Website or social page: ${s.website ?? '(not given)'}`,
     `Added by: ${s.person.name} <${s.person.email}>, “${RELATIONSHIPS[s.relationship]}”`,

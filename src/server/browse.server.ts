@@ -263,6 +263,8 @@ export type DirectoryCard = {
   street: string | null;
   /** The street number; never one the business hides (0054). */
   number: string | null;
+  /** The unit or suite (0059); never kept when the number is hidden. */
+  unit: string | null;
   bestRated: boolean;
   tags: string[];
   photo: string | null;
@@ -311,6 +313,7 @@ async function readDirectory(db: Db, userId: string | null): Promise<Omit<Direct
              r.average as rating, coalesce(r.review_count, 0) as reviews, rp.reply_minutes as "replyMinutes",
              v.map_lat as lat, v.map_lng as lng, v.map_approximate as approximate, v.address_street as street,
              case when v.hide_address_number then null else v.address_number end as number,
+             case when v.hide_address_number then null else v.address_unit end as unit,
              -- The connection doesn't look up array types: the tags come as one text, split here.
              array_to_string(v.tags, chr(31)) as tags, cp.path as "photoPath", coalesce(cp.alt, '') as "photoAlt",
              v.claim_status = 'claimed' as claimed,

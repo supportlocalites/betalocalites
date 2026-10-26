@@ -377,6 +377,18 @@
   animation: undo-in 0.18s ease-out both;
 }
 
+/* Fading away: after 2 seconds, or at a click elsewhere. */
+.undoOut {
+  animation: undo-out 0.3s ease-in both;
+}
+
+@keyframes undo-out {
+  to {
+    opacity: 0;
+    transform: translateX(-50%) translateY(var(--space-2));
+  }
+}
+
 /* With the bar still showing, the note sits just above it. */
 .undoAbove {
   bottom: calc(var(--b44-undo-lift) + var(--safe-bottom));

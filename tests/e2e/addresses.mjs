@@ -44,7 +44,7 @@ const cookie = {};
 for (const who of ['o', 'm', 's', 'a', 'w']) cookie[who] = cookieFor(await passwordSession(email(who)));
 cookie.t = cookieFor(await twoStepSession(email('t')));
 const row = async (id) =>
-  (await sql`select address_street as street, address_number as number, hide_address_number as hidden, map_lat as lat, map_lng as lng,
+  (await sql`select address_street as street, address_number as number, address_unit as unit, hide_address_number as hidden, map_lat as lat, map_lng as lng,
              map_approximate as approximate from vendor where id = ${id}`)[0];
 const asked = async () => (await fetch(`${MAIL}/geocode/asked`)).json();
 const ADDR = `/vendors/${V.slug}/address`;
@@ -87,6 +87,15 @@ check('the profile shows the street and number, and directions',
   text.includes(`22A Lakeshore Road, ${town.name}`) && r.body.includes('google.com/maps/search') && !text.includes('Approximate location'));
 r = await site(ADDR, { cookie: cookie.o, method: 'POST', form: { street: 'Lakeshore Road', number: '22A' } });
 check('the same again: nothing saved', r.status === 302 && r.location.endsWith('unchanged=1'), `${r.status} ${r.location}`);
+r = await site(ADDR, { cookie: cookie.o, method: 'POST', form: { street: 'Lakeshore Road', number: '22A', unit: '2b' } });
+now = await row(V.id);
+check('a unit is saved with it (D-63)', r.status === 302 && now.unit === '2b', `${r.status} ${JSON.stringify(now)}`);
+r = await site(`/vendors/${V.slug}`);
+check('…and the profile shows it after the street', words(r.body).includes(`22A Lakeshore Road, Unit 2b, ${town.name}`));
+r = await site(ADDR, { cookie: cookie.o, method: 'POST', form: { street: 'Lakeshore Road', number: '22A', unit: 'Suite <b>' } });
+check('a unit that isn’t one is refused', r.status === 400 && words(r.body).includes('Enter the unit as letters and numbers'), String(r.status));
+r = await site(ADDR, { cookie: cookie.o, method: 'POST', form: { street: '', number: '', unit: '4' } });
+check('…as is a unit without a street', r.status === 400 && (await row(V.id)).unit === '2b', String(r.status));
 r = await site(ADDR, { cookie: cookie.o, method: 'POST', form: { street: 'Lakeshore Road', number: '22; drop' } });
 check('a number that isn’t one is refused, plainly', r.status === 400 && words(r.body).includes('Enter the number as digits'), String(r.status));
 r = await site(ADDR, { cookie: cookie.o, method: 'POST', form: { street: 'see http://x.example', number: '' } });
@@ -98,8 +107,8 @@ console.log('\nHiding the number (“Never on Localites”)');
 before = (await asked()).length;
 r = await site(ADDR, { cookie: cookie.m, method: 'POST', form: { street: 'Lakeshore Road', number: '22A', hideNumber: 'yes' } });
 now = await row(V.id);
-check('a manager hides it: the number isn’t kept, the pin is approximate',
-  r.status === 302 && now.hidden && now.number === null && now.approximate && now.lat !== null, `${r.status} ${JSON.stringify(now)}`);
+check('a manager hides it: the number and unit aren’t kept, the pin is approximate',
+  r.status === 302 && now.hidden && now.number === null && now.unit === null && now.approximate && now.lat !== null, `${r.status} ${JSON.stringify(now)}`);
 q = (await asked()).slice(before);
 check('…the address search was never sent the number', q.length === 1 && q[0].street === 'Lakeshore Road', JSON.stringify(q));
 r = await site(`/vendors/${V.slug}`);

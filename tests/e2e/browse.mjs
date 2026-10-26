@@ -292,6 +292,8 @@ check('on a computer, My picks is the dark bar: the business, its own category, 
   && (await me.textContent('[aria-label="My picks"]')).includes((sub ?? kind).name));
 await me.click('[aria-label="My picks"] button:has-text("Clear all")');
 await me.waitForSelector('[role="status"]:has-text("Picks cleared")');
+// The pointer resting on the note keeps it up while the test looks (it fades after 2 seconds).
+await me.hover('[role="status"]:has-text("Picks cleared")');
 for (let i = 0; i < 30 && (await mineNow()).length > 0; i++) await me.waitForTimeout(100);
 check('Clear all: the bar goes and “Picks cleared · Undo” shows', !(await me.isVisible('[aria-label="My picks"]')) && (await mineNow()).length === 0);
 await me.click('button:has-text("Undo")');
@@ -305,6 +307,14 @@ check('taking one business off with its × offers Undo too', (await me.isVisible
 await me.click('button:has-text("Undo")');
 await me.waitForSelector(`[aria-label="My picks"] button[aria-label="Remove ${A.name} from my picks"]`);
 check('…and Undo puts it back', (await mineNow()).includes(A.slug));
+await me.click(`[aria-label="My picks"] button[aria-label="Remove ${A.name} from my picks"]`);
+await me.waitForSelector(`[role="status"]:has-text("${A.name} removed")`);
+// Somewhere plain (the count of businesses shown), so the click opens nothing else.
+await me.click('p[class*="count"]');
+const fadedAtOnce = await me.waitForSelector(`[role="status"]:has-text("${A.name} removed")`, { state: 'detached', timeout: 1000 }).then(() => true, () => false);
+check('a click anywhere else fades the Undo note at once, and it stays removed', fadedAtOnce && !(await mineNow()).includes(A.slug));
+await me.click(`[class*="cardButtons"] button[aria-label="Add ${A.name} to my picks"]`);
+for (let i = 0; i < 30 && !(await mineNow()).includes(A.slug); i++) await me.waitForTimeout(100);
 const tick = `[class*="cardButtons"] button[aria-label="Remove ${A.name} from my picks"]`;
 await me.waitForSelector(tick);
 check('a picked business’s + is a solid dark circle with a tick, not the outline +', (await me.$eval(tick, (el) => el.ownerDocument.defaultView.getComputedStyle(el).backgroundColor)) === 'rgb(28, 26, 23)');
@@ -316,8 +326,11 @@ for (let i = 0; i < 30 && !(await mineNow()).includes(A.slug); i++) await me.wai
 check('…unticking it on the card offers Undo as well', (await mineNow()).includes(A.slug));
 await me.click('[aria-label="My picks"] button:has-text("Clear all")');
 await me.waitForSelector('[role="status"]:has-text("Picks cleared")');
-const gone = await me.waitForSelector('[role="status"]:has-text("Picks cleared")', { state: 'detached', timeout: 9000 }).then(() => true, () => false);
-check('…and the note goes by itself after a few seconds, the picks still cleared', gone && (await mineNow()).length === 0);
+await me.mouse.move(5, 5);
+await me.waitForTimeout(1000);
+const stillUp = await me.isVisible('[role="status"]:has-text("Picks cleared")');
+const gone = await me.waitForSelector('[role="status"]:has-text("Picks cleared")', { state: 'detached', timeout: 2500 }).then(() => true, () => false);
+check('…and left alone, the note stays up for 2 seconds, then fades, the picks still cleared', stillUp && gone && (await mineNow()).length === 0);
 await site('/shortlist', { cookie: cookie.p, method: 'POST', form: { intent: 'add', slug: A.slug, inline: '1' } });
 const pocket = await signedIn.newPage();
 await pocket.setViewportSize({ width: 390, height: 844 });

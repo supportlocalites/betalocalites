@@ -34,7 +34,7 @@ export async function action({ request, context }: Route.ActionArgs) {
   const parsed = ownBusinessInput.safeParse(typed);
   if (!parsed.success) for (const issue of parsed.error.issues) errors[String(issue.path[0])] ??= issue.message;
   const address = readAddressForm(form);
-  if ('error' in address) errors.street = address.error;
+  if ('error' in address) errors[address.field] = address.error;
   if (!parsed.success || 'error' in address) {
     return data({ error: 'Please check what’s marked below.', errors, typed }, { status: 400 });
   }
@@ -133,7 +133,7 @@ export default function AddBusiness({ loaderData: { kinds }, actionData }: Route
               <label htmlFor="unit" className="field-label">
                 Unit (optional)
               </label>
-              <input id="unit" name="unit" className="input" maxLength={40} autoComplete="address-line2" placeholder="Like 2B"
+              <input id="unit" name="unit" className="input" maxLength={30} autoComplete="address-line2" placeholder="Like 2B"
                 defaultValue={typed.unit ?? ''} aria-describedby={described('unit')} />
               {err('unit')}
             </div>
@@ -141,7 +141,9 @@ export default function AddBusiness({ loaderData: { kinds }, actionData }: Route
               <label htmlFor="number" className="field-label">
                 Street number
               </label>
-              <input id="number" name="number" className="input" maxLength={13} placeholder="Like 22" defaultValue={typed.number ?? ''} />
+              <input id="number" name="number" className="input" maxLength={13} placeholder="Like 22" defaultValue={typed.number ?? ''}
+                aria-describedby={described('number')} />
+              {err('number')}
             </div>
             <div className="field">
               <label htmlFor="street" className="field-label">
@@ -156,7 +158,7 @@ export default function AddBusiness({ loaderData: { kinds }, actionData }: Route
             <input type="checkbox" name="hideNumber" value="yes" defaultChecked={typed.hideNumber === 'yes'} />
             <span>
               <strong>Keep my street number private.</strong> Only the street and town will show, with the pin near the street, marked “
-              {APPROXIMATE}”. We don’t keep the number at all; share it in a message when you’re ready.
+              {APPROXIMATE}”. We don’t keep the number or unit at all; share them in a message when you’re ready.
             </span>
           </label>
           <div className={styles.addressRow}>

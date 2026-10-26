@@ -20,7 +20,7 @@ const NOMINATIM = 'https://nominatim.openstreetmap.org/search';
 
 /** The address columns, as one value (the team's history and undo treat it as one change). */
 export const ADDRESS_COLUMNS = sql`
-  address_street as street, address_number as number, hide_address_number as hidden,
+  address_street as street, address_number as number, address_unit as unit, hide_address_number as hidden,
   map_lat as lat, map_lng as lng, map_approximate as approximate`;
 
 export async function readAddress(db: Db, vendorId: string): Promise<Address> {
@@ -80,7 +80,11 @@ export async function findPin(
 export const SEARCH_DOWN = 'The map’s address search isn’t answering right now, so nothing was saved. Please try again in a few minutes.';
 
 /** The same street, number and choice to hide as now: nothing to look up or save. */
-const sameForm = (a: Address, f: AddressForm) => a.street === f.street && a.number === f.number && a.hidden === f.hidden;
+const sameForm = (a: Address, f: AddressForm) => a.street === f.street && a.number === f.number && a.unit === f.unit && a.hidden === f.hidden;
+
+/** Only the unit changed: the pin stays where it is, without asking the address search again. */
+const samePlace = (a: Address, f: AddressForm) => a.street === f.street && a.number === f.number && a.hidden === f.hidden;
+const keptPin = (a: Address) => (a.lat === null || a.lng === null ? null : { lat: a.lat, lng: a.lng, approximate: a.approximate });
 
 const toAddress = (a: AddressForm, pin: { lat: number; lng: number; approximate: boolean } | null): Address => ({
   ...a,
@@ -93,6 +97,7 @@ const toAddress = (a: AddressForm, pin: { lat: number; lng: number; approximate:
 const withoutNumber = (before: Address, next: Address): Address => ({
   ...before,
   number: null,
+  unit: null,
   lat: next.lat,
   lng: next.lng,
   approximate: next.lat !== null,
@@ -100,7 +105,7 @@ const withoutNumber = (before: Address, next: Address): Address => ({
 
 async function writeAddress(tx: Db, vendorId: string, a: Address) {
   await tx.execute(sql`
-    update vendor set address_street = ${a.street}, address_number = ${a.number}, hide_address_number = ${a.hidden},
+    update vendor set address_street = ${a.street}, address_number = ${a.number}, address_unit = ${a.unit}, hide_address_number = ${a.hidden},
                       map_lat = ${a.lat}, map_lng = ${a.lng}, map_approximate = ${a.approximate}
     where id = ${vendorId}`);
 }
@@ -119,7 +124,7 @@ export async function addressPage(env: ServerEnv, userId: string, slug: string):
 }
 
 const same = (a: Address, b: Address) =>
-  a.street === b.street && a.number === b.number && a.hidden === b.hidden && a.lat === b.lat && a.lng === b.lng && a.approximate === b.approximate;
+  a.street === b.street && a.number === b.number && a.unit === b.unit && a.hidden === b.hidden && a.lat === b.lat && a.lng === b.lng && a.approximate === b.approximate;
 
 /**
  * The owner or a manager saves the address: checked in the database on this request (their
@@ -136,7 +141,7 @@ export async function saveOwnerAddress(
   if (!page) throw new AddressRefused('not found');
   if (sameForm(page.address, form)) return 'unchanged';
   // The search is outside the step that writes (it's another site, and can take a moment).
-  const pin = await findPin(env, form, page.town);
+  const pin = samePlace(page.address, form) ? keptPin(page.address) : await findPin(env, form, page.town);
   if (pin === 'failed') throw new AddressRefused(SEARCH_DOWN);
   const next = toAddress(form, pin);
   return withDb(env, (db) =>
@@ -179,8 +184,9 @@ export async function setTeamAddress(
       select m.name as town from vendor v join municipality m on m.id = v.primary_municipality_id where v.id = ${vendorId}`),
   );
   if (!t) throw new AddressRefused('not found');
-  if (sameForm(await withDb(env, (db) => readAddress(db, vendorId)), form)) return 'unchanged';
-  const pin = await findPin(env, form, t.town);
+  const current = await withDb(env, (db) => readAddress(db, vendorId));
+  if (sameForm(current, form)) return 'unchanged';
+  const pin = samePlace(current, form) ? keptPin(current) : await findPin(env, form, t.town);
   if (pin === 'failed') throw new AddressRefused(SEARCH_DOWN);
   const next = toAddress(form, pin);
   return withDb(env, (db) =>
@@ -207,8 +213,8 @@ export async function setTeamAddress(
 /** The team's undo of an owner's address change: all of it at once (the database checks the parts together). */
 export async function restoreAddress(tx: Db, vendorId: string, value: unknown) {
   const a = { ...NO_ADDRESS, ...((value ?? {}) as Partial<Address>) };
-  // Never a number back onto a business that hides it now ("Never on Localites").
-  if (a.number && (await readAddress(tx, vendorId)).hidden) {
+  // Never a number or unit back onto a business that hides it now ("Never on Localites").
+  if ((a.number || a.unit) && (await readAddress(tx, vendorId)).hidden) {
     throw new AddressRefused('The business hides its street number now, so the earlier address can’t be put back.');
   }
   await writeAddress(tx, vendorId, a);

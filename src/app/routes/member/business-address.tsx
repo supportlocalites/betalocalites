@@ -35,7 +35,11 @@ export async function action({ request, params, context }: Route.ActionArgs) {
   const { env, ctx } = context.get(cloudflareContext);
   const member = context.get(memberContext);
   const form = await request.formData();
-  const typed = { street: String(form.get('street') ?? '').slice(0, 200), number: String(form.get('number') ?? '').slice(0, 20) };
+  const typed = {
+    street: String(form.get('street') ?? '').slice(0, 200),
+    number: String(form.get('number') ?? '').slice(0, 20),
+    unit: String(form.get('unit') ?? '').slice(0, 40),
+  };
   const read = readAddressForm(form);
   if ('error' in read) return data({ error: read.error, typed }, { status: 400 });
   if (!(await addressPage(env, member.userId, params.slug))) throw data(null, { status: 404 });
@@ -128,10 +132,24 @@ export default function BusinessAddress({ loaderData, actionData }: Route.Compon
               placeholder="Like 22"
             />
           </div>
+          <div className="field">
+            <label htmlFor="unit" className="field-label">
+              Unit or suite (optional)
+            </label>
+            <input
+              id="unit"
+              name="unit"
+              className="input"
+              maxLength={30}
+              autoComplete="address-line2"
+              defaultValue={actionData?.typed.unit ?? address.unit ?? ''}
+              placeholder="Like 2B or Suite 200"
+            />
+          </div>
           <label className="field-hint">
-            <input type="checkbox" name="hideNumber" value="yes" defaultChecked={address.hidden} /> Hide my street number. Only the street and
-            town show, and the pin is near the street, marked “{APPROXIMATE}”. Your number is then never shown on Localites and we stop
-            keeping it; share it in a message when you’re ready.
+            <input type="checkbox" name="hideNumber" value="yes" defaultChecked={address.hidden} /> Hide my street number and unit. Only the
+            street and town show, and the pin is near the street, marked “{APPROXIMATE}”. They’re then never shown on Localites and we
+            stop keeping them; share them in a message when you’re ready.
           </label>
           {actionData?.error && (
             <p className="field-error" role="alert">

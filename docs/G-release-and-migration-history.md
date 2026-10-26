@@ -31,6 +31,38 @@ Every release and every database migration, in order. Appended before each deplo
 
 ## Releases
 
+### 2026-10-26 — A unit in a business's address; Undo fades away (D-63, D-61)
+
+**Stage:** 1 and 2 (the redesign)
+**What changed (plain English):** A business's address can have a unit or suite ("22 Lakeshore
+Road, Unit 2B"), set by its owner or a manager on Your address, or by our team; it shows on the
+business's profile. When a business keeps its street number private, the unit isn't kept or shown
+either, and Add my business follows the same rule. Changing only the unit keeps the pin where it
+is. Directions links carry the street and number only. My picks' "… removed · Undo" note now
+stays 2 seconds, then fades, or fades at once at a click or tap anywhere else (the owner: "me
+clicking on something else shows I do not want to undo"); it stays while the mouse rests on it or
+keyboard focus is in it, and waits 8 seconds after a removal made with the keyboard. Scrolling
+doesn't count as a click. The team's undo of an owner's earlier address change still works.
+**Migrations applied:** 0059 (vendor.address_unit and its checks; Add my business keeps no unit
+beside a private number, and any kept since this morning are erased). **Destructive?** No.
+**Review:** one independent review before pushing; its findings (older address undos, a unit-only
+change searching the map again, Undo timing for keyboard users, the fade blocking clicks, scrolling
+dismissing it) were fixed.
+**Tests run:** `npm run check`; unit tests 233/233 (4 new on the address wording); database checks
+all passed (0059: 7/7); addresses 38/38; Browse local 94/94 (twice); Add and remove a business
+45/45; owner editing 55/55; reviews 73/73; Edit profile 23/23; claiming 74/74; accounts 35/35;
+account deletion 22/22; admin access 43/43; look checks 908/908.
+
+### 2026-10-26 — The review emails choice back on Edit profile (D-63 fix)
+
+**Stage:** 1 and 2 (the redesign)
+**What changed (plain English):** "Email me after my events to ask how the businesses I booked
+did" is back, on Edit profile's Privacy part (it had been left off, though those emails still go).
+GitHub keeps its copy of the test browser even when a test fails, so the next run doesn't wait
+for it again.
+**Migrations applied:** none. **Destructive?** No.
+**Tests run:** reviews 73/73; Edit profile 23/23.
+
 ### 2026-10-26 — Edit profile in Style C; the account switch; adding and removing a business (D-63)
 
 **Stage:** 1 and 2 (the redesign)

@@ -5,8 +5,15 @@ import { picksUndo } from './picksUndo';
 import { useCloseOutside } from './useCloseOutside';
 import styles from './ShortlistBar.module.css';
 
-/** How long "… removed · Undo" stays (the owner, 25 October 2026). */
-const UNDO_MS = 6000;
+/**
+ * How long "… removed · Undo" stays, then fades (the owner, 26 October 2026: "keep it up for 2
+ * seconds and then let it fade away"); a click anywhere else fades it at once ("me clicking on
+ * something else shows I do not want to undo"). The pointer resting on it keeps it up.
+ */
+const UNDO_MS = 2000;
+/** From the keyboard it takes longer to reach Undo, so it waits longer (and while focus is on it). */
+const UNDO_KEYBOARD_MS = 8000;
+const FADE_MS = 300;
 
 const businesses = (n: number) => `${n} ${n === 1 ? 'business' : 'businesses'}`;
 /** As the event's Message all counts them: only those on Localites can be messaged. */
@@ -29,12 +36,56 @@ export function ShortlistBar({ items }: { items: ShortlistItem[] }) {
   const [seen, setSeen] = useState<unknown>(null);
   const undoError = undo.state === 'idle' && seen !== undo.data ? (undo.data as { error?: string | null } | undefined)?.error : null;
 
-  // The note goes by itself; each new removal starts its time again.
+  // The note goes by itself, or at a click anywhere else; each new removal starts again.
+  const note = useRef<HTMLDivElement>(null);
+  // Which note is fading: a new removal is a new note, so it starts fresh by itself.
+  const [fading, setFading] = useState<typeof removed>(null);
+  const leaving = removed !== null && fading === removed;
+  // Bumped when the pointer or focus leaves the note, to start its time again.
+  const [again, setAgain] = useState(0);
+  const byKeyboard = useRef(false);
   useEffect(() => {
-    if (!removed) return;
-    const id = setTimeout(() => picksUndo.done(), UNDO_MS);
+    const keys = (e: KeyboardEvent) => {
+      if (e.key === 'Enter' || e.key === ' ') byKeyboard.current = true;
+    };
+    const pointer = () => {
+      byKeyboard.current = false;
+    };
+    document.addEventListener('keydown', keys, true);
+    document.addEventListener('pointerdown', pointer, true);
+    return () => {
+      document.removeEventListener('keydown', keys, true);
+      document.removeEventListener('pointerdown', pointer, true);
+    };
+  }, []);
+  useEffect(() => {
+    if (!removed || leaving) return;
+    const id = setTimeout(
+      () => {
+        // Kept up while the pointer rests on it or focus is in it; leaving starts the time again.
+        const n = note.current;
+        if (n && (n.matches(':hover') || n.contains(document.activeElement))) return;
+        setFading(removed);
+      },
+      byKeyboard.current ? UNDO_KEYBOARD_MS : UNDO_MS,
+    );
     return () => clearTimeout(id);
-  }, [removed]);
+  }, [removed, leaving, again]);
+  useEffect(() => {
+    if (!removed || leaving) return;
+    // A click (or tap), not a press: scrolling a phone's page isn't saying "no thanks".
+    const away = (e: MouseEvent) => {
+      if (!note.current?.contains(e.target as Node)) setFading(removed);
+    };
+    document.addEventListener('click', away, true);
+    return () => document.removeEventListener('click', away, true);
+  }, [removed, leaving]);
+  useEffect(() => {
+    if (!leaving) return;
+    // By the clock, not the animation's end: with reduced motion there is no animation.
+    const id = setTimeout(() => picksUndo.done(), FADE_MS);
+    return () => clearTimeout(id);
+  }, [leaving]);
 
   const shown = clear.state !== 'idle' ? [] : items;
 
@@ -50,7 +101,13 @@ export function ShortlistBar({ items }: { items: ShortlistItem[] }) {
         </div>
       )}
       {removed && !undoError && (
-        <div className={`${styles.undo} ${shown.length > 0 ? styles.undoAbove : ''}`} role="status">
+        <div
+          ref={note}
+          className={`${styles.undo} ${shown.length > 0 ? styles.undoAbove : ''} ${leaving ? styles.undoOut : ''}`}
+          role="status"
+          onPointerLeave={() => setAgain((n) => n + 1)}
+          onBlur={(e) => !e.currentTarget.contains(e.relatedTarget as Node | null) && setAgain((n) => n + 1)}
+        >
           <span className={styles.undoWords}>{removed.words}</span>
           <undo.Form method="post" action="/shortlist" preventScrollReset onSubmit={() => picksUndo.done()}>
             <input type="hidden" name="intent" value="restore" />
