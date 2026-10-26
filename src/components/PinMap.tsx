@@ -1,4 +1,5 @@
 import { useEffect, useRef } from 'react';
+import { addBaseMap } from './baseMap';
 import styles from './PinMap.module.css';
 
 export type Pin = { lat: number; lng: number; name: string; href?: string; approximate: boolean };
@@ -25,11 +26,8 @@ export function PinMap({ pins, label, className = '' }: { pins: Pin[]; label: st
       const [L] = await Promise.all([import('leaflet').then((m) => m.default ?? m), import('leaflet/dist/leaflet.css')]);
       if (gone || !box.current || pins.length === 0) return;
       map = L.map(box.current, { scrollWheelZoom: false, attributionControl: true });
-      L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        maxZoom: 18,
-        className: styles.tiles,
-        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
-      }).addTo(map);
+      // Drawn after the pins can be: the map's own look may take a moment to arrive.
+      void addBaseMap(L, map, styles.tiles);
       const icon = L.divIcon({ className: styles.pin, html: PIN_SVG, iconSize: [24, 34], iconAnchor: [12, 34], popupAnchor: [0, -30] });
       for (const p of pins) {
         if (p.approximate) L.circle([p.lat, p.lng], { radius: 150, className: styles.near, interactive: false }).addTo(map);

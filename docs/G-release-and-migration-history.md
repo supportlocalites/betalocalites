@@ -31,6 +31,24 @@ Every release and every database migration, in order. Appended before each deplo
 
 ## Releases
 
+### 2026-10-26 — The cleaner Bright map (D-64)
+
+**Stage:** 1 and 2 (the redesign)
+**What changed (plain English):** The maps on Browse local and on business pages are OpenFreeMap's
+"Bright" look (the owner: "more like google maps or Waze ... we jsut need the roads"; "I like
+Bright as the best map view"), drawn in the visitor's browser with buildings, shop and place
+icons, house numbers, footpaths and one-way arrows left out: roads, water, parks and names stay.
+OpenFreeMap is free, with no account, key or limit. If it can't be reached, or the browser can't
+draw it, the map is OpenStreetMap's own, as before. The map program (MapLibre) loads only on pages
+with a map.
+**Migrations applied:** none. **Destructive?** No.
+**Privacy:** visitors' browsers fetch the map from OpenFreeMap, which sees their internet address
+and the page, as OpenStreetMap did; the privacy policy and security notes say so.
+**Tests run:** `npm run check`; unit tests 234/234 (the clean-up rule); in a real browser with a
+stand-in map: the map is drawn, the left-out layers are gone, the pins and buttons sit on top and
+the credit line names OpenFreeMap and OpenStreetMap; without it, OpenStreetMap's map shows.
+Not seen here: the real OpenFreeMap map of Orillia (this workspace can't reach it).
+
 ### 2026-10-26 — The icon top bar, search first, the quiet Filters list, the hairline My picks; no distances (D-64)
 
 **Stage:** 1 and 2 (the redesign)

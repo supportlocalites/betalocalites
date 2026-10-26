@@ -182,7 +182,8 @@ its service to us.
 | **Cloudflare** | Hosts the site, runs the "are you human?" check, limits repeated requests, works out approximate town, and runs the automated word check (section 4) | Worldwide network, including outside Canada |
 | **Resend** | Sends our emails (your email address, and the email's content) | United States |
 | **GitHub** | Stores our encrypted nightly backup for 30 days | United States |
-| **OpenStreetMap** (OpenStreetMap Foundation) | Draws the maps on business pages and Browse local: your browser fetches the map pictures from it directly, so it sees your internet address and which page you're on (no account, nothing else from Localites). When a business saves its address, we ask its free address search where to put the pin: we send the street, number (never when the business hides it) and town, nothing about you | United Kingdom and worldwide |
+| **OpenFreeMap** | Draws the maps on business pages and Browse local: your browser fetches the map's data from it directly, so it sees your internet address and which page you're on (no account, nothing else from Localites) | Worldwide |
+| **OpenStreetMap** (OpenStreetMap Foundation) | The map's information comes from OpenStreetMap, and when OpenFreeMap can't be reached your browser fetches OpenStreetMap's own map pictures directly, so it sees your internet address and which page you're on (no account, nothing else from Localites). When a business saves its address, we ask its free address search where to put the pin: we send the street, number (never when the business hides it) and town, nothing about you | United Kingdom and worldwide |
 
 **Directions** on a business's page open Google Maps in a new tab, only if you tap it; Google's
 own privacy policy then applies. A business can hide its street number: it's then never shown

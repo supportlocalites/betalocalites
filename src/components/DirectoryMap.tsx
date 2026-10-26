@@ -1,6 +1,7 @@
 import { type ReactNode, useEffect, useRef } from 'react';
 import { CENTRE } from '@/lib/centre';
 import type { DirectoryCard } from '@/server/browse.server';
+import { addBaseMap } from './baseMap';
 import styles from './Directory.module.css';
 
 type L = typeof import('leaflet');
@@ -99,11 +100,8 @@ export function DirectoryMap({
       const [L] = await Promise.all([import('leaflet').then((m) => m.default ?? m), import('leaflet/dist/leaflet.css')]);
       if (gone || !box.current) return;
       const map = L.map(box.current, { scrollWheelZoom: true, attributionControl: true }).setView([CENTRE.lat, CENTRE.lng], 12);
-      L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        maxZoom: 18,
-        className: styles.tiles,
-        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
-      }).addTo(map);
+      // Drawn after the pins can be: the map's own look may take a moment to arrive.
+      void addBaseMap(L, map, styles.tiles);
       const s: MapState = { L, map, layer: L.layerGroup().addTo(map), flying: false, flownTo: null, before: null };
       state.current = s;
       const visitorMoved = () => {
