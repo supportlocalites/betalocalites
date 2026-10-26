@@ -14,8 +14,9 @@ export default [
   route('api/activity', 'routes/api-activity.ts'),
   route('suggest', 'routes/suggest.tsx'),
   route('how-it-works', 'routes/how-it-works.tsx'),
-  // Community (D-62): its own page, not built yet; the page says so.
+  // Community (D-62, migration 0061): anyone reads; asking, answering, voting and reporting need an account.
   route('community', 'routes/community.tsx'),
+  route('community/:id', 'routes/community-question.tsx'),
   route('for-businesses', 'routes/for-businesses.tsx'),
   route('help', 'routes/help.tsx'),
   route('join', 'routes/join.tsx'),
@@ -70,6 +71,9 @@ export default [
     route('events/:id/guests/:guestId', 'routes/member/guest-share.tsx'),
     // Report a published review (Stage 3, part 2): as the person, or as the business about its own.
     route('reviews/:id/report', 'routes/member/review-report.tsx', { id: 'person-review-report' }),
+    route('community/ask', 'routes/member/community-ask.tsx'),
+    route('community/:id/act', 'routes/member/community-act.tsx'),
+    route('community/:id/report', 'routes/member/community-report.tsx'),
     route('saved', 'routes/member/saved.tsx'),
     // The shortlist (D-57): the + on Browse local; also where the card buttons post.
     route('shortlist', 'routes/member/shortlist.tsx'),
@@ -117,6 +121,7 @@ export default [
     route('claims', 'routes/admin/claims.tsx'),
     route('suggestions', 'routes/admin/suggestions.tsx'),
     route('removals', 'routes/admin/removals.tsx'),
+    route('community', 'routes/admin/community.tsx'),
     route('event-types', 'routes/admin/event-types.tsx'),
     route('booking-flags', 'routes/admin/booking-flags.tsx'),
     route('bookings', 'routes/admin/bookings.tsx'),

@@ -56,6 +56,17 @@ Every review waits for a person before it shows (D-51).
 - For someone who keeps causing trouble across conversations or reviews, see **Suspending an
   account** below.
 
+## Community (Community page)
+
+- Two kinds of post wait here: ones the language check **held** (only their author sees them
+  until you decide), and ones someone **reported** (still showing to everyone).
+- **Show it** (or **Keep it**, for a reported one) if it's fine; **Take it down** if it breaks
+  the rules: rude or hateful, untrue, spam, a business praising itself, or someone's private
+  details. Taking down a question hides its answers with it. Its reports are closed with your
+  decision, and the audit log records who did which.
+- You never see who voted. A post its author took down, or one from a deleted account, stays
+  down.
+
 ## Claims (Claims page)
 
 Someone asks to manage a business's page. Approve only when you've checked one of these, and tick

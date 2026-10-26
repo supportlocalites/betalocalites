@@ -9,6 +9,8 @@ export const AUDIT_KINDS: Record<string, string> = {
   message: 'Messages',
   vendor_suggestion: 'Suggestions',
   vendor_interest: 'Inquiries',
+  community_question: 'Community questions',
+  community_answer: 'Community answers',
   event_vendor: 'Bookings',
   event_type: 'Event types',
   featured_placement: 'Featured businesses',

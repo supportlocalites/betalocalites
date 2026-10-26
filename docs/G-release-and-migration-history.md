@@ -31,6 +31,26 @@ Every release and every database migration, in order. Appended before each deplo
 
 ## Releases
 
+### 2026-10-26 — Community (D-62)
+
+**Stage:** 2 (the redesign)
+**What changed (plain English):** Community is open, in the feed look the owner chose (A).
+Anyone can read it. People signed in ask a question (similar ones already asked show while they
+type), optionally about one kind of business; answer one by suggesting a business on Localites
+(their favourites first, then search) or typing the name of one that isn't, or by just giving
+advice; vote answers up or down (one vote each, never on their own; the most up-voted first, and
+down votes shown as "N disagree"); report a question or answer; and take down their own. Names
+show as "Sarah M.". Posts show straight away unless the language check holds them for the team.
+The team's Community page lists held and reported posts, to show or take down; it's in Waiting
+for you. Not yet: merging duplicate questions; emails about new answers.
+**Migrations applied:** 0061 (community_question, community_answer, community_vote,
+community_report; their rules; account deletion; Download your data). **Destructive?** No.
+**Privacy:** posts are public with the first name and last initial; who voted is never shown;
+the privacy policy, security model (§4.4a) and team handbook say so.
+**Review:** one independent review before pushing (findings below).
+**Tests run:** `npm run check`; unit tests 234/234; database checks all passed (0061: 42/42);
+Community 51/51.
+
 ### 2026-10-26 — Messages as the Style A mock-up (D-62 fix)
 
 **Stage:** 2 (the redesign)

@@ -213,6 +213,13 @@ await sql`insert into shortlist (user_id, vendor_id) values (${ids.person}, ${W.
 const [lookGroup] = await sql`insert into message_group (user_id, name) values (${ids.person}, ${`Look group ${run}`}) returning id`;
 await sql`insert into message_group_member (group_id, conversation_id) values (${lookGroup.id}, ${conversationId})`;
 await sql`update vendor set cost_level = 2 where id = ${V.id}`;
+// Community (D-62): a question with an answer suggesting the business, and one held for the team.
+const [lookQuestion] = await sql`insert into community_question (author_user_id, title, detail)
+  values (${ids.person}, ${`Who makes the best dinosaur cakes ${run}?`}, 'For a 5th birthday.') returning id`;
+await sql`insert into community_answer (question_id, author_user_id, body, vendor_id)
+  values (${lookQuestion.id}, ${ids.owner}, 'They made our son a T. rex and it was perfect.', ${W.id})`;
+await sql`insert into community_question (author_user_id, title, status, language_flag)
+  values (${ids.person}, ${`A held question ${run}`}, 'held', 'Word list: test')`;
 // Step 3: one business at its address, one with its number hidden (an approximate pin).
 await sql`update vendor set address_street = 'Mississaga Street', address_number = '10', map_lat = 44.6083, map_lng = -79.4197 where id = ${V.id}`;
 await sql`update vendor set address_street = 'Lakeshore Road', hide_address_number = true, map_lat = 44.611, map_lng = -79.412, map_approximate = true
@@ -232,6 +239,10 @@ const PAGES = [
   { who: null, path: '/suggest', label: 'Suggest a business' },
   { who: null, path: '/how-it-works', label: 'How it works' },
   { who: null, path: '/community', label: 'Community' },
+  { who: 'person', path: '/community', label: 'Community, signed in' },
+  { who: null, path: `/community/${lookQuestion.id}`, label: 'A Community question' },
+  { who: 'person', path: `/community/${lookQuestion.id}?answer=1`, label: 'Answering a Community question' },
+  { who: 'owner', path: `/community/${lookQuestion.id}/report`, label: 'Report a Community post' },
   { who: null, path: '/suspended', label: 'Your account is suspended' },
   { who: null, path: '/help', label: 'Help' },
   { who: null, path: '/for-businesses', label: 'For businesses' },
@@ -283,6 +294,7 @@ const PAGES = [
   { who: 'team', path: '/admin/listings/new', label: 'Team: new listing' },
   { who: 'team', path: '/admin/claims', label: 'Team: claims' },
   { who: 'team', path: '/admin/removals', label: 'Team: removal requests' },
+  { who: 'team', path: '/admin/community', label: 'Team: Community' },
   { who: 'team', path: '/admin/suggestions', label: 'Team: suggestions' },
   { who: 'team', path: `/admin/photos?vendor=${V.id}`, label: 'Team: photos' },
   { who: 'team', path: '/admin/categories', label: 'Team: categories and towns' },

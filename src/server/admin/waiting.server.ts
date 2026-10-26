@@ -18,6 +18,7 @@ export type WaitingKind =
   | 'check_ins'
   | 'suggestions'
   | 'removals'
+  | 'community'
   | 'inquiries';
 
 /**
@@ -52,6 +53,13 @@ export async function waitingWork(env: ServerEnv, admin: Admin): Promise<Waiting
       select 'suggestions', count(*)::int, min(created_at)::text from vendor_suggestion where status = 'new'
       union all
       select 'removals', count(*)::int, min(created_at)::text from business_removal_request where status = 'new'
+      union all
+      select 'community', count(*)::int, min(created_at)::text from (
+        select q.created_at from community_question q
+        where q.status = 'held' or exists (select 1 from community_report r where r.question_id = q.id and r.decision is null)
+        union all
+        select a.created_at from community_answer a
+        where a.status = 'held' or exists (select 1 from community_report r where r.answer_id = a.id and r.decision is null)) c
       union all
       select 'inquiries', count(*)::int, min(vi.created_at)::text
         from vendor_interest vi join vendor v on v.id = vi.vendor_id

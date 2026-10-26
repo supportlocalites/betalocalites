@@ -29,6 +29,7 @@ const KINDS: Record<WaitingKind, { label: string; what: string; to: string }> = 
   check_ins: { label: 'Bookings to check in on', what: 'A business people booked was taken down. Let them know.', to: '/admin/bookings' },
   suggestions: { label: 'Suggested businesses', what: 'Add it, mark it a duplicate, or decline it.', to: '/admin/suggestions' },
   removals: { label: 'Removal requests', what: 'An owner asked to take their business off. Check who it affects, then be in touch.', to: '/admin/removals' },
+  community: { label: 'Community posts', what: 'The language check held one, or someone reported one. Show it or take it down.', to: '/admin/community' },
   inquiries: { label: 'Inquiries', what: 'People asking about businesses that haven’t joined. Invite the business.', to: '/admin/inquiries' },
 };
 

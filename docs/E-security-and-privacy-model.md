@@ -377,6 +377,26 @@ after the 60 days; at most 20 a day across the site. Each person can turn them o
 | Remove a published review | — | — | — | — | With a reason, logged |
 | Rating summary | R (shown from 3 reviews) | R | R | R | R |
 
+### 4.4a Community (D-62, migration 0061)
+
+| Action | Signed out | Person | Author | Business team member | Team |
+|---|---|---|---|---|---|
+| Read shown questions and answers | ✓ | ✓ | ✓ | ✓ | ✓ |
+| Read a held or taken-down post | ✗ | ✗ | own only | ✗ | ✓ |
+| Ask, answer (as themselves only) | ✗ | ✓ | – | ✓ (never suggesting their own business) | – |
+| Vote up or down (once; never on their own answer) | ✗ | ✓ | ✗ | ✓ | – |
+| See who voted | ✗ | own vote only | own vote only | own vote only | ✗ |
+| Report a post (once; never their own) | ✗ | ✓ | ✗ | ✓ | – |
+| Take a post down | ✗ | ✗ | own only | ✗ | ✓ (audit log) |
+| Show a held post, decide reports | ✗ | ✗ | ✗ | ✗ | ✓ (audit log) |
+
+Enforced in the database (forced row-level security and triggers, as `app_server`): nobody posts,
+votes or reports as someone else; a post's words, author, business and vote counts never change
+(the counts are kept by the database's owner from the votes); the language check (D-50) holds a
+flagged post for the team instead of showing it. Names are shown as "Sarah M."; an account
+deleted takes its posts down and its votes with it, and its reports keep no name. Download your
+data includes all of it. Limits: 5 questions, 20 answers and 10 reports a day per person.
+
 ### 4.5 Review eligibility (enforced by the database)
 
 A consumer can review a vendor only if: they marked that vendor booked on their own

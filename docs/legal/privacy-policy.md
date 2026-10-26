@@ -43,6 +43,10 @@ keep it, and the choices you have. It applies to localites.ca and the emails we 
   place, number of guests, age range, budget and notes.
 - The businesses you save, consider, or mark as booked, and the reviews you write.
 
+### When you use Community
+- The questions and answers you post, any business you suggest in an answer, your votes (up or
+  down) and any reports you send. Who voted is never shown; only the totals on each answer.
+
 ### When you invite guests
 - The names you enter for your guests, and, if you choose, their email address or phone
   number, so you can send each guest their own link.
@@ -108,10 +112,10 @@ keep it, and the choices you have. It applies to localites.ca and the emails we 
   section 5).
 - **To keep Localites safe and fair:** check that reviews come from real bookings, look into
   reports, stop spam and abuse, and keep a record of every change the team makes.
-- **To check words before they show:** what businesses write on their page, reviews, and
-  businesses' replies to reviews are checked for offensive language before they appear,
+- **To check words before they show:** what businesses write on their page, reviews,
+  businesses' replies to reviews, and Community questions and answers are checked for offensive language before they appear,
   first by our own word list and then by an automated service (Cloudflare's AI service).
-  Reviews and replies that seem to include a phone number, email address or street address
+  Reviews, replies and Community posts that seem to include a phone number, email address or street address
   are held too, so personal details aren't posted by mistake. Anything flagged is held for a
   person on our team to decide. Private messages are not checked this way.
 - **To improve Localites and report to businesses:** we use activity records to understand
@@ -124,7 +128,7 @@ keep it, and the choices you have. It applies to localites.ca and the emails we 
 
 | Who | What they see |
 |---|---|
-| **Other people using Localites** | Your published reviews, shown with your first name and the first letter of your last name (for example "Sarah M."). Nothing else about you. |
+| **Other people using Localites** | Your published reviews, and your Community questions and answers, shown with your first name and the first letter of your last name (for example "Sarah M."). Anyone can read Community, signed in or not. Never how you voted or what you reported. Nothing else about you. |
 | **A business you contact** | Your name and what you write or send in a conversation. Never your email address unless you type it. If you link an event to a conversation, they see a short summary: the date, the town and about how many guests. |
 | **A business you mark as booked** | Your name, the date, the town and about how many guests. Never your event's name, kind of event, start time, place, ages, budget, notes, the other businesses on your plan, or your email address. They can tell us if a booking isn't right. |
 | **A business you review** | Your review, shown as above, and they may reply once. |
