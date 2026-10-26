@@ -83,14 +83,15 @@ const PROVINCE_NAMES: Record<string, string> = {
 };
 
 /**
- * Where a person's own address is (D-64): exact, for their own distances only. Needs a street or
- * a postal code (a town alone is too rough to measure from). Null when it isn't found.
+ * Where a person's own address is (D-64): exact, for their own distances only. Needs a street and
+ * its town, or a postal code (a town alone is too rough to measure from). Null when it isn't found.
  */
 export async function findHomePoint(
   env: ServerEnv,
   a: { street: string | null; town: string | null; province: string | null; postalCode: string | null },
 ): Promise<{ lat: number; lng: number } | null | 'failed'> {
-  if (!a.street && !a.postalCode) return null;
+  // A street alone could be in any town: a street with its town, or a postal code.
+  if (!a.postalCode && !(a.street && a.town)) return null;
   if (env.GEOCODE_LIMIT && !(await env.GEOCODE_LIMIT.limit({ key: 'nominatim' })).success) return 'failed';
   const url = new URL(searchUrl(env));
   url.searchParams.set('format', 'jsonv2');

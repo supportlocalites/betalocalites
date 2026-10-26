@@ -118,7 +118,9 @@ export function Directory({
   const [params, setParams] = useSearchParams();
   // Distances (D-64): from their home, or from where they are now (the browser's, never sent to
   // Localites). Signed out, or with neither, there are none, and Within says why.
-  const [from, setFrom] = useState<From>(home ? 'home' : 'here');
+  // Home when they have one (even if it arrives later), until they choose.
+  const [chosenFrom, setFrom] = useState<From | null>(null);
+  const from: From = chosenFrom ?? (home ? 'home' : 'here');
   const [here, setHere] = useState<Point | null>(null);
   const [locating, setLocating] = useState(false);
   const [hereError, setHereError] = useState<string | null>(null);
@@ -149,8 +151,12 @@ export function Directory({
           setFrom('here');
           setLocating(false);
         },
-        () => {
-          setHereError('Your browser didn’t share your location. Allow it in the browser’s settings, then try again.');
+        (err) => {
+          setHereError(
+            err.code === err.PERMISSION_DENIED
+              ? 'Your browser didn’t share your location. Allow it in the browser’s settings, then try again.'
+              : 'We couldn’t tell where you are right now. Please try again in a moment.',
+          );
           setLocating(false);
         },
         { enableHighAccuracy: false, timeout: 10000, maximumAge: 300000 },
@@ -240,7 +246,9 @@ export function Directory({
     else sorted.sort((a, b) => (b.rating ?? 0) - (a.rating ?? 0));
     return sorted;
   }, [cards, query, within, rating, sort, chosen, favOnly, isFavourite, area, origin]);
-  const filtering = Boolean(query.trim() || within || rating || sort !== 'top' || chosen.length || favOnly || area);
+  const filtering = Boolean(
+    query.trim() || (within && origin) || rating || (sort !== 'top' && (sort !== 'near' || origin)) || chosen.length || favOnly || area,
+  );
 
   const rails = useMemo(
     () => kinds.map((k) => ({ ...k, items: filtered.filter((c) => c.kindSlug === k.slug) })).filter((r) => r.items.length > 0),
@@ -538,7 +546,7 @@ function Distance({
   useCloseOutside(pop);
   const homeWhy = !home
     ? hasAddress
-      ? 'We couldn’t place your address on the map yet. Check it in Edit profile.'
+      ? 'We couldn’t find your address on the map yet. Check it in Edit profile and save it again.'
       : 'Add your address in Edit profile to measure from home.'
     : null;
   const why = !signedIn ? 'Sign in to filter by distance from your home or where you are now.' : !origin ? homeWhy : null;
@@ -572,6 +580,7 @@ function Distance({
                 className={`${styles.fromChip} ${from === 'home' && home ? styles.fromOn : ''}`}
                 aria-pressed={from === 'home' && Boolean(home)}
                 aria-disabled={!home}
+                aria-describedby={homeWhy ? 'home-why' : undefined}
                 title={homeWhy ?? 'Your home, from your address in Edit profile'}
                 onClick={() => home && onFrom('home')}
               >
@@ -582,15 +591,15 @@ function Distance({
                 className={`${styles.fromChip} ${from === 'here' && here ? styles.fromOn : ''}`}
                 aria-pressed={from === 'here' && Boolean(here)}
                 title="Where you are now. Your browser asks first; it isn’t saved or sent to Localites."
-                onClick={() => onFrom('here')}
-                disabled={locating}
+                onClick={() => !locating && onFrom('here')}
+                aria-disabled={locating}
               >
                 {locating ? 'Finding you…' : 'Current location'}
               </button>
             </div>
             {hereError && <p className={styles.distanceWhy}>{hereError}</p>}
-            {!origin && homeWhy && (
-              <p className={styles.distanceWhy}>
+            {homeWhy && (
+              <p className={styles.distanceWhy} id="home-why">
                 {homeWhy}{' '}
                 <Link to="/account?tab=about" className={styles.link}>
                   Edit profile

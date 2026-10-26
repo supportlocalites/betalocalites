@@ -50,9 +50,10 @@ select pg_temp.expect_code('a look-up has its time',
 update person_profile set gender = 'woman' where user_id = '00000000-0000-7000-8000-0000000060a1';
 select pg_temp.expect('another detail saved: the point stays',
   (select home_lookup = 'found' from person_profile where user_id = '00000000-0000-7000-8000-0000000060a1'));
+update person_profile set home_tried_at = now() where user_id = '00000000-0000-7000-8000-0000000060a1';
 update person_profile set street_address = '5 Mississaga Street' where user_id = '00000000-0000-7000-8000-0000000060a1';
 select pg_temp.expect('a new address: the old point goes, to be looked up again',
-  (select home_lat is null and home_lng is null and home_lookup is null and home_looked_up_at is null
+  (select home_lat is null and home_lng is null and home_lookup is null and home_looked_up_at is null and home_tried_at is null
    from person_profile where user_id = '00000000-0000-7000-8000-0000000060a1'));
 update person_profile set home_lookup = 'not_found', home_looked_up_at = now() where user_id = '00000000-0000-7000-8000-0000000060a1';
 update person_profile set postal_code = 'L3V 2B2' where user_id = '00000000-0000-7000-8000-0000000060a1';

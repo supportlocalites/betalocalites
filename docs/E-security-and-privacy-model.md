@@ -511,6 +511,18 @@ append-only audit log stay as they were. Pins come from OpenStreetMap's free add
 (Nominatim: our User-Agent, about one look-up a second for the whole site, only when the address
 changed); maps are OpenStreetMap's tiles, fetched by the visitor's browser, credited on the map.
 
+**A person's own home (D-64, migration 0060).** When a person saves their address in Edit
+profile, its street, town, province and postal code (never their name or email) go to the same
+address search, and the exact point is kept in `person_profile` (`home_lat`, `home_lng`). It is
+sent only in that person's own Browse local page (signed-in pages are `private, no-store`), where
+their browser works out distances; no other page, person, business or team screen reads it.
+A changed address clears it (trigger `person_home_moves`); clearing the details or deleting the
+account deletes the row; Download your data includes it. Look-ups are claimed one at a time
+(`home_tried_at`), not retried within the hour when the search doesn't answer, and background
+ones have their own limit (one every 10 seconds) so businesses' saves come first. Errors are
+logged by code only, never with the address. "Current location" is the browser's own: asked for
+by the browser, used there, never sent (Permissions-Policy `geolocation=(self)`).
+
 ## 7a. Activity tracking (D-22)
 
 Localites counts how people interact with each vendor (ADR-023), to report to vendors and

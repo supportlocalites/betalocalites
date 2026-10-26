@@ -14,7 +14,7 @@
 --   or clearing the details deletes the row (0014, 0005).
 --   "Current location" is the browser's own and is never sent to Localites.
 --
--- Not destructive: four empty columns, two checks and a trigger added.
+-- Not destructive: five empty columns, three checks and a trigger added.
 -- =============================================================================
 
 set search_path = public, extensions;
@@ -23,7 +23,8 @@ alter table person_profile
   add column home_lat double precision check (home_lat between 41 and 57),
   add column home_lng double precision check (home_lng between -96 and -74),
   add column home_lookup text check (home_lookup in ('found', 'not_found')),
-  add column home_looked_up_at timestamptz;
+  add column home_looked_up_at timestamptz,
+  add column home_tried_at timestamptz;
 
 alter table person_profile
   add constraint person_profile_home_point_whole check ((home_lat is null) = (home_lng is null)),
@@ -33,6 +34,8 @@ alter table person_profile
 comment on column person_profile.home_lat is
   'Where their address is (0060, D-64): exact, for their own distances only. Cleared when the address changes.';
 comment on column person_profile.home_lng is 'See home_lat.';
+comment on column person_profile.home_tried_at is
+  'When a look-up was last started (0060): one at a time, and not again within the hour if the search didn''t answer.';
 comment on column person_profile.home_lookup is
   'Whether the address search found their address (0060): found, not_found, or not looked up yet (null).';
 
@@ -46,6 +49,7 @@ begin
     new.home_lng := null;
     new.home_lookup := null;
     new.home_looked_up_at := null;
+    new.home_tried_at := null;
   end if;
   return new;
 end $$;

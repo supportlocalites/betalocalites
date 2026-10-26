@@ -19,7 +19,7 @@ export async function loadDirectory(request: Request, env: ServerEnv, ctx: Execu
   // An address not looked up yet (saved before D-64, or the search was busy): looked up after this
   // page, so the next one measures from home.
   if (userId && mine.lookUp) {
-    ctx.waitUntil(lookUpHome(env, userId).catch((err) => console.error('home look-up not recorded', err instanceof Error ? err.message : err)));
+    ctx.waitUntil(lookUpHome(env, userId));
   }
   // Each row is counted as a list seen (ADR-030).
   const rails = found.kinds.map((k) => ({ slug: k.slug, ids: found.cards.filter((c) => c.kindSlug === k.slug).map((c) => c.id) }));

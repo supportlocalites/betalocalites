@@ -153,13 +153,20 @@ function IconNav({ unread, favourites }: { unread: number; favourites?: { on: bo
   return (
     <nav aria-label="Main" className={styles.nav}>
       {links.map(([to, icon, label, on]) => (
-        <Link key={to} to={to} aria-label={label} title={label} className={`${styles.navLink} ${on ? styles.navOn : ''}`} aria-current={on ? 'page' : undefined}>
+        <Link
+          key={to}
+          to={to}
+          // The label replaces what's inside for screen readers, so it carries the count itself.
+          aria-label={icon === 'messages' && unread > 0 ? `${label}, ${unread} new` : label}
+          title={label}
+          className={`${styles.navLink} ${on ? styles.navOn : ''}`}
+          aria-current={on ? 'page' : undefined}
+        >
           <NavIcon name={icon} />
           <span className={styles.navWord}>{label}</span>
           {icon === 'messages' && unread > 0 && (
-            <span className={styles.navCount}>
+            <span className={styles.navCount} aria-hidden="true">
               {unread}
-              <span className="visually-hidden"> new</span>
             </span>
           )}
         </Link>
