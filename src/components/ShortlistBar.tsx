@@ -20,11 +20,11 @@ const businesses = (n: number) => `${n} ${n === 1 ? 'business' : 'businesses'}`;
 const messageWords = (n: number) => (n === 1 ? 'Message 1' : n === 0 ? 'Message all' : `Message all ${n}`);
 
 /**
- * My picks (D-57, the shortlist; renamed by the owner, 25 October 2026), along the bottom of
- * Browse local when something is on it. On a computer, Style A: a quiet dark bar with each
- * business, its own category and an ×, then Clear all and Message all. On a phone, Style C: a
- * dark dock with the photos and how many, which opens the list (× on each), and Clear all and
- * Message all always in reach. After any removal, one or all, "… removed · Undo" puts them back.
+ * My picks (D-57, the shortlist; renamed by the owner, 25 October 2026), at the bottom of Browse
+ * local when something is on it: the hairline pill (the owner, 26 October 2026: "I like hair line
+ * for picks"), one small white pill on every screen with the businesses' faces and how many, which
+ * opens the list above it (× on each), then Clear and Message all. After any removal, one or all,
+ * "… removed · Undo" puts them back.
  */
 export function ShortlistBar({ items }: { items: ShortlistItem[] }) {
   const location = useLocation();
@@ -129,58 +129,16 @@ function Bar({ items, back, clear, onClear }: { items: ShortlistItem[]; back: st
   const tray = useRef<HTMLDetailsElement>(null);
   const trayId = useId();
   useCloseOutside(tray);
-  const actions = (
-    <>
-      <clear.Form method="post" action="/shortlist" preventScrollReset onSubmit={onClear}>
-        <input type="hidden" name="intent" value="clear" />
-        <input type="hidden" name="back" value={back} />
-        <input type="hidden" name="inline" value="1" />
-        <button type="submit" className={styles.clearAll}>
-          Clear all
-        </button>
-      </clear.Form>
-      <Link to="/shortlist/message" className={styles.message}>
-        {messageWords(canMessage)}
-        <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false" className={styles.icon}>
-          <path d="M5 12h13M13 7l5 5-5 5" />
-        </svg>
-      </Link>
-    </>
-  );
   return (
     <aside className={styles.bar} aria-label="My picks">
-      {/* Computers: Style A. */}
-      <div className={styles.wide}>
-        <p className={styles.count}>
-          <span className={styles.label}>My picks</span>
-          <span className={styles.number}>{businesses(items.length)}</span>
-        </p>
-        <div className={styles.scroller}>
-          <ul className={styles.items}>
-            {items.map((i) => (
-              <Item key={i.slug} item={i} back={back} />
-            ))}
-          </ul>
-        </div>
-        <div className={styles.actions}>{actions}</div>
-      </div>
-      {/* Phones: Style C. */}
-      <div className={styles.dock}>
+      <div className={styles.pill}>
         <details className={styles.tray} ref={tray}>
           <summary className={styles.open} aria-controls={trayId}>
             <span className={styles.faces} aria-hidden="true">
-              {items.slice(0, 4).map((i) => (i.photo ? <img key={i.slug} src={i.photo} alt="" /> : <span key={i.slug} />))}
+              {items.slice(0, 3).map((i) => (i.photo ? <img key={i.slug} src={i.photo} alt="" /> : <span key={i.slug} />))}
             </span>
-            <span className={styles.dockWords}>
-              <b>{`${items.length} ${items.length === 1 ? 'pick' : 'picks'}`}</b>
-              <small className={styles.see}>See the list</small>
-              <small className={styles.hide}>Hide the list</small>
-            </span>
-            <span className={styles.chevron} aria-hidden="true">
-              <svg viewBox="0 0 24 24" focusable="false" className={styles.icon}>
-                <path d="m6 15 6-6 6 6" />
-              </svg>
-            </span>
+            <span className={styles.count}>{`${items.length} ${items.length === 1 ? 'pick' : 'picks'}`}</span>
+            <span className="visually-hidden">: {businesses(items.length)}, show or hide the list</span>
           </summary>
           <ul id={trayId} className={styles.list}>
             {items.map((i) => (
@@ -188,7 +146,17 @@ function Bar({ items, back, clear, onClear }: { items: ShortlistItem[]; back: st
             ))}
           </ul>
         </details>
-        <div className={styles.dockActions}>{actions}</div>
+        <clear.Form method="post" action="/shortlist" preventScrollReset onSubmit={onClear}>
+          <input type="hidden" name="intent" value="clear" />
+          <input type="hidden" name="back" value={back} />
+          <input type="hidden" name="inline" value="1" />
+          <button type="submit" className={styles.clearAll} aria-label="Clear all my picks">
+            Clear
+          </button>
+        </clear.Form>
+        <Link to="/shortlist/message" className={styles.message}>
+          {messageWords(canMessage)}
+        </Link>
       </div>
     </aside>
   );

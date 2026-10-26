@@ -31,33 +31,31 @@ Every release and every database migration, in order. Appended before each deplo
 
 ## Releases
 
-### 2026-10-26 — The icon top bar; distances from home or current location (D-64)
+### 2026-10-26 — The icon top bar, search first, the quiet Filters list, the hairline My picks; no distances (D-64)
 
 **Stage:** 1 and 2 (the redesign)
 **What changed (plain English):** The bar along the top shows Browse, Messages (with how many have
 something new), Community and Favourites as small labelled icons beside the account button, on
-every page; on a phone the words go and the icons stay. On Browse local, Within now reads "From:
-Home or Current location": distances (Within, Closest, and "km" on the cards) are measured from
-the person's own home, found from the address they give in Edit profile, or from where they are
-now, which their browser asks before sharing and which is never sent to Localites. Signed out,
-Within is greyed and says to sign in; signed in without an address, Home is greyed and says to add
-it in Edit profile. Their home shows on the map as a small house, on their own page only.
-**Migrations applied:** 0060 (person_profile: the exact home point, whether it was found, and
-when; a changed address clears it). **Destructive?** No.
-**Privacy:** the home point is only ever in that person's own page; Download your data includes
-it; deleting the account or clearing the details removes it. The site's settings now let it ask
-for the browser's location (Permissions-Policy geolocation=(self)); nothing embedded can.
-**Review:** one independent review before pushing; its findings fixed: database errors logged
-without the address; one look-up at a time, not retried within the hour, and background ones
-limited to one every 10 seconds so businesses' saves come first; the privacy policy and security
-notes now say a person's own address goes to the address search; the Messages count read out to
-screen readers; Within's hints, errors and "filtered" state.
+every page; on a phone the words go and the icons stay, and Browse goes too (the wordmark beside
+them goes to Browse). On Browse local the search comes first, in the middle of the bar, with one
+Filters button inside it that shows how many filters are on. Filters opens a short list, a line
+for each filter with what it's set to (Categories, Rating, Sort), drawn like the bar's old boxes;
+only the line tapped opens, and its foot has Reset and Show results. My picks is a small white
+pill at the bottom on every screen: the businesses' faces and how many, which opens the list above
+it (an × on each), then Clear and Message all. **Distances are gone** (the owner: "lets remove the
+distance for now"): no Within, no Closest, no "km" on the cards or the profile.
+**Migrations applied:** 0060 (person_profile: columns for a home point, built for distances from
+home and then set aside before going live). Nothing writes or reads them now; they are empty. An
+applied migration is never edited or removed, so they stay until distances come back or a new
+migration takes them out. **Destructive?** No.
+**Privacy:** no home addresses are looked up or sent anywhere; the site still never asks for the
+browser's location (Permissions-Policy geolocation=() as before). The privacy policy and security
+notes are as they were before D-64.
+**Review:** the earlier distances work had one independent review (its findings fixed, then the
+work set aside). This change is the page's look and takes code out; it changes nothing about who
+can see or do what, so the tests are the check.
 **Tests run:** `npm run check`; unit tests 233/233; database checks all passed (0060: 11/11);
-Browse local 103/103 (its "moving the map" check fails on this workspace's freshly built test
-data for the earlier version too, so it isn't this change); Edit profile 25/25; messages
-148/148; message groups 26/26; accounts 35/35; account deletion 22/22; scenario fixes 5a 36/36;
-Add and remove a business 45/45; addresses 38/38; claiming 74/74; admin access 43/43; suggestion
-emails 9/9.
+Browse local 98/98; Edit profile 23/23; the look checks 908/908.
 
 ### 2026-10-26 — Suggest a business in the new design; ready for the package updates
 

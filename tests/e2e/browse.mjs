@@ -1,8 +1,8 @@
 // Browse local in the Base44 design (D-59; D-57 and migration 0053 before it): a row for each
 // main kind of business (D-60) with every listed business as a small card, the heart (favourites)
 // and the + (shortlist) on each card, the profile panel with Message or Inquire, and the shortlist
-// bar with Message all. Search, Within, Rating, Sort and Clear work in the browser, as on Base44,
-// checked here in a real browser. A business's own web address opens the page with its profile
+// bar with Message all. Search and the Filters list (Categories, Rating, Sort, Reset; D-64) work in
+// the browser, as on Base44, checked here in a real browser. No distances (the owner, 26 October 2026). A business's own web address opens the page with its profile
 // open (K18). The database's own rules for the shortlist are in db/tests/0053.
 //
 // Usage: npm run test:e2e
@@ -26,7 +26,7 @@ const business = async (key, name, { status = 'published', claim = 'claimed', ta
   await sql`insert into vendor_category (vendor_id, category_id, is_primary) values (${v.id}, ${category.id}, true)`;
   return v;
 };
-// A is downtown (about 0 km), B is in Washago (about 17 km), U isn't on Localites yet.
+// A is downtown, B is in Washago, U isn't on Localites yet.
 const A = await business('a', 'Browse Alpha Bakery', { tagline: 'Cakes for every party', pin: [44.6086, -79.4184], category: sub ?? kind });
 const B = await business('b', 'Browse Beta Bakery', { pin: [44.7504, -79.3329] });
 const U = await business('u', 'Browse Unclaimed Bakery', { claim: 'unclaimed' });
@@ -40,12 +40,6 @@ const ids = {};
 for (const who of ['p', 'q', 'o', 't']) ids[who] = await account(email(who));
 await sql`insert into vendor_member (vendor_id, user_id, role) values (${A.id}, ${ids.o}, 'owner')`;
 await sql`insert into platform_role (user_id, role) values (${ids.t}, 'admin')`;
-// P lives downtown, by A (D-64: distances are from their own home); Q has given no address.
-const HOME = [44.60813, -79.41907];
-await sql`insert into person_profile (user_id, street_address, town, province, home_lat, home_lng, home_lookup, home_looked_up_at)
-          values (${ids.p}, '10 Peter Street North', 'Orillia', 'ON', ${HOME[0]}, ${HOME[1]}, 'found', now())
-          on conflict (user_id) do update set street_address = excluded.street_address, town = excluded.town`;
-await sql`update person_profile set home_lat = ${HOME[0]}, home_lng = ${HOME[1]}, home_lookup = 'found', home_looked_up_at = now() where user_id = ${ids.p}`;
 const cookie = {};
 for (const who of ['p', 'q', 'o']) cookie[who] = cookieFor(await passwordSession(email(who)));
 cookie.t = cookieFor(await twoStepSession(email('t')));
@@ -54,9 +48,10 @@ console.log('Rows, cards and the profile');
 let r = await site('/explore');
 check('signed out, Browse local shows listed businesses in their main kind’s row', r.status === 200 && r.body.includes(`id="rail-${kind.slug}"`)
   && r.body.includes(A.name) && r.body.includes(B.name) && r.body.includes(U.name) && !r.body.includes(H.name), String(r.status));
-check('…with the top bar: search, Categories (All), Within (off until signed in), Rating, Sort and Reset', r.body.includes('Search by name or what they do...')
-  && words(r.body).includes('Within Off') && words(r.body).includes('Sign in to filter by distance') && r.body.includes('4.8 &amp; up') && r.body.includes('Fastest reply')
-  && r.body.includes('>Reset<') && r.body.includes('>All<') && words(r.body).includes('Categories All'));
+check('…with the search first, and Filters inside it: Categories (All), Rating, Sort and Reset', r.body.includes('Search by name or what they do...')
+  && r.body.includes('aria-label="Filters"') && words(r.body).includes('Categories All') && words(r.body).includes('Rating Any rating')
+  && words(r.body).includes('Sort Top rated') && r.body.includes('>Reset<'));
+check('…and no distances anywhere (the owner, 26 October 2026)', !words(r.body).includes('Within') && !words(r.body).includes('Closest') && !/\d+\.\d km/.test(words(r.body)));
 // The count line under the map is gone (the owner, 24 October 2026).
 check('…the count line under the map, with Expand list', /\d+ businesses · Click a business to open the profile/.test(words(r.body)) && words(r.body).includes('Expand list'));
 check('…the + asks to sign in first and comes back here; the heart works without an account',
@@ -113,6 +108,24 @@ console.log('\nIn the browser: search, filters, sort and the panel');
 const browser = await chromium.launch();
 const page = await browser.newPage({ viewport: { width: 1280, height: 900 } });
 const cardNames = async () => page.$$eval('article h3', (hs) => hs.map((h) => h.textContent));
+// The Filters list (D-64): open it, open one line, and pick; Reset and Show results at its foot.
+const LIST = '[class*="filterList"]';
+const openFilters = async (p = page) => {
+  if (!(await p.isVisible(LIST))) await p.click('summary[aria-label^="Filters"]');
+};
+const pick = async (line, choice, p = page) => {
+  await openFilters(p);
+  if ((await p.getAttribute(`${LIST} button:has-text("${line}")`, 'aria-expanded')) !== 'true') await p.click(`${LIST} button:has-text("${line}")`);
+  await p.click(`${LIST} label:has-text("${choice}")`);
+};
+const done = async (p = page) => {
+  if (await p.isVisible(LIST)) await p.click(`${LIST} button:has-text("Show results")`);
+};
+const resetFilters = async (p = page) => {
+  await openFilters(p);
+  await p.click(`${LIST} button:has-text("Reset")`);
+  await done(p);
+};
 await page.goto(`${BASE}/explore`, { waitUntil: 'networkidle' });
 await page.fill('#q', `alpha bakery ${run}`);
 let names = await cardNames();
@@ -126,18 +139,21 @@ check('…or by what it does', names.includes(A.name) && !names.includes(B.name)
 await page.fill('#q', `zzz-nothing-${run}`);
 check('nothing found: Base44’s words, and Suggest a business', (await page.textContent('body')).includes('Nothing matches those filters')
   && (await page.$('a[href^="/suggest"]')) !== null);
-await page.click('button:has-text("Reset")');
-// Signed out, distances are off (D-64): there's no home to measure from.
-await page.click('summary:has-text("Within")');
-check('signed out, Within is greyed and says to sign in, with no slider', !(await page.isVisible('#within'))
-  && (await page.isVisible('text=Sign in to filter by distance')) && (await page.getAttribute('summary:has-text("Within")', 'title')).includes('Sign in'));
-check('…no distances on the cards', !(await page.textContent('body')).match(/\d+\.\d km/));
-check('…and no “Closest” sort', !(await page.$$eval('#sort option', (os) => os.map((o) => o.value))).includes('near'));
-await page.mouse.click(640, 880);
-await page.selectOption('#rating', '4.8');
+await page.click('[class*="empty"] button:has-text("Reset")');
+check('…with Reset there, which brings everything back', (await page.inputValue('#q')) === '' && (await cardNames()).includes(A.name));
+check('no distances on the cards', !(await page.textContent('body')).match(/\d+\.\d km/));
+await openFilters();
+check('Filters opens a short list, one line each, none of them open', (await page.$$eval(`${LIST} button[aria-expanded]`, (bs) => bs.map((b) => b.getAttribute('aria-expanded')))).join() === 'false,false,false');
+await page.click(`${LIST} button:has-text("Sort")`);
+const sorts = await page.$$eval(`${LIST} fieldset label`, (ls) => ls.map((l) => l.textContent.trim()));
+check('…tapping a line opens only that one: Sort has no “Closest”', sorts.join('|') === 'Top rated|Fastest reply|Most reviewed', sorts.join('|'));
+await pick('Rating', '4.8 & up');
+check('…opening another closes the first', (await page.getAttribute(`${LIST} button:has-text("Sort")`, 'aria-expanded')) === 'false');
+await done();
 names = await cardNames();
 check('“4.8 & up” leaves out businesses with no rating yet', !names.includes(A.name) && !names.includes(B.name));
-await page.click('button:has-text("Reset")');
+check('…and the Filters button counts it', (await page.getAttribute('summary[aria-label^="Filters"]', 'aria-label')) === 'Filters, 1 on');
+await resetFilters();
 await page.click(`button[aria-label="Open ${A.name}"]`);
 await page.waitForSelector(`aside[aria-label="${A.name}"]`);
 check('tapping a card opens its profile, and its address names it', page.url().includes(`v=${A.slug}`));
@@ -186,12 +202,13 @@ check('signed out, the heart keeps a favourite in this browser', (await page.get
 await page.reload({ waitUntil: 'networkidle' });
 check('…and still after a reload', (await page.$(`button[aria-label="Remove ${B.name} from favourites"]`)) !== null);
 const at = async (sel) => page.$eval(sel, (el) => el.getBoundingClientRect().toJSON());
-const [fav, reset, sortBox, msgs, comm] = [await at('header button:has-text("Favourites")'), await at('button:has-text("Reset")'), await at('#sort'),
+const [fav, search, filters, msgs, comm] = [await at('header button:has-text("Favourites")'), await at('[role="search"]'), await at('summary[aria-label^="Filters"]'),
   await at('header a[aria-label="Messages"]'), await at('header a[aria-label="Community"]')];
-// The owner, 26 October 2026: "I like the icons": Browse, Messages, Community, Favourites at the right.
-check('at the right of the bar: Messages, Community, Favourites (then the profile or Sign in); Reset stays next to the filters',
-  msgs.x > 1280 * 0.6 && msgs.x < comm.x && comm.x < fav.x && reset.x > sortBox.x && reset.x < msgs.x,
-  `${Math.round(reset.x)} ${Math.round(msgs.x)} ${Math.round(comm.x)} ${Math.round(fav.x)}`);
+// The owner, 26 October 2026: "I like the icons" at the right, and "search first", Filters inside it.
+check('the search in the middle with Filters inside it; Messages, Community, Favourites at the right',
+  Math.abs(search.x + search.width / 2 - 640) < 160 && filters.x > search.x && filters.x + filters.width <= search.x + search.width
+  && msgs.x > search.x + search.width && msgs.x < comm.x && comm.x < fav.x,
+  `${Math.round(search.x)}+${Math.round(search.width)} ${Math.round(filters.x)} ${Math.round(msgs.x)} ${Math.round(comm.x)} ${Math.round(fav.x)}`);
 check('…and no Curator’s note on a profile', !(await page.textContent('body')).includes('Curator'));
 
 console.log('\nThe owner’s additions (24 October 2026)');
@@ -200,14 +217,15 @@ await page.click('button:has-text("Favourites")');
 names = await cardNames();
 check('Favourites shows only the favourites', names.length === 1 && names[0] === B.name, names.join(', '));
 await page.click('button:has-text("Favourites")');
-await page.click('summary:has-text("Categories")');
-await page.click(`label:has-text("${kind2.name}")`);
+await pick('Categories', kind2.name);
 names = await cardNames();
 check('Categories: ticking a kind leaves only that kind', !names.includes(A.name) && !names.includes(B.name));
-await page.click('button:has-text("Show all categories")');
+check('…its line says which', (await page.textContent(`${LIST} button:has-text("Categories")`)).includes(kind2.name));
+await page.click(`${LIST} button:has-text("Reset")`);
 names = await cardNames();
-check('…and “Show all categories” brings every kind back', names.includes(A.name) && names.includes(B.name));
-await page.click('summary:has-text("Categories")');
+check('…and Reset brings every kind back', names.includes(A.name) && names.includes(B.name));
+await done();
+check('Show results closes the list', !(await page.isVisible(LIST)));
 check('it starts with the map and the rows', (await page.$('[aria-label="Map of the businesses that shared an address"]')) !== null && names.length > 0);
 await page.click('button:has-text("Expand list")');
 check('Expand list: only the rows, no map, and Collapse', (await page.$('[aria-label="Map of the businesses that shared an address"]')) === null
@@ -225,9 +243,11 @@ check('…and the count line is out of the way', !(await page.isVisible('button:
 await page.click('button:has-text("Collapse")');
 await page.waitForSelector('[aria-label="Map of the businesses that shared an address"]');
 check('“Search this area” waits until there’s something to search', await page.isDisabled('button:has-text("Search this area")'));
-await page.selectOption('#rating', '4');
+await pick('Rating', '4.0 & up');
+await done();
 check('…a changed filter makes it clickable', !(await page.isDisabled('button:has-text("Search this area")')));
-await page.selectOption('#rating', '');
+await pick('Rating', 'Any rating');
+await done();
 check('…changed back, there’s nothing new to search', await page.isDisabled('button:has-text("Search this area")'));
 // Open A and close it, so the map is centred on it before it's moved a little.
 await page.click(`button[aria-label="Open ${A.name}"]`);
@@ -250,7 +270,7 @@ check('…it keeps those on the map in view, and leaves out those with no addres
 // The map may still be gliding from the drag; give the button a moment to settle.
 const faded = await page.waitForSelector('button:has-text("Search this area"):disabled', { timeout: 3000 }).then(() => true, () => false);
 check('…and fades again until the map moves or a filter changes', faded);
-await page.click('button:has-text("Reset")');
+await resetFilters();
 names = await cardNames();
 check('Reset brings back the whole area', names.includes(U.name));
 await page.click(`button[aria-label="Open ${A.name}"]`);
@@ -281,56 +301,6 @@ await signedIn.addCookies(cookie.p.split('; ').map((pair) => {
 const me = await signedIn.newPage();
 await me.goto(`${BASE}/explore`, { waitUntil: 'networkidle' });
 
-console.log('\nDistances from home or where you are (D-64)');
-const meCards = async () => me.$$eval('article h3', (hs) => hs.map((h) => h.textContent));
-await me.click('summary:has-text("Within")');
-check('signed in with a home: From: Home is chosen, with the slider', (await me.getAttribute('button:has-text("Home")', 'aria-pressed')) === 'true' && (await me.isEnabled('#within')));
-await me.fill('#within', '3');
-let near = await meCards();
-check('“Within 3 km” of home keeps the business downtown and leaves out Washago', near.includes(A.name) && !near.includes(B.name) && !near.includes(U.name), near.join(', '));
-await me.fill('#within', '50');
-await me.mouse.click(640, 880);
-await me.selectOption('#sort', 'near');
-near = await meCards();
-check('“Closest” puts the one by home before Washago, and no-pin businesses last', near.indexOf(A.name) < near.indexOf(B.name) && near.indexOf(B.name) < near.indexOf(U.name));
-await me.click('button:has-text("Reset")');
-check('their home is on the map, as a house', (await me.$('.leaflet-marker-icon[title="Your home"]')) !== null);
-let html = await me.content();
-check('…and the page carries their home only for them', html.includes(String(HOME[0])));
-for (const [who, c] of [['someone else', cookie.q], ['signed out', null]]) {
-  const other = await site('/explore', c ? { cookie: c } : {});
-  check(`${who}: the page never carries P’s home`, !other.body.includes(String(HOME[0])) && !other.body.includes(String(HOME[1])));
-}
-// Where they are now: the browser's own, in Washago this time.
-const roaming = await browser.newContext({ viewport: { width: 1280, height: 900 }, geolocation: { latitude: 44.7500, longitude: -79.3330 }, permissions: ['geolocation'] });
-await roaming.addCookies(cookie.p.split('; ').map((pair) => {
-  const [name, value] = pair.split('=');
-  return { name, value, domain: new URL(BASE).hostname, path: '/', secure: true, httpOnly: true, sameSite: 'Lax' };
-}));
-const away = await roaming.newPage();
-await away.goto(`${BASE}/explore`, { waitUntil: 'networkidle' });
-await away.click('summary:has-text("Within")');
-await away.click('button:has-text("Current location")');
-await away.waitForSelector('button[aria-pressed="true"]:has-text("Current location")');
-await away.fill('#within', '3');
-near = await away.$$eval('article h3', (hs) => hs.map((h) => h.textContent));
-check('From: Current location measures from where they are: Washago in, downtown out', near.includes(B.name) && !near.includes(A.name), near.join(', '));
-check('…shown as “you are here” on the map', (await away.$('.leaflet-marker-icon[title="You are here"]')) !== null);
-await roaming.close();
-// Q has no address: Home is greyed and says why; Current location still works.
-const noHomeCtx = await browser.newContext({ viewport: { width: 1280, height: 900 } });
-await noHomeCtx.addCookies(cookie.q.split('; ').map((pair) => {
-  const [name, value] = pair.split('=');
-  return { name, value, domain: new URL(BASE).hostname, path: '/', secure: true, httpOnly: true, sameSite: 'Lax' };
-}));
-const noHome = await noHomeCtx.newPage();
-await noHome.goto(`${BASE}/explore`, { waitUntil: 'networkidle' });
-await noHome.click('summary:has-text("Within")');
-check('no address: Home is greyed, says to add it in Edit profile, and the slider waits', (await noHome.getAttribute('button:has-text("Home")', 'aria-disabled')) === 'true'
-  && (await noHome.isVisible('text=Add your address in Edit profile')) && !(await noHome.isEnabled('#within')));
-check('…no distances on the cards', !(await noHome.textContent('body')).match(/\d+\.\d km/));
-await noHomeCtx.close();
-
 const [favAt, menuAt] = [await me.$eval('header button:has-text("Favourites")', (el) => el.getBoundingClientRect().x), await me.$eval('summary[aria-label="Your menu"]', (el) => el.getBoundingClientRect().x)];
 const commAt = await me.$eval('header a[aria-label="Community"]', (el) => el.getBoundingClientRect().x);
 check('signed in: the profile button is at the far right, with Messages, Community and Favourites left of it',
@@ -340,26 +310,40 @@ check('…it opens Edit profile and Sign out', await me.isVisible('a:has-text("E
 await me.mouse.click(640, 600);
 check('…and a click anywhere else closes it', !(await me.isVisible('a:has-text("Edit profile")')));
 await me.goto(`${BASE}/explore`, { waitUntil: 'networkidle' });
-check('on a computer, My picks is the dark bar: the business, its own category, Clear all and Message 1',
-  await me.isVisible(`[aria-label="My picks"] button[aria-label="Remove ${A.name} from my picks"]`) && await me.isVisible('[aria-label="My picks"] a:has-text("Message 1")')
-  && (await me.textContent('[aria-label="My picks"]')).includes((sub ?? kind).name));
-await me.click('[aria-label="My picks"] button:has-text("Clear all")');
+const CLEAR = '[aria-label="My picks"] button[aria-label="Clear all my picks"]';
+const openPicks = async (p = me) => {
+  if (!(await p.isVisible(`[aria-label="My picks"] button[aria-label^="Remove "]`))) await p.click('[aria-label="My picks"] summary');
+};
+check('My picks is the hairline pill: “1 pick”, Clear and Message 1, the list closed', await me.isVisible('[aria-label="My picks"] summary:has-text("1 pick")')
+  && await me.isVisible(CLEAR) && await me.isVisible('[aria-label="My picks"] a:has-text("Message 1")')
+  && !(await me.isVisible(`[aria-label="My picks"] button[aria-label="Remove ${A.name} from my picks"]`)));
+await openPicks();
+check('…tapping “1 pick” opens the list: the business, its own category and an ×', await me.isVisible(`[aria-label="My picks"] button[aria-label="Remove ${A.name} from my picks"]`)
+  && (await me.textContent('[aria-label="My picks"] ul')).includes((sub ?? kind).name));
+await me.click(CLEAR);
 await me.waitForSelector('[role="status"]:has-text("Picks cleared")');
 // The pointer resting on the note keeps it up while the test looks (it fades after 2 seconds).
 await me.hover('[role="status"]:has-text("Picks cleared")');
 for (let i = 0; i < 30 && (await mineNow()).length > 0; i++) await me.waitForTimeout(100);
 check('Clear all: the bar goes and “Picks cleared · Undo” shows', !(await me.isVisible('[aria-label="My picks"]')) && (await mineNow()).length === 0);
 await me.click('button:has-text("Undo")');
-await me.waitForSelector(`[aria-label="My picks"] button[aria-label="Remove ${A.name} from my picks"]`);
+await me.waitForSelector('[aria-label="My picks"] summary:has-text("1 pick")');
+// The pill can still be showing from before the Undo is saved: wait for the picks themselves.
+for (let i = 0; i < 30 && !(await mineNow()).includes(A.slug); i++) await me.waitForTimeout(100);
+await me.waitForLoadState('networkidle');
 await me.waitForLoadState('networkidle');
 check('…Undo puts them back', (await mineNow()).includes(A.slug));
-check('on a computer, only the bar: no phone dock as well', !(await me.isVisible('[aria-label="My picks"] summary')));
+await openPicks();
 await me.click(`[aria-label="My picks"] button[aria-label="Remove ${A.name} from my picks"]`);
 await me.waitForSelector(`[role="status"]:has-text("${A.name} removed")`);
 check('taking one business off with its × offers Undo too', (await me.isVisible('button:has-text("Undo")')));
 await me.click('button:has-text("Undo")');
-await me.waitForSelector(`[aria-label="My picks"] button[aria-label="Remove ${A.name} from my picks"]`);
+await me.waitForSelector('[aria-label="My picks"] summary:has-text("1 pick")');
+// The pill can still be showing from before the Undo is saved: wait for the picks themselves.
+for (let i = 0; i < 30 && !(await mineNow()).includes(A.slug); i++) await me.waitForTimeout(100);
+await me.waitForLoadState('networkidle');
 check('…and Undo puts it back', (await mineNow()).includes(A.slug));
+await openPicks();
 await me.click(`[aria-label="My picks"] button[aria-label="Remove ${A.name} from my picks"]`);
 await me.waitForSelector(`[role="status"]:has-text("${A.name} removed")`);
 // Somewhere plain (the count of businesses shown), so the click opens nothing else.
@@ -377,7 +361,7 @@ await me.click('button:has-text("Undo")');
 await me.waitForSelector(tick);
 for (let i = 0; i < 30 && !(await mineNow()).includes(A.slug); i++) await me.waitForTimeout(100);
 check('…unticking it on the card offers Undo as well', (await mineNow()).includes(A.slug));
-await me.click('[aria-label="My picks"] button:has-text("Clear all")');
+await me.click(CLEAR);
 await me.waitForSelector('[role="status"]:has-text("Picks cleared")');
 await me.mouse.move(5, 5);
 await me.waitForTimeout(1000);
@@ -390,8 +374,8 @@ await pocket.setViewportSize({ width: 390, height: 844 });
 await pocket.goto(`${BASE}/explore`, { waitUntil: 'networkidle' });
 const onScreen = async (sel) => (await pocket.locator(`${sel}:visible`).count()) > 0;
 const removeA = `[aria-label="My picks"] button[aria-label="Remove ${A.name} from my picks"]`;
-check('on a phone, My picks is the dock: how many, Clear all and Message 1 in reach, the list closed',
-  (await onScreen('[aria-label="My picks"] summary:has-text("1 pick")')) && (await onScreen('[aria-label="My picks"] button:has-text("Clear all")'))
+check('on a phone, the same pill: how many, Clear and Message 1 in reach, the list closed',
+  (await onScreen('[aria-label="My picks"] summary:has-text("1 pick")')) && (await onScreen(CLEAR))
   && (await onScreen('[aria-label="My picks"] a:has-text("Message 1")')) && !(await onScreen(removeA)));
 await pocket.click('[aria-label="My picks"] summary');
 check('…tapping it opens the list, with an × on each', await onScreen(removeA));
@@ -404,7 +388,7 @@ console.log('\nClear all on the shortlist bar');
 for (const v of [A, B, U]) await site('/shortlist', { cookie: cookie.p, method: 'POST', form: { intent: 'add', slug: v.slug, inline: '1' } });
 await site('/shortlist', { cookie: cookie.q, method: 'POST', form: { intent: 'add', slug: A.slug, inline: '1' } });
 r = await site('/explore', { cookie: cookie.p });
-check('My picks has Clear all beside “Message all 2” (U isn’t on Localites, so not counted), and × on each', words(r.body).includes('Clear all')
+check('My picks has Clear beside “Message all 2” (U isn’t on Localites, so not counted), and × on each', r.body.includes('aria-label="Clear all my picks"')
   && words(r.body).includes('Message all 2') && r.body.includes(`Remove ${A.name} from my picks`) && r.body.includes(`Remove ${U.name} from my picks`));
 r = await site('/shortlist', { cookie: cookie.p, method: 'POST', form: { intent: 'clear', inline: '1' } });
 const left = async (id) => (await sql`select count(*)::int as n from shortlist where user_id = ${id}`)[0].n;

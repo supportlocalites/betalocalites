@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { kmLabel, ratingLabel, replyLabel } from '@/components/Directory';
+import { ratingLabel, replyLabel } from '@/components/Directory';
 import { readProfileDetails } from '@/lib/profile-details';
 import { bestRatedIds, kmBetween } from '@/server/browse.server';
 import { CENTRE } from '@/lib/centre';
@@ -18,11 +18,9 @@ describe('the Base44 cards (D-59)', () => {
     expect(replyLabel(60 * 20)).toBe('~1 day');
     expect(replyLabel(60 * 72)).toBe('~3 days');
   });
-  it('says "New" until a business has a rating, and "—" with no pin', () => {
+  it('says "New" until a business has a rating', () => {
     expect(ratingLabel(null)).toBe('New');
     expect(ratingLabel(4.75)).toBe('4.8');
-    expect(kmLabel(null)).toBe('—');
-    expect(kmLabel(3.44)).toBe('3.4 km');
   });
   it('measures from downtown Orillia', () => {
     expect(kmBetween(CENTRE, CENTRE)).toBe(0);

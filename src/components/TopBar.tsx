@@ -141,7 +141,8 @@ const NavIcon = ({ name }: { name: keyof typeof ICONS }) => (
 /**
  * Browse, Messages, Community and Favourites as small labelled icons at the right of the bar,
  * beside the account button (the owner, 26 October 2026: "I like the icons"), on every page but
- * a business's own. The words go on a narrow screen; each keeps its name for screen readers.
+ * a business's own. The words go on a narrow screen; each keeps its name for screen readers. On a
+ * phone Browse goes too, so the bar fits one line: the wordmark beside them goes to Browse.
  */
 function IconNav({ unread, favourites }: { unread: number; favourites?: { on: boolean; count: number; toggle: () => void } }) {
   const path = useLocation().pathname;
@@ -159,7 +160,7 @@ function IconNav({ unread, favourites }: { unread: number; favourites?: { on: bo
           // The label replaces what's inside for screen readers, so it carries the count itself.
           aria-label={icon === 'messages' && unread > 0 ? `${label}, ${unread} new` : label}
           title={label}
-          className={`${styles.navLink} ${on ? styles.navOn : ''}`}
+          className={`${styles.navLink} ${on ? styles.navOn : ''} ${icon === 'browse' ? styles.navBrowse : ''}`}
           aria-current={on ? 'page' : undefined}
         >
           <NavIcon name={icon} />

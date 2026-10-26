@@ -1,11 +1,14 @@
 /*
- * My picks along the bottom of Browse local (D-57; the owner's choice, 25 October 2026): on a
- * computer Style A, a quiet dark bar; on a phone Style C, a dark dock that opens the list.
+ * My picks at the bottom of Browse local (D-57): the hairline pill (the owner, 26 October 2026),
+ * one small white pill in the middle on every screen; its list opens above it.
  */
 .bar {
   position: relative;
   flex-shrink: 0;
   z-index: 10;
+  display: flex;
+  justify-content: center;
+  padding: var(--space-2) var(--space-3) calc(var(--space-3) + var(--safe-bottom));
 }
 
 .icon {
@@ -18,86 +21,132 @@
   stroke-linejoin: round;
 }
 
-/* ---------- Computers: Style A ---------- */
+.pill {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  max-width: 100%;
+  padding: var(--space-1) var(--space-1) var(--space-1) var(--space-2);
+  border: var(--hairline) solid var(--color-line);
+  border-radius: var(--radius-pill);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-card-open);
+  white-space: nowrap;
+}
 
-.wide {
+.pill form {
+  display: contents;
+}
+
+/* The faces and "3 picks": opens the list. */
+.open {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-1) var(--space-2) var(--space-1) 0;
+  border-radius: var(--radius-pill);
+  color: var(--color-ink-soft);
+  font-size: var(--b44-text-search);
+  cursor: pointer;
+  list-style: none;
+}
+
+.open::-webkit-details-marker {
   display: none;
 }
 
-@media (min-width: 1024px) {
-  .wide {
-    display: flex;
-    align-items: center;
-    gap: var(--space-5);
-    padding: var(--space-3) var(--space-5);
-    background: var(--color-bar);
-    color: var(--color-on-bar);
-    border-top: var(--hairline) solid var(--color-bar-gold-line);
-  }
+.open:hover,
+.tray[open] .open {
+  color: var(--color-ink);
+}
 
+.faces {
+  flex: none;
+  display: flex;
+}
+
+.faces > * {
+  width: var(--b44-pick-face);
+  height: var(--b44-pick-face);
+  border-radius: var(--radius-pill);
+  border: var(--focus-ring) solid var(--color-surface);
+  background: var(--color-photo-1);
+  object-fit: cover;
+}
+
+.faces > * + * {
+  margin-left: var(--b44-pick-overlap);
 }
 
 .count {
-  margin: 0;
-  flex: none;
-  display: grid;
-  gap: var(--space-1);
+  font-weight: 500;
 }
 
-.label {
-  font-size: var(--b44-text-meta);
+/* Clear: quiet, so it isn't pressed by mistake. */
+.clearAll {
+  font: inherit;
+  font-size: var(--b44-text-search);
+  padding: var(--space-2);
+  border: 0;
+  border-radius: var(--radius-pill);
+  background: none;
+  color: var(--color-muted);
+  cursor: pointer;
+}
+
+.clearAll:hover {
+  color: var(--color-ink);
+}
+
+/* Message all: the one dark button. */
+.message {
+  display: inline-flex;
+  align-items: center;
+  padding: var(--space-2) var(--space-4);
+  border-radius: var(--radius-pill);
+  background: var(--color-ink);
+  color: var(--color-on-ink);
+  font-size: var(--b44-text-search);
   font-weight: 600;
-  letter-spacing: var(--b44-track-label);
-  text-transform: uppercase;
-  color: var(--color-bar-gold-ink);
+  text-decoration: none;
 }
 
-.number {
-  font-family: var(--font-display);
-  font-size: var(--b44-text-pick-count);
-  line-height: 1.1;
+.message:hover {
+  background: var(--color-ink-soft);
 }
 
-/* Extra businesses scroll sideways, fading at the edge, so nothing is cut off mid-word. */
-.scroller {
-  flex: 1;
-  min-width: 0;
-  display: flex;
-  overflow-x: auto;
-  scrollbar-width: none;
-  padding-block: var(--hairline);
-  mask-image: var(--fade-right);
-}
-
-.scroller::-webkit-scrollbar {
-  display: none;
-}
-
-.items {
+/* The list opens above the pill, a white card with an × on each. */
+.list {
+  position: absolute;
+  left: 50%;
+  bottom: calc(100% + var(--space-2));
+  transform: translateX(-50%);
+  width: min(var(--b44-picks-list), calc(100vw - 2 * var(--space-3)));
+  max-height: var(--b44-pick-tray);
+  overflow-y: auto;
   list-style: none;
   margin: 0;
-  padding: 0 var(--b44-pick-end-space) 0 0;
-  display: flex;
-  gap: var(--space-2);
-}
-
-.items .item {
-  flex: none;
-  max-width: var(--b44-pick-max);
   padding: var(--space-2);
-  border-radius: var(--radius-card);
-  background: var(--color-bar-chip);
-  transition: background 0.15s;
+  display: grid;
+  gap: var(--space-1);
+  border: var(--hairline) solid var(--color-line);
+  border-radius: var(--radius-sheet);
+  background: var(--color-surface);
+  color: var(--color-ink);
+  box-shadow: var(--shadow-card-open);
+  white-space: normal;
 }
 
-.items .item:hover {
-  background: var(--color-bar-chip-hover);
+.tray:not([open]) .list {
+  display: none;
 }
 
 .item {
   display: flex;
   align-items: center;
   gap: var(--space-3);
+  padding: var(--space-1);
 }
 
 .thumb {
@@ -106,7 +155,7 @@
   height: var(--b44-pick-thumb);
   border-radius: var(--radius-file);
   object-fit: cover;
-  background: var(--color-bar-chip-hover);
+  background: var(--color-photo-1);
 }
 
 .words {
@@ -123,236 +172,32 @@
 }
 
 .name {
-  font-size: var(--b44-text-pick);
+  font-size: var(--b44-text-search);
   font-weight: 500;
 }
 
 .kind {
   font-size: var(--b44-text-note);
-  color: var(--color-bar-muted);
+  color: var(--color-muted);
 }
 
 .remove {
   flex: none;
   display: grid;
   place-items: center;
-  width: var(--b44-pick-x);
-  height: var(--b44-pick-x);
+  width: var(--b44-pick-x-touch);
+  height: var(--b44-pick-x-touch);
   padding: 0;
   border: 0;
   border-radius: var(--radius-pill);
   background: none;
-  color: var(--color-bar-muted);
+  color: var(--color-muted);
   cursor: pointer;
 }
 
 .remove:hover {
-  background: var(--color-bar-press);
-  color: var(--color-on-bar);
-}
-
-.actions {
-  flex: none;
-  display: flex;
-  align-items: center;
-  gap: var(--space-1);
-}
-
-/* Clear all: quiet, so it isn't pressed by mistake. */
-.clearAll {
-  font: inherit;
-  font-size: var(--b44-text-pick-button);
-  font-weight: 500;
-  padding: var(--space-2) var(--space-3);
-  border: var(--hairline) solid transparent;
-  border-radius: var(--radius-pill);
-  background: none;
-  color: var(--color-bar-muted);
-  cursor: pointer;
-  white-space: nowrap;
-}
-
-.clearAll:hover {
-  color: var(--color-on-bar);
-  background: var(--color-bar-chip-hover);
-}
-
-/* Message all: the one bold button. */
-.message {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: var(--space-2);
-  padding: var(--space-3) var(--space-5);
-  border-radius: var(--radius-pill);
-  background: var(--color-gold-fill);
-  color: var(--color-on-gold);
-  font-size: var(--b44-text-pick-button);
-  font-weight: 600;
-  text-decoration: none;
-  white-space: nowrap;
-}
-
-.message:hover {
-  background: var(--color-bar-gold-ink);
-}
-
-/* ---------- Phones: Style C ---------- */
-
-.dock {
-  position: relative;
-  display: grid;
-  gap: var(--space-3);
-  margin: var(--space-2) var(--space-3) calc(var(--space-2) + var(--safe-bottom));
-  padding: var(--space-3);
-  border-radius: var(--radius-dock);
-  background: var(--color-bar);
-  color: var(--color-on-bar);
-  box-shadow: var(--shadow-dock);
-}
-
-.open {
-  display: flex;
-  align-items: center;
-  gap: var(--space-3);
-  padding: var(--hairline);
-  border-radius: var(--radius-pill);
-  cursor: pointer;
-  list-style: none;
-}
-
-.open::-webkit-details-marker {
-  display: none;
-}
-
-.faces {
-  flex: none;
-  display: flex;
-}
-
-.faces > * {
-  width: var(--b44-pick-face);
-  height: var(--b44-pick-face);
-  border-radius: var(--radius-pill);
-  border: var(--focus-ring) solid var(--color-bar);
-  background: var(--color-bar-chip-hover);
-  object-fit: cover;
-}
-
-.faces > * + * {
-  margin-left: var(--b44-pick-overlap);
-}
-
-.dockWords {
-  min-width: 0;
-  display: grid;
-}
-
-.dockWords b {
-  font-size: var(--b44-text-pick);
-  font-weight: 500;
-}
-
-.dockWords small {
-  font-size: var(--b44-text-note);
-  color: var(--color-bar-muted);
-}
-
-.hide,
-.tray[open] .see {
-  display: none;
-}
-
-.tray[open] .hide {
-  display: inline;
-}
-
-.chevron {
-  flex: none;
-  margin-left: auto;
-  display: grid;
-  place-items: center;
-  width: var(--b44-pick-chevron);
-  height: var(--b44-pick-chevron);
-  border-radius: var(--radius-pill);
-  background: var(--color-bar-chip-hover);
-  transition: transform 0.2s;
-}
-
-.tray[open] .chevron {
-  transform: rotate(180deg);
-}
-
-/* The list opens above the dock, a white card with a thumb-sized × on each. */
-.list {
-  position: absolute;
-  left: 0;
-  right: 0;
-  bottom: calc(100% + var(--space-2));
-  max-height: var(--b44-pick-tray);
-  overflow-y: auto;
-  list-style: none;
-  margin: 0;
-  padding: var(--space-1);
-  display: grid;
-  gap: var(--hairline);
-  border: var(--hairline) solid var(--color-line);
-  border-radius: var(--radius-tray);
-  background: var(--color-surface);
-  color: var(--color-ink);
-  box-shadow: var(--shadow-sheet);
-}
-
-.tray:not([open]) .list {
-  display: none;
-}
-
-.list .item {
-  padding: var(--space-2);
-}
-
-.list .kind {
-  color: var(--color-muted);
-}
-
-.list .remove {
-  width: var(--b44-pick-x-touch);
-  height: var(--b44-pick-x-touch);
   background: var(--color-tint);
-  color: var(--color-muted);
-}
-
-.list .remove:hover {
   color: var(--color-ink);
-}
-
-.dockActions {
-  display: grid;
-  grid-template-columns: 1fr 1.6fr;
-  gap: var(--space-2);
-}
-
-.dockActions .clearAll {
-  width: 100%;
-  padding: var(--space-3);
-  border-color: var(--color-bar-hairline);
-  color: var(--color-on-bar);
-}
-
-.dockActions .clearAll:hover {
-  border-color: var(--color-bar-hairline-strong);
-  background: none;
-}
-
-.dockActions .message {
-  padding: var(--space-3);
-}
-
-/* On a computer, only Style A. */
-@media (min-width: 1024px) {
-  .dock {
-    display: none;
-  }
 }
 
 /* ---------- Picks cleared · Undo ---------- */
@@ -389,15 +234,9 @@
   }
 }
 
-/* With the bar still showing, the note sits just above it. */
+/* With the pill still showing, the note sits just above it. */
 .undoAbove {
   bottom: calc(var(--b44-undo-lift) + var(--safe-bottom));
-}
-
-@media (min-width: 1024px) {
-  .undoAbove {
-    bottom: var(--b44-undo-lift-wide);
-  }
 }
 
 .undoWords {
@@ -431,9 +270,7 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .undo,
-  .chevron,
-  .items .item {
+  .undo {
     animation: none;
     transition: none;
   }

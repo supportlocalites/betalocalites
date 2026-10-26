@@ -3,7 +3,6 @@ import { Link, useFetcher, useLocation, useSearchParams } from 'react-router';
 import { useListActivity, useVendorActivity } from '@/components/ActivityTracker';
 import { ReportLink, ReviewList, type ShownReview } from '@/components/Reviews';
 import { directionsUrl, streetLine } from '@/lib/address';
-import { kmBetween, type Point } from '@/lib/distance';
 import { fuzzyMatch } from '@/lib/fuzzy';
 import type { DirectoryCard, ShortlistItem } from '@/server/browse.server';
 import { type Bounds, DirectoryMap, type MapApi } from './DirectoryMap';
@@ -14,8 +13,8 @@ import { useCloseOutside } from './useCloseOutside';
 import styles from './Directory.module.css';
 
 /**
- * Browse local in the Base44 design (D-59): the top bar with search, Within, Rating, Sort and
- * Clear; the map strip; the count; a row for each main kind of business (D-60); small cards with
+ * Browse local in the Base44 design (D-59): the top bar with the search and its Filters list
+ * (D-64); the map strip; the count; a row for each main kind of business (D-60); small cards with
  * the heart and the +; and the profile panel beside them. Filtering and ordering happen here in
  * the browser, as on Base44. What we built in (D-59 part 3): Message or Inquire, the shortlist,
  * Directions, reviews, and favourites kept with the account when signed in.
@@ -29,7 +28,6 @@ const RATING = [
 ];
 const SORT = [
   { value: 'top', label: 'Top rated' },
-  { value: 'near', label: 'Closest' },
   { value: 'fast', label: 'Fastest reply' },
   { value: 'reviews', label: 'Most reviewed' },
 ];
@@ -44,7 +42,6 @@ export const replyLabel = (minutes: number | null) => {
   return `~${Math.round(h / 24)} days`;
 };
 export const ratingLabel = (r: number | null) => (r === null ? 'New' : r.toFixed(1));
-export const kmLabel = (km: number | null) => (km === null ? '—' : `${km.toFixed(1)} km`);
 
 /** Favourites without an account stay in this browser only, as on Base44 (D-59, K15). */
 const LOCAL_KEY = 'localites:favourites';
@@ -88,7 +85,7 @@ const localFavourites = {
 type View = 'map' | 'hybrid' | 'list';
 
 export function Directory({
-  cards: rawCards,
+  cards,
   kinds,
   shortlist,
   signedIn,
@@ -96,13 +93,7 @@ export function Directory({
   initial,
   initialTrack = null,
   initialReviews = null,
-  home = null,
-  hasAddress = false,
 }: {
-  /** The signed-in person's own home (D-64): distances are worked out here, in their browser. */
-  home?: Point | null;
-  /** They gave an address (it may not have been found on the map yet). */
-  hasAddress?: boolean;
   cards: DirectoryCard[];
   kinds: { slug: string; name: string }[];
   shortlist: ShortlistItem[];
@@ -116,56 +107,7 @@ export function Directory({
   initialReviews?: PanelData['reviews'] | null;
 }) {
   const [params, setParams] = useSearchParams();
-  // Distances (D-64): from their home, or from where they are now (the browser's, never sent to
-  // Localites). Signed out, or with neither, there are none, and Within says why.
-  // Home when they have one (even if it arrives later), until they choose.
-  const [chosenFrom, setFrom] = useState<From | null>(null);
-  const from: From = chosenFrom ?? (home ? 'home' : 'here');
-  const [here, setHere] = useState<Point | null>(null);
-  const [locating, setLocating] = useState(false);
-  const [hereError, setHereError] = useState<string | null>(null);
-  const origin = !signedIn ? null : from === 'home' ? home : here;
-  const cards = useMemo(
-    () =>
-      rawCards.map((c) => ({
-        ...c,
-        km: origin && c.lat !== null && c.lng !== null ? Math.round(kmBetween(origin, { lat: c.lat, lng: c.lng }) * 10) / 10 : null,
-      })),
-    [rawCards, origin],
-  );
-  const chooseFrom = useCallback(
-    (next: From) => {
-      setHereError(null);
-      if (next === 'home') {
-        setFrom('home');
-        return;
-      }
-      if (!('geolocation' in navigator)) {
-        setHereError('This browser can’t share where you are.');
-        return;
-      }
-      setLocating(true);
-      navigator.geolocation.getCurrentPosition(
-        (pos) => {
-          setHere({ lat: pos.coords.latitude, lng: pos.coords.longitude });
-          setFrom('here');
-          setLocating(false);
-        },
-        (err) => {
-          setHereError(
-            err.code === err.PERMISSION_DENIED
-              ? 'Your browser didn’t share your location. Allow it in the browser’s settings, then try again.'
-              : 'We couldn’t tell where you are right now. Please try again in a moment.',
-          );
-          setLocating(false);
-        },
-        { enableHighAccuracy: false, timeout: 10000, maximumAge: 300000 },
-      );
-    },
-    [],
-  );
   const [query, setQuery] = useState('');
-  const [within, setWithin] = useState('');
   const [rating, setRating] = useState('');
   const [sort, setSort] = useState('top');
   // Kinds of business chosen (none: all), and only favourites (the owner, 24 October 2026).
@@ -178,7 +120,7 @@ export function Directory({
   // "Search this area": the part of the map searched, and what the filters were then.
   const [area, setArea] = useState<Bounds | null>(null);
   const [moved, setMoved] = useState(false);
-  const filterKey = JSON.stringify([query.trim(), within, rating, chosen, favOnly]);
+  const filterKey = JSON.stringify([query.trim(), rating, chosen, favOnly]);
   const [searchedKey, setSearchedKey] = useState(filterKey);
   const mapApi = useRef<MapApi | null>(null);
   const onMapReady = useCallback((api: MapApi | null) => {
@@ -232,7 +174,6 @@ export function Directory({
       if (!c.kindSlug) return false;
       if (chosen.length > 0 && !chosen.includes(c.kindSlug)) return false;
       if (favOnly && !isFavourite(c)) return false;
-      if (within && origin && (c.km ?? Infinity) > Number(within)) return false;
       if (rating && (c.rating ?? 0) < Number(rating)) return false;
       // Forgiving of spelling (the owner, 24 October 2026).
       if (needle && !fuzzyMatch(needle, [c.name, c.tagline ?? '', c.kind ?? '', c.sub ?? '', c.place, ...c.tags].join(' '))) return false;
@@ -240,15 +181,12 @@ export function Directory({
       return true;
     });
     const sorted = [...list];
-    if (sort === 'near' && origin) sorted.sort((a, b) => (a.km ?? Infinity) - (b.km ?? Infinity));
-    else if (sort === 'fast') sorted.sort((a, b) => (a.replyMinutes ?? Infinity) - (b.replyMinutes ?? Infinity));
+    if (sort === 'fast') sorted.sort((a, b) => (a.replyMinutes ?? Infinity) - (b.replyMinutes ?? Infinity));
     else if (sort === 'reviews') sorted.sort((a, b) => b.reviews - a.reviews);
     else sorted.sort((a, b) => (b.rating ?? 0) - (a.rating ?? 0));
     return sorted;
-  }, [cards, query, within, rating, sort, chosen, favOnly, isFavourite, area, origin]);
-  const filtering = Boolean(
-    query.trim() || (within && origin) || rating || (sort !== 'top' && (sort !== 'near' || origin)) || chosen.length || favOnly || area,
-  );
+  }, [cards, query, rating, sort, chosen, favOnly, isFavourite, area]);
+  const filtering = Boolean(query.trim() || rating || sort !== 'top' || chosen.length || favOnly || area);
 
   const rails = useMemo(
     () => kinds.map((k) => ({ ...k, items: filtered.filter((c) => c.kindSlug === k.slug) })).filter((r) => r.items.length > 0),
@@ -259,14 +197,13 @@ export function Directory({
   const open = cards.find((c) => c.slug === selected) ?? null;
   const position = ordered.findIndex((c) => c.slug === selected);
   // "More … businesses": the same kind, as the filters choose them; with no filters, the best
-  // rated first, then the nearest, then the quickest to reply.
+  // rated first, then the quickest to reply.
   const similar = useMemo(() => {
     if (!open) return [];
     const same = filtered.filter((c) => c.slug !== open.slug && c.kindSlug === open.kindSlug);
     if (!filtering) {
       same.sort(
-        (a, b) =>
-          (b.rating ?? 0) - (a.rating ?? 0) || (a.km ?? Infinity) - (b.km ?? Infinity) || (a.replyMinutes ?? Infinity) - (b.replyMinutes ?? Infinity),
+        (a, b) => (b.rating ?? 0) - (a.rating ?? 0) || (a.replyMinutes ?? Infinity) - (b.replyMinutes ?? Infinity),
       );
     }
     return same.slice(0, 3);
@@ -311,14 +248,13 @@ export function Directory({
   };
   const clear = () => {
     setQuery('');
-    setWithin('');
     setRating('');
     setSort('top');
     setChosen([]);
     setFavOnly(false);
     setArea(null);
     setMoved(false);
-    setSearchedKey(JSON.stringify(['', '', '', [], false]));
+    setSearchedKey(JSON.stringify(['', '', [], false]));
   };
   const profileView = open ? (
       <Profile
@@ -373,26 +309,23 @@ export function Directory({
               <Icon name="x" />
             </button>
           )}
-        </div>
-        <div className={styles.filters}>
-          <KindsPicker kinds={kinds} chosen={chosen} onChange={setChosen} />
-          <Distance
-            value={within}
-            onChange={setWithin}
-            signedIn={signedIn}
-            from={from}
-            onFrom={chooseFrom}
-            home={home}
-            hasAddress={hasAddress}
-            here={here}
-            locating={locating}
-            hereError={hereError}
+          <Filters
+            kinds={kinds}
+            chosen={chosen}
+            onChosen={setChosen}
+            rating={rating}
+            onRating={setRating}
+            sort={sort}
+            onSort={setSort}
+            onReset={() => {
+              setChosen([]);
+              setRating('');
+              setSort('top');
+              setArea(null);
+              setMoved(false);
+              setSearchedKey(JSON.stringify([query.trim(), '', [], favOnly]));
+            }}
           />
-          <Select id="rating" label="Rating" value={rating} onChange={setRating} options={RATING} />
-          <Select id="sort" label="Sort" value={!origin && sort === 'near' ? 'top' : sort} onChange={setSort} options={origin ? SORT : SORT.filter((o) => o.value !== 'near')} />
-          <button type="button" onClick={clear} className={styles.clear}>
-            Reset
-          </button>
         </div>
       </TopBar>
 
@@ -407,8 +340,6 @@ export function Directory({
               panelOpen={Boolean(open) && !wide}
               onMoved={onMoved}
               onReady={onMapReady}
-              home={signedIn ? home : null}
-              here={signedIn && from === 'here' ? here : null}
               className={`${styles.map} ${view === 'map' ? styles.mapBig : ''}`}
             >
               <div className={`${styles.mapFoot} ${view === 'map' ? styles.mapFootRaised : ''}`}>
@@ -454,8 +385,13 @@ export function Directory({
                     ? 'Tap the heart on any business to keep it here.'
                     : area
                       ? 'Try moving the map, or clearing the filters.'
-                      : 'Try widening the distance or clearing the search.'}
+                      : 'Try clearing the filters or the search.'}
                 </p>
+                {filtering && (
+                  <button type="button" onClick={clear} className={styles.pickerAll}>
+                    Reset
+                  </button>
+                )}
                 <Link to={`/suggest${query ? `?q=${encodeURIComponent(query)}` : ''}`} className={styles.suggest}>
                   Can’t find it? Suggest a business
                 </Link>
@@ -507,210 +443,122 @@ function Sheet({ name, onClose, children }: { name: string; onClose: () => void;
 
 const inside = (b: Bounds, lat: number, lng: number) => lat >= b.south && lat <= b.north && lng >= b.west && lng <= b.east;
 
-/** The farthest a business may be, by a slider: 1 to 50 km, and 50 km+ for any distance (the owner, 24 October 2026). */
-export const MAX_KM = 50;
-type From = 'home' | 'here';
+type Row = 'kinds' | 'rating' | 'sort';
 
 /**
- * Within (D-64): distances from home or from where you are now ("From: Home or Current
- * Location", the owner, 26 October 2026). Greyed until it can be used: signed out, it says to
- * sign in; with no home found, Home says to add the address in Edit profile.
+ * Filters (D-64), inside the search: one quiet list, a line for each filter with what it's set to,
+ * and only the line tapped opens (the owner, 26 October 2026: "I like the quiet list", style 1,
+ * drawn like the bar's own boxes; "SHOW ALL should say RESET"). The button shows how many are on.
  */
-function Distance({
-  value,
-  onChange,
-  signedIn,
-  from,
-  onFrom,
-  home,
-  hasAddress,
-  here,
-  locating,
-  hereError,
-}: {
-  value: string;
-  onChange: (v: string) => void;
-  signedIn: boolean;
-  from: From;
-  onFrom: (next: From) => void;
-  home: Point | null;
-  hasAddress: boolean;
-  here: Point | null;
-  locating: boolean;
-  hereError: string | null;
-}) {
-  const origin = !signedIn ? null : from === 'home' ? home : here;
-  const km = value ? Number(value) : MAX_KM;
-  const words = !origin ? 'Off' : km >= MAX_KM ? 'Any' : `${km} km`;
-  const pop = useRef<HTMLDetailsElement>(null);
-  useCloseOutside(pop);
-  const homeWhy = !home
-    ? hasAddress
-      ? 'We couldn’t find your address on the map yet. Check it in Edit profile and save it again.'
-      : 'Add your address in Edit profile to measure from home.'
-    : null;
-  const why = !signedIn ? 'Sign in to filter by distance from your home or where you are now.' : !origin ? homeWhy : null;
-  // The filled part of the track, as a share of it (shown in gold).
-  const filled = `${((km - 1) / (MAX_KM - 1)) * 100}%`;
-  return (
-    <details className={`${styles.picker} ${!origin ? styles.pickerOff : ''}`} ref={pop}>
-      <summary className={styles.select} title={why ?? undefined}>
-        <span className={styles.selectLabel}>Within</span>
-        <span className={styles.selectRow}>
-          <span className={styles.pickerValue}>{words}</span>
-          <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false" className={styles.chevron}>
-            <path d="m6 9 6 6 6-6" />
-          </svg>
-        </span>
-      </summary>
-      <div className={`${styles.pickerList} ${styles.distancePop}`}>
-        {!signedIn ? (
-          <p className={styles.distanceWhy}>
-            {why}{' '}
-            <Link to="/join" className={styles.link}>
-              Sign in
-            </Link>
-          </p>
-        ) : (
-          <>
-            <div className={styles.fromRow} role="group" aria-label="Measure from">
-              <span className={styles.selectLabel}>From:</span>
-              <button
-                type="button"
-                className={`${styles.fromChip} ${from === 'home' && home ? styles.fromOn : ''}`}
-                aria-pressed={from === 'home' && Boolean(home)}
-                aria-disabled={!home}
-                aria-describedby={homeWhy ? 'home-why' : undefined}
-                title={homeWhy ?? 'Your home, from your address in Edit profile'}
-                onClick={() => home && onFrom('home')}
-              >
-                Home
-              </button>
-              <button
-                type="button"
-                className={`${styles.fromChip} ${from === 'here' && here ? styles.fromOn : ''}`}
-                aria-pressed={from === 'here' && Boolean(here)}
-                title="Where you are now. Your browser asks first; it isn’t saved or sent to Localites."
-                onClick={() => !locating && onFrom('here')}
-                aria-disabled={locating}
-              >
-                {locating ? 'Finding you…' : 'Current location'}
-              </button>
-            </div>
-            {hereError && <p className={styles.distanceWhy}>{hereError}</p>}
-            {homeWhy && (
-              <p className={styles.distanceWhy} id="home-why">
-                {homeWhy}{' '}
-                <Link to="/account?tab=about" className={styles.link}>
-                  Edit profile
-                </Link>
-              </p>
-            )}
-            <div className={styles.distanceHead}>
-              <label htmlFor="within" className={styles.selectLabel}>
-                Within
-              </label>
-              <span className={styles.distanceValue}>{!origin ? '—' : km >= MAX_KM ? 'Any distance' : `${km} km`}</span>
-            </div>
-            <input
-              id="within"
-              type="range"
-              min={1}
-              max={MAX_KM}
-              step={1}
-              value={km}
-              disabled={!origin}
-              onChange={(e) => onChange(Number(e.target.value) >= MAX_KM ? '' : e.target.value)}
-              className={styles.range}
-              style={{ '--filled': filled } as React.CSSProperties}
-              aria-valuetext={km >= MAX_KM ? 'Any distance' : `Within ${km} km`}
-            />
-            <div className={styles.distanceEnds} aria-hidden="true">
-              <span>1 km</span>
-              <span>{MAX_KM} km+</span>
-            </div>
-          </>
-        )}
-      </div>
-    </details>
-  );
-}
-
-/** Kinds of business to show, several at once (none ticked: every kind). */
-function KindsPicker({
+function Filters({
   kinds,
   chosen,
-  onChange,
+  onChosen,
+  rating,
+  onRating,
+  sort,
+  onSort,
+  onReset,
 }: {
   kinds: { slug: string; name: string }[];
   chosen: string[];
-  onChange: (next: string[]) => void;
+  onChosen: (next: string[]) => void;
+  rating: string;
+  onRating: (v: string) => void;
+  sort: string;
+  onSort: (v: string) => void;
+  onReset: () => void;
 }) {
-  const words = chosen.length === 0 ? 'All' : chosen.length === 1 ? (kinds.find((k) => k.slug === chosen[0])?.name ?? '1 category') : `${chosen.length} categories`;
-  const pop = useRef<HTMLDetailsElement>(null);
-  useCloseOutside(pop);
-  return (
-    <details className={styles.picker} ref={pop}>
-      <summary className={styles.select}>
-        <span className={styles.selectLabel}>Categories</span>
-        <span className={styles.selectRow}>
-          <span className={styles.pickerValue}>{words}</span>
-          <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false" className={styles.chevron}>
-            <path d="m6 9 6 6 6-6" />
-          </svg>
-        </span>
-      </summary>
-      <fieldset className={styles.pickerList}>
-        <legend className="visually-hidden">Categories to show</legend>
-        {kinds.map((k) => (
-          <label key={k.slug} className={styles.pickerItem}>
-            <input
-              type="checkbox"
-              checked={chosen.includes(k.slug)}
-              onChange={(e) => onChange(e.target.checked ? [...chosen, k.slug] : chosen.filter((x) => x !== k.slug))}
-            />
-            {k.name}
-          </label>
-        ))}
-        {chosen.length > 0 && (
-          <button type="button" className={styles.pickerAll} onClick={() => onChange([])}>
-            Show all categories
-          </button>
-        )}
-      </fieldset>
-    </details>
-  );
-}
-
-function Select({
-  id,
-  label,
-  value,
-  onChange,
-  options,
-}: {
-  id: string;
-  label: string;
-  value: string;
-  onChange: (v: string) => void;
-  options: { value: string; label: string }[];
-}) {
-  return (
-    <label className={styles.select} htmlFor={id}>
-      <span className={styles.selectLabel}>{label}</span>
-      <span className={styles.selectRow}>
-        <select id={id} value={value} onChange={(e) => onChange(e.target.value)} className={styles.selectInput}>
-          {options.map((o) => (
-            <option key={o.value} value={o.value}>
-              {o.label}
-            </option>
-          ))}
-        </select>
-        <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false" className={styles.chevron}>
-          <path d="m6 9 6 6 6-6" />
-        </svg>
+  const box = useRef<HTMLDetailsElement>(null);
+  useCloseOutside(box);
+  const [row, setRow] = useState<Row | null>(null);
+  const on = (chosen.length > 0 ? 1 : 0) + (rating ? 1 : 0);
+  const kindWords = chosen.length === 0 ? 'All' : chosen.length === 1 ? (kinds.find((k) => k.slug === chosen[0])?.name ?? '1 category') : `${chosen.length} categories`;
+  const line = (id: Row, label: string, value: string) => (
+    <button type="button" className={styles.filterRow} aria-expanded={row === id} aria-controls={`filter-${id}`} onClick={() => setRow(row === id ? null : id)}>
+      <span className={styles.filterWords}>
+        <span className={styles.selectLabel}>{label}</span>
+        <span className={styles.pickerValue}>{value}</span>
       </span>
-    </label>
+      <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false" className={styles.filterChevron}>
+        <path d="m6 9 6 6 6-6" />
+      </svg>
+    </button>
+  );
+  const one = (id: 'rating' | 'sort', label: string, value: string, onChange: (v: string) => void, options: { value: string; label: string }[]) => (
+    <>
+      {line(id, label, options.find((o) => o.value === value)?.label ?? options[0]!.label)}
+      {row === id && (
+        <fieldset id={`filter-${id}`} className={styles.filterChoices}>
+          <legend className="visually-hidden">{label}</legend>
+          {options.map((o) => (
+            <label key={o.value} className={styles.pickerItem}>
+              <input type="radio" name={id} checked={value === o.value} onChange={() => onChange(o.value)} className={styles.filterTick} />
+              {o.label}
+            </label>
+          ))}
+        </fieldset>
+      )}
+    </>
+  );
+  return (
+    <details className={styles.filters} ref={box} onToggle={(e) => !e.currentTarget.open && setRow(null)}>
+      <summary className={styles.filtersButton} aria-label={on ? `Filters, ${on} on` : 'Filters'}>
+        <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false" className={styles.filtersIcon}>
+          <path d="M4 7h10M18 7h2M4 17h4M12 17h8" />
+          <circle cx="16" cy="7" r="2" />
+          <circle cx="10" cy="17" r="2" />
+        </svg>
+        <span className={styles.filtersWord}>Filters</span>
+        {on > 0 && (
+          <span className={styles.filtersCount} aria-hidden="true">
+            {on}
+          </span>
+        )}
+      </summary>
+      <div className={styles.filterList}>
+        {line('kinds', 'Categories', kindWords)}
+        {row === 'kinds' && (
+          <fieldset id="filter-kinds" className={styles.filterChoices}>
+            <legend className="visually-hidden">Categories to show</legend>
+            {kinds.map((k) => (
+              <label key={k.slug} className={styles.pickerItem}>
+                <input
+                  type="checkbox"
+                  checked={chosen.includes(k.slug)}
+                  onChange={(e) => onChosen(e.target.checked ? [...chosen, k.slug] : chosen.filter((x) => x !== k.slug))}
+                  className={styles.filterTick}
+                />
+                {k.name}
+              </label>
+            ))}
+          </fieldset>
+        )}
+        {one('rating', 'Rating', rating, onRating, RATING)}
+        {one('sort', 'Sort', sort, onSort, SORT)}
+        <div className={styles.filterFoot}>
+          <button
+            type="button"
+            className={styles.pickerAll}
+            onClick={() => {
+              onReset();
+              setRow(null);
+            }}
+          >
+            Reset
+          </button>
+          <button
+            type="button"
+            className={styles.filtersDone}
+            onClick={() => {
+              if (box.current) box.current.open = false;
+            }}
+          >
+            Show results
+          </button>
+        </div>
+      </div>
+    </details>
   );
 }
 
@@ -846,12 +694,6 @@ function Meta({ card }: { card: DirectoryCard }) {
         <Icon name="clock" tiny />
         {replyLabel(card.replyMinutes)}
       </span>
-      {card.km !== null && (
-        <span className={styles.metaItem}>
-          <Icon name="pin" tiny />
-          {kmLabel(card.km)}
-        </span>
-      )}
     </div>
   );
 }
@@ -1049,12 +891,6 @@ function Profile({
               <Icon name="clock" />
               Replies {replyLabel(card.replyMinutes)}
             </span>
-            {card.km !== null && (
-              <span className={styles.metaItem}>
-                <Icon name="pin" />
-                {kmLabel(card.km)}
-              </span>
-            )}
           </div>
           {card.tagline && <p className={styles.panelTagline}>{card.tagline}</p>}
           {card.about && <p className={styles.panelAbout}>{card.about}</p>}
@@ -1149,14 +985,6 @@ function Profile({
                       <span className={styles.dotSep} aria-hidden="true">
                         ·
                       </span>
-                      {s.km !== null && (
-                        <>
-                          {kmLabel(s.km)}
-                          <span className={styles.dotSep} aria-hidden="true">
-                            ·
-                          </span>
-                        </>
-                      )}
                       {s.place}
                     </span>
                   </span>

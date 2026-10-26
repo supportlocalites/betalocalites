@@ -21,7 +21,6 @@
   --color-gold-soft: #f7f2e9;
   --color-gold-faint: rgba(181, 150, 90, 0.4);
   --color-gold-ring: rgba(181, 150, 90, 0.15);
-  --color-ink-ring: rgba(28, 26, 23, 0.14);
   --color-on-ink: #fcfbfa;
   --color-tag: #242424;
   --color-on-tag: #ffffff;
@@ -226,7 +225,6 @@
   --b44-search-max: 340px;
   --b44-strip: 136px;
   --b44-faded: 0.45;
-  --b44-distance-pop: 240px;
   --b44-thumb-dot: 16px;
   --b44-sheet: 1080px;
   --b44-sheet-height: 88vh;
@@ -255,8 +253,9 @@
   --radius-dock: 24px;
   --radius-tray: 20px;
   --b44-undo-shift: 6px;
-  --b44-undo-lift: 150px;
-  --b44-undo-lift-wide: 96px;
+  --b44-undo-lift: 80px;
+  /* My picks' list, above the pill (D-64). */
+  --b44-picks-list: 320px;
   --safe-bottom: env(safe-area-inset-bottom, 0px);
   /* Messages in Style A (D-62): a business has replied, in green; a group's name box. */
   --color-ok: #3a5e3d;
@@ -270,6 +269,9 @@
   --b44-profile-row: 220px;
   --b44-profile-narrow: 720px;
   --b44-nav-icon: 20px;
+  /* Browse local's Filters list (D-64), and the room kept above it for the bar. */
+  --b44-filters: 360px;
+  --b44-filters-top: 140px;
 }
 
 /*
@@ -280,7 +282,6 @@
   --color-ground: #141414;
   --color-surface: #1c1b19;
   --color-ink: #f7f5f1;
-  --color-ink-ring: rgba(247, 245, 241, 0.18);
   --color-ink-soft: #d9d3ca;
   --color-muted: #a39b90;
   --color-line: #3a3631;

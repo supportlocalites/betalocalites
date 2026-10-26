@@ -9,27 +9,43 @@
   color: var(--color-ink);
 }
 
-/* ---- The top bar's search and filters ------------------------------------------------- */
+/* ---- The top bar's search, with Filters inside it (D-64) ----------------------------------- */
 
+/* Search first (the owner, 26 October 2026): one soft rounded field in the middle of the bar. */
 .search {
   position: relative;
   order: 3;
   flex: 1 1 100%;
   min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  height: var(--b44-search);
+  border-radius: var(--radius-pill);
+  border: var(--hairline) solid transparent;
+  background: var(--color-tint);
+  padding: 0 var(--space-1) 0 var(--space-3);
+  transition:
+    border-color 0.15s,
+    box-shadow 0.15s;
+}
+
+.search:has(.searchInput:focus) {
+  border-color: var(--color-gold);
+  box-shadow: 0 0 0 var(--space-1) var(--color-gold-ring);
 }
 
 @media (min-width: 1024px) {
   .search {
     order: 0;
-    flex: 0 1 var(--b44-search-max);
+    flex: 1 1 auto;
+    max-width: var(--size-search-max);
+    margin-inline: auto;
   }
 }
 
 .searchIcon {
-  position: absolute;
-  left: var(--space-3);
-  top: 50%;
-  transform: translateY(-50%);
+  flex-shrink: 0;
   width: var(--b44-icon);
   height: var(--b44-icon);
   fill: none;
@@ -39,37 +55,25 @@
 }
 
 .searchInput {
-  width: 100%;
-  height: var(--b44-search);
-  border-radius: var(--radius-pill);
-  border: var(--hairline) solid var(--color-line);
-  background: var(--color-surface);
-  padding: 0 var(--space-8) 0 var(--space-8);
-  padding-left: calc(var(--space-8) + var(--space-2));
+  flex: 1;
+  min-width: 0;
+  height: 100%;
+  border: 0;
+  background: transparent;
+  padding: 0 var(--space-1);
   font: inherit;
   font-size: var(--b44-text-search);
   color: var(--color-ink);
   outline: none;
-  transition:
-    border-color 0.15s,
-    box-shadow 0.15s;
 }
 
 .searchInput::placeholder {
   color: var(--color-muted-soft);
 }
 
-.searchInput:focus {
-  border-color: var(--color-gold);
-  box-shadow: 0 0 0 var(--space-1) var(--color-gold-ring);
-}
-
 .searchClear {
+  flex-shrink: 0;
   padding: 0;
-  position: absolute;
-  right: var(--space-3);
-  top: 50%;
-  transform: translateY(-50%);
   display: grid;
   place-items: center;
   width: var(--space-5);
@@ -85,41 +89,120 @@
   color: var(--color-ink);
 }
 
+/* The Filters button at the search's end, and its list below it. */
 .filters {
-  order: 4;
-  display: flex;
-  align-items: center;
-  gap: var(--space-1);
-  overflow-x: auto;
-  scrollbar-width: none;
-  margin-inline: calc(var(--space-1) * -1);
-  max-width: 100%;
+  flex-shrink: 0;
 }
 
-.filters::-webkit-scrollbar {
+.filtersButton {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  height: var(--b44-chip);
+  border-radius: var(--radius-pill);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-soft);
+  padding-inline: var(--space-3);
+  font-size: var(--b44-text-search);
+  font-weight: 500;
+  color: var(--color-ink);
+  cursor: pointer;
+  list-style: none;
+}
+
+.filtersButton::-webkit-details-marker {
   display: none;
 }
 
-@media (min-width: 1024px) {
-  .filters {
-    order: 0;
-    flex-shrink: 0;
+.filters[open] .filtersButton,
+.filtersButton:hover {
+  box-shadow: 0 0 0 var(--hairline) var(--color-gold);
+}
+
+.filtersIcon {
+  width: var(--b44-icon);
+  height: var(--b44-icon);
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.6;
+  stroke-linecap: round;
+}
+
+/* On a phone the icon alone, with its count. */
+.filtersWord {
+  display: none;
+}
+
+@media (min-width: 640px) {
+  .filtersWord {
+    display: inline;
   }
 }
 
-.select {
+.filtersCount {
+  min-width: var(--b44-thumb-dot);
+  height: var(--b44-thumb-dot);
+  display: grid;
+  place-items: center;
+  border-radius: var(--radius-pill);
+  background: var(--color-ink);
+  color: var(--color-on-ink);
+  padding-inline: var(--space-1);
+  font-size: var(--b44-text-count);
+  font-weight: 600;
+}
+
+/* The quiet list (style 1): a line for each filter, drawn like the bar's old boxes. */
+.filterList {
+  position: absolute;
+  top: calc(100% + var(--space-2));
+  right: 0;
+  z-index: 30;
+  display: grid;
+  gap: var(--space-1);
+  width: min(var(--b44-filters), calc(100vw - 2 * var(--b44-gutter)));
+  max-height: calc(100dvh - var(--b44-filters-top));
+  overflow-y: auto;
+  padding: var(--space-2);
+  border: var(--hairline) solid var(--color-line);
+  border-radius: var(--radius-sheet);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-card-open);
+}
+
+@media (min-width: 1024px) {
+  .filterList {
+    right: auto;
+    left: 50%;
+    transform: translateX(-50%);
+  }
+}
+
+.filterRow {
   display: flex;
-  flex-direction: column;
-  justify-content: center;
-  flex-shrink: 0;
+  align-items: center;
+  gap: var(--space-2);
+  width: 100%;
   border: var(--hairline) solid transparent;
   border-radius: var(--radius-sheet);
-  padding: var(--space-1) var(--space-2);
+  background: none;
+  padding: var(--space-2) var(--space-3);
+  font: inherit;
+  color: var(--color-ink);
+  text-align: left;
+  cursor: pointer;
   transition: border-color 0.15s;
 }
 
-.select:hover {
+.filterRow:hover,
+.filterRow[aria-expanded='true'] {
   border-color: var(--color-line);
+}
+
+.filterWords {
+  flex: 1;
+  min-width: 0;
+  display: grid;
 }
 
 .selectLabel {
@@ -130,59 +213,55 @@
   color: var(--color-muted-soft);
 }
 
-.selectRow {
-  display: flex;
-  align-items: center;
-}
-
-.selectInput {
-  appearance: none;
-  border: 0;
-  background: transparent;
-  padding: 0 var(--space-4) 0 0;
-  font: inherit;
-  font-size: var(--b44-text-card);
-  font-weight: 500;
-  letter-spacing: var(--b44-track-select);
-  text-transform: uppercase;
-  color: var(--color-ink);
-  cursor: pointer;
-  outline: none;
-}
-
-.chevron {
+.filterChevron {
+  flex-shrink: 0;
   width: var(--b44-icon-s);
   height: var(--b44-icon-s);
-  margin-left: calc(var(--space-4) * -1 + var(--space-1) / 2);
   fill: none;
   stroke: var(--color-muted);
   stroke-width: 1.7;
-  pointer-events: none;
+  transition: transform 0.15s;
 }
 
-.clear {
-  margin-left: var(--space-1);
-  height: var(--b44-chip);
-  flex-shrink: 0;
-  border-radius: var(--radius-pill);
-  border: var(--hairline) solid var(--color-line);
-  background: none;
-  padding-inline: var(--space-3);
+.filterRow[aria-expanded='true'] .filterChevron {
+  transform: rotate(180deg);
+}
+
+.filterChoices {
+  display: grid;
+  gap: var(--space-1);
+  margin: 0;
+  border: 0;
+  padding: var(--space-1) var(--space-1) var(--space-2);
+}
+
+.filterTick {
+  accent-color: var(--color-ink);
+}
+
+.filterFoot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  margin-top: var(--space-1);
+  border-top: var(--hairline) solid var(--color-line-soft);
+  padding: var(--space-3) var(--space-1) var(--space-1);
+}
+
+.filtersDone {
+  height: var(--size-button-short);
+  border: 0;
+  border-radius: var(--radius-button);
+  background: var(--color-ink);
+  color: var(--color-on-ink);
+  padding-inline: var(--space-5);
   font: inherit;
-  font-size: var(--b44-text-count);
+  font-size: var(--b44-text-card);
   font-weight: 500;
   letter-spacing: var(--b44-track-caps);
   text-transform: uppercase;
-  color: var(--color-muted);
   cursor: pointer;
-  transition:
-    border-color 0.15s,
-    color 0.15s;
-}
-
-.clear:hover {
-  border-color: var(--color-muted-soft);
-  color: var(--color-ink);
 }
 
 /* ---- The page under the bar --------------------------------------------------------------- */
@@ -266,30 +345,6 @@
 .dotOpen {
   background: var(--color-gold);
   border-color: var(--color-gold-dark);
-}
-
-/* The person's own home (D-64): a small dark house, only on their own map. */
-.home {
-  display: grid;
-  place-items: center;
-  border-radius: var(--radius-pill);
-  background: var(--color-ink);
-  border: var(--focus-ring) solid var(--color-surface);
-  box-shadow: var(--shadow-pin);
-}
-
-.home svg {
-  width: 60%;
-  height: 60%;
-  fill: var(--color-surface);
-}
-
-/* Where they are now ("Current location"), never sent to Localites. */
-.here {
-  border-radius: var(--radius-pill);
-  background: var(--color-ink);
-  border: var(--focus-ring) solid var(--color-surface);
-  box-shadow: 0 0 0 var(--space-2) var(--color-ink-ring);
 }
 
 .expand {
@@ -1246,42 +1301,15 @@ a.chip {
   color: var(--color-on-ink);
 }
 
-/* Show: the kinds of business, several at once. */
-.picker {
-  position: relative;
-  flex-shrink: 0;
-}
-
-.picker > summary {
-  list-style: none;
-  cursor: pointer;
-}
-
-.picker > summary::-webkit-details-marker {
-  display: none;
-}
-
+/* A filter's choice in the list, and the choices under it. */
 .pickerValue {
-  padding-right: var(--space-4);
   font-size: var(--b44-text-card);
   font-weight: 500;
   letter-spacing: var(--b44-track-select);
   text-transform: uppercase;
   white-space: nowrap;
-}
-
-.pickerList {
-  position: fixed;
-  z-index: 30;
-  display: grid;
-  gap: var(--space-1);
-  min-width: var(--b44-menu);
-  margin: var(--space-1) 0 0;
-  padding: var(--space-2);
-  border: var(--hairline) solid var(--color-line);
-  border-radius: var(--radius-sheet);
-  background: var(--color-surface);
-  box-shadow: var(--shadow-card-open);
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .pickerItem {
@@ -1311,6 +1339,7 @@ a.chip {
   color: var(--color-ink);
   cursor: pointer;
   text-decoration: underline;
+  text-underline-offset: var(--underline-offset);
 }
 
 /* "Search this area", at the bottom middle of the map: faded until there's something new to search. */
@@ -1374,116 +1403,6 @@ a.chip {
   .bodyOpen .left {
     display: none;
   }
-}
-
-/* Within: behind its button, a clean slider from 1 km to 50 km+ (the owner, 25 October 2026). */
-.distancePop {
-  gap: var(--space-3);
-  min-width: var(--b44-distance-pop);
-  padding: var(--space-4);
-}
-
-.distanceHead {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: var(--space-3);
-}
-
-/* Within, greyed until it can be used (D-64): signed out, or no home and no current location. */
-.pickerOff .select {
-  opacity: 0.55;
-}
-
-.pickerOff .select:hover {
-  opacity: 0.8;
-}
-
-.distanceWhy {
-  margin: 0;
-  color: var(--color-muted);
-  font-size: var(--b44-text-search);
-  line-height: 1.45;
-}
-
-.fromRow {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: var(--space-2);
-}
-
-.fromChip {
-  border: var(--hairline) solid var(--color-line);
-  border-radius: var(--radius-pill);
-  background: var(--color-surface);
-  color: var(--color-ink);
-  padding: var(--space-1) var(--space-3);
-  font: inherit;
-  font-size: var(--b44-text-search);
-  font-weight: 500;
-  cursor: pointer;
-}
-
-.fromChip[aria-disabled='true'] {
-  color: var(--color-muted);
-  border-style: dashed;
-  cursor: not-allowed;
-}
-
-.fromOn {
-  background: var(--color-ink);
-  border-color: var(--color-ink);
-  color: var(--color-on-ink);
-}
-
-.range:disabled {
-  opacity: 0.4;
-}
-
-.distanceValue {
-  font-family: var(--font-display);
-  font-size: var(--b44-text-similar);
-  color: var(--color-ink);
-  font-variant-numeric: tabular-nums;
-}
-
-.range {
-  appearance: none;
-  width: 100%;
-  height: var(--b44-stripe);
-  margin: var(--space-2) 0;
-  border-radius: var(--radius-pill);
-  background: linear-gradient(to right, var(--color-gold) var(--filled), var(--color-line) var(--filled));
-  cursor: pointer;
-}
-
-.range::-webkit-slider-thumb {
-  appearance: none;
-  width: var(--b44-thumb-dot);
-  height: var(--b44-thumb-dot);
-  border-radius: var(--radius-pill);
-  border: var(--focus-ring) solid var(--color-gold);
-  background: var(--color-surface);
-  box-shadow: var(--shadow-soft);
-}
-
-.range::-moz-range-thumb {
-  width: var(--b44-thumb-dot);
-  height: var(--b44-thumb-dot);
-  border-radius: var(--radius-pill);
-  border: var(--focus-ring) solid var(--color-gold);
-  background: var(--color-surface);
-  box-shadow: var(--shadow-soft);
-}
-
-.distanceEnds {
-  display: flex;
-  justify-content: space-between;
-  font-size: var(--b44-text-meta);
-  letter-spacing: var(--b44-track-select);
-  text-transform: uppercase;
-  color: var(--color-muted);
 }
 
 /* The expanded profile: a sheet over the dimmed page (the owner, 24 October 2026). */

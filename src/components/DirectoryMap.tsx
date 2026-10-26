@@ -1,6 +1,5 @@
 import { type ReactNode, useEffect, useRef } from 'react';
 import { CENTRE } from '@/lib/centre';
-import type { Point } from '@/lib/distance';
 import type { DirectoryCard } from '@/server/browse.server';
 import styles from './Directory.module.css';
 
@@ -10,8 +9,6 @@ type MapState = {
   L: L;
   map: import('leaflet').Map;
   layer: import('leaflet').LayerGroup;
-  /** Home and "you are here" (D-64). */
-  places: import('leaflet').LayerGroup;
   flying: boolean;
   flownTo: string | null;
   /** The full-size view from before the profile panel opened, and whether the visitor has moved the map since. */
@@ -64,21 +61,6 @@ function showIfHidden(s: MapState, open: DirectoryCard) {
  * white dot with a gold ring; the open one larger, in gold (the map moves only if it's out of sight). The map
  * is OpenStreetMap's, free (D-59, K5), tinted to Base44's grey. Tapping a dot opens the profile.
  */
-const HOUSE = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 11.5 12 5l8 6.5V20a1 1 0 0 1-1 1h-4.5v-5.5h-5V21H5a1 1 0 0 1-1-1z"/></svg>';
-
-function drawPlaces(s: MapState | null, { home, here }: { home: Point | null; here: Point | null }) {
-  if (!s) return;
-  s.places.clearLayers();
-  if (home) {
-    const icon = s.L.divIcon({ className: styles.home, html: HOUSE, iconSize: [30, 30] });
-    s.L.marker([home.lat, home.lng], { icon, keyboard: false, interactive: false, zIndexOffset: 2000, title: 'Your home' }).addTo(s.places);
-  }
-  if (here) {
-    const icon = s.L.divIcon({ className: styles.here, iconSize: [16, 16] });
-    s.L.marker([here.lat, here.lng], { icon, keyboard: false, interactive: false, zIndexOffset: 2000, title: 'You are here' }).addTo(s.places);
-  }
-}
-
 export function DirectoryMap({
   cards,
   selected,
@@ -89,13 +71,7 @@ export function DirectoryMap({
   onReady,
   className,
   children,
-  home = null,
-  here = null,
 }: {
-  /** The person's own home (D-64), shown as a small house; only ever sent to them. */
-  home?: Point | null;
-  /** Where they are now, when they chose "Current location" (never sent to Localites). */
-  here?: Point | null;
   cards: DirectoryCard[];
   selected: string | null;
   onSelect: (slug: string) => void;
@@ -114,7 +90,6 @@ export function DirectoryMap({
   const state = useRef<MapState | null>(null);
   const latest = useRef<Latest>({ pins: [], selected: null, onSelect });
   const moved = useRef(onMoved);
-  const placesNow = useRef({ home, here });
   const pins = cards.filter((c) => c.lat !== null && c.lng !== null);
   const key = JSON.stringify(pins.map((c) => [c.slug, c.lat, c.lng])) + selected;
 
@@ -129,7 +104,7 @@ export function DirectoryMap({
         className: styles.tiles,
         attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
       }).addTo(map);
-      const s: MapState = { L, map, layer: L.layerGroup().addTo(map), places: L.layerGroup().addTo(map), flying: false, flownTo: null, before: null };
+      const s: MapState = { L, map, layer: L.layerGroup().addTo(map), flying: false, flownTo: null, before: null };
       state.current = s;
       const visitorMoved = () => {
         if (s.before) s.before.moved = true;
@@ -146,7 +121,6 @@ export function DirectoryMap({
         },
       });
       drawPins(s, latest.current);
-      drawPlaces(s, placesNow.current);
     })().catch((err) => console.error('map not shown:', err instanceof Error ? err.message : err));
     return () => {
       gone = true;
@@ -159,14 +133,6 @@ export function DirectoryMap({
   useEffect(() => {
     moved.current = onMoved;
   }, [onMoved]);
-
-  // Home and "you are here": their own marks, above the businesses' dots, never clickable.
-  const placesKey = JSON.stringify([home, here]);
-  useEffect(() => {
-    placesNow.current = { home, here };
-    drawPlaces(state.current, placesNow.current);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [placesKey]);
 
   useEffect(() => {
     latest.current = { pins, selected, onSelect };

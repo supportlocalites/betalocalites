@@ -36,13 +36,7 @@ keep it, and the choices you have. It applies to localites.ca and the emails we 
 - **Required:** your first and last name, and your email address. We email you a 6-digit
   code each time you sign in; there's no password.
 - **Optional:** gender, date of birth and street address. Fill in only what
-  you're happy to share. You can change or clear these at any time on **Edit profile**.
-- **Where your home is:** if you give your address, we find where it is on the map and keep
-  that point, so Browse local can measure distances from your home. Only your own browser is
-  ever sent it; nobody else, and no business, sees it. It goes when you change or clear your
-  address, or delete your account.
-- **Where you are now:** only if you choose "Current location" on Browse local. Your browser asks
-  you first, works out distances itself, and never sends your location to us.
+  you're happy to share. You can change or clear these at any time on **Your account**.
 
 ### When you plan an event
 - What you enter about the event: its name, kind of event, date, start and end time, town,
@@ -120,8 +114,6 @@ keep it, and the choices you have. It applies to localites.ca and the emails we 
   Reviews and replies that seem to include a phone number, email address or street address
   are held too, so personal details aren't posted by mistake. Anything flagged is held for a
   person on our team to decide. Private messages are not checked this way.
-- **To measure distances:** your address's point on the map, to show how far businesses are
-  from your home on Browse local (only to you).
 - **To improve Localites and report to businesses:** we use activity records to understand
   how the site is used, and give each business totals about its own page (section 5). The
   optional details on your account (gender, date of birth, address) may be used, combined with
@@ -190,7 +182,7 @@ its service to us.
 | **Cloudflare** | Hosts the site, runs the "are you human?" check, limits repeated requests, works out approximate town, and runs the automated word check (section 4) | Worldwide network, including outside Canada |
 | **Resend** | Sends our emails (your email address, and the email's content) | United States |
 | **GitHub** | Stores our encrypted nightly backup for 30 days | United States |
-| **OpenStreetMap** (OpenStreetMap Foundation) | Draws the maps on business pages and Browse local: your browser fetches the map pictures from it directly, so it sees your internet address and which page you're on (no account, nothing else from Localites). When a business saves its address, we ask its free address search where to put the pin: we send the street, number (never when the business hides it) and town, nothing about you. When you save your own address, we send it (street, town, province and postal code, without your name or email) to find where your home is for distances | United Kingdom and worldwide |
+| **OpenStreetMap** (OpenStreetMap Foundation) | Draws the maps on business pages and Browse local: your browser fetches the map pictures from it directly, so it sees your internet address and which page you're on (no account, nothing else from Localites). When a business saves its address, we ask its free address search where to put the pin: we send the street, number (never when the business hides it) and town, nothing about you | United Kingdom and worldwide |
 
 **Directions** on a business's page open Google Maps in a new tab, only if you tap it; Google's
 own privacy policy then applies. A business can hide its street number: it's then never shown

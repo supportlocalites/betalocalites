@@ -31,8 +31,6 @@ export type ServerEnv = {
   PLAN_LIMIT?: RateLimit;
   /** OpenStreetMap's address search: one look-up a second for the whole site (its usage policy). */
   GEOCODE_LIMIT?: RateLimit;
-  /** People's own homes looked up in the background (D-64): one every 10 seconds. */
-  HOME_GEOCODE_LIMIT?: RateLimit;
   /** Business photos: a per-person limit on changes, kept by Cloudflare. */
   PHOTO_EDIT_LIMIT?: RateLimit;
   /**

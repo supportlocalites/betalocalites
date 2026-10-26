@@ -7,7 +7,7 @@ import { pageMeta } from '@/lib/meta';
 import { type TeamBusiness, updateDetails, updateNames, updatePerson } from '@/server/auth/member.server';
 import { NAME_WORDS, NAMES_NEEDED, namesInput, profileInput } from '@/server/member-input';
 import { listMatches } from '@/server/moderation.server';
-import { getProfile, lookUpHome } from '@/server/profile.server';
+import { getProfile } from '@/server/profile.server';
 import { myOwnRequests } from '@/server/business-requests.server';
 import { myAccount } from '@/server/claims.server';
 import { reviewRequestsOn, setReviewRequests } from '@/server/review-requests.server';
@@ -39,7 +39,7 @@ export async function loader({ context }: Route.LoaderArgs) {
 
 export async function action({ request, context }: Route.ActionArgs) {
   const member = context.get(memberContext);
-  const { env, ctx } = context.get(cloudflareContext);
+  const { env } = context.get(cloudflareContext);
   const form = await request.formData();
   const intent = String(form.get('intent') ?? '');
   if (intent === 'emails') {
@@ -73,14 +73,11 @@ export async function action({ request, context }: Route.ActionArgs) {
   }
   if (intent === 'about' && profile?.success) {
     await updateDetails(env, member.userId, profile.data);
-    // Where their (new) address is, for distances from home on Browse local (D-64).
-    ctx.waitUntil(lookUpHome(env, member.userId, true));
     return redirect('/account?tab=about&saved=1');
   }
   // The older form with everything at once (kept for anything still sending it).
   if (names?.success && profile?.success) {
     await updatePerson(env, member.userId, names.data, profile.data);
-    ctx.waitUntil(lookUpHome(env, member.userId, true));
     return redirect('/account?saved=1');
   }
   throw data(null, { status: 400 });
