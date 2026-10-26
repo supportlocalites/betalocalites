@@ -10,7 +10,8 @@ import { listMatches } from '@/server/moderation.server';
 import { getProfile } from '@/server/profile.server';
 import { myOwnRequests } from '@/server/business-requests.server';
 import { myAccount } from '@/server/claims.server';
-import { setReviewRequests } from '@/server/review-requests.server';
+import { reviewRequestsOn, setReviewRequests } from '@/server/review-requests.server';
+import { REVIEW_REQUESTS } from '@/lib/review-terms';
 import type { Route } from './+types/account';
 import styles from './account.module.css';
 
@@ -24,15 +25,16 @@ export const meta: Route.MetaFunction = () => [...pageMeta('Edit profile'), { na
 export async function loader({ context }: Route.LoaderArgs) {
   const member = context.get(memberContext);
   const { env } = context.get(cloudflareContext);
-  const [{ businesses, claims }, profile, added] = await Promise.all([
+  const [{ businesses, claims }, profile, added, reviewRequests] = await Promise.all([
     myAccount(env, member.userId),
     getProfile(env, member.userId),
     myOwnRequests(env, member.userId),
+    reviewRequestsOn(env, member.userId),
   ]);
   // Accounts made before first and last names were asked (the team's) start with the
   // whole name in the first box.
   const first = member.firstName ?? member.name;
-  return { first, last: member.lastName, email: member.email, profile, businesses, claims, added };
+  return { first, last: member.lastName, email: member.email, profile, businesses, claims, added, reviewRequests };
 }
 
 export async function action({ request, context }: Route.ActionArgs) {
@@ -41,9 +43,9 @@ export async function action({ request, context }: Route.ActionArgs) {
   const form = await request.formData();
   const intent = String(form.get('intent') ?? '');
   if (intent === 'emails') {
-    // Kept while events are paused (D-59, G19): the page no longer shows it. Only this person's own choice.
+    // Only this person's own choice (on the Privacy part).
     await setReviewRequests(env, member.userId, form.get('reviewRequests') === 'on');
-    return redirect('/account?emails=1#emails');
+    return redirect('/account?tab=privacy&emails=1');
   }
   if (intent !== 'details' && intent !== 'names' && intent !== 'about') throw data(null, { status: 400 });
   const fields = Object.fromEntries(form);
@@ -104,7 +106,7 @@ const tabOf = (v: string | null | undefined): Tab => (TABS.some(([k]) => k === v
  * without scripts too). Only ever this person's own details, businesses and claims.
  */
 export default function Account({ loaderData, actionData }: Route.ComponentProps) {
-  const { first, last, email, profile, businesses, claims, added } = loaderData;
+  const { first, last, email, profile, businesses, claims, added, reviewRequests } = loaderData;
   const busy = useNavigation().state !== 'idle';
   const [params] = useSearchParams();
   const tab = tabOf(actionData?.tab === 'about' ? 'about' : actionData?.tab ? 'profile' : params.get('tab'));
@@ -316,7 +318,26 @@ export default function Account({ loaderData, actionData }: Route.ComponentProps
             <h2 id="privacy-title" className={styles.panelTitle}>
               Privacy
             </h2>
-            <p className={styles.panelHint}>Your data is yours.</p>
+            <p className={styles.panelHint}>Your emails, and your data.</p>
+            <Form method="post" className={styles.form} id="emails">
+              <input type="hidden" name="intent" value="emails" />
+              <label className={styles.keep}>
+                <input type="checkbox" name="reviewRequests" defaultChecked={reviewRequests} />
+                <span>
+                  <strong>{REVIEW_REQUESTS.label}</strong> {REVIEW_REQUESTS.hint}
+                </span>
+              </label>
+              <p>
+                <button type="submit" className={styles.pillButton} disabled={busy}>
+                  Save email choice
+                </button>
+              </p>
+              {params.has('emails') && (
+                <p className={styles.saved} role="status">
+                  Saved
+                </p>
+              )}
+            </Form>
             <ul className={styles.rows}>
               <li className={styles.row}>
                 <span className={styles.rowWords}>
