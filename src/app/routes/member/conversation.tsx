@@ -133,9 +133,9 @@ export default function Conversation({ loaderData: { thread, conversations, inGr
   const { vendor, status } = thread;
   const canWrite = status === 'open' && !vendor.left && !vendor.paused;
   return (
-    <>
+    <div className={styles.screen}>
       <TopBar unread={conversations.filter((c) => c.unread > 0).length} />
-      <main className={`page ${styles.split} ${styles.withList}`}>
+      <main className={`${styles.split} ${styles.withList}`}>
         <section aria-labelledby="all-messages" className={styles.listPane}>
           <h2 id="all-messages" className={styles.paneTitle}>
             Messages
@@ -152,22 +152,19 @@ export default function Conversation({ loaderData: { thread, conversations, inGr
               {view === 'groups' && inGroups.groups[0] ? `← ${inGroups.groups[0].name}` : '← Messages'}
             </Link>
           </p>
+          {/* Style A (D-62): a slim head (who, what it's about, their page), then the conversation,
+              then the reply box at the bottom. */}
           <div className={styles.head}>
-            <SquarePhoto photo={vendor.photo} alt="" />
+            <SquarePhoto photo={vendor.photo} alt="" className={styles.headPhoto} />
             <span className={styles.cardBody}>
               <h1 className={styles.headName}>{vendor.name}</h1>
-              {thread.event && (
-                <span className="muted">
-                  About <strong>{thread.event.name}</strong> · {shortDate(thread.event.date, today)}
-                </span>
-              )}
-              {!vendor.left && !vendor.paused && (
-                <Link to={`/vendors/${vendor.slug}`} className="text-link">
-                  See their page
-                </Link>
-              )}
-              {inGroups.groups.length > 0 && (
-                <span className={styles.inGroups}>
+              {(thread.event || inGroups.groups.length > 0) && (
+                <span className={styles.headSub}>
+                  {thread.event && (
+                    <span>
+                      About {thread.event.name} · {shortDate(thread.event.date, today)}
+                    </span>
+                  )}
                   {inGroups.groups.map((g) => (
                     <Link key={g.id} to={`/messages/groups/${g.id}${inboxQuery(view, order)}`} className={styles.groupTag}>
                       {g.name}
@@ -176,136 +173,132 @@ export default function Conversation({ loaderData: { thread, conversations, inGr
                 </span>
               )}
             </span>
+            <span className={styles.headTools}>
+              {!vendor.left && !vendor.paused && (
+                <Link to={`/vendors/${vendor.slug}`} className={styles.pillButton}>
+                  View profile
+                </Link>
+              )}
+              <details className={styles.more}>
+                <summary className={styles.moreButton} aria-label="More: block, report or delete">
+                  <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                    <circle cx="5" cy="12" r="1.3" />
+                    <circle cx="12" cy="12" r="1.3" />
+                    <circle cx="19" cy="12" r="1.3" />
+                  </svg>
+                </summary>
+                <div className={styles.moreList}>
+                  {!vendor.left && status === 'blocked_by_consumer' && (
+                    <Form method="post">
+                      <input type="hidden" name="intent" value="unblock" />
+                      <button type="submit" className={styles.textButton} disabled={busy}>
+                        Unblock this conversation
+                      </button>
+                    </Form>
+                  )}
+                  {!vendor.left && status === 'open' && (
+                    // A confirm step first (scenario tests): what blocking does, and what the business still sees.
+                    <details>
+                      <summary className={styles.textButton}>Block {vendor.name}</summary>
+                      <p className="muted">
+                        {vendor.name} won’t be able to send you any more messages here. They’ll still see the conversation so far, and that
+                        you blocked it. You can unblock it later.
+                      </p>
+                      <Form method="post">
+                        <input type="hidden" name="intent" value="block" />
+                        <button type="submit" className="button button-secondary" disabled={busy}>
+                          Yes, block {vendor.name}
+                        </button>
+                      </Form>
+                    </details>
+                  )}
+                  <Link to={`/messages/${thread.id}/report`} className={styles.textButton}>
+                    Report this conversation
+                  </Link>
+                  {/* M1 (D-54): a confirm step first, since it can't be undone. */}
+                  <details>
+                    <summary className={styles.textButton}>Delete this conversation</summary>
+                    <p className="muted">
+                      It will be gone from your messages and from {vendor.name}’s, and nobody can write in it again. This can’t be undone. If
+                      you need to, you can message {vendor.name} afresh. For 30 days, {vendor.name} can still report it to our team, and then
+                      it’s deleted for good.
+                    </p>
+                    <Form method="post">
+                      <input type="hidden" name="intent" value="delete" />
+                      <button type="submit" className="button button-secondary" disabled={busy}>
+                        Yes, delete it
+                      </button>
+                    </Form>
+                  </details>
+                </div>
+              </details>
+            </span>
           </div>
 
-          {!vendor.left && (thread.events.length > 0 || thread.event) && (
-            <Form method="post" className={styles.eventBox}>
-              <input type="hidden" name="intent" value="event" />
-              <label htmlFor="eventId" className="field-label">
-                About one of your events (optional)
-              </label>
-              <select id="eventId" name="eventId" className="input" defaultValue={thread.event?.id ?? ''}>
-                <option value="">No event</option>
-                {thread.events.map((e) => (
-                  <option key={e.id} value={e.id}>
-                    {`${e.name} · ${shortDate(e.date, today)}`}
-                  </option>
-                ))}
-              </select>
-              <p className="field-hint">
-                {vendor.name} sees only the date, the town and about how many guests. Never your event’s name, where it is, the ages, your
-                budget or your notes.
-              </p>
-              <p>
-                <button type="submit" className="button button-secondary" disabled={busy}>
-                  Save
-                </button>
-              </p>
-            </Form>
-          )}
-
-          {error ? (
-            <p className="notice" role="alert">
-              {error}
-            </p>
-          ) : (
-            unsent && (
+          <div className={styles.readScroll}>
+            {error ? (
               <p className="notice" role="alert">
-                Your message wasn’t sent: you already have a conversation with {vendor.name}, so it’s below. Please send it again here.
+                {error}
               </p>
-            )
-          )}
-          <MessageList
-            messages={thread.messages}
-            canRemove
-            canEdit={canWrite}
-            reportPath={`/messages/${thread.id}/report`}
-            filePath={`/messages/${thread.id}/files`}
-            sentWith={inGroups.sentWith}
-          />
-          {canWrite ? (
-            <ReplyBox label={inGroups.groups.length > 0 ? `Reply to ${vendor.name} only` : `Message ${vendor.name}`} busy={busy} canAttach={canAttach} />
-          ) : (
-            <p className="notice" role="status">
-              {thread.ended && vendor.yourTeam ? (
-                // C6 (D-54): not "left Localites" when it's the person who now runs it.
-                <>
-                  You’re on {vendor.name}’s team now, so this conversation from before has ended. You can still read it here.{' '}
-                  <Link to="/business" className="text-link">
-                    My business
-                  </Link>
-                </>
-              ) : vendor.rejoined ? (
-                <>
-                  This conversation has ended: {vendor.name} left Localites, and has since joined again.{' '}
-                  <Link to={`/vendors/${vendor.slug}/message`} className="text-link">
-                    Message {vendor.name} afresh
-                  </Link>
-                </>
-              ) : thread.ended ? (
-                `${vendor.name} left Localites, so this conversation has ended. If they join again, you can message them afresh.`
-              ) : vendor.left ? (
-                `${vendor.name} isn’t on Localites at the moment, so no new messages can be sent.`
-              ) : vendor.paused ? (
-                `${vendor.name} isn’t listed on Localites at the moment, so messages are paused.`
-              ) : status === 'blocked_by_team' ? (
-                'The Localites team has closed this conversation, so no new messages can be sent.'
-              ) : status === 'blocked_by_consumer' ? (
-                'You blocked this conversation, so neither of you can send messages.'
-              ) : (
-                `${vendor.name} has blocked this conversation, so no new messages can be sent.`
-              )}
-            </p>
-          )}
-
-          <div className={styles.footer}>
-            <p className="muted">{NO_PAYMENTS_IN_CONVERSATION}</p>
-            <p className="muted">{SHARE_CAREFULLY}</p>
-            {!vendor.left && status === 'blocked_by_consumer' && (
-              <Form method="post">
-                <input type="hidden" name="intent" value="unblock" />
-                <button type="submit" className={styles.textButton} disabled={busy}>
-                  Unblock this conversation
-                </button>
-              </Form>
-            )}
-            {!vendor.left && status === 'open' && (
-              // A confirm step first (scenario tests): what blocking does, and what the business still sees.
-              <details>
-                <summary className={styles.textButton}>Block {vendor.name}</summary>
-                <p className="muted">
-                  {vendor.name} won’t be able to send you any more messages here. They’ll still see the conversation so far, and that you
-                  blocked it. You can unblock it later.
+            ) : (
+              unsent && (
+                <p className="notice" role="alert">
+                  Your message wasn’t sent: you already have a conversation with {vendor.name}, so it’s below. Please send it again here.
                 </p>
-                <Form method="post">
-                  <input type="hidden" name="intent" value="block" />
-                  <button type="submit" className="button button-secondary" disabled={busy}>
-                    Yes, block {vendor.name}
-                  </button>
-                </Form>
-              </details>
+              )
             )}
-            <Link to={`/messages/${thread.id}/report`} className={styles.textButton}>
-              Report this conversation
-            </Link>
-            {/* M1 (D-54): a confirm step first, since it can't be undone. */}
-            <details>
-              <summary className={styles.textButton}>Delete this conversation</summary>
-              <p className="muted">
-                It will be gone from your messages and from {vendor.name}’s, and nobody can write in it again. This can’t be undone. If you
-                need to, you can message {vendor.name} afresh. For 30 days, {vendor.name} can still report it to our team, and then it’s
-                deleted for good.
+            <MessageList
+              messages={thread.messages}
+              canRemove
+              canEdit={canWrite}
+              reportPath={`/messages/${thread.id}/report`}
+              filePath={`/messages/${thread.id}/files`}
+              sentWith={inGroups.sentWith}
+            />
+            {!canWrite && (
+              <p className="notice" role="status">
+                {thread.ended && vendor.yourTeam ? (
+                  // C6 (D-54): not "left Localites" when it's the person who now runs it.
+                  <>
+                    You’re on {vendor.name}’s team now, so this conversation from before has ended. You can still read it here.{' '}
+                    <Link to="/business" className="text-link">
+                      My business
+                    </Link>
+                  </>
+                ) : vendor.rejoined ? (
+                  <>
+                    This conversation has ended: {vendor.name} left Localites, and has since joined again.{' '}
+                    <Link to={`/vendors/${vendor.slug}/message`} className="text-link">
+                      Message {vendor.name} afresh
+                    </Link>
+                  </>
+                ) : thread.ended ? (
+                  `${vendor.name} left Localites, so this conversation has ended. If they join again, you can message them afresh.`
+                ) : vendor.left ? (
+                  `${vendor.name} isn’t on Localites at the moment, so no new messages can be sent.`
+                ) : vendor.paused ? (
+                  `${vendor.name} isn’t listed on Localites at the moment, so messages are paused.`
+                ) : status === 'blocked_by_team' ? (
+                  'The Localites team has closed this conversation, so no new messages can be sent.'
+                ) : status === 'blocked_by_consumer' ? (
+                  'You blocked this conversation, so neither of you can send messages.'
+                ) : (
+                  `${vendor.name} has blocked this conversation, so no new messages can be sent.`
+                )}
               </p>
-              <Form method="post">
-                <input type="hidden" name="intent" value="delete" />
-                <button type="submit" className="button button-secondary" disabled={busy}>
-                  Yes, delete it
-                </button>
-              </Form>
-            </details>
+            )}
+          </div>
+
+          <div className={styles.composer}>
+            {canWrite && (
+              <ReplyBox label={inGroups.groups.length > 0 ? `Reply to ${vendor.name} only` : `Message ${vendor.name}`} busy={busy} canAttach={canAttach} />
+            )}
+            <p className={styles.small}>
+              {NO_PAYMENTS_IN_CONVERSATION} {SHARE_CAREFULLY}
+            </p>
           </div>
         </div>
       </main>
-    </>
+    </div>
   );
 }

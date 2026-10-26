@@ -31,6 +31,21 @@ Every release and every database migration, in order. Appended before each deplo
 
 ## Releases
 
+### 2026-10-26 — Messages as the Style A mock-up (D-62 fix)
+
+**Stage:** 2 (the redesign)
+**What changed (plain English):** Messages now looks like the Style A the owner chose: on a
+computer a full-height inbox, the list on the left and the open conversation filling the rest,
+with a slim head (the business's photo and name, what it's about, its groups, View profile, and a
+"⋯" menu for Block, Report and Delete), the messages as compact bubbles with Report, Edit and
+Remove in one small row, and the reply box fixed at the bottom with Send beside it ("Add a photo
+or PDF" folded until wanted). On a phone, the list and a conversation take turns, as before. The
+"About one of your events" box is gone from the conversation (events are set aside, D-59).
+**Migrations applied:** none. **Destructive?** No.
+**Tests run:** `npm run check`; messages 148/148; message groups 26/26; the look checks 905/908
+(the 3 not passing are a business photo the pretend storage lost when this workspace restarted,
+not this change).
+
 ### 2026-10-26 — The cleaner Bright map (D-64)
 
 **Stage:** 1 and 2 (the redesign)

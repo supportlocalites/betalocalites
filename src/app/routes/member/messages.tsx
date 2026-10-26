@@ -27,9 +27,9 @@ export default function Messages({ loaderData: { conversations, today } }: Route
   const [params] = useSearchParams();
   const deleted = params.has('deleted');
   return (
-    <>
+    <div className={styles.screen}>
       <TopBar unread={conversations.filter((c) => c.unread > 0).length} />
-      <main className={`page ${styles.split}`}>
+      <main className={`${styles.split}`}>
         <section aria-labelledby="messages" className={styles.listPane}>
           <h1 id="messages" className={styles.paneTitle}>
             Messages
@@ -45,6 +45,6 @@ export default function Messages({ loaderData: { conversations, today } }: Route
           <p className="muted">{conversations.length > 0 ? 'Choose a group or a conversation to read it here.' : ''}</p>
         </div>
       </main>
-    </>
+    </div>
   );
 }

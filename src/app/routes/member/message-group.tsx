@@ -90,9 +90,9 @@ export default function MessageGroup({ loaderData: { page, conversations, today 
   const waiting = members.filter((m) => m.state === 'waiting').length;
   const news = members.filter((m) => m.unread > 0).length;
   return (
-    <>
+    <div className={styles.screen}>
       <TopBar unread={conversations.filter((c) => c.unread > 0).length} />
-      <main className={`page ${styles.split} ${styles.withList}`}>
+      <main className={`${styles.split} ${styles.withList}`}>
         <section aria-labelledby="all-messages" className={styles.listPane}>
           <h2 id="all-messages" className={styles.paneTitle}>
             Messages
@@ -205,6 +205,6 @@ export default function MessageGroup({ loaderData: { page, conversations, today 
           </div>
         </div>
       </main>
-    </>
+    </div>
   );
 }

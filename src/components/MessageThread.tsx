@@ -177,36 +177,41 @@ export function MessageList({
                 PDF: {m.file.name} ({sizeWords(m.file.size)})
               </a>
             )}
-            {!m.mine && !gone && (
-              <Link to={`${reportPath}?message=${m.id}`} className={`${styles.messageActions} ${styles.textButton}`}>
-                Report
-              </Link>
-            )}
-            {canEdit && m.mine && !gone && (
-              <details className={styles.messageActions}>
-                <summary className={styles.textButton}>Edit</summary>
-                <Form method="post">
-                  <input type="hidden" name="intent" value="edit" />
-                  <input type="hidden" name="messageId" value={m.id} />
-                  <label htmlFor={`edit-${m.id}`} className="field-label">
-                    Change your message
-                  </label>
-                  <textarea id={`edit-${m.id}`} name="body" className="input" maxLength={MESSAGE_LIMITS.body} defaultValue={m.body} />
-                  <p className="muted">It will show as edited, and both of you can still see what it said before.</p>
-                  <button type="submit" className="button button-secondary">
-                    Save
-                  </button>
-                </Form>
-              </details>
-            )}
-            {canRemove && m.mine && !gone && (
-              <Form method="post" className={styles.messageActions}>
-                <input type="hidden" name="intent" value="remove" />
-                <input type="hidden" name="messageId" value={m.id} />
-                <button type="submit" className={styles.textButton}>
-                  Remove
-                </button>
-              </Form>
+            {!gone && (!m.mine || canEdit || canRemove) && (
+              // Report, Edit and Remove in one small row under the message (Style A, D-62).
+              <div className={styles.messageTools}>
+                {!m.mine && (
+                  <Link to={`${reportPath}?message=${m.id}`} className={`${styles.messageActions} ${styles.textButton}`}>
+                    Report
+                  </Link>
+                )}
+                {canEdit && m.mine && (
+                  <details className={styles.messageActions}>
+                    <summary className={styles.textButton}>Edit</summary>
+                    <Form method="post">
+                      <input type="hidden" name="intent" value="edit" />
+                      <input type="hidden" name="messageId" value={m.id} />
+                      <label htmlFor={`edit-${m.id}`} className="field-label">
+                        Change your message
+                      </label>
+                      <textarea id={`edit-${m.id}`} name="body" className="input" maxLength={MESSAGE_LIMITS.body} defaultValue={m.body} />
+                      <p className="muted">It will show as edited, and both of you can still see what it said before.</p>
+                      <button type="submit" className="button button-secondary">
+                        Save
+                      </button>
+                    </Form>
+                  </details>
+                )}
+                {canRemove && m.mine && (
+                  <Form method="post" className={styles.messageActions}>
+                    <input type="hidden" name="intent" value="remove" />
+                    <input type="hidden" name="messageId" value={m.id} />
+                    <button type="submit" className={styles.textButton}>
+                      Remove
+                    </button>
+                  </Form>
+                )}
+              </div>
             )}
           </li>
         );
@@ -246,8 +251,19 @@ export function useFileSend() {
   return { send, problem, preparing };
 }
 
-/** "Add a photo or PDF": the file box, with what happens to the file said beside it. */
-export function FileField() {
+/**
+ * "Add a photo or PDF": the file box, with what happens to the file said beside it. Folded: under
+ * a reply box it opens when wanted (Style A, D-62).
+ */
+export function FileField({ folded = false }: { folded?: boolean }) {
+  if (folded) {
+    return (
+      <details className={styles.attach}>
+        <summary className={styles.textButton}>Add a photo or PDF</summary>
+        <FileField />
+      </details>
+    );
+  }
   return (
     <div className="field">
       <label htmlFor="file" className="field-label">
@@ -284,7 +300,7 @@ export function ReplyBox({ label, busy, error, canAttach }: { label: string; bus
         </p>
       )}
       <textarea id="body" name="body" className="input" maxLength={MESSAGE_LIMITS.body} />
-      {canAttach && <FileField />}
+      {canAttach && <FileField folded />}
       <p>
         <button type="submit" className="button button-primary" disabled={busy || preparing}>
           {preparing ? 'Getting the photo ready…' : busy ? 'Sending…' : 'Send'}
