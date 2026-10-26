@@ -272,6 +272,8 @@
   /* Browse local's Filters list (D-64), and the room kept above it for the bar. */
   --b44-filters: 360px;
   --b44-filters-top: 140px;
+  /* An open conversation's name and details before its tools wrap below (Messages, D-62). */
+  --b44-head-words: 12rem;
 }
 
 /*

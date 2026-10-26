@@ -323,7 +323,7 @@ details.messageActions form {
 }
 
 .split .head .cardBody {
-  flex: 1 1 12rem;
+  flex: 1 1 var(--b44-head-words);
 }
 
 .headPhoto {
