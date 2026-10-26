@@ -93,7 +93,7 @@ jobs:
         with:
           go-version: '1.27'
           cache: false
-      - uses: actions/cache@v4
+      - uses: actions/cache@v6
         with:
           path: .e2e/auth-server
           key: auth-server-${{ hashFiles('scripts/e2e/build-auth-server.sh') }}
@@ -140,7 +140,7 @@ jobs:
       # after the download, so a run whose tests fail still keeps it for the next one.
       - name: Saved copy of the browser
         id: browser
-        uses: actions/cache/restore@v4
+        uses: actions/cache/restore@v6
         with:
           path: ~/.cache/ms-playwright
           key: playwright-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
@@ -148,7 +148,7 @@ jobs:
         run: npx playwright install --with-deps chromium
       - name: Keep the browser for next time
         if: steps.browser.outputs.cache-hit != 'true'
-        uses: actions/cache/save@v4
+        uses: actions/cache/save@v6
         with:
           path: ~/.cache/ms-playwright
           key: playwright-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
