@@ -342,6 +342,7 @@ export function Directory({
               selected={selected}
               onSelect={select}
               layout={`${view}|${open ? 'open' : 'shut'}|${wide}`}
+              panelOpen={Boolean(open) && !wide}
               onMoved={onMoved}
               onReady={onMapReady}
               className={`${styles.map} ${view === 'map' ? styles.mapBig : ''}`}

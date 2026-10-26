@@ -31,6 +31,19 @@ Every release and every database migration, in order. Appended before each deplo
 
 ## Releases
 
+### 2026-10-26 — The map fits beside an open profile (D-61)
+
+**Stage:** 1 and 2 (the redesign)
+**What changed (plain English):** Opening a business's profile narrows the map; it now zooms out
+just enough that everything that was on screen (and the business opened) still shows in the
+narrower map, so no business is hidden. Closing the profile puts the full view back, exactly as it
+was, unless the map was moved meanwhile. Switching between businesses with the profile open still
+leaves the map where it is.
+**Migrations applied:** none. **Destructive?** No.
+**Tests run:** `npm run check`; unit tests 229/229; Browse local 93/93 three times (2 new: every
+business in view stays in view when a profile opens; closing it puts every dot back where it was);
+addresses 34/34.
+
 ### 2026-10-25 — Messages in Style A: groups, Unread, All; the top bar; Community's page (D-62)
 
 **Stage:** 2 (the redesign)

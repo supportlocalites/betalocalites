@@ -5,7 +5,15 @@ import styles from './Directory.module.css';
 
 type L = typeof import('leaflet');
 
-type MapState = { L: L; map: import('leaflet').Map; layer: import('leaflet').LayerGroup; flying: boolean; flownTo: string | null };
+type MapState = {
+  L: L;
+  map: import('leaflet').Map;
+  layer: import('leaflet').LayerGroup;
+  flying: boolean;
+  flownTo: string | null;
+  /** The full-size view from before the profile panel opened, and whether the visitor has moved the map since. */
+  before: { bounds: import('leaflet').LatLngBounds; center: import('leaflet').LatLng; zoom: number; moved: boolean } | null;
+};
 
 /** The part of the map on screen: "Search this area" keeps the businesses inside it. */
 export type Bounds = { south: number; west: number; north: number; east: number };
@@ -58,6 +66,7 @@ export function DirectoryMap({
   selected,
   onSelect,
   layout,
+  panelOpen,
   onMoved,
   onReady,
   className,
@@ -68,6 +77,8 @@ export function DirectoryMap({
   onSelect: (slug: string) => void;
   /** Changes whenever the map's size does (the view, the profile panel opening or widening). */
   layout: string;
+  /** The profile panel is open beside the map (it narrows the map). */
+  panelOpen: boolean;
   /** The visitor dragged or zoomed the map. */
   onMoved: () => void;
   /** The map's own controls once it's drawn (null when it goes). */
@@ -93,11 +104,15 @@ export function DirectoryMap({
         className: styles.tiles,
         attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
       }).addTo(map);
-      const s: MapState = { L, map, layer: L.layerGroup().addTo(map), flying: false, flownTo: null };
+      const s: MapState = { L, map, layer: L.layerGroup().addTo(map), flying: false, flownTo: null, before: null };
       state.current = s;
-      map.on('dragstart', () => moved.current());
+      const visitorMoved = () => {
+        if (s.before) s.before.moved = true;
+        moved.current();
+      };
+      map.on('dragstart', visitorMoved);
       map.on('zoomstart', () => {
-        if (!s.flying) moved.current();
+        if (!s.flying) visitorMoved();
       });
       onReady({
         bounds: () => {
@@ -126,19 +141,47 @@ export function DirectoryMap({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [key]);
 
-  // The map grows or shrinks (the view changes, the profile panel opens beside it): once that has
-  // happened it measures itself again, and moves only if the open business is now out of sight.
+  // The profile panel opening beside the map narrows it (the owner, 26 October 2026: "I want the
+  // map to shrink down to the viewable area ... when I exit the vendor I want the map to go back
+  // to the full screen"): what was on screen is fitted into the narrower map, so no business is
+  // left out of sight, and closing the panel puts back the full view (unless the visitor has
+  // moved the map meanwhile). Before the panel's slide, the full view is noted.
+  const panelWas = useRef(panelOpen);
   useEffect(() => {
+    const s = state.current;
+    const opening = panelOpen && !panelWas.current;
+    const closing = !panelOpen && panelWas.current;
+    panelWas.current = panelOpen;
+    if (s && opening && s.map.getSize().x > 0) {
+      s.before = { bounds: s.map.getBounds(), center: s.map.getCenter(), zoom: s.map.getZoom(), moved: false };
+    }
     const id = setTimeout(() => {
       const s = state.current;
       if (!s) return;
-      // Keeps its top left where it was, so the dots don't shift on screen as the panel opens.
+      // Keeps its top left where it was, so nothing jumps before it's fitted.
       s.map.invalidateSize({ pan: false });
+      if (s.map.getSize().x === 0) return;
+      const glide = (go: () => void) => {
+        // The map moving itself isn't the visitor moving it ("Search this area" stays as it was).
+        s.flying = true;
+        go();
+        setTimeout(() => (s.flying = false), 900);
+      };
       const open = latest.current.pins.find((c) => c.slug === latest.current.selected);
-      if (open && s.map.getSize().x > 0) showIfHidden(s, open);
+      if (opening && s.before) {
+        // Everything that was on screen, and the business just opened, fitted into what's left.
+        const fit = s.L.latLngBounds(s.before.bounds.getSouthWest(), s.before.bounds.getNorthEast());
+        if (open) fit.extend([open.lat!, open.lng!]);
+        glide(() => s.map.fitBounds(fit, { animate: true }));
+      } else if (closing && s.before) {
+        const { center, zoom, moved: movedMeanwhile } = s.before;
+        s.before = null;
+        if (!movedMeanwhile) glide(() => s.map.setView(center, zoom, { animate: true }));
+      }
+      if (open && !opening) showIfHidden(s, open);
     }, 320);
     return () => clearTimeout(id);
-  }, [layout]);
+  }, [layout, panelOpen]);
 
   return (
     <div className={className}>

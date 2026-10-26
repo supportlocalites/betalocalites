@@ -143,6 +143,29 @@ check('tapping a card opens its profile, and its address names it', page.url().i
 await page.keyboard.press('Escape');
 await page.waitForSelector(`aside[aria-label="${A.name}"]`, { state: 'detached' });
 check('Esc closes it', !page.url().includes('v='));
+// Where each dot is on screen, and whether it's inside the map as it's now shown.
+const dots = () => page.$$eval('.leaflet-marker-icon', (els) => {
+  const box = document.querySelector('[aria-label="Map of the businesses that shared an address"]').getBoundingClientRect();
+  return els.map((el) => {
+    const r = el.getBoundingClientRect();
+    const x = r.x + r.width / 2;
+    const y = r.y + r.height / 2;
+    return { name: el.getAttribute('title'), x: Math.round(x), y: Math.round(y), seen: x >= box.left && x <= box.right && y >= box.top && y <= box.bottom };
+  });
+});
+// Let the map settle from closing the last profile first.
+await page.waitForTimeout(1500);
+const full = (await dots()).filter((d) => d.seen);
+await page.click(`button[aria-label="Open ${A.name}"]`);
+await page.waitForSelector(`aside[aria-label="${A.name}"]`);
+await page.waitForTimeout(1500);
+const narrowed = new Set((await dots()).filter((d) => d.seen).map((d) => d.name));
+check('opening a business narrows the map, and every business that was in view still is', full.length > 1 && full.every((d) => narrowed.has(d.name)),
+  `${full.length} before, missing: ${full.filter((d) => !narrowed.has(d.name)).map((d) => d.name).join(', ')}`);
+await page.keyboard.press('Escape');
+await page.waitForTimeout(1500);
+const back = await dots();
+check('…closing it puts the full view back, every dot where it was', full.every((d) => back.some((b) => b.name === d.name && Math.abs(b.x - d.x) <= 3 && Math.abs(b.y - d.y) <= 3)));
 const mapAt = () => page.$eval('.leaflet-map-pane', (el) => el.style.transform);
 await page.click(`button[aria-label="Open ${A.name}"]`);
 await page.waitForTimeout(1200);
