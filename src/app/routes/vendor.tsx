@@ -4,6 +4,7 @@ import { Directory } from '@/components/Directory';
 import { pageMeta, shareMeta } from '@/lib/meta';
 import { findRenamed, getVendor } from '@/server/catalog.server';
 import { withDb } from '@/server/db.server';
+import { panelPhotos } from '@/server/photo-store.server';
 import { publicReviews } from '@/server/reviews.server';
 import { loadDirectory } from '@/server/directory-page.server';
 import type { Route } from './+types/vendor';
@@ -45,6 +46,7 @@ export async function loader({ request, params, context }: Route.LoaderArgs) {
       track: page.data.view,
       // Its reviews come with the page (search engines, link previews), not only when the panel asks.
       reviews,
+      photos: panelPhotos(found.photos),
       vendor: { name: found.name, tagline: found.tagline, town: found.town, photo: found.photos[0]?.url ?? found.profile?.url ?? null },
     },
     { headers: page.init?.headers },
@@ -54,8 +56,8 @@ export async function loader({ request, params, context }: Route.LoaderArgs) {
 export const headers: Route.HeadersFunction = ({ loaderHeaders }) => loaderHeaders;
 
 export default function VendorProfile({ loaderData }: Route.ComponentProps) {
-  const { cards, kinds, shortlist, signedIn, tracks, slug, track, reviews, home } = loaderData;
+  const { cards, kinds, shortlist, signedIn, tracks, slug, track, reviews, photos, home } = loaderData;
   return (
-    <Directory cards={cards} kinds={kinds} shortlist={shortlist} signedIn={signedIn} tracks={tracks} initial={slug} initialTrack={track} initialReviews={reviews} home={home} />
+    <Directory cards={cards} kinds={kinds} shortlist={shortlist} signedIn={signedIn} tracks={tracks} initial={slug} initialTrack={track} initialReviews={reviews} initialPhotos={photos} home={home} />
   );
 }

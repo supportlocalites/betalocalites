@@ -109,6 +109,13 @@ export const photoUrl = (env: ServerEnv, path: string | null) => (path ? publicU
 /** The small version of a stored photo, for lists (search results). */
 export const smallPhotoUrl = (env: ServerEnv, path: string | null) => (path ? publicUrl(env, smallPath(path)) : null);
 
+/** The expanded profile's row of photos (D-65): the first four, and how many there are in all. */
+export type PanelPhotos = { shown: { url: string; alt: string }[]; total: number };
+export const panelPhotos = (photos: Photo[]): PanelPhotos => ({
+  shown: photos.slice(0, 4).map((p) => ({ url: p.url, alt: p.alt })),
+  total: photos.length,
+});
+
 /** A business's page photos in order: the first leads its page. */
 export async function readPhotos(db: Db, vendorId: string): Promise<PhotoRow[]> {
   return [

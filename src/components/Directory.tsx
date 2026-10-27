@@ -6,6 +6,7 @@ import { directionsUrl, streetLine } from '@/lib/address';
 import { fuzzyMatch } from '@/lib/fuzzy';
 import { localFavourites } from '@/lib/local-favourites';
 import type { DirectoryCard, ShortlistItem } from '@/server/browse.server';
+import type { PanelPhotos } from '@/server/photo-store.server';
 import { type Bounds, DirectoryMap, type MapApi } from './DirectoryMap';
 import { picksUndo } from './picksUndo';
 import { ShortlistBar } from './ShortlistBar';
@@ -55,6 +56,7 @@ export function Directory({
   initial,
   initialTrack = null,
   initialReviews = null,
+  initialPhotos = null,
   home = null,
 }: {
   cards: DirectoryCard[];
@@ -68,6 +70,8 @@ export function Directory({
   initialTrack?: string | null;
   /** That business's reviews, sent with the page. */
   initialReviews?: PanelData['reviews'] | null;
+  /** And its first photos. */
+  initialPhotos?: PanelPhotos | null;
   /** Their own home, when they chose it with Find my address: a house on their map only. */
   home?: { lat: number; lng: number } | null;
 }) {
@@ -130,6 +134,15 @@ export function Directory({
       setOpen(slug);
     },
     [setOpen, selected],
+  );
+
+  // A business from "More … businesses" always opens in the expanded view (the owner, 27 October 2026).
+  const openWide = useCallback(
+    (slug: string) => {
+      setWide(true);
+      setOpen(slug);
+    },
+    [setOpen],
   );
 
   // Closing the profile (×, Esc, or outside the sheet). The sheet stays a sheet until it's gone,
@@ -248,7 +261,7 @@ export function Directory({
         wide={wide}
         onWide={() => setWide((v) => !v)}
         onClose={closeSheet}
-        onSelect={select}
+        onSimilar={openWide}
         onStep={step}
         position={{ index: position + 1, total: position >= 0 ? ordered.length : 0 }}
         similar={similar}
@@ -256,6 +269,7 @@ export function Directory({
         signedIn={signedIn}
         pageTrack={open.slug === initial ? initialTrack : null}
         pageReviews={open.slug === initial ? initialReviews : null}
+        pagePhotos={open.slug === initial ? initialPhotos : null}
         listPlace={(() => {
           const t = open.kindSlug ? tracks[open.kindSlug] : null;
           const pos = cards.filter((c) => c.kindSlug === open.kindSlug).findIndex((c) => c.slug === open.slug);
@@ -710,16 +724,19 @@ function MiniCard({
   onSelect,
   heart,
   signedIn,
+  narrow = false,
 }: {
   card: DirectoryCard;
-  pos: number;
+  pos?: number;
   selected: string | null;
   onSelect: (slug: string) => void;
   heart: HeartFn;
   signedIn: boolean;
+  /** A third of the side panel's width, without the tagline (the owner, 27 October 2026). */
+  narrow?: boolean;
 }) {
   return (
-    <article className={`${styles.card} ${c.slug === selected ? styles.cardOpen : ''}`} data-pos={pos}>
+    <article className={`${styles.card} ${narrow ? styles.cardNarrow : ''} ${c.slug === selected ? styles.cardOpen : ''}`} data-pos={pos}>
       <button type="button" className={styles.cardHit} onClick={() => onSelect(c.slug)} aria-label={`Open ${c.name}`} />
       <span className={styles.stripe} aria-hidden="true" />
       <p className={styles.cardKind}>
@@ -727,7 +744,7 @@ function MiniCard({
         {c.bestRated && <span className={styles.best}>Best rated</span>}
       </p>
       <h3 className={styles.cardName}>{c.name}</h3>
-      {c.tagline && <p className={styles.cardTagline}>{c.tagline}</p>}
+      {c.tagline && !narrow && <p className={styles.cardTagline}>{c.tagline}</p>}
       <Meta card={c} />
       {/* Not on the business's own team's cards (C6): they don't shortlist or save their own. */}
       {!c.yours && (
@@ -853,14 +870,27 @@ function Plus({ card, signedIn, words = false }: { card: DirectoryCard; signedIn
   );
 }
 
-type PanelData = { reviews: { count: number; average: number | null; reviews: ShownReview[] }; track: string | null };
+type PanelData = {
+  reviews: { count: number; average: number | null; reviews: ShownReview[] };
+  photos: PanelPhotos;
+  track: string | null;
+};
 
+/** Reviews shown at a time in the expanded view, stepped through with ‹ › (D-65). */
+const REVIEW_PAGE = 2;
+
+/**
+ * A business's profile, made to fit without scrolling (D-65, the owner, 27 October 2026). The side
+ * panel (4A): a short photo strip with the tools on it, the first 3 lines of About with "More",
+ * the newest review with "Read all", and three narrow cards. Expanded (5C): the name and tools
+ * across the top, a row of photos, About in full beside the reviews (a few at a time), the cards.
+ */
 function Profile({
   card,
   wide,
   onWide,
   onClose,
-  onSelect,
+  onSimilar,
   onStep,
   position,
   similar,
@@ -868,13 +898,14 @@ function Profile({
   signedIn,
   pageTrack,
   pageReviews,
+  pagePhotos,
   listPlace,
 }: {
   card: DirectoryCard;
   wide: boolean;
   onWide: () => void;
   onClose: () => void;
-  onSelect: (slug: string) => void;
+  onSimilar: (slug: string) => void;
   onStep: (delta: number) => void;
   position: { index: number; total: number };
   similar: DirectoryCard[];
@@ -882,147 +913,254 @@ function Profile({
   signedIn: boolean;
   pageTrack: string | null;
   pageReviews: PanelData['reviews'] | null;
+  pagePhotos: PanelPhotos | null;
   listPlace: { pos: number; list: string } | null;
 }) {
   const panel = useFetcher<PanelData>();
   const { load } = panel;
-  // The business opened by its own address already has its reviews and visit note.
+  // The business opened by its own address already has its reviews, photos and visit note.
   const ready = pageReviews !== null;
   useEffect(() => {
     if (!ready) void load(`/vendors/${card.slug}/panel`);
   }, [card.slug, load, ready]);
   const reviews = pageReviews ?? panel.data?.reviews ?? null;
+  const photos = pagePhotos ?? panel.data?.photos ?? null;
+  const [page, setPage] = useState(0);
   const ref = useRef<HTMLElement>(null);
   const location = useLocation();
   // Opening a profile is a visit to the business's page (ADR-030).
   const onTap = useVendorActivity(pageTrack ?? panel.data?.track ?? null, ref, listPlace, `panel:${card.slug}:${location.key}`);
-  return (
-    <aside className={styles.panel} aria-label={card.name} ref={ref} onClickCapture={onTap}>
-      <div className={styles.photo}>
-        {card.photo ? (
-          <img src={card.photo} alt={card.photoAlt} className={styles.photoImg} />
-        ) : (
-          <span className={styles.photoBlank}>{card.name}</span>
-        )}
-        <div className={styles.tools}>
-          {!card.yours && heart(card, true)}
-          <button type="button" className={styles.tool} onClick={onWide} aria-label={wide ? 'Collapse to drawer' : 'Expand to sheet'}>
-            <Icon name={wide ? 'min' : 'max'} />
-          </button>
-          <button type="button" className={styles.tool} onClick={onClose} aria-label="Close profile">
-            <Icon name="x" />
-          </button>
-        </div>
-        {position.total > 1 && (
-          <div className={styles.stepper}>
-            <button type="button" onClick={() => onStep(-1)} aria-label="Previous business" className={styles.stepButton}>
-              <Icon name="left" />
-            </button>
-            <span className={styles.stepCount}>
-              {position.index} / {position.total}
-            </span>
-            <button type="button" onClick={() => onStep(1)} aria-label="Next business" className={styles.stepButton}>
-              <Icon name="right" />
-            </button>
-          </div>
-        )}
+  // "More" only when the 3 lines cut the description short.
+  const about = useRef<HTMLParagraphElement>(null);
+  const [cut, setCut] = useState(false);
+  useEffect(() => {
+    const el = about.current;
+    if (!el || wide) return;
+    const check = () => setCut(el.scrollHeight > el.clientHeight + 1);
+    check();
+    const watch = new ResizeObserver(check);
+    watch.observe(el);
+    return () => watch.disconnect();
+  }, [wide, card.about]);
+  const expand = () => {
+    if (!wide) onWide();
+  };
+
+  const tools = (
+    <>
+      {!card.yours && heart(card, true)}
+      <button type="button" className={styles.tool} onClick={onWide} aria-label={wide ? 'Collapse to drawer' : 'Expand to sheet'}>
+        <Icon name={wide ? 'min' : 'max'} />
+      </button>
+      <button type="button" className={styles.tool} onClick={onClose} aria-label="Close profile">
+        <Icon name="x" />
+      </button>
+    </>
+  );
+  const stepper = position.total > 1 && (
+    <div className={styles.stepper}>
+      <button type="button" onClick={() => onStep(-1)} aria-label="Previous business" className={styles.stepButton}>
+        <Icon name="left" />
+      </button>
+      <span className={styles.stepCount}>
+        {position.index} / {position.total}
+      </span>
+      <button type="button" onClick={() => onStep(1)} aria-label="Next business" className={styles.stepButton}>
+        <Icon name="right" />
+      </button>
+    </div>
+  );
+  const nameBlock = (
+    <div className={styles.nameBlock}>
+      <div className={styles.kicker}>
+        <span className={styles.kickerKind}>{card.sub ?? card.kind}</span>
+        <span className={styles.dotSep} aria-hidden="true">
+          ·
+        </span>
+        <span>{card.place}</span>
       </div>
+      <h2 className={styles.panelName}>{card.name}</h2>
+      <div className={styles.panelMeta}>
+        <span className={styles.metaItem}>
+          <Icon name="star" />
+          <span className={styles.strong}>{ratingLabel(card.rating)}</span>
+          <span className={styles.faint}>({card.reviews})</span>
+        </span>
+        <span className={styles.metaItem}>
+          <Icon name="clock" />
+          Replies {replyLabel(card.replyMinutes)}
+        </span>
+      </div>
+    </div>
+  );
+  // The row of photos in the expanded view: the main one wider, "+N more" on the last.
+  const shown = photos?.shown.length ? photos.shown : card.photo ? [{ url: card.photo, alt: card.photoAlt ?? '' }] : [];
+  const more = photos ? photos.total - shown.length : 0;
+  const pages = reviews ? Math.ceil(reviews.reviews.length / REVIEW_PAGE) : 0;
+  const at = Math.min(page, Math.max(0, pages - 1));
+  const newest = reviews?.reviews[0] ?? null;
+
+  return (
+    <aside className={`${styles.panel} ${wide ? styles.panelWide : ''}`} aria-label={card.name} ref={ref} onClickCapture={onTap}>
+      {wide ? (
+        <div className={styles.sheetHead}>
+          {nameBlock}
+          <div className={styles.sheetTools}>
+            {stepper}
+            {tools}
+          </div>
+        </div>
+      ) : (
+        <div className={styles.photo}>
+          {card.photo ? (
+            <img src={card.photo} alt={card.photoAlt} className={styles.photoImg} />
+          ) : (
+            <span className={styles.photoBlank}>{card.name}</span>
+          )}
+          <div className={styles.tools}>{tools}</div>
+          {stepper}
+        </div>
+      )}
 
       <div className={styles.panelBody}>
-        <div>
-          <div className={styles.kicker}>
-            <span className={styles.kickerKind}>{card.sub ?? card.kind}</span>
-            <span className={styles.dotSep} aria-hidden="true">
-              ·
-            </span>
-            <span>{card.place}</span>
+        {wide && shown.length > 0 && (
+          <div className={styles.photoRow} data-count={shown.length}>
+            {shown.map((p, i) => (
+              <span key={p.url} className={styles.photoCell}>
+                <img src={p.url} alt={p.alt} className={styles.photoImg} />
+                {i === shown.length - 1 && more > 0 && <span className={styles.photoMore}>+{more} more</span>}
+              </span>
+            ))}
           </div>
-          <h2 className={styles.panelName}>{card.name}</h2>
-          <div className={styles.panelMeta}>
-            <span className={styles.metaItem}>
-              <Icon name="star" />
-              <span className={styles.strong}>{ratingLabel(card.rating)}</span>
-              <span className={styles.faint}>({card.reviews})</span>
-            </span>
-            <span className={styles.metaItem}>
-              <Icon name="clock" />
-              Replies {replyLabel(card.replyMinutes)}
-            </span>
+        )}
+        <div className={styles.columns}>
+          <div className={styles.details}>
+            {!wide && nameBlock}
+            {card.tagline && <p className={styles.panelTagline}>{card.tagline}</p>}
+            {card.about && (
+              <p ref={about} className={`${styles.panelAbout} ${wide ? '' : styles.clamp}`}>
+                {card.about}
+              </p>
+            )}
+            {!wide && cut && (
+              <button type="button" className={styles.moreLink} onClick={expand}>
+                More
+              </button>
+            )}
+            {/* No Curator's note (the owner, 25 October 2026); the team's notes stay in the database. */}
+            {card.tags.length > 0 && (
+              <div className={`${styles.tags} ${wide ? '' : styles.tagsOneLine}`}>
+                {(wide ? card.tags : card.tags.slice(0, 4)).map((t) => (
+                  <span key={t} className={styles.tag}>
+                    {t}
+                  </span>
+                ))}
+              </div>
+            )}
+
+            {/* Built in (D-59, G1, G2, G9, G14): talk to the business, the shortlist, directions. */}
+            {card.yours ? (
+              // C6 (D-54): someone on its team sees what they can do, not the customer's buttons.
+              <div className={styles.yours}>
+                <p className={styles.label}>This is your business</p>
+                <p className={styles.small}>You’re on its team, so this is how customers see it.</p>
+                <div className={styles.actions}>
+                  <Link to="/business" className={`${styles.action} ${styles.actionDark}`}>
+                    My business
+                  </Link>
+                  {card.yours !== 'staff' && (
+                    <Link to={`/vendors/${card.slug}/edit`} className={`${styles.action} ${styles.actionOutline}`}>
+                      Edit your listing
+                    </Link>
+                  )}
+                </div>
+              </div>
+            ) : (
+              <>
+                <div className={styles.actions}>
+                  {card.claimed ? (
+                    <Link to={`/vendors/${card.slug}/message`} className={`${styles.action} ${styles.actionDark}`}>
+                      Message
+                    </Link>
+                  ) : (
+                    <Link to={`/vendors/${card.slug}/inquire`} className={`${styles.action} ${styles.actionDark}`}>
+                      Inquire
+                    </Link>
+                  )}
+                  <Plus card={card} signedIn={signedIn} words />
+                </div>
+                {!card.claimed && <p className={styles.small}>Not on Localites yet. Inquire and our team will invite them.</p>}
+              </>
+            )}
+            {card.street && (
+              <p className={`${styles.small} ${styles.oneLine}`}>
+                {card.approximate ? 'Approximate location: ' : ''}
+                {/* Never a hidden number or unit: they aren't kept (0054, 0059). */}
+                {streetLine({ street: card.street, number: card.number, unit: card.unit, hidden: false })}, {card.town} ·{' '}
+                <a
+                  href={directionsUrl({ street: card.street, number: card.number, hidden: false }, card.town)}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className={styles.link}
+                >
+                  Directions
+                </a>
+              </p>
+            )}
           </div>
-          {card.tagline && <p className={styles.panelTagline}>{card.tagline}</p>}
-          {card.about && <p className={styles.panelAbout}>{card.about}</p>}
-          {/* No Curator's note (the owner, 25 October 2026); the team's notes stay in the database. */}
-          {card.tags.length > 0 && (
-            <div className={styles.tags}>
-              {card.tags.map((t) => (
-                <span key={t} className={styles.tag}>
-                  {t}
-                </span>
-              ))}
-            </div>
-          )}
 
-          {/* Built in (D-59, G1, G2, G9, G14): talk to the business, the shortlist, directions. */}
-          {card.yours ? (
-            // C6 (D-54): someone on its team sees what they can do, not the customer's buttons.
-            <div className={styles.yours}>
-              <p className={styles.label}>This is your business</p>
-              <p className={styles.small}>You’re on {card.name}’s team, so this is how customers see it. Messages and favourites are for customers.</p>
-              <div className={styles.actions}>
-                <Link to="/business" className={`${styles.action} ${styles.actionDark}`}>
-                  My business
-                </Link>
-                {card.yours !== 'staff' && (
-                  <Link to={`/vendors/${card.slug}/edit`} className={`${styles.action} ${styles.actionOutline}`}>
-                    Edit your listing
-                  </Link>
-                )}
-              </div>
-            </div>
-          ) : (
-            <>
-              <div className={styles.actions}>
-                {card.claimed ? (
-                  <Link to={`/vendors/${card.slug}/message`} className={`${styles.action} ${styles.actionDark}`}>
-                    Message {card.name}
-                  </Link>
-                ) : (
-                  <Link to={`/vendors/${card.slug}/inquire`} className={`${styles.action} ${styles.actionDark}`}>
-                    Inquire
-                  </Link>
-                )}
-                <Plus card={card} signedIn={signedIn} words />
-              </div>
-              {!card.claimed && <p className={styles.small}>{card.name} isn’t on Localites yet. Inquire and our team will invite them.</p>}
-            </>
-          )}
-          {card.street && (
-            <p className={styles.small}>
-              {card.approximate ? 'Approximate location: ' : ''}
-              {/* Never a hidden number or unit: they aren't kept (0054, 0059). */}
-              {streetLine({ street: card.street, number: card.number, unit: card.unit, hidden: false })}, {card.town} ·{' '}
-              <a
-                href={directionsUrl({ street: card.street, number: card.number, hidden: false }, card.town)}
-                target="_blank"
-                rel="noopener noreferrer"
-                className={styles.link}
-              >
-                Directions
-              </a>
-            </p>
-          )}
-
-          {/* Reviews listed (D-59, K22). */}
+          {/* Reviews (D-59, K22): the newest in the side panel, a few at a time expanded (D-65). */}
           {reviews && reviews.count > 0 && (
             <section className={styles.reviews} aria-label="Reviews">
-              <p className={styles.label}>Reviews</p>
-              <ReviewList
-                businessName={card.name}
-                count={reviews.count}
-                average={reviews.average}
-                reviews={reviews.reviews}
-                after={(r) => <ReportLink to={`/reviews/${r.id}/report`} />}
-              />
+              {wide ? (
+                <>
+                  <ReviewList
+                    businessName={card.name}
+                    count={reviews.count}
+                    average={reviews.average}
+                    reviews={reviews.reviews.slice(at * REVIEW_PAGE, (at + 1) * REVIEW_PAGE)}
+                    after={(r) => <ReportLink to={`/reviews/${r.id}/report`} />}
+                  />
+                  {pages > 1 && (
+                    <div className={styles.reviewPager}>
+                      <span>
+                        {at * REVIEW_PAGE + 1}–{Math.min((at + 1) * REVIEW_PAGE, reviews.reviews.length)} of {reviews.reviews.length}
+                      </span>
+                      <button type="button" className={styles.stepButton} onClick={() => setPage(at - 1)} disabled={at === 0} aria-label="Newer reviews">
+                        <Icon name="left" />
+                      </button>
+                      <button
+                        type="button"
+                        className={styles.stepButton}
+                        onClick={() => setPage(at + 1)}
+                        disabled={at >= pages - 1}
+                        aria-label="Older reviews"
+                      >
+                        <Icon name="right" />
+                      </button>
+                    </div>
+                  )}
+                </>
+              ) : (
+                <>
+                  <p className={styles.reviewSum}>
+                    <Icon name="star" tiny />
+                    {reviews.average !== null && <span className={styles.strong}>{reviews.average.toFixed(1)}</span>}
+                    <span>
+                      {reviews.average !== null ? '· ' : ''}
+                      {reviews.count} {reviews.count === 1 ? 'review' : 'reviews'}
+                    </span>
+                  </p>
+                  {newest && (
+                    <p className={styles.reviewPeek} dir="auto">
+                      “{newest.body}” <span className={styles.faint}>· {newest.author}</span>
+                    </p>
+                  )}
+                  <button type="button" className={styles.moreLink} onClick={expand}>
+                    {reviews.count === 1 ? 'Read the review' : `Read all ${reviews.count} reviews`}
+                  </button>
+                </>
+              )}
             </section>
           )}
         </div>
@@ -1030,23 +1168,9 @@ function Profile({
         {similar.length > 0 && (
           <div className={styles.similar}>
             <p className={styles.label}>More {(card.kind ?? '').toLowerCase()} businesses</p>
-            <div className={styles.similarList}>
+            <div className={styles.similarCards}>
               {similar.map((s) => (
-                <button key={s.slug} type="button" className={styles.similarItem} onClick={() => onSelect(s.slug)}>
-                  <span className={styles.similarThumb}>{s.smallPhoto && <img src={s.smallPhoto} alt="" />}</span>
-                  <span className={styles.similarWords}>
-                    <span className={styles.similarName}>{s.name}</span>
-                    <span className={styles.similarMeta}>
-                      <Icon name="star" tiny />
-                      <span className={styles.strong}>{ratingLabel(s.rating)}</span>
-                      <span className={styles.dotSep} aria-hidden="true">
-                        ·
-                      </span>
-                      {s.place}
-                    </span>
-                  </span>
-                  <Icon name="out" />
-                </button>
+                <MiniCard key={s.slug} card={s} selected={null} onSelect={onSimilar} heart={heart} signedIn={signedIn} narrow={!wide} />
               ))}
             </div>
           </div>

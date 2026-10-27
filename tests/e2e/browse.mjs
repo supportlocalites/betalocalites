@@ -63,7 +63,7 @@ check('…and no shortlist bar, no footer and no light/dark switch', !r.body.inc
 
 r = await site(`/vendors/${A.slug}`);
 check('a business’s own address opens Browse local with its profile open', r.status === 200 && r.body.includes(`aria-label="${A.name}"`)
-  && r.body.includes(`href="/vendors/${A.slug}/message"`) && words(r.body).includes(`Message ${A.name}`), String(r.status));
+  && r.body.includes(`href="/vendors/${A.slug}/message"`) && words(r.body).includes('Message'), String(r.status));
 check('…its link preview names the business', r.body.includes(`<meta property="og:title" content="${A.name}`) || r.body.includes(`<title>${A.name}`));
 r = await site(`/vendors/${U.slug}`);
 check('a business not on Localites yet offers Inquire', r.body.includes(`href="/vendors/${U.slug}/inquire"`) && !r.body.includes(`/vendors/${U.slug}/message`));
@@ -317,6 +317,30 @@ await page.goto(`${BASE}/vendors/${A.slug}`, { waitUntil: 'networkidle' });
 await page.click('button[aria-label="Close profile"]');
 await page.waitForSelector(`aside[aria-label="${A.name}"]`, { state: 'detached' });
 check('a business’s own address can be closed too', (await page.$(`aside[aria-label="${A.name}"]`)) === null);
+// Made to fit without scrolling (D-65, the owner, 27 October 2026): a long description and many
+// tags still fit, in the side panel, expanded and on a phone.
+const LONG = 'We bake birthday, wedding and celebration cakes to order. '.repeat(12).trim();
+await sql`update vendor set description = ${LONG}, tags = ${['Birthday cakes', 'Wedding cakes', 'Gluten-free', 'Dairy-free', 'Cupcakes', 'Delivery']} where id = ${A.id}`;
+const fits = (p) => p.$eval('aside [class*="panelBody"]', (el) => el.scrollHeight <= el.clientHeight + 1);
+const roomy = await browser.newPage({ viewport: { width: 1280, height: 860 } });
+await roomy.goto(`${BASE}/vendors/${A.slug}`, { waitUntil: 'networkidle' });
+check('the side panel fits without scrolling, even with a long description', await fits(roomy));
+check('…showing the first lines of About with More, and the similar businesses as cards',
+  (await roomy.isVisible('aside button:has-text("More")')) && (await roomy.$$('aside [class*="similarCards"] article')).length > 0);
+await roomy.click('aside button:has-text("More")');
+await roomy.waitForSelector(`[role="dialog"][aria-label="${A.name}"]`);
+check('…More opens the expanded view with all of About', (await roomy.textContent('[role="dialog"] [class*="panelAbout"]'))?.trim() === LONG);
+check('…which fits without scrolling too', await fits(roomy));
+await roomy.click('button[aria-label="Collapse to drawer"]');
+const other = await roomy.$eval('aside [class*="similarCards"] article h3', (el) => el.textContent);
+await roomy.click('aside [class*="similarCards"] article button[aria-label^="Open"]');
+await roomy.waitForSelector(`[role="dialog"][aria-label="${other}"]`);
+check('…a similar business’s card opens it in the expanded view', (await roomy.$(`[role="dialog"][aria-label="${other}"]`)) !== null);
+await roomy.close();
+const small = await browser.newPage({ viewport: { width: 390, height: 844 } });
+await small.goto(`${BASE}/vendors/${A.slug}`, { waitUntil: 'networkidle' });
+check('…and on a phone', await fits(small));
+await small.close();
 await page.click(`button[aria-label="Open ${A.name}"]`);
 await page.click('button[aria-label="Expand to sheet"]');
 await page.waitForSelector(`[role="dialog"][aria-label="${A.name}"]`);

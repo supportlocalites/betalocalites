@@ -215,9 +215,8 @@
   --b44-map: 30vh;
   --b44-map-wide: 34vh;
   --b44-map-min: 180px;
-  --b44-photo: 168px;
-  --b44-photo-wide: 190px;
-  --b44-photo-wider: 320px;
+  --b44-photo: 112px;
+  --b44-photo-row: 120px;
   --b44-thumb: 44px;
   --b44-panel: 33%;
   --b44-panel-wide: 58%;

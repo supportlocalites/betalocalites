@@ -31,6 +31,22 @@ Every release and every database migration, in order. Appended before each deplo
 
 ## Releases
 
+### 2026-10-27 — A business's profile fits without scrolling: side panel 4A, expanded view 5C (D-65)
+
+- **Side panel (4A):** a shorter photo strip with ♡ ⤢ × and ‹ n / N › on it; the first 3 lines of
+  About with More; at most 4 tags on one line; Message (or Inquire) and My picks side by side; the
+  address on one line; the rating with the newest review and "Read all N reviews"; the 3 similar
+  businesses as narrow list cards. More and Read all open the expanded view.
+- **Expanded view (5C):** the name and tools across the top; a row of up to 4 of the business's
+  photos ("+N more"); About in full and every tag beside the reviews, 2 at a time with ‹ ›; the 3
+  similar businesses as list cards across the bottom.
+- A similar business's card always opens it in the expanded view.
+- `/vendors/:slug/panel` and the business's own address also send its first 4 photos (already public).
+- On a phone the similar cards stay in the row along the bottom. Very short computer windows
+  (under about 800 px tall) can still scroll inside the profile, as a safety net.
+- No database change. Tested: browse.mjs (new fit checks at 1280×860 and 390×844, More, a similar
+  card opening the expanded view), look.mjs, unit tests, database checks.
+
 ### 2026-10-27 — Favourites beside Expand list, Find my address, Messages everywhere in the current look, Community photos
 
 **Stage:** 2 (the redesign)

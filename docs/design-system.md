@@ -147,6 +147,7 @@ Widths: phone below 768px (designed first), tablet 768–1199px, desktop 1200px 
 | Home | Search bar, Featured row (scrolls sideways), Collections | Title and category chips, Featured 4 across, Collections 3 across |
 | Search | Results list; filters open from a button | Filters in a left column, results on the right |
 | Vendor profile | Photo on top; Add to event / Message bar fixed at the bottom | Large photo left; details, prices and buttons right |
+| Browse local profile (D-65) | Fills the screen above the row of other businesses; no scrolling | Side panel (4A: short photo strip, 3 lines of About, newest review, 3 narrow cards) and the expanded view (5C: name across the top, a row of photos, About beside the reviews, 3 cards); neither scrolls |
 | Conversation | One conversation, full screen | Inbox, conversation and event panel side by side |
 | Event plan | One column; guests reached from the plan | Vendors left; guest counts, invite and updates panel right |
 | Invitation and guest pages | One column | The same card, centred, at most 480px wide |

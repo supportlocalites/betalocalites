@@ -638,6 +638,41 @@
   box-shadow: var(--shadow-card);
 }
 
+/* A third of the side panel: the kind and name each on their own line, no tagline. */
+.cardNarrow {
+  padding: var(--space-2);
+}
+
+.cardNarrow .cardKind {
+  display: block;
+  padding-right: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cardNarrow .cardName {
+  padding-right: 0;
+  white-space: normal;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  font-size: var(--b44-text-similar);
+}
+
+.cardNarrow .cardButtons {
+  position: relative;
+  top: auto;
+  right: auto;
+  margin-top: var(--space-2);
+}
+
+.cardNarrow .meta {
+  margin-top: var(--space-1);
+  flex-wrap: wrap;
+  gap: 0 var(--space-2);
+}
+
 .cardOpen,
 .cardOpen:hover {
   border-color: var(--color-gold);
@@ -891,14 +926,63 @@
   background: var(--color-tint);
 }
 
-.sheet .photo {
-  height: var(--b44-photo-wide);
+/* Expanded (5C, D-65): the name and tools across the top, then a row of photos. */
+.sheetHead {
+  flex-shrink: 0;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-4);
+  padding: var(--space-5) var(--space-5) 0;
 }
 
-@media (min-width: 1024px) {
-  .sheet .photo {
-    height: var(--b44-photo-wider);
-  }
+.sheetTools {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+}
+
+.sheetTools .stepper {
+  position: static;
+  margin-right: var(--space-2);
+}
+
+.photoRow {
+  display: grid;
+  grid-template-columns: 2fr 1fr 1fr 1fr;
+  gap: var(--space-2);
+  height: var(--b44-photo-row);
+  margin-bottom: var(--space-5);
+}
+
+.photoRow[data-count='1'] {
+  grid-template-columns: 1fr;
+}
+
+.photoRow[data-count='2'] {
+  grid-template-columns: 2fr 1fr;
+}
+
+.photoRow[data-count='3'] {
+  grid-template-columns: 2fr 1fr 1fr;
+}
+
+.photoCell {
+  position: relative;
+  overflow: hidden;
+  border-radius: var(--radius-file);
+  background: var(--color-tint);
+}
+
+.photoMore {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  background: var(--color-backdrop);
+  color: var(--color-on-ink);
+  font-size: var(--b44-text-card);
+  font-weight: 500;
 }
 
 .photoImg {
@@ -994,17 +1078,102 @@
 .panelBody {
   flex: 1;
   min-height: 0;
+  /* Made to fit without scrolling (D-65); this is only for very short windows. */
   overflow-y: auto;
-  padding: var(--space-5);
+  padding: var(--space-4) var(--space-5);
 }
 
 @media (min-width: 1024px) {
-  .sheet .panelBody {
+  .sheet .columns {
     display: grid;
     grid-template-columns: 1.35fr 1fr;
     gap: var(--space-10);
-    padding: var(--space-7) var(--space-8);
   }
+
+  .sheet .sheetHead {
+    padding: var(--space-6) var(--space-8) 0;
+  }
+
+  .sheet .panelBody {
+    padding: var(--space-4) var(--space-8) var(--space-6);
+  }
+}
+
+.details {
+  min-width: 0;
+}
+
+/* The side panel shows the first 3 lines of About, then "More" (D-65). */
+.panelAbout.clamp {
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  white-space: normal;
+}
+
+.moreLink {
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  font-size: var(--b44-text-card);
+  font-weight: 500;
+  color: var(--color-ink);
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.moreLink:hover {
+  color: var(--color-gold-ink);
+}
+
+.tagsOneLine {
+  flex-wrap: nowrap;
+  overflow: hidden;
+}
+
+.tagsOneLine .tag {
+  flex-shrink: 0;
+}
+
+.oneLine {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.reviewSum {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  margin: 0;
+}
+
+.reviewPeek {
+  margin: var(--space-1) 0;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  font-size: var(--b44-text-card);
+  line-height: 1.45;
+  color: var(--color-ink-soft);
+}
+
+.reviewPager {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--space-1);
+  margin-top: var(--space-2);
+  font-size: var(--b44-text-meta);
+  color: var(--color-muted);
+}
+
+.reviewPager .stepButton:disabled {
+  opacity: 0.35;
+  cursor: default;
 }
 
 .kicker {
@@ -1036,7 +1205,7 @@
   display: flex;
   flex-wrap: wrap;
   gap: var(--space-1) var(--space-4);
-  margin-top: var(--space-3);
+  margin-top: var(--space-2);
   font-size: var(--b44-text-card);
   color: var(--color-muted);
 }
@@ -1047,18 +1216,18 @@
 }
 
 .panelTagline {
-  margin: var(--space-4) 0 0;
+  margin: var(--space-3) 0 0;
   font-family: var(--font-display);
   font-style: italic;
   font-size: var(--b44-text-italic);
-  line-height: 1.65;
+  line-height: 1.4;
   color: var(--color-ink-soft);
 }
 
 .panelAbout {
-  margin: var(--space-3) 0 0;
+  margin: var(--space-2) 0 0;
   font-size: var(--b44-text-panel);
-  line-height: 1.65;
+  line-height: 1.55;
   color: var(--color-muted);
   white-space: pre-line;
 }
@@ -1090,7 +1259,7 @@
   display: flex;
   flex-wrap: wrap;
   gap: var(--space-1);
-  margin-top: var(--space-5);
+  margin-top: var(--space-3);
 }
 
 .tag {
@@ -1106,7 +1275,12 @@
   display: flex;
   flex-wrap: wrap;
   gap: var(--space-2);
-  margin-top: var(--space-5);
+  margin-top: var(--space-4);
+}
+
+/* Message and My picks side by side, sharing the width. */
+.actions > * {
+  flex: 1;
 }
 
 .action {
@@ -1159,7 +1333,7 @@
 }
 
 .yours {
-  margin-top: var(--space-5);
+  margin-top: var(--space-4);
   border-left: var(--b44-stripe) solid var(--color-gold);
   padding-left: var(--space-3);
 }
@@ -1177,92 +1351,78 @@
 }
 
 .reviews {
-  margin-top: var(--space-6);
+  margin-top: var(--space-3);
   border-top: var(--hairline) solid var(--color-line);
-  padding-top: var(--space-4);
+  padding-top: var(--space-3);
   font-size: var(--b44-text-panel);
 }
 
-.similar {
-  margin-top: var(--space-6);
-  border-top: var(--hairline) solid var(--color-line);
-  padding-top: var(--space-4);
-}
-
 @media (min-width: 1024px) {
-  .sheet .similar {
+  .sheet .reviews {
     margin-top: 0;
+    border-top: 0;
+    padding-top: 0;
   }
 }
 
-.similarList {
-  display: grid;
-  gap: var(--space-1);
+.similar {
+  margin-top: var(--space-3);
+  border-top: var(--hairline) solid var(--color-line);
+  padding-top: var(--space-3);
+}
+
+/* On a phone the row of businesses along the bottom already is the cards. */
+@media (max-width: 1023px) {
+  .panel:not(.panelWide) .similar {
+    display: none;
+  }
+}
+
+/* The cards as on the list (the owner, 27 October 2026): three side by side. */
+.similarCards {
+  display: flex;
+  gap: var(--space-2);
   margin-top: var(--space-2);
 }
 
-.similarItem {
-  display: flex;
-  align-items: center;
-  gap: var(--space-2);
-  width: 100%;
-  border: var(--hairline) solid transparent;
-  border-radius: var(--radius-file);
-  background: none;
-  padding: var(--space-1);
-  font: inherit;
-  text-align: left;
-  color: var(--color-muted-soft);
-  cursor: pointer;
-}
-
-.similarItem:hover {
-  border-color: var(--color-line);
-  background: var(--color-surface);
-  color: var(--color-gold);
-}
-
-.similarThumb {
-  flex-shrink: 0;
-  width: var(--b44-thumb);
-  height: var(--b44-thumb);
-  overflow: hidden;
-  border-radius: var(--radius-file);
-  background: var(--color-tint);
-}
-
-.similarThumb img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
-
-.similarWords {
-  display: grid;
+.similarCards .card {
   flex: 1;
   min-width: 0;
+  width: auto;
 }
 
-.similarName {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  font-family: var(--font-display);
-  font-size: var(--b44-text-similar);
-  font-weight: 500;
-  line-height: 1.25;
-  color: var(--color-ink);
+/* Expanded: the reviews in smaller type, so two fit beside the details. */
+.sheet .reviews ol {
+  gap: var(--space-2);
 }
 
-.similarMeta {
-  display: flex;
-  align-items: center;
-  gap: var(--space-1);
-  margin-top: var(--hairline);
-  overflow: hidden;
-  white-space: nowrap;
+.sheet .reviews li {
+  padding-top: var(--space-2);
+  gap: 0;
+  font-size: var(--b44-text-card);
+}
+
+.sheet .reviews li p,
+.sheet .reviews li > span {
+  font-size: var(--b44-text-card);
+  line-height: 1.45;
+}
+
+.sheet .reviews li a {
   font-size: var(--b44-text-meta);
-  color: var(--color-muted);
+  letter-spacing: normal;
+}
+
+.sheet .reviews > p {
+  margin-bottom: var(--space-2);
+}
+
+.sheet .similarCards .cardTagline {
+  -webkit-line-clamp: 1;
+}
+
+.sheet .similar {
+  margin-top: var(--space-3);
 }
 
 /* ---- Icons -------------------------------------------------------------------------------- */
