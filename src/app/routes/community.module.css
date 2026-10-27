@@ -489,3 +489,253 @@ a.business:hover {
   color: var(--color-muted);
   font-size: var(--b44-text-note);
 }
+
+/* ---- The answer page as the owner chose it (27 October 2026): 3A's question and compact
+   answers, 3B's "What locals suggested" and its dashed "Add your answer". ---- */
+
+/* 3A: the question, quietly, with a line under it. */
+.qHead {
+  display: grid;
+  gap: var(--space-2);
+  padding-bottom: var(--space-4);
+  border-bottom: var(--hairline) solid var(--color-line);
+}
+
+.qTools {
+  display: flex;
+  gap: var(--space-3);
+  color: var(--color-muted);
+  font-size: var(--b44-text-note);
+}
+
+/* 3B: what locals suggested, at a glance. */
+.summary {
+  display: grid;
+  gap: var(--space-2);
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-card);
+  background: var(--color-gold-soft);
+}
+
+.summaryTitle {
+  margin: 0;
+  font-size: var(--b44-text-search);
+  font-weight: 600;
+}
+
+.summaryList {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.summaryChip {
+  display: inline-flex;
+  align-items: baseline;
+  gap: var(--space-2);
+  min-height: var(--b44-chip);
+  padding: var(--space-1) var(--space-3);
+  border-radius: var(--radius-pill);
+  background: var(--color-surface);
+  color: var(--color-ink);
+  font-size: var(--b44-text-search);
+  text-decoration: none;
+}
+
+.summaryChip strong {
+  font-weight: 600;
+}
+
+.summaryChip:hover {
+  box-shadow: var(--shadow-card);
+}
+
+.summaryCount {
+  color: var(--color-gold-ink);
+  font-size: var(--b44-text-note);
+}
+
+/* 3A: Most helpful or Newest as underlined words. */
+.tabsBar {
+  display: flex;
+  justify-content: space-between;
+  border-bottom: var(--hairline) solid var(--color-line-soft);
+}
+
+.tabs {
+  display: flex;
+  gap: var(--space-4);
+}
+
+.tabs a {
+  padding-bottom: var(--space-2);
+  border-bottom: var(--focus-ring) solid transparent;
+  color: var(--color-muted);
+  font-size: var(--b44-text-search);
+  text-decoration: none;
+}
+
+.tabs a[aria-current='true'] {
+  border-bottom-color: var(--color-ink);
+  color: var(--color-ink);
+  font-weight: 600;
+}
+
+/* 3A: each answer a compact row, a thin line between them. */
+.rows {
+  display: grid;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.row {
+  display: flex;
+  gap: var(--space-3);
+  padding-block: var(--space-4);
+  border-bottom: var(--hairline) solid var(--color-line-soft);
+  scroll-margin-top: var(--space-8);
+}
+
+.row:target {
+  background: var(--color-tint);
+}
+
+.stack {
+  flex: none;
+  align-self: flex-start;
+  display: grid;
+  justify-items: center;
+  align-content: start;
+  width: var(--size-button-short);
+  border-radius: var(--radius-file);
+  background: var(--color-tint);
+  overflow: hidden;
+}
+
+.stackTop {
+  background: var(--color-gold-soft);
+}
+
+.stack form {
+  display: contents;
+}
+
+.stackVote {
+  display: grid;
+  place-items: center;
+  width: 100%;
+  height: var(--b44-chip);
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--color-muted);
+  cursor: pointer;
+}
+
+.stackVote:hover:not(:disabled) {
+  color: var(--color-ink);
+}
+
+.stackVote:disabled {
+  opacity: var(--b44-faded);
+  cursor: default;
+}
+
+.stackOn {
+  color: var(--color-gold-ink);
+}
+
+.stackVote svg {
+  width: var(--b44-icon);
+  height: var(--b44-icon);
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.stackCount {
+  font-size: var(--b44-text-search);
+  font-weight: 600;
+}
+
+.stackTop .stackCount {
+  color: var(--color-gold-ink);
+}
+
+.rowMain {
+  flex: 1;
+  min-width: 0;
+  display: grid;
+  gap: var(--space-2);
+  align-content: start;
+}
+
+.rowHead {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-1) var(--space-2);
+}
+
+.rowThumb {
+  flex: none;
+  width: var(--b44-chip);
+  height: var(--b44-chip);
+  border-radius: var(--radius-file);
+  object-fit: cover;
+  background: var(--color-line);
+}
+
+.rowName {
+  color: var(--color-ink);
+  font-weight: 600;
+  text-decoration: none;
+  overflow-wrap: anywhere;
+}
+
+a.rowName:hover {
+  text-decoration: underline;
+}
+
+.rowKind {
+  color: var(--color-muted);
+  font-size: var(--b44-text-note);
+}
+
+.rowNote {
+  margin-left: auto;
+  color: var(--color-muted);
+  font-size: var(--b44-text-note);
+}
+
+.rowNoteTop {
+  color: var(--color-gold-ink);
+  font-weight: 500;
+}
+
+/* 3B: one dashed box under the answers. */
+.addAnswer {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: var(--size-button);
+  padding: var(--space-3);
+  border: var(--hairline) dashed var(--color-gold);
+  border-radius: var(--radius-card);
+  background: var(--color-surface);
+  color: var(--color-gold-ink);
+  font: inherit;
+  font-weight: 600;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.addAnswer:hover {
+  border-style: solid;
+}

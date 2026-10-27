@@ -3,7 +3,7 @@ import { data, Form, Link, useSearchParams } from 'react-router';
 import { cloudflareContext } from '@/app/context';
 import { PhotoPicker, PostPhotos, usePhotoSubmit } from '@/components/CommunityPhotos';
 import { TopBar } from '@/components/TopBar';
-import { COMMUNITY_LIMITS, communityDate, problemWords } from '@/lib/community-terms';
+import { answersWords, COMMUNITY_LIMITS, communityDate, problemWords } from '@/lib/community-terms';
 import { pageMeta } from '@/lib/meta';
 import { hasSessionCookie, signedInUserId } from '@/server/auth/session.server';
 import { communityPhotosOn } from '@/server/community-photos.server';
@@ -48,6 +48,61 @@ export default function CommunityQuestion({ loaderData: { signedIn, order, quest
   const join = `/join?next=${encodeURIComponent(here)}`;
   const problem = problemWords(params.get('problem'));
   const photos = usePhotoSubmit(`/community/${q.id}/act`);
+  // What locals suggested (3B, the owner, 27 October 2026): each business named in a showing answer,
+  // with how many people suggested it and its votes up together, the most up-voted first.
+  const suggested = new Map<string, { name: string; people: number; up: number; first: string }>();
+  for (const a of q.answers) {
+    if (a.held) continue;
+    const name = a.business?.name ?? a.businessName;
+    if (!name) continue;
+    const key = a.business ? `v:${a.business.slug}` : `n:${name.toLowerCase()}`;
+    const was = suggested.get(key);
+    suggested.set(key, was ? { ...was, people: was.people + 1, up: was.up + a.up } : { name, people: 1, up: a.up, first: a.id });
+  }
+  const summary = [...suggested.values()].sort((x, y) => y.up - x.up || y.people - x.people);
+  const shownAnswers = q.answers.filter((a) => !a.held).length;
+
+  const voteButtons = (a: (typeof q.answers)[number]) =>
+    (['up', 'down'] as const).map((way) => {
+      const on = a.myVote === (way === 'up' ? 1 : -1);
+      const icon = (
+        <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+          <path d={ARROW[way]} />
+        </svg>
+      );
+      const control = signedIn ? (
+        <Form key={way} method="post" action={`${here}/act`} preventScrollReset>
+          <input type="hidden" name="intent" value="vote" />
+          <input type="hidden" name="answer" value={a.id} />
+          <input type="hidden" name="value" value={way === 'up' ? '1' : '-1'} />
+          <button
+            type="submit"
+            className={`${styles.stackVote} ${on ? styles.stackOn : ''}`}
+            aria-pressed={on}
+            aria-label={way === 'up' ? 'Vote up' : 'Vote down'}
+            disabled={a.mine || a.held}
+            title={a.mine ? 'You can’t vote on your own answer' : undefined}
+          >
+            {icon}
+          </button>
+        </Form>
+      ) : (
+        <Link key={way} to={join} className={styles.stackVote} aria-label={`Sign in to vote ${way}`}>
+          {icon}
+        </Link>
+      );
+      return way === 'up' ? (
+        <Fragment key={way}>
+          {control}
+          <span className={styles.stackCount} aria-label={`${a.up} ${a.up === 1 ? 'vote' : 'votes'} up`}>
+            {a.up}
+          </span>
+        </Fragment>
+      ) : (
+        control
+      );
+    });
+
   return (
     <>
       <TopBar />
@@ -57,32 +112,36 @@ export default function CommunityQuestion({ loaderData: { signedIn, order, quest
             ← Community
           </Link>
         </p>
-        <article className={styles.question} aria-labelledby="q-title">
+        {/* The question (3A): its kind, who and when, the words, its photos, quietly. */}
+        <article className={styles.qHead} aria-labelledby="q-title">
           <span className={styles.meta}>
             {q.kind && <span className={styles.tag}>{q.kind.name}</span>}
             {q.held && <span className={styles.held}>Waiting for our team: only you can see it</span>}
+            <span>
+              {q.mine ? 'You' : q.author} · {communityDate(q.createdAt)} · {answersWords(shownAnswers)}
+            </span>
           </span>
           <h1 id="q-title" className={styles.qTitle}>
             {q.title}
           </h1>
           {q.detail && <p className={styles.detail}>{q.detail}</p>}
           <PostPhotos photos={q.photos} />
-          <span className={styles.meta}>
-            Asked by {q.mine ? 'you' : q.author} · {communityDate(q.createdAt)}
-            {q.mine && (
-              <Form method="post" action={`${here}/act`}>
-                <input type="hidden" name="intent" value="remove-question" />
-                <button type="submit" className={styles.textButton}>
-                  Take down my question
-                </button>
-              </Form>
-            )}
-            {signedIn && !q.mine && !q.held && (
-              <Link to={`${here}/report`} className={styles.textButton}>
-                Report
-              </Link>
-            )}
-          </span>
+          {(q.mine || (signedIn && !q.held)) && (
+            <span className={styles.qTools}>
+              {q.mine ? (
+                <Form method="post" action={`${here}/act`}>
+                  <input type="hidden" name="intent" value="remove-question" />
+                  <button type="submit" className={styles.textButton}>
+                    Take down my question
+                  </button>
+                </Form>
+              ) : (
+                <Link to={`${here}/report`} className={styles.textButton}>
+                  Report
+                </Link>
+              )}
+            </span>
+          )}
         </article>
 
         {params.get('photos') === 'waiting' && (
@@ -101,9 +160,30 @@ export default function CommunityQuestion({ loaderData: { signedIn, order, quest
           </p>
         )}
 
-        {!q.held && (
-          <div className={styles.bar}>
-            <nav className={styles.seg} aria-label="Order of the answers">
+        {/* What locals suggested (3B): every business named, at a glance; each opens its first answer. */}
+        {summary.length > 0 && (
+          <section className={styles.summary} aria-labelledby="suggested-title">
+            <h2 id="suggested-title" className={styles.summaryTitle}>
+              What locals suggested
+            </h2>
+            <ul className={styles.summaryList}>
+              {summary.map((b) => (
+                <li key={b.first}>
+                  <a href={`#a-${b.first}`} className={styles.summaryChip}>
+                    <strong>{b.name}</strong>
+                    <span className={styles.summaryCount}>
+                      {`${b.people} ${b.people === 1 ? 'person' : 'people'}`} · {b.up} up
+                    </span>
+                  </a>
+                </li>
+              ))}
+            </ul>
+          </section>
+        )}
+
+        {!q.held && q.answers.length > 0 && (
+          <div className={styles.tabsBar}>
+            <nav className={styles.tabs} aria-label="Order of the answers">
               <Link to="?" aria-current={order === 'helpful' ? 'true' : undefined} preventScrollReset>
                 Most helpful
               </Link>
@@ -111,171 +191,53 @@ export default function CommunityQuestion({ loaderData: { signedIn, order, quest
                 Newest
               </Link>
             </nav>
-            {signedIn ? (
-              !composing && (
-                <button type="button" className="button button-primary" onClick={() => setComposing(true)}>
-                  Answer
-                </button>
-              )
-            ) : (
-              <Link to={join} className="button button-primary">
-                Sign in to answer
-              </Link>
-            )}
           </div>
         )}
 
-        {composing && choices && (
-          <Form method="post" action={`${here}/act`} encType="multipart/form-data" onSubmit={photos.onSubmit} className={styles.composer}>
-            <input type="hidden" name="intent" value="answer" />
-            <fieldset>
-              <legend>Your answer</legend>
-              <div className={styles.modes}>
-                <label className={styles.mode}>
-                  <input type="radio" name="mode" value="business" checked={mode === 'business'} onChange={() => setMode('business')} />
-                  Suggest a business
-                </label>
-                <label className={styles.mode}>
-                  <input type="radio" name="mode" value="advice" checked={mode === 'advice'} onChange={() => setMode('advice')} />
-                  Just answer
-                </label>
-              </div>
-            </fieldset>
-            {mode === 'business' && (
-              <>
-                {choices.favourites.length > 0 && (
-                  <fieldset>
-                    <legend className="field-label">Your favourites</legend>
-                    <div className={styles.picks}>
-                      {choices.favourites.map((b) => (
-                        <label key={b.slug} className={styles.pick}>
-                          <input type="radio" name="vendor" value={b.slug} />
-                          <span>
-                            {b.name}
-                            {b.kind && <span className="muted"> · {b.kind}</span>}
-                          </span>
-                        </label>
-                      ))}
-                    </div>
-                  </fieldset>
-                )}
-                <label htmlFor="find" className="field-label">
-                  {choices.favourites.length > 0 ? 'Or search Localites' : 'Search Localites'}
-                </label>
-                <input id="find" name="find" className="input" list="businesses" autoComplete="off" placeholder="Start typing a business’s name" />
-                <datalist id="businesses">
-                  {choices.all.map((b) => (
-                    <option key={b.slug} value={b.name} />
-                  ))}
-                </datalist>
-              </>
-            )}
-            <label htmlFor="body" className="field-label">
-              {mode === 'business' ? 'Why them?' : 'Your advice'}
-            </label>
-            <textarea
-              id="body"
-              name="body"
-              className="input"
-              required
-              minLength={COMMUNITY_LIMITS.body.min}
-              maxLength={COMMUNITY_LIMITS.body.max}
-              placeholder={mode === 'business' ? 'What did they do for you, and how was it?' : 'What would you tell a friend?'}
-            />
-            {photosOn && <PhotoPicker problem={photos.problem} />}
-            <p className={styles.small}>Answers are public, with your first name and last initial. Please don’t share private details.</p>
-            <div className={styles.bar}>
-              <button type="button" className={styles.textButton} onClick={() => setComposing(false)}>
-                Cancel
-              </button>
-              <button type="submit" className="button button-primary" disabled={photos.preparing}>
-                {photos.preparing ? 'Getting photos ready…' : 'Post answer'}
-              </button>
-            </div>
-          </Form>
-        )}
-
+        {/* The answers (3A): compact rows, votes stacked at the left, the business on one line. */}
         {q.answers.length === 0 ? (
-          <p className={styles.empty}>{q.held ? '' : 'No answers yet.'}</p>
+          <p className={styles.empty}>{q.held ? '' : 'No answers yet. Be the first to help.'}</p>
         ) : (
-          <ol className={styles.answers} aria-label="Answers">
+          <ol className={styles.rows} aria-label="Answers">
             {q.answers.map((a, i) => {
               const top = order === 'helpful' && i === 0 && a.up > 0 && !a.held;
+              const name = a.business?.name ?? a.businessName;
               return (
-                <li key={a.id} id={`a-${a.id}`} className={`${styles.answer} ${top ? styles.answerTop : ''}`}>
-                  <div className={styles.votes}>
-                    {(['up', 'down'] as const).map((way) => {
-                      const on = a.myVote === (way === 'up' ? 1 : -1);
-                      const button = (
-                        <button
-                          type="submit"
-                          className={`${styles.vote} ${on ? styles.voteOn : ''}`}
-                          aria-pressed={on}
-                          aria-label={way === 'up' ? 'Vote up' : 'Vote down'}
-                          disabled={a.mine || a.held}
-                          title={a.mine ? 'You can’t vote on your own answer' : undefined}
-                        >
-                          <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                            <path d={ARROW[way]} />
-                          </svg>
-                        </button>
-                      );
-                      const form = signedIn ? (
-                        <Form key={way} method="post" action={`${here}/act`} preventScrollReset>
-                          <input type="hidden" name="intent" value="vote" />
-                          <input type="hidden" name="answer" value={a.id} />
-                          <input type="hidden" name="value" value={way === 'up' ? '1' : '-1'} />
-                          {button}
-                        </Form>
+                <li key={a.id} id={`a-${a.id}`} className={styles.row}>
+                  <div className={`${styles.stack} ${top ? styles.stackTop : ''}`}>{voteButtons(a)}</div>
+                  <div className={styles.rowMain}>
+                    <div className={styles.rowHead}>
+                      {name ? (
+                        <>
+                          {a.business?.photo ? (
+                            <img src={a.business.photo} alt="" className={styles.rowThumb} />
+                          ) : (
+                            <span className={styles.rowThumb} aria-hidden="true" />
+                          )}
+                          {a.business ? (
+                            <Link to={`/vendors/${a.business.slug}`} className={styles.rowName}>
+                              {a.business.name}
+                            </Link>
+                          ) : (
+                            <span className={styles.rowName}>{a.businessName}</span>
+                          )}
+                          <span className={styles.rowKind}>{a.business ? (a.business.kind ?? 'On Localites') : 'Not on Localites yet'}</span>
+                        </>
                       ) : (
-                        <Link key={way} to={join} className={styles.vote} aria-label={`Sign in to vote ${way}`}>
-                          <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                            <path d={ARROW[way]} />
-                          </svg>
-                        </Link>
-                      );
-                      return way === 'up' ? (
-                        <Fragment key={way}>
-                          {form}
-                          <span className={styles.count} aria-label={`${a.up} ${a.up === 1 ? 'vote' : 'votes'} up`}>
-                            {a.up}
-                          </span>
-                        </Fragment>
-                      ) : (
-                        form
-                      );
-                    })}
-                  </div>
-                  <div className={styles.main}>
-                    {top && <span className={styles.best}>Most helpful</span>}
+                        <span className={styles.rowKind}>Advice</span>
+                      )}
+                      <span className={`${styles.rowNote} ${top ? styles.rowNoteTop : ''}`}>
+                        {[top ? 'Most helpful' : null, name && a.suggested > 0 ? suggestedWords(a.suggested) : null].filter(Boolean).join(' · ')}
+                      </span>
+                    </div>
                     {a.held && <span className={styles.held}>Waiting for our team: only you can see it</span>}
-                    {a.business ? (
-                      <Link to={`/vendors/${a.business.slug}`} className={styles.business}>
-                        {a.business.photo ? <img src={a.business.photo} alt="" className={styles.thumb} /> : <span className={styles.thumb} />}
-                        <span className={styles.businessWords}>
-                          <span className={styles.businessName}>{a.business.name}</span>
-                          <span className="muted">{a.business.kind ? `${a.business.kind} · on Localites` : 'On Localites'}</span>
-                        </span>
-                        <Suggested n={a.suggested} />
-                      </Link>
-                    ) : (
-                      a.businessName && (
-                        <span className={styles.business}>
-                          <span className={styles.thumb} />
-                          <span className={styles.businessWords}>
-                            <span className={styles.businessName}>{a.businessName}</span>
-                            <span className="muted">Not on Localites yet</span>
-                          </span>
-                          <Suggested n={a.suggested} />
-                        </span>
-                      )
-                    )}
                     <p className={styles.body}>{a.body}</p>
                     <PostPhotos photos={a.photos} />
                     <span className={styles.foot}>
-                      <span>{a.mine ? 'You' : a.author}</span>
-                      <span>{communityDate(a.createdAt)}</span>
-                      {a.down > 0 && <span>{`${a.down} disagree`}</span>}
+                      <span>
+                        {a.mine ? 'You' : a.author} · {communityDate(a.createdAt)}
+                        {a.down > 0 ? ` · ${a.down} disagree` : ''}
+                      </span>
                       {a.mine ? (
                         <Form method="post" action={`${here}/act`}>
                           <input type="hidden" name="intent" value="remove-answer" />
@@ -299,17 +261,91 @@ export default function CommunityQuestion({ loaderData: { signedIn, order, quest
             })}
           </ol>
         )}
+
+        {/* Add your answer (3B): one dashed box under the answers, opening the form in its place. */}
+        {!q.held &&
+          (!signedIn ? (
+            <Link to={join} className={styles.addAnswer}>
+              + Sign in to add your answer
+            </Link>
+          ) : composing && choices ? (
+            <Form method="post" action={`${here}/act`} encType="multipart/form-data" onSubmit={photos.onSubmit} className={styles.composer}>
+              <input type="hidden" name="intent" value="answer" />
+              <fieldset>
+                <legend>Your answer</legend>
+                <div className={styles.modes}>
+                  <label className={styles.mode}>
+                    <input type="radio" name="mode" value="business" checked={mode === 'business'} onChange={() => setMode('business')} />
+                    Suggest a business
+                  </label>
+                  <label className={styles.mode}>
+                    <input type="radio" name="mode" value="advice" checked={mode === 'advice'} onChange={() => setMode('advice')} />
+                    Just answer
+                  </label>
+                </div>
+              </fieldset>
+              {mode === 'business' && (
+                <>
+                  {choices.favourites.length > 0 && (
+                    <fieldset>
+                      <legend className="field-label">Your favourites</legend>
+                      <div className={styles.picks}>
+                        {choices.favourites.map((b) => (
+                          <label key={b.slug} className={styles.pick}>
+                            <input type="radio" name="vendor" value={b.slug} />
+                            <span>
+                              {b.name}
+                              {b.kind && <span className="muted"> · {b.kind}</span>}
+                            </span>
+                          </label>
+                        ))}
+                      </div>
+                    </fieldset>
+                  )}
+                  <label htmlFor="find" className="field-label">
+                    {choices.favourites.length > 0 ? 'Or search Localites' : 'Search Localites'}
+                  </label>
+                  <input id="find" name="find" className="input" list="businesses" autoComplete="off" placeholder="Start typing a business’s name" />
+                  <datalist id="businesses">
+                    {choices.all.map((b) => (
+                      <option key={b.slug} value={b.name} />
+                    ))}
+                  </datalist>
+                </>
+              )}
+              <label htmlFor="body" className="field-label">
+                {mode === 'business' ? 'Why them?' : 'Your advice'}
+              </label>
+              <textarea
+                id="body"
+                name="body"
+                className="input"
+                required
+                minLength={COMMUNITY_LIMITS.body.min}
+                maxLength={COMMUNITY_LIMITS.body.max}
+                placeholder={mode === 'business' ? 'What did they do for you, and how was it?' : 'What would you tell a friend?'}
+              />
+              {photosOn && <PhotoPicker problem={photos.problem} />}
+              <p className={styles.small}>Answers are public, with your first name and last initial. Please don’t share private details.</p>
+              <div className={styles.bar}>
+                <button type="button" className={styles.textButton} onClick={() => setComposing(false)}>
+                  Cancel
+                </button>
+                <button type="submit" className="button button-primary" disabled={photos.preparing}>
+                  {photos.preparing ? 'Getting photos ready…' : 'Post answer'}
+                </button>
+              </div>
+            </Form>
+          ) : (
+            choices && (
+              <button type="button" className={styles.addAnswer} onClick={() => setComposing(true)}>
+                + Add your answer
+              </button>
+            )
+          ))}
       </main>
     </>
   );
 }
 
-/**
- * How many people suggested this business on this question, beside its name (the owner, 27 October
- * 2026, mock-up 1A: each answer its own, "note to the right of the vendor name how many times they
- * were suggested in the thread"). Only answers showing to everyone count.
- */
-function Suggested({ n }: { n: number }) {
-  if (n < 1) return null;
-  return <span className={styles.suggested}>{`Suggested by ${n} ${n === 1 ? 'person' : 'people'}`}</span>;
-}
+const suggestedWords = (n: number) => `Suggested by ${n} ${n === 1 ? 'person' : 'people'}`;

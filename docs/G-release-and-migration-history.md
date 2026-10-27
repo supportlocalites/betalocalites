@@ -44,7 +44,10 @@ Messages is in the current look everywhere: a business's inbox and conversations
 a person's; Message your picks, Message a business, Inquire and Report are each one white card; the
 little triangles and underlined words are gone. **Photos** on Community questions and answers: up
 to 3, each checked by the team first (the team's Community page lists them), shown to everyone only
-once the team shows them.
+once the team shows them. A question's page as the owner chose it from the mock-ups: 3A's quiet
+question and compact answers (votes stacked at the left, the business on one line, "Most helpful ·
+Suggested by N people" at the right), 3B's "What locals suggested" strip above them and its dashed
+"+ Add your answer" box under them.
 **Migrations applied:** 0063_community_photos.sql (one new table, its rules, housekeeping, and
 Download your data wrapped again). **Destructive?** No.
 **Tests run:** `npm run check`; unit 234/234; database checks all passed (0063 25/25); browser:

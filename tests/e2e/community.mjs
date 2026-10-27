@@ -70,7 +70,7 @@ check('…and under its kind of business', words(page(r.body)).includes(TITLE));
 
 console.log('\nAnswering');
 r = await site(`/community/${qId}`, { cookie: cookie.q });
-check('the question page, with the answer form ready for Quinn', r.status === 200 && words(page(r.body)).includes(TITLE) && words(page(r.body)).includes('Answer'));
+check('the question page, with the answer form ready for Quinn', r.status === 200 && words(page(r.body)).includes(TITLE) && words(page(r.body)).includes('Add your answer'));
 r = await post(`/community/${qId}/act`, 'q', { intent: 'answer', mode: 'business', vendor: CAKES.slug, body: 'They made our son a T. rex and it was perfect.' });
 check('Quinn suggests a favourite on Localites, with why', r.status === 302 && r.location.startsWith(`/community/${qId}#a-`), `${r.status} ${r.location}`);
 const aCakes = r.location.split('#a-')[1];
@@ -103,6 +103,9 @@ let w = words(page(r.body));
 check('everyone sees the answers: the business on Localites, the typed name, the advice, and who wrote each',
   w.includes(CAKES.name) && w.includes(`Maple Crumbs ${run}`) && w.includes('Not on Localites yet') && w.includes('Order early') && w.includes('Quinn R.') && w.includes('Owen S.'));
 check('…linking to the business’s page', r.body.includes(`href="/vendors/${CAKES.slug}"`));
+// The owner, 27 October 2026: 3B's "What locals suggested" above 3A's compact answers.
+check('…with “What locals suggested” above the answers, each business once, linking to its answer',
+  w.includes('What locals suggested') && r.body.includes(`href="#a-${aCakes}"`));
 
 console.log('\nVoting');
 r = await post(`/community/${qId}/act`, 'p', { intent: 'vote', answer: aCakes, value: '1' });
@@ -194,8 +197,8 @@ await me.goto(`${BASE}/community`, { waitUntil: 'networkidle' });
 await me.fill('#title', `best dinosaur cakes for a party ${run}`);
 check('typing a question shows ones already asked', await me.isVisible(`text=${TITLE}`));
 await me.goto(`${BASE}/community/${qId}`, { waitUntil: 'networkidle' });
-await me.click('button:has-text("Answer")');
-check('Answer opens the form: favourites first', await me.isVisible('text=Your favourites') && await me.isVisible(`label:has-text("${CAKES.name}")`));
+await me.click('button:has-text("Add your answer")');
+check('+ Add your answer opens the form under the answers: favourites first', await me.isVisible('text=Your favourites') && await me.isVisible(`label:has-text("${CAKES.name}")`));
 await me.click('label:has-text("Just answer")');
 check('…“Just answer” leaves out the business', !(await me.isVisible('text=Your favourites')) && await me.isVisible('text=Your advice'));
 await browser.close();
