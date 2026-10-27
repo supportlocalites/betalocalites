@@ -1,14 +1,15 @@
-import { data, Form, Link, redirect, useNavigation } from 'react-router';
+import { data, Form, Link, redirect, useNavigation, useSearchParams } from 'react-router';
 import { cloudflareContext, memberContext } from '@/app/context';
 import { MessageList, ReplyBox, useRefresh } from '@/components/MessageThread';
-import { SiteHeader } from '@/components/SiteHeader';
+import { BusinessInbox } from '@/components/BusinessInbox';
+import { TopBar } from '@/components/TopBar';
 import { isUuid, SLUG } from '@/lib/ids.mjs';
 import { MESSAGE_REFUSALS, NO_PAYMENTS_IN_CONVERSATION, SHARE_CAREFULLY } from '@/lib/message-terms';
 import { pageMeta } from '@/lib/meta';
 import { cleanUpConversationFiles, filesOn, MAX_FILE_UPLOAD, readAttachment } from '@/server/conversation-files.server';
 import { guestsWords, longDateWithYear, TOO_FAST } from '@/lib/plan-terms';
-import { businessChange, businessReply, businessThread, emailAboutMessage, readBody } from '@/server/messages.server';
-import { afterwards, found, refusal, siteUrl, tooFast } from '@/server/plan-pages.server';
+import { businessChange, businessInbox, businessReply, businessThread, emailAboutMessage, readBody } from '@/server/messages.server';
+import { afterwards, found, refusal, siteUrl, todayIso, tooFast } from '@/server/plan-pages.server';
 import type { Route } from './+types/business-conversation';
 import styles from './messages.module.css';
 import { discardBody } from '@/server/discard-body';
@@ -27,7 +28,10 @@ export async function loader({ params, context }: Route.LoaderArgs) {
   if (!SLUG.test(params.slug) || !isUuid(params.id)) throw data(null, { status: 404 });
   const member = context.get(memberContext);
   const { env } = context.get(cloudflareContext);
-  return { ...(await found(businessThread(env, member.userId, params.slug, params.id))), canAttach: filesOn(env) };
+  // Opening it marks it read first, so the list beside it doesn't count it as unread.
+  const thread = await found(businessThread(env, member.userId, params.slug, params.id));
+  const inbox = await found(businessInbox(env, member.userId, params.slug));
+  return { ...thread, conversations: inbox.conversations, today: todayIso(), canAttach: filesOn(env) };
 }
 
 export async function action({ request, params, context }: Route.ActionArgs) {
@@ -91,87 +95,123 @@ export default function BusinessConversation({ loaderData, actionData }: Route.C
   useRefresh(`/vendors/${loaderData.business.slug}/messages/${loaderData.id}/check`, loaderData.version);
   const error = actionData?.error;
   const busy = useNavigation().state === 'submitting';
-  const { business, person, status, ended, event, messages } = loaderData;
+  const [params] = useSearchParams();
+  const view = params.get('view') === 'unread' ? 'unread' : 'all';
+  const { business, person, status, ended, event, messages, conversations, today } = loaderData;
   const canBlock = business.role !== 'staff' && !ended;
+  const canWrite = status === 'open' && !ended && business.listed;
+  const report = `/vendors/${business.slug}/messages/${loaderData.id}/report`;
+  // Style A, as the person's conversation (the owner, 27 October 2026): the list beside it on
+  // computers, a slim head with the person and their event, the reply box at the bottom.
   return (
-    <>
-      <SiteHeader />
-      <main className="page narrow">
-        <p>
-          <Link to={`/vendors/${business.slug}/messages`} className="text-link">
-            ← All messages
-          </Link>
-        </p>
-        <p className="label">{business.name}</p>
-        <h1 className="title-2">{person}</h1>
-        {event && (
-          <div className={styles.eventBox}>
-            <span className="label">Their event</span>
-            <span>
-              {[longDateWithYear(event.date), event.town, guestsWords(event.guests)].filter(Boolean).join(' · ')}
-              {event.cancelled ? ' · Cancelled' : ''}
+    <div className={styles.screen}>
+      <TopBar />
+      <main className={`${styles.split} ${styles.withList}`}>
+        <section aria-labelledby="all-messages" className={styles.listPane}>
+          <h2 id="all-messages" className={styles.paneTitle}>
+            Messages
+          </h2>
+          <BusinessInbox slug={business.slug} conversations={conversations} view={view} currentId={loaderData.id} today={today} />
+        </section>
+        <div className={styles.readPane}>
+          <p className={styles.backLink}>
+            <Link to={`/vendors/${business.slug}/messages${view === 'unread' ? '?view=unread' : ''}`} className="text-link">
+              ← Messages
+            </Link>
+          </p>
+          <div className={styles.head}>
+            <span className={`${styles.headPhoto} ${styles.headInitial}`} aria-hidden="true">
+              {person.trim().charAt(0).toUpperCase()}
+            </span>
+            <span className={styles.cardBody}>
+              <h1 className={styles.headName}>{person}</h1>
+              {event && (
+                <span className={styles.headSub}>
+                  <span>
+                    Their event: {[longDateWithYear(event.date), event.town, guestsWords(event.guests)].filter(Boolean).join(' · ')}
+                    {event.cancelled ? ' · Cancelled' : ''}
+                  </span>
+                </span>
+              )}
+            </span>
+            <span className={styles.headTools}>
+              <details className={styles.more}>
+                <summary className={styles.moreButton} aria-label="More: block or report">
+                  <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                    <circle cx="5" cy="12" r="1.3" />
+                    <circle cx="12" cy="12" r="1.3" />
+                    <circle cx="19" cy="12" r="1.3" />
+                  </svg>
+                </summary>
+                <div className={styles.moreList}>
+                  {canBlock && status === 'blocked_by_vendor' && (
+                    <Form method="post">
+                      <input type="hidden" name="intent" value="unblock" />
+                      <button type="submit" className={styles.textButton} disabled={busy}>
+                        Unblock this conversation
+                      </button>
+                    </Form>
+                  )}
+                  {canBlock && status === 'open' && (
+                    // A confirm step first (scenario tests): what blocking does, and what the person still sees.
+                    <details>
+                      <summary className={styles.textButton}>Block {person}</summary>
+                      <p className="muted">
+                        {person} won’t be able to send any more messages here. They’ll still see the conversation so far, and that your business
+                        blocked it. You can unblock it later.
+                      </p>
+                      <Form method="post">
+                        <input type="hidden" name="intent" value="block" />
+                        <button type="submit" className="button button-secondary" disabled={busy}>
+                          Yes, block {person}
+                        </button>
+                      </Form>
+                    </details>
+                  )}
+                  <Link to={report} className={styles.textButton}>
+                    Report this conversation
+                  </Link>
+                </div>
+              </details>
             </span>
           </div>
-        )}
-        {error && (
-          <p className="notice" role="alert">
-            {error}
-          </p>
-        )}
-        <MessageList
-          messages={messages}
-          canRemove
-          canEdit={status === 'open' && !ended && business.listed}
-          reportPath={`/vendors/${business.slug}/messages/${loaderData.id}/report`}
-          filePath={`/vendors/${business.slug}/messages/${loaderData.id}/files`}
-        />
-        {status === 'open' && !ended && business.listed ? (
-          <ReplyBox label={`Reply to ${person}`} busy={busy} canAttach={loaderData.canAttach} />
-        ) : (
-          <p className="notice" role="status">
-            {ended
-              ? 'This person has left Localites, so no new messages can be sent.'
-              : !business.listed
-                ? 'Your business isn’t listed on Localites at the moment, so messages are paused until it is.'
-                : status === 'blocked_by_team'
-                  ? 'The Localites team has closed this conversation, so no new messages can be sent.'
-                  : status === 'blocked_by_vendor'
-                    ? 'Your business blocked this conversation, so neither of you can send messages.'
-                    : `${person} has blocked this conversation, so no new messages can be sent.`}
-          </p>
-        )}
-        <div className={styles.footer}>
-          <p className="muted">{NO_PAYMENTS_IN_CONVERSATION}</p>
-          <p className="muted">{SHARE_CAREFULLY}</p>
-          {canBlock && status === 'blocked_by_vendor' && (
-            <Form method="post">
-              <input type="hidden" name="intent" value="unblock" />
-              <button type="submit" className={styles.textButton} disabled={busy}>
-                Unblock this conversation
-              </button>
-            </Form>
-          )}
-          {canBlock && status === 'open' && (
-            // A confirm step first (scenario tests): what blocking does, and what the person still sees.
-            <details>
-              <summary className={styles.textButton}>Block {person}</summary>
-              <p className="muted">
-                {person} won’t be able to send any more messages here. They’ll still see the conversation so far, and that your business
-                blocked it. You can unblock it later.
+
+          <div className={styles.readScroll}>
+            {error && (
+              <p className="notice" role="alert">
+                {error}
               </p>
-              <Form method="post">
-                <input type="hidden" name="intent" value="block" />
-                <button type="submit" className="button button-secondary" disabled={busy}>
-                  Yes, block {person}
-                </button>
-              </Form>
-            </details>
-          )}
-          <Link to={`/vendors/${business.slug}/messages/${loaderData.id}/report`} className={styles.textButton}>
-            Report this conversation
-          </Link>
+            )}
+            <MessageList
+              messages={messages}
+              canRemove
+              canEdit={canWrite}
+              reportPath={report}
+              filePath={`/vendors/${business.slug}/messages/${loaderData.id}/files`}
+            />
+            {!canWrite && (
+              <p className="notice" role="status">
+                {ended
+                  ? 'This person has left Localites, so no new messages can be sent.'
+                  : !business.listed
+                    ? 'Your business isn’t listed on Localites at the moment, so messages are paused until it is.'
+                    : status === 'blocked_by_team'
+                      ? 'The Localites team has closed this conversation, so no new messages can be sent.'
+                      : status === 'blocked_by_vendor'
+                        ? 'Your business blocked this conversation, so neither of you can send messages.'
+                        : `${person} has blocked this conversation, so no new messages can be sent.`}
+              </p>
+            )}
+          </div>
+
+          <div className={styles.composer}>
+            {canWrite && <ReplyBox label={`Reply to ${person}`} busy={busy} canAttach={loaderData.canAttach} />}
+            <p className={styles.small}>
+              {NO_PAYMENTS_IN_CONVERSATION} {SHARE_CAREFULLY}
+            </p>
+          </div>
         </div>
       </main>
-    </>
+    </div>
   );
 }

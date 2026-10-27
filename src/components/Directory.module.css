@@ -449,6 +449,8 @@
 
 .favButton {
   composes: expandList;
+  /* Big enough to tap on a phone. */
+  min-height: var(--b44-chip);
 }
 
 .favOn {
@@ -475,8 +477,8 @@
 .favClose {
   display: inline-grid;
   place-items: center;
-  width: var(--b44-fav-close);
-  height: var(--b44-fav-close);
+  width: var(--b44-chip);
+  height: var(--b44-chip);
   border: var(--hairline) solid var(--color-line);
   border-radius: var(--radius-pill);
   background: var(--color-surface);

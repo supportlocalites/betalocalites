@@ -1,6 +1,6 @@
 import { data, Form, Link, redirect, useNavigation, useSearchParams } from 'react-router';
 import { cloudflareContext, memberContext } from '@/app/context';
-import { SiteHeader } from '@/components/SiteHeader';
+import { FormPage } from '@/components/FormPage';
 import { isUuid, SLUG } from '@/lib/ids.mjs';
 import { REPORT_REASONS, REPORT_SENT, type ReportReason } from '@/lib/message-terms';
 import { pageMeta } from '@/lib/meta';
@@ -84,10 +84,7 @@ export default function Report({ loaderData: { withName, message, back }, action
   if (params.has('sent')) {
     return (
       <>
-        <SiteHeader />
-        <main className="page narrow">
-          <h1 className="title-1">Reported</h1>
-          <div className="title-rule" aria-hidden="true" />
+        <FormPage title="Reported">
           <p role="status">{REPORT_SENT}</p>
           {params.get('blocked') === '1' ? (
             <p>The conversation is blocked too: {withName} can’t send any more messages in it. You can unblock it from the conversation.</p>
@@ -104,16 +101,13 @@ export default function Report({ loaderData: { withName, message, back }, action
               Back to the conversation
             </Link>
           </p>
-        </main>
+        </FormPage>
       </>
     );
   }
   return (
     <>
-      <SiteHeader />
-      <main className="page narrow">
-        <h1 className="title-1">{message ? 'Report a message' : `Report this conversation`}</h1>
-        <div className="title-rule" aria-hidden="true" />
+      <FormPage title={message ? 'Report a message' : 'Report this conversation'}>
         <p>
           Tell the Localites team what’s wrong. Because you reported it, our team can read this conversation with {withName}; otherwise
           nobody at Localites reads it. {withName} isn’t told who reported it.
@@ -158,7 +152,7 @@ export default function Report({ loaderData: { withName, message, back }, action
             Back to the conversation
           </Link>
         </p>
-      </main>
+      </FormPage>
     </>
   );
 }

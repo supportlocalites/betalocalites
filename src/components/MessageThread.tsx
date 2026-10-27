@@ -259,7 +259,7 @@ export function FileField({ folded = false }: { folded?: boolean }) {
   if (folded) {
     return (
       <details className={styles.attach}>
-        <summary className={styles.textButton}>Add a photo or PDF</summary>
+        <summary className={styles.textButton}>+ Add a photo or PDF</summary>
         <FileField />
       </details>
     );

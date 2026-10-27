@@ -1,6 +1,6 @@
 import { data, Form, Link, redirect, useNavigation, useSearchParams } from 'react-router';
 import { cloudflareContext, memberContext } from '@/app/context';
-import { SiteHeader } from '@/components/SiteHeader';
+import { FormPage } from '@/components/FormPage';
 import { isUuid, SLUG } from '@/lib/ids.mjs';
 import { INQUIRY_EMAIL_FAILED, INQUIRY_LIMITS, INQUIRY_SENT, INQUIRY_SHARES } from '@/lib/inquiry-terms';
 import { pageMeta } from '@/lib/meta';
@@ -76,13 +76,10 @@ export default function Inquire({ loaderData, actionData }: Route.ComponentProps
   if (vendor.ownBusiness) {
     return (
       <>
-        <SiteHeader />
-        <main className="page narrow">
-          <h1 className="title-1">{vendor.name}</h1>
-          <div className="title-rule" aria-hidden="true" />
+        <FormPage title={vendor.name}>
           <p>This is your own business.</p>
           {back}
-        </main>
+        </FormPage>
       </>
     );
   }
@@ -91,10 +88,7 @@ export default function Inquire({ loaderData, actionData }: Route.ComponentProps
   if (sent && (vendor.claimed || sent.emailStatus !== 'failed')) {
     return (
       <>
-        <SiteHeader />
-        <main className="page narrow">
-          <h1 className="title-1">Interested in {vendor.name}</h1>
-          <div className="title-rule" aria-hidden="true" />
+        <FormPage title={`Interested in ${vendor.name}`}>
           {params.has('sent') && (
             <p className="notice" role="status">
               Sent to our team.
@@ -107,17 +101,14 @@ export default function Inquire({ loaderData, actionData }: Route.ComponentProps
             You told us on {day.format(new Date(sent.createdAt))}.{sent.sharedEvent ? ` Event mentioned: ${sent.sharedEvent}.` : ''}
           </p>
           {back}
-        </main>
+        </FormPage>
       </>
     );
   }
 
   return (
     <>
-      <SiteHeader />
-      <main className="page narrow">
-        <h1 className="title-1">Interested in {vendor.name}?</h1>
-        <div className="title-rule" aria-hidden="true" />
+      <FormPage title={`Interested in ${vendor.name}?`}>
         {sent?.emailStatus === 'failed' && (
           <p className="notice" role="status">
             {INQUIRY_EMAIL_FAILED}
@@ -169,7 +160,7 @@ export default function Inquire({ loaderData, actionData }: Route.ComponentProps
           </p>
         </Form>
         {back}
-      </main>
+      </FormPage>
     </>
   );
 }

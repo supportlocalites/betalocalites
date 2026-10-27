@@ -122,7 +122,7 @@ check('the person’s Messages lists it, with their last message', r.status === 
 r = await page('/business', { cookie: cookie.s });
 check('staff see the new message on My business', r.status === 200 && words(r.body).includes('Messages (1 new)'), String(r.status));
 r = await page(`/vendors/${V.slug}/messages`, { cookie: cookie.s });
-check('the business’s Messages lists the person, with one new', r.status === 200 && words(r.body).includes(A_NAME) && r.body.includes('aria-label="1 new"'), String(r.status));
+check('the business’s Messages lists the person, with one new', r.status === 200 && words(r.body).includes(A_NAME) && words(r.body).includes('1 new'), String(r.status));
 r = await page(BIZ_THREAD, { cookie: cookie.s });
 text = words(r.body);
 check('the business reads the message, and the event’s summary only (date, town, guests)',

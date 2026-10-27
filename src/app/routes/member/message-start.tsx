@@ -1,6 +1,6 @@
 import { data, Form, Link, redirect, useNavigation } from 'react-router';
 import { cloudflareContext, memberContext } from '@/app/context';
-import { SiteHeader } from '@/components/SiteHeader';
+import { FormPage } from '@/components/FormPage';
 import { isUuid, SLUG } from '@/lib/ids.mjs';
 import { FileField, useFileSend } from '@/components/MessageThread';
 import { MESSAGE_LIMITS, MESSAGE_REFUSALS, NO_PAYMENTS_IN_CONVERSATION, SHARE_CAREFULLY } from '@/lib/message-terms';
@@ -81,22 +81,16 @@ export default function MessageStart({ loaderData, actionData }: Route.Component
   if (vendor.ownBusiness) {
     return (
       <>
-        <SiteHeader />
-        <main className="page narrow">
-          <h1 className="title-1">{vendor.name}</h1>
-          <div className="title-rule" aria-hidden="true" />
+        <FormPage title={vendor.name}>
           <p>This is your own business. You’ll find the messages people send it under My business.</p>
           {back}
-        </main>
+        </FormPage>
       </>
     );
   }
   return (
     <>
-      <SiteHeader />
-      <main className="page narrow">
-        <h1 className="title-1">Message {vendor.name}</h1>
-        <div className="title-rule" aria-hidden="true" />
+      <FormPage title={`Message ${vendor.name}`}>
         <p>Your message goes to {vendor.name}’s team on Localites. They’ll see your name, and reply here; we’ll email you when they do.</p>
         {error && (
           <p className="notice" role="alert">
@@ -139,7 +133,7 @@ export default function MessageStart({ loaderData, actionData }: Route.Component
           </p>
         </Form>
         {back}
-      </main>
+      </FormPage>
     </>
   );
 }

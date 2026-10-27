@@ -156,6 +156,17 @@
   border-radius: var(--radius-file);
 }
 
+/* A person (a business's inbox): their first letter in a soft circle, where a business has a photo. */
+.card .initial {
+  display: grid;
+  place-items: center;
+  border-radius: var(--radius-pill);
+  background: var(--color-gold-soft);
+  color: var(--color-gold-ink);
+  font-family: var(--font-display);
+  font-weight: 700;
+}
+
 .words {
   flex: 1;
   min-width: 0;

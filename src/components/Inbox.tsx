@@ -39,7 +39,8 @@ const day = new Intl.DateTimeFormat('en-CA', {
 const dayOf = (d: Date) => d.toLocaleDateString('en-CA', { timeZone: 'America/Toronto' });
 
 /** Today's messages show the time; older ones the day. */
-function when(at: string | null, today: string) {
+/** When the last message was: the time today, else the day. */
+export function when(at: string | null, today: string) {
   if (!at) return '';
   const d = new Date(at);
   return dayOf(d) === today ? time.format(d) : day.format(d);

@@ -1,5 +1,5 @@
 import { Form, Link, useNavigation } from 'react-router';
-import { SiteHeader } from '@/components/SiteHeader';
+import { FormPage, pickStyles } from '@/components/FormPage';
 import { GROUP_NAME_MAX } from '@/lib/group-name';
 import { MESSAGE_LIMITS, NO_PAYMENTS_IN_CONVERSATION, SHARE_CAREFULLY } from '@/lib/message-terms';
 
@@ -29,15 +29,7 @@ export function MessageAll({
   const many = businesses.length > MESSAGE_LIMITS.messageAllMax;
   return (
     <>
-      <SiteHeader />
-      <main className="page narrow">
-        <p>
-          <Link to={back.to} className="text-link">
-            ← {back.label}
-          </Link>
-        </p>
-        <h1 className="title-1">{title}</h1>
-        <div className="title-rule" aria-hidden="true" />
+      <FormPage title={title} back={back}>
         {result ? (
           <>
             {result.sentTo.length > 0 && (
@@ -99,12 +91,12 @@ export function MessageAll({
                   conversations together under this name.
                 </p>
               </div>
-              <fieldset className="field">
+              <fieldset className={pickStyles.list}>
                 <legend className="field-label">
                   {many ? `Send to (up to ${MESSAGE_LIMITS.messageAllMax} at a time)` : 'Send to'}
                 </legend>
                 {businesses.map((b, i) => (
-                  <label key={b.slug} className="field-hint">
+                  <label key={b.slug} className={pickStyles.pick}>
                     <input type="checkbox" name="slug" value={b.slug} defaultChecked={i < MESSAGE_LIMITS.messageAllMax} /> {b.name}
                   </label>
                 ))}
@@ -125,7 +117,7 @@ export function MessageAll({
             </Form>
           </>
         )}
-      </main>
+      </FormPage>
     </>
   );
 }

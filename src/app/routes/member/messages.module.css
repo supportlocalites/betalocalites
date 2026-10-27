@@ -186,7 +186,9 @@ details.messageActions form {
   color: inherit;
   font: inherit;
   font-size: var(--text-small);
-  text-decoration: underline;
+  font-weight: 500;
+  /* Quiet words, underlined only when pointed at (the owner, 27 October 2026: "very dated"). */
+  text-decoration: none;
   text-underline-offset: var(--underline-offset);
   cursor: pointer;
 }
@@ -732,4 +734,82 @@ details.messageActions form {
 .attach[open] {
   display: grid;
   gap: var(--space-2);
+}
+
+/* Fold-outs (Edit, Block, Delete, a photo or PDF, Report it) open from plain words, without the
+   browser's little triangle (27 October 2026). */
+.textButton:hover {
+  text-decoration: underline;
+}
+
+summary.textButton,
+.foldButton {
+  display: inline-flex;
+  align-items: center;
+  list-style: none;
+}
+
+summary.textButton::-webkit-details-marker,
+.foldButton::-webkit-details-marker {
+  display: none;
+}
+
+/* A business's deleted conversations, under its list (still reportable for 30 days). */
+.deletedBox {
+  display: grid;
+  gap: var(--space-2);
+  margin-top: var(--space-6);
+}
+
+.deletedList {
+  display: grid;
+  gap: var(--space-3);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.deletedList > li {
+  display: grid;
+  gap: var(--space-1);
+  padding: var(--space-3);
+  border: var(--hairline) solid var(--color-line-soft);
+  border-radius: var(--radius-file);
+}
+
+.deletedList .name {
+  font-size: var(--b44-text-search);
+}
+
+.fold {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.foldButton {
+  color: var(--color-ink);
+  font-size: var(--b44-text-note);
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.foldButton:hover {
+  text-decoration: underline;
+}
+
+.foldForm {
+  display: grid;
+  gap: var(--space-2);
+}
+
+/* A person in a business's conversation: their first letter where a business has its photo. */
+.headInitial {
+  display: grid;
+  place-items: center;
+  border-radius: var(--radius-pill);
+  background: var(--color-gold-soft);
+  color: var(--color-gold-ink);
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: var(--text-title-3);
 }
