@@ -53,6 +53,8 @@ export type Answer = {
   myVote: -1 | 0 | 1;
   business: Business | null;
   businessName: string | null;
+  /** How many people's answers showing here suggest this same business (D-62, 0062: each their own answer). */
+  suggested: number;
 };
 export type Question = Omit<FeedQuestion, 'answers' | 'leader'> & { detail: string | null; answers: Answer[] };
 
@@ -158,12 +160,17 @@ export async function communityQuestion(
       kind: string | null;
       photoPath: string | null;
       businessName: string | null;
+      suggested: number;
     }>(sql`
       select a.id, a.body, reviewer_name(a.author_user_id) as author, a.author_user_id = ${me}::uuid as mine, a.status,
              a.created_at::text as "createdAt", a.up_votes as up, a.down_votes as down,
              -- Read as the person (RLS): only their own vote; signed out, none.
              (select cv.value from community_vote cv where cv.answer_id = a.id and cv.user_id = ${me}::uuid) as "myVote",
-             v.slug::text as slug, v.display_name as name, top.name as kind, cp.path as "photoPath", a.business_name as "businessName"
+             v.slug::text as slug, v.display_name as name, top.name as kind, cp.path as "photoPath", a.business_name as "businessName",
+             (select count(*)::int from community_answer b
+              where b.question_id = a.question_id and (b.status = 'shown' or b.id = a.id)
+                and ((a.vendor_id is not null and b.vendor_id = a.vendor_id)
+                  or (a.business_name is not null and lower(b.business_name) = lower(a.business_name)))) as suggested
       from community_answer a
       left join vendor v on v.id = a.vendor_id and v.listing_status = 'published'
       left join lateral (
@@ -197,6 +204,7 @@ export async function communityQuestion(
         myVote: a.myVote === 1 ? 1 : a.myVote === -1 ? -1 : 0,
         business: a.slug && a.name ? { slug: a.slug, name: a.name, kind: a.kind, photo: smallPhotoUrl(env, a.photoPath), listed: true } : null,
         businessName: a.businessName,
+        suggested: Number(a.suggested),
       })),
     };
   });
@@ -227,7 +235,7 @@ function refused(err: unknown): never {
   if (err instanceof CommunityRefused) throw err;
   const code = errorCode(err);
   const words = `${err instanceof Error ? err.message : ''} ${String((err as { cause?: unknown })?.cause ?? '')}`;
-  if (code === '23505') throw new CommunityRefused(/community_answer_one_per_(business|name)/.test(words) ? 'twice' : 'gone');
+  if (code === '23505') throw new CommunityRefused(/community_answer_person_once_per_(business|name)/.test(words) ? 'twice' : 'gone');
   if (code === 'LP100' || code === 'LP101') {
     throw new CommunityRefused(
       /on the team of/.test(words) ? 'own' : /own answer/.test(words) ? 'ownVote' : /own business/.test(words) ? 'ownBusiness' : /own post/.test(words) ? 'ownReport' : /isn't listed/.test(words) ? 'unlisted' : 'gone',
@@ -466,8 +474,8 @@ export async function decidePost(
   try {
     await decide(env, admin, post, to, note, table, column);
   } catch (err) {
-    // Showing an answer about a business someone has suggested since: it's there already.
-    if (errorCode(err) === '23505') throw new CommunityRefused('twice');
+    // Showing an answer about a business its author has suggested here since: theirs is there already.
+    if (errorCode(err) === '23505') throw new CommunityRefused('twiceTeam');
     throw err;
   }
 }

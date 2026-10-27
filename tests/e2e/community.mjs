@@ -74,8 +74,16 @@ check('the question page, with the answer form ready for Quinn', r.status === 20
 r = await post(`/community/${qId}/act`, 'q', { intent: 'answer', mode: 'business', vendor: CAKES.slug, body: 'They made our son a T. rex and it was perfect.' });
 check('Quinn suggests a favourite on Localites, with why', r.status === 302 && r.location.startsWith(`/community/${qId}#a-`), `${r.status} ${r.location}`);
 const aCakes = r.location.split('#a-')[1];
+// The owner, 27 October 2026 (mock-up 1A): someone else suggesting the same business is their own
+// answer, and the business shows how many people suggested it.
 r = await post(`/community/${qId}/act`, 'p', { intent: 'answer', mode: 'business', find: CAKES.name, body: 'Seconding these folks, great work.' });
-check('the same business again is a vote instead, said plainly', r.status === 302 && r.location.includes('problem=twice'), `${r.status} ${r.location}`);
+check('Paula suggests the same business too: her own answer', r.status === 302 && r.location.includes('#a-'), `${r.status} ${r.location}`);
+const aSecond = r.location.split('#a-')[1];
+check('…and the business says “Suggested by 2 people”', words(page((await site(`/community/${qId}`)).body)).includes('Suggested by 2 people'));
+r = await post(`/community/${qId}/act`, 'p', { intent: 'answer', mode: 'business', vendor: CAKES.slug, body: 'And once more, they are great.' });
+check('…but not twice from the same person, said plainly', r.status === 302 && r.location.includes('problem=twice'), `${r.status} ${r.location}`);
+await post(`/community/${qId}/act`, 'p', { intent: 'remove-answer', answer: aSecond });
+check('…she takes hers down: back to one', words(page((await site(`/community/${qId}`)).body)).includes('Suggested by 1 person'));
 r = await post(`/community/${qId}/act`, 'p', { intent: 'answer', mode: 'business', businessName: `Maple Crumbs ${run}`, body: 'Not on Localites yet, but lovely work.' });
 check('Paula types the name of one not on Localites', r.status === 302 && r.location.includes('#a-'), `${r.status} ${r.location}`);
 const aTyped = r.location.split('#a-')[1];
@@ -139,7 +147,7 @@ check('a question the language check flags is held, and she’s told', r.status 
 const [held] = await sql`select id, status, language_flag from community_question where author_user_id = ${ids.q} order by created_at desc limit 1`;
 check('…kept for the team with why', held.status === 'held' && held.language_flag?.includes('Word list'));
 r = await site('/community');
-check('…not in the feed for anyone else', !words(page(r.body)).includes('decorations'));
+check('…not in the feed for anyone else', !words(page(r.body)).includes(`decorations ${run}`));
 r = await site('/community', { cookie: cookie.q });
 check('…but its author sees it, waiting for our team', words(page(r.body)).includes('decorations') && words(page(r.body)).includes('Waiting for our team'));
 r = await site(`/community/${held.id}`);

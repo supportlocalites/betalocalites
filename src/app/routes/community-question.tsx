@@ -244,6 +244,7 @@ export default function CommunityQuestion({ loaderData: { signedIn, order, quest
                           <span className={styles.businessName}>{a.business.name}</span>
                           <span className="muted">{a.business.kind ? `${a.business.kind} · on Localites` : 'On Localites'}</span>
                         </span>
+                        <Suggested n={a.suggested} />
                       </Link>
                     ) : (
                       a.businessName && (
@@ -253,6 +254,7 @@ export default function CommunityQuestion({ loaderData: { signedIn, order, quest
                             <span className={styles.businessName}>{a.businessName}</span>
                             <span className="muted">Not on Localites yet</span>
                           </span>
+                          <Suggested n={a.suggested} />
                         </span>
                       )
                     )}
@@ -287,4 +289,14 @@ export default function CommunityQuestion({ loaderData: { signedIn, order, quest
       </main>
     </>
   );
+}
+
+/**
+ * How many people suggested this business on this question, beside its name (the owner, 27 October
+ * 2026, mock-up 1A: each answer its own, "note to the right of the vendor name how many times they
+ * were suggested in the thread"). Only answers showing to everyone count.
+ */
+function Suggested({ n }: { n: number }) {
+  if (n < 1) return null;
+  return <span className={styles.suggested}>{`Suggested by ${n} ${n === 1 ? 'person' : 'people'}`}</span>;
 }

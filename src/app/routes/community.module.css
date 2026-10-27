@@ -340,6 +340,32 @@ a.business:hover {
   min-width: 0;
 }
 
+/* How many people suggested it here (mock-up 1A), at the right of the business's name. */
+.suggested {
+  margin-left: auto;
+  flex-shrink: 0;
+  color: var(--color-muted);
+  font-size: var(--b44-text-note);
+  white-space: nowrap;
+}
+
+/* On a phone, under the name instead, so it never runs past the card. */
+@media (max-width: 639px) {
+  .business:has(.suggested) {
+    flex-wrap: wrap;
+  }
+
+  .business:has(.suggested) .businessWords {
+    flex: 1;
+  }
+
+  .suggested {
+    flex-basis: 100%;
+    margin-left: 0;
+    white-space: normal;
+  }
+}
+
 .businessName {
   font-weight: 600;
 }

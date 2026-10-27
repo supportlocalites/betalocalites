@@ -78,7 +78,7 @@ insert into community_answer (id, question_id, author_user_id, body, vendor_id)
 values ('00000000-0000-7000-8000-0000000061e1', '00000000-0000-7000-8000-0000000061d1', '00000000-0000-7000-8000-0000000061a2',
         'They made our son a T. rex and it was perfect.', '00000000-0000-7000-8000-0000000061c1');
 select pg_temp.expect('Kim suggests a business on Localites, with why', (select up_votes = 0 from community_answer where id = '00000000-0000-7000-8000-0000000061e1'));
-select pg_temp.expect_code('the same business twice on one question is a vote instead',
+select pg_temp.expect_code('the same person can''t suggest the same business twice on one question (0062: others can)',
   $q$insert into community_answer (question_id, author_user_id, body, vendor_id) values ('00000000-0000-7000-8000-0000000061d1', '00000000-0000-7000-8000-0000000061a2', 'Another vote for these folks', '00000000-0000-7000-8000-0000000061c1')$q$, '23505');
 select pg_temp.expect_code('a business not listed can''t be suggested by its page',
   $q$insert into community_answer (question_id, author_user_id, body, vendor_id) values ('00000000-0000-7000-8000-0000000061d1', '00000000-0000-7000-8000-0000000061a2', 'An archived one, though', '00000000-0000-7000-8000-0000000061c2')$q$, 'LP100');
@@ -130,7 +130,7 @@ select pg_temp.expect_code('a business''s owner can''t suggest their own busines
 select pg_temp.expect_code('…nor vote on an answer suggesting it',
   $q$insert into community_vote (answer_id, user_id, value) values ('00000000-0000-7000-8000-0000000061e1', '00000000-0000-7000-8000-0000000061a3', 1)$q$, 'LP100');
 select pg_temp.act('person', '00000000-0000-7000-8000-0000000061a2');
-select pg_temp.expect_code('the same typed name twice on one question is a vote instead',
+select pg_temp.expect_code('…nor the same typed name twice (0062: others can)',
   $q$insert into community_answer (question_id, author_user_id, body, business_name) values ('00000000-0000-7000-8000-0000000061d1', '00000000-0000-7000-8000-0000000061a2', 'Maple crumbs again, so good', 'maple crumbs')$q$, '23505');
 
 -- ------------------------------------------------------------------ Reports

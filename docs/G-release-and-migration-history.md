@@ -31,6 +31,21 @@ Every release and every database migration, in order. Appended before each deplo
 
 ## Releases
 
+### 2026-10-27 — Community: the same business suggested by more than one person (D-62)
+
+**Stage:** 2 (the redesign)
+**What changed (plain English):** The owner chose mock-up 1A: when two people suggest the same
+business on a question, each is their own answer with its own words and votes, and the business
+says "Suggested by N people" at the right of its name (under it on a phone). One person suggests a
+business once per question (take yours down to write it again); the business's own team still
+can't suggest it. The team's page says plainly when a held answer can't be shown because its
+author already has one showing about that business.
+**Migrations applied:** 0062_community_same_business.sql (two unique indexes replaced by narrower
+ones). **Destructive?** No: no rows change.
+**Tests run:** `npm run check`; unit 234/234; database checks all passed (0061 47/47, 0062 5/5);
+Community 56/56; message groups 26/26; look 956/956. Independent review (diff and checklist): no
+problems; its one note (an author's held answer counted itself) fixed.
+
 ### 2026-10-27 — Favourites, the wordmark, the Undo note and the map (the owner's list)
 
 **Stage:** 2 (the redesign)
