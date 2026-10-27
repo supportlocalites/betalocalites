@@ -182,16 +182,6 @@
   color: var(--color-ink);
 }
 
-.navBrowse {
-  display: none;
-}
-
-@media (min-width: 640px) {
-  .navBrowse {
-    display: grid;
-  }
-}
-
 .navOn {
   background: var(--color-tint);
   color: var(--color-ink);

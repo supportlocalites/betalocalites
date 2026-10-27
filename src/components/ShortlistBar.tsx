@@ -26,7 +26,7 @@ const messageWords = (n: number) => (n === 1 ? 'Message 1' : n === 0 ? 'Message 
  * opens the list above it (× on each), then Clear and Message all. After any removal, one or all,
  * "… removed · Undo" puts them back.
  */
-export function ShortlistBar({ items }: { items: ShortlistItem[] }) {
+export function ShortlistBar({ items, besidePanel = false }: { items: ShortlistItem[]; besidePanel?: boolean }) {
   const location = useLocation();
   const back = location.pathname + location.search;
   const clear = useFetcher();
@@ -88,12 +88,15 @@ export function ShortlistBar({ items }: { items: ShortlistItem[] }) {
   }, [leaving]);
 
   const shown = clear.state !== 'idle' ? [] : items;
+  // With a profile open beside the list, the note sits in the middle of the list, not the page
+  // (the owner, 27 October 2026).
+  const place = `${styles.undo} ${shown.length > 0 ? styles.undoAbove : ''} ${besidePanel ? styles.undoBesidePanel : ''}`;
 
   return (
     <>
       {shown.length > 0 && <Bar items={shown} back={back} clear={clear} onClear={() => picksUndo.cleared(items.map((i) => i.slug))} />}
       {undoError && (
-        <div className={`${styles.undo} ${shown.length > 0 ? styles.undoAbove : ''}`} role="status">
+        <div className={place} role="status">
           <span className={styles.undoWords}>{undoError}</span>
           <button type="button" className={styles.undoButton} onClick={() => setSeen(undo.data)}>
             OK
@@ -103,7 +106,7 @@ export function ShortlistBar({ items }: { items: ShortlistItem[] }) {
       {removed && !undoError && (
         <div
           ref={note}
-          className={`${styles.undo} ${shown.length > 0 ? styles.undoAbove : ''} ${leaving ? styles.undoOut : ''}`}
+          className={`${place} ${leaving ? styles.undoOut : ''}`}
           role="status"
           onPointerLeave={() => setAgain((n) => n + 1)}
           onBlur={(e) => !e.currentTarget.contains(e.relatedTarget as Node | null) && setAgain((n) => n + 1)}

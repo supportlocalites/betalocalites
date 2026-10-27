@@ -1,6 +1,7 @@
-import { useRef } from 'react';
+import { useEffect, useRef, useSyncExternalStore } from 'react';
 import type { ReactNode } from 'react';
-import { Form, Link, useLocation, useRouteLoaderData } from 'react-router';
+import { Form, Link, useFetcher, useLocation, useRouteLoaderData } from 'react-router';
+import { localFavourites } from '@/lib/local-favourites';
 import type { TeamBusiness } from '@/server/auth/member.server';
 import styles from './TopBar.module.css';
 import { useCloseOutside } from './useCloseOutside';
@@ -17,8 +18,9 @@ export function TopBar({
   home = '/explore',
   onTeam,
   businesses: known,
-  unread = 0,
+  unread,
   favourites,
+  onHome,
 }: {
   children?: ReactNode;
   /** Before the icons at the right. */
@@ -27,10 +29,12 @@ export function TopBar({
   onTeam?: boolean;
   /** The businesses the person runs, where the page knows them (Browse local); the member layout says otherwise. */
   businesses?: TeamBusiness[];
-  /** How many conversations have something new, where the page knows (Messages). */
+  /** How many conversations have something new, where the page knows (Messages); else the bar asks. */
   unread?: number;
-  /** Browse local's own Favourites: a switch for "only my favourites" there, not a link. */
-  favourites?: { on: boolean; count: number; toggle: () => void };
+  /** On Browse local: whether only favourites are showing, and how many there are. */
+  favourites?: { on: boolean; count: number };
+  /** On Browse local: the wordmark starts it again (its link alone wouldn't reset the filters). */
+  onHome?: () => void;
 }) {
   const businesses = useTeamBusinesses(known);
   const here = useBusinessHere(businesses);
@@ -58,7 +62,7 @@ export function TopBar({
   return (
     <header className={styles.bar}>
       <div className={styles.inner}>
-        <Link to={home} className={styles.logo}>
+        <Link to={home} className={styles.logo} onClick={onHome}>
           <Wordmark small />
         </Link>
         {children}
@@ -116,12 +120,6 @@ function BusinessNav({ business: b }: { business: TeamBusiness }) {
 }
 
 const ICONS = {
-  browse: (
-    <>
-      <circle cx="12" cy="12" r="8" />
-      <path d="m15 9-2 5-4 1 2-5z" />
-    </>
-  ),
   messages: <path d="M5 6h14v9H9l-4 3z" />,
   community: (
     <>
@@ -142,12 +140,15 @@ const NavIcon = ({ name }: { name: keyof typeof ICONS }) => (
  * Small labelled icons at the right of the bar, beside the account button, on every page but a
  * business's own (the owner, 26 October 2026: "I like the icons"; then "favourites ... the most
  * left icon, remove the browse (when on the browse page) and then have messages and community to
- * the right with the profile furthest right"). Elsewhere Browse follows Favourites. The words go on
- * a narrow screen, where Browse goes too (the wordmark beside them goes to Browse); each keeps its
- * name for screen readers.
+ * the right with the profile furthest right"; 27 October 2026: no Browse icon, as the wordmark goes to
+ * Browse local). The words go on a narrow screen; each keeps its name for screen readers.
  */
-function IconNav({ unread, favourites }: { unread: number; favourites?: { on: boolean; count: number; toggle: () => void } }) {
+function IconNav({ unread: pageUnread, favourites }: { unread?: number; favourites?: { on: boolean; count: number } }) {
   const path = useLocation().pathname;
+  const counts = useBarCounts();
+  // The page's own numbers when it has them (freshest), else the bar's.
+  const unread = pageUnread ?? counts.unread;
+  const favouriteCount = favourites?.count ?? counts.favourites;
   const link = (to: string, icon: keyof typeof ICONS, label: string, on: boolean) => (
     <Link
       key={to}
@@ -155,7 +156,7 @@ function IconNav({ unread, favourites }: { unread: number; favourites?: { on: bo
       // The label replaces what's inside for screen readers, so it carries the count itself.
       aria-label={icon === 'messages' && unread > 0 ? `${label}, ${unread} new` : label}
       title={label}
-      className={`${styles.navLink} ${on ? styles.navOn : ''} ${icon === 'browse' ? styles.navBrowse : ''}`}
+      className={`${styles.navLink} ${on ? styles.navOn : ''}`}
       aria-current={on ? 'page' : undefined}
     >
       <NavIcon name={icon} />
@@ -169,31 +170,46 @@ function IconNav({ unread, favourites }: { unread: number; favourites?: { on: bo
   );
   return (
     <nav aria-label="Main" className={styles.nav}>
-      {favourites ? (
-        // Browse local's own Favourites: a switch for "only my favourites" there, not a link.
-        <button
-          type="button"
-          onClick={favourites.toggle}
-          className={`${styles.navLink} ${favourites.on ? styles.navOn : ''}`}
-          aria-pressed={favourites.on}
-          title="Only your favourites"
-        >
-          <NavIcon name="favourites" />
-          <span className={styles.navWord}>Favourites</span>
-          {favourites.count > 0 && <span className={styles.navCount}>{favourites.count}</span>}
-        </button>
-      ) : (
-        <Link to="/saved" aria-label="Favourites" title="Favourites" className={`${styles.navLink} ${path === '/saved' ? styles.navOn : ''}`}>
-          <NavIcon name="favourites" />
-          <span className={styles.navWord}>Favourites</span>
-        </Link>
-      )}
-      {/* Not on Browse local itself (where its own Favourites switch is). */}
-      {!favourites && link('/explore', 'browse', 'Browse', path === '/explore')}
+      {/* Browse local with only favourites, from any page; pressed again it stays there (the owner,
+          27 October 2026). The wordmark goes back to all of Browse local. */}
+      <Link
+        to="/explore?fav=1"
+        aria-label={favouriteCount > 0 ? `Favourites, ${favouriteCount}` : 'Favourites'}
+        title="Favourites"
+        className={`${styles.navLink} ${favourites?.on ? styles.navOn : ''}`}
+        aria-current={favourites?.on ? 'page' : undefined}
+        preventScrollReset
+      >
+        <NavIcon name="favourites" />
+        <span className={styles.navWord}>Favourites</span>
+        {favouriteCount > 0 && (
+          <span className={styles.navCount} aria-hidden="true">
+            {favouriteCount}
+          </span>
+        )}
+      </Link>
       {link('/messages', 'messages', 'Messages', path.startsWith('/messages'))}
       {link('/community', 'community', 'Community', path.startsWith('/community'))}
     </nav>
   );
+}
+
+/**
+ * The numbers on the icons, on every page (the owner, 27 October 2026: "the icon numbers should
+ * show on all pages"): asked for after each page change, so the page itself isn't slowed. Signed
+ * out, favourites are this browser's own and there are no messages.
+ */
+function useBarCounts(): { favourites: number; unread: number } {
+  const signedIn = useRouteLoaderData<{ signedIn: boolean }>('root')?.signedIn ?? false;
+  const { pathname } = useLocation();
+  const fetcher = useFetcher<{ favourites: number; unread: number } | null>();
+  const { load } = fetcher;
+  useEffect(() => {
+    if (signedIn) void load('/bar-counts');
+  }, [signedIn, pathname, load]);
+  const local = localFavourites.parse(useSyncExternalStore(localFavourites.subscribe, localFavourites.read, () => '[]'));
+  if (!signedIn) return { favourites: local.length, unread: 0 };
+  return { favourites: fetcher.data?.favourites ?? 0, unread: fetcher.data?.unread ?? 0 };
 }
 
 /**

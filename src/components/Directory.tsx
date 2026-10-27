@@ -4,6 +4,7 @@ import { useListActivity, useVendorActivity } from '@/components/ActivityTracker
 import { ReportLink, ReviewList, type ShownReview } from '@/components/Reviews';
 import { directionsUrl, streetLine } from '@/lib/address';
 import { fuzzyMatch } from '@/lib/fuzzy';
+import { localFavourites } from '@/lib/local-favourites';
 import type { DirectoryCard, ShortlistItem } from '@/server/browse.server';
 import { type Bounds, DirectoryMap, type MapApi } from './DirectoryMap';
 import { picksUndo } from './picksUndo';
@@ -43,45 +44,6 @@ export const replyLabel = (minutes: number | null) => {
 };
 export const ratingLabel = (r: number | null) => (r === null ? 'New' : r.toFixed(1));
 
-/** Favourites without an account stay in this browser only, as on Base44 (D-59, K15). */
-const LOCAL_KEY = 'localites:favourites';
-const LOCAL_EVENT = 'localites:favourites';
-const localFavourites = {
-  subscribe(onChange: () => void) {
-    window.addEventListener('storage', onChange);
-    window.addEventListener(LOCAL_EVENT, onChange);
-    return () => {
-      window.removeEventListener('storage', onChange);
-      window.removeEventListener(LOCAL_EVENT, onChange);
-    };
-  },
-  read(): string {
-    try {
-      return window.localStorage.getItem(LOCAL_KEY) ?? '[]';
-    } catch {
-      return '[]';
-    }
-  },
-  parse(raw: string): string[] {
-    try {
-      const parsed: unknown = JSON.parse(raw);
-      return Array.isArray(parsed) ? parsed.filter((x): x is string => typeof x === 'string') : [];
-    } catch {
-      return [];
-    }
-  },
-  toggle(slug: string) {
-    const now = localFavourites.parse(localFavourites.read());
-    const next = now.includes(slug) ? now.filter((s) => s !== slug) : [...now, slug];
-    try {
-      window.localStorage.setItem(LOCAL_KEY, JSON.stringify(next));
-    } catch {
-      // Storage off: nothing is kept.
-    }
-    window.dispatchEvent(new Event(LOCAL_EVENT));
-  },
-};
-
 type View = 'map' | 'hybrid' | 'list';
 
 export function Directory({
@@ -110,9 +72,8 @@ export function Directory({
   const [query, setQuery] = useState('');
   const [rating, setRating] = useState('');
   const [sort, setSort] = useState('top');
-  // Kinds of business chosen (none: all), and only favourites (the owner, 24 October 2026).
+  // Kinds of business chosen (none: all) (the owner, 24 October 2026).
   const [chosen, setChosen] = useState<string[]>([]);
-  const [favOnly, setFavOnly] = useState(false);
   // Map and rows (the start), the map expanded, or the list expanded (the owner, 24 October 2026:
   // Base44's "Expand map" on the map, and an expand for the list above the rows).
   const [view, setView] = useState<View>('hybrid');
@@ -120,6 +81,9 @@ export function Directory({
   // "Search this area": the part of the map searched, and what the filters were then.
   const [area, setArea] = useState<Bounds | null>(null);
   const [moved, setMoved] = useState(false);
+  // Only favourites, in the address (?fav=1), so the Favourites icon on any page opens them and
+  // pressing it again stays there (the owner, 27 October 2026).
+  const favOnly = params.get('fav') === '1';
   const filterKey = JSON.stringify([query.trim(), rating, chosen, favOnly]);
   const [searchedKey, setSearchedKey] = useState(filterKey);
   const mapApi = useRef<MapApi | null>(null);
@@ -128,6 +92,19 @@ export function Directory({
   }, []);
   // ?v= names the open business; on a business's own address it's open until closed (v empty).
   const selected = params.has('v') ? params.get('v') || null : initial;
+  const setFavOnly = useCallback(
+    (on: boolean) =>
+      setParams(
+        (p) => {
+          const next = new URLSearchParams(p);
+          if (on) next.set('fav', '1');
+          else next.delete('fav');
+          return next;
+        },
+        { replace: true, preventScrollReset: true },
+      ),
+    [setParams],
+  );
   // Which business is open, in the address (?v=).
   const setOpen = useCallback(
     (slug: string | null) =>
@@ -246,15 +223,20 @@ export function Directory({
     setMoved(false);
     setSearchedKey(filterKey);
   };
-  const clear = () => {
+  // The filters back to the start (the wordmark's link clears the address's own ?fav and ?v).
+  const startAgain = () => {
     setQuery('');
     setRating('');
     setSort('top');
     setChosen([]);
-    setFavOnly(false);
     setArea(null);
     setMoved(false);
     setSearchedKey(JSON.stringify(['', '', [], false]));
+  };
+  // Reset: the filters, and only favourites too.
+  const clear = () => {
+    startAgain();
+    setFavOnly(false);
   };
   const profileView = open ? (
       <Profile
@@ -285,7 +267,10 @@ export function Directory({
       <TopBar
         onTeam={cards.some((c) => c.yours !== null)}
         businesses={yourBusinesses}
-        favourites={{ on: favOnly, count: favourites, toggle: () => setFavOnly((v) => !v) }}
+        favourites={{ on: favOnly, count: favourites }}
+        // The wordmark on Browse local starts it again: no filters, no favourites, nothing open
+        // (the owner, 27 October 2026). Its link drops ?fav and ?v from the address.
+        onHome={startAgain}
       >
         <div className={styles.search} role="search">
           <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false" className={styles.searchIcon}>
@@ -377,24 +362,27 @@ export function Directory({
           )}
 
           <div className={`${styles.rails} ${view === 'map' ? styles.hidden : ''}`}>
-            {rails.length === 0 ? (
+            {rails.length === 0 && favOnly && favourites === 0 ? (
+              // No favourites: just the words (the owner, 27 October 2026: no Reset or Suggest here).
               <div className={styles.empty}>
-                <p className={styles.emptyTitle}>{favOnly && favourites === 0 ? 'No favourites yet' : 'Nothing matches those filters'}</p>
-                <p className={styles.emptyHint}>
-                  {favOnly && favourites === 0
-                    ? 'Tap the heart on any business to keep it here.'
-                    : area
-                      ? 'Try moving the map, or clearing the filters.'
-                      : 'Try clearing the filters or the search.'}
-                </p>
-                {filtering && (
-                  <button type="button" onClick={clear} className={styles.pickerAll}>
-                    Reset
-                  </button>
-                )}
-                <Link to={`/suggest${query ? `?q=${encodeURIComponent(query)}` : ''}`} className={styles.suggest}>
-                  Can’t find it? Suggest a business
-                </Link>
+                <p className={styles.emptyTitle}>No favourites yet</p>
+                <p className={styles.emptyHint}>Tap the heart on any business to keep it here.</p>
+              </div>
+            ) : rails.length === 0 ? (
+              <div className={styles.empty}>
+                <p className={styles.emptyTitle}>Nothing matches those filters</p>
+                <p className={styles.emptyHint}>{area ? 'Try moving the map, or clearing the filters.' : 'Try clearing the filters or the search.'}</p>
+                {/* Suggest first, Reset on its own line below it (the owner, 27 October 2026). */}
+                <div className={styles.emptyActions}>
+                  <Link to={`/suggest${query ? `?q=${encodeURIComponent(query)}` : ''}`} className={styles.suggest}>
+                    Can’t find it? Suggest a business
+                  </Link>
+                  {filtering && (
+                    <button type="button" onClick={clear} className={styles.pickerAll}>
+                      Reset
+                    </button>
+                  )}
+                </div>
               </div>
             ) : (
               rails.map((r) => (
@@ -402,7 +390,7 @@ export function Directory({
               ))
             )}
           </div>
-          <ShortlistBar items={shortlist} />
+          <ShortlistBar items={shortlist} besidePanel={open !== null && !wide} />
         </div>
 
         <div className={`${styles.panelBox} ${open && !wide ? styles.panelOpen : ''}`}>

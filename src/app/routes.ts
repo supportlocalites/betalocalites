@@ -12,6 +12,8 @@ export default [
   route('robots.txt', 'routes/robots.ts'),
   route('sitemap.xml', 'routes/sitemap.ts'),
   route('api/activity', 'routes/api-activity.ts'),
+  // The numbers on the bar's icons, on every page (the owner, 27 October 2026).
+  route('bar-counts', 'routes/bar-counts.ts'),
   route('suggest', 'routes/suggest.tsx'),
   route('how-it-works', 'routes/how-it-works.tsx'),
   // Community (D-62, migration 0061): anyone reads; asking, answering, voting and reporting need an account.

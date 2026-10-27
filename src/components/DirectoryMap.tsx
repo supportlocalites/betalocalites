@@ -99,7 +99,9 @@ export function DirectoryMap({
     (async () => {
       const [L] = await Promise.all([import('leaflet').then((m) => m.default ?? m), import('leaflet/dist/leaflet.css')]);
       if (gone || !box.current) return;
-      const map = L.map(box.current, { scrollWheelZoom: true, attributionControl: true }).setView([CENTRE.lat, CENTRE.lng], 12);
+      // Any zoom, not only whole steps, so fitting a view loses no more than it must; + and − still
+      // go a whole step at a time.
+      const map = L.map(box.current, { scrollWheelZoom: true, attributionControl: true, zoomSnap: 0 }).setView([CENTRE.lat, CENTRE.lng], 12);
       // Drawn after the pins can be: the map's own look may take a moment to arrive.
       void addBaseMap(L, map, styles.tiles);
       const s: MapState = { L, map, layer: L.layerGroup().addTo(map), flying: false, flownTo: null, before: null };
@@ -170,6 +172,8 @@ export function DirectoryMap({
         // Everything that was on screen, and the business just opened, fitted into what's left.
         const fit = s.L.latLngBounds(s.before.bounds.getSouthWest(), s.before.bounds.getNorthEast());
         if (open) fit.extend([open.lat!, open.lng!]);
+        // Only as much smaller as the narrower map needs (the owner, 27 October 2026: "try and keep
+        // the exact same view"): the map's zoom isn't held to whole steps (zoomSnap 0), which halved it.
         glide(() => s.map.fitBounds(fit, { animate: true }));
       } else if (closing && s.before) {
         const { center, zoom, moved: movedMeanwhile } = s.before;

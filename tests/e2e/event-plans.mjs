@@ -106,6 +106,9 @@ const summaryFor = async (who, since) => {
   return list.filter((x) => x.at > since && x.subject.startsWith('Your Localites bookings'));
 };
 const BOOKINGS = `/vendors/${V.slug}/bookings`;
+// Favourites are Browse local's own view (the owner, 27 October 2026): a favourite's heart there
+// says "Remove … from favourites"; /saved only goes to it.
+const favouriteOn = async (who, name) => (await site('/explore', { cookie: who })).body.includes(`aria-label="Remove ${name} from favourites"`);
 
 console.log('Planning an event');
 
@@ -232,7 +235,8 @@ r = await site(`/vendors/${V.slug}?saved=1`, { cookie: cookie.a });
 // Since the Base44 design (D-59) the profile's heart shows it's a favourite.
 check('the business’s profile shows it as a favourite', r.body.includes('from favourites"'));
 r = await site('/saved', { cookie: cookie.a });
-check('Your favourites lists it', r.status === 200 && words(r.body).includes(V.name));
+check('/saved goes to Browse local’s favourites', r.status === 302 && r.location === '/explore?fav=1', `${r.status} ${r.location}`);
+check('Your favourites lists it', await favouriteOn(cookie.a, V.name));
 for (const v of [Y, U]) await site(`/vendors/${v.slug}/add`, { cookie: cookie.a, method: 'POST', form: { intent: 'add', eventId } });
 const vRow = await rowOf(eventId, V.id);
 const yRow = await rowOf(eventId, Y.id);
@@ -344,8 +348,7 @@ for (const c of changes) {
 r = await site(`/vendors/${Y.slug}/add`, { cookie: cookie.b, method: 'POST', form: { intent: 'add', eventId } });
 check('…nor add a business to it', r.status === 404, String(r.status));
 check('…and A’s event and plan are exactly as they were', await unchanged());
-r = await site('/saved', { cookie: cookie.b });
-check('another person’s Saved doesn’t list A’s saves', r.status === 200 && !words(r.body).includes(V.name));
+check('another person’s favourites don’t list A’s saves', !(await favouriteOn(cookie.b, V.name)));
 
 // ------------------------------------------------------------------ 10. Another business, and roles
 r = await site(BOOKINGS, { cookie: cookie.o2 });
@@ -557,8 +560,7 @@ check('un-marking it isn’t offered: the page goes back to the plan', [302, 303
 r = await site(`/events/${bEvent}/plan/${tRow.id}/unbook`, { cookie: cookie.b, method: 'POST' });
 check('…and sent anyway, it’s refused (back to the plan) and stays booked',
   [302, 303].includes(r.status) && r.location === `/events/${bEvent}` && (await rowOf(bEvent, T.id))?.status === 'booked', `${r.status} ${r.location}`);
-r = await site('/saved', { cookie: cookie.b });
-check('Your favourites doesn’t show a business that isn’t listed', r.status === 200 && !words(r.body).includes(T2.name), String(r.status));
+check('Your favourites doesn’t show a business that isn’t listed', !(await site('/explore', { cookie: cookie.b })).body.includes(`aria-label="Remove ${T2.name} from favourites"`));
 r = await site('/admin/bookings', { cookie: cookie.m });
 const team = words(r.body);
 check('the team’s menu counts the bookings to check in about', r.status === 200 && /Bookings \(\d+ to check in\)/.test(team), String(r.status));
@@ -579,7 +581,7 @@ for (const [who, c] of [['a person', cookie.b], ['the business’s owner', cooki
 await sql`update vendor set listing_status = 'published' where id = ${T2.id}`;
 r = await site(`/events/${bEvent}`, { cookie: cookie.b });
 check('listed again, it’s back on the plan and in Saved',
-  words(r.body).includes(T2.name) && words((await site('/saved', { cookie: cookie.b })).body).includes(T2.name));
+  words(r.body).includes(T2.name) && (await favouriteOn(cookie.b, T2.name)));
 r = await site(`/events/${bEvent}/plan/${t2Row.id}/book`, { cookie: cookie.b, method: 'POST' });
 check('listed again, it can be marked booked', (await rowOf(bEvent, T2.id))?.status === 'booked', String(r.status));
 

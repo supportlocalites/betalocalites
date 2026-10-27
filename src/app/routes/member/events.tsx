@@ -115,7 +115,7 @@ export default function MyEvents({ loaderData }: Route.ComponentProps) {
         )}
 
         <p className="section-gap">
-          <Link to="/saved" className="text-link">
+          <Link to="/explore?fav=1" className="text-link">
             Your favourites ({savedCount})
           </Link>
         </p>

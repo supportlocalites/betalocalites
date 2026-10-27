@@ -31,6 +31,22 @@ Every release and every database migration, in order. Appended before each deplo
 
 ## Releases
 
+### 2026-10-27 — Favourites, the wordmark, the Undo note and the map (the owner's list)
+
+**Stage:** 2 (the redesign)
+**What changed (plain English):** The Favourites icon opens Browse local showing only favourites,
+from every page (the old /saved page now goes there too), and pressing it again stays there. The
+Localites wordmark goes back to all of Browse local and clears the filters. No Browse icon anywhere.
+The Favourites and Messages counts show on every page (the bar asks for them after each page
+change, from the new /bar-counts, only ever the person's own). No favourites: just "No favourites
+yet" and its hint. Nothing found: "Can't find it? Suggest a business" with Reset below it. With a
+profile open beside the list, "… removed · Undo" sits in the middle of the list. Opening a profile
+shrinks the map only as much as it narrows (two thirds, measured), not to half: the map's zoom no
+longer snaps to whole steps.
+**Migrations applied:** none. **Destructive?** No.
+**Tests run:** `npm run check`; unit 234/234; Browse local 106/106; event planning 146/146;
+accounts 35/35; Edit profile 23/23; message groups 26/26; look 956/956.
+
 ### 2026-10-26 — The other businesses under an open profile on a phone; the icons' order (D-64)
 
 **Stage:** 2 (the redesign)

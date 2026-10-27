@@ -116,7 +116,7 @@ export default function AddToEvent({ loaderData, actionData, params }: Route.Com
         {done && (
           <p className="notice" role="status">
             {done}{' '}
-            <Link to="/saved" className="text-link">
+            <Link to="/explore?fav=1" className="text-link">
               See saved
             </Link>
           </p>

@@ -256,7 +256,6 @@ const PAGES = [
   { who: 'person', path: '/events/new', label: 'Plan an event' },
   { who: 'person', path: `/events/${eventId}`, label: 'An event plan' },
   { who: 'person', path: `/events/${eventId}/edit`, label: 'Editing an event' },
-  { who: 'person', path: '/saved', label: 'Your favourites' },
   { who: 'person', path: `/vendors/${V.slug}/add`, label: 'Add to an event' },
   { who: 'person', path: `/vendors/${W.slug}/inquire`, label: 'Inquire' },
   { who: 'person', path: `/events/${pastEvent.id}/review/${pastRow.id}`, label: 'Review a business' },
@@ -399,7 +398,7 @@ for (const [what, path] of [
 const [first] = await sql`select a.storage_path as path from vendor_media vm join media_asset a on a.id = vm.media_asset_id
   where vm.vendor_id = ${V.id} and vm.role = 'gallery' and a.deleted_at is null order by vm.sort_order, a.created_at limit 1`;
 check('Your favourites shows the business’s card photo',
-  (await site('/saved', { cookie: person })).body.includes((first?.path ?? logo.path).replace(/\.(\w+)$/, '-small.$1')));
+  (await site('/explore?fav=1', { cookie: person })).body.includes((first?.path ?? logo.path).replace(/\.(\w+)$/, '-small.$1')));
 // Taken down (D-46): gone from Saved; on the plan only as the person's own booking, with no
 // photo or empty square; and listed for the team to check in about.
 await sql`update vendor set listing_status = 'unpublished' where id = ${V.id}`;
@@ -407,7 +406,7 @@ const takenDown = (await site(`/events/${eventId}`, { cookie: person })).body;
 check('once it isn’t listed, the plan keeps the booking by name, with no photo or empty square',
   takenDown.includes(V.name) && takenDown.includes('No longer listed on Localites') && !takenDown.includes(small) &&
     !/<li class="[^"]*withPhoto[^"]*">(?:(?!<\/li>).)*No longer listed/s.test(takenDown));
-check('…and Saved doesn’t show it at all', !(await site('/saved', { cookie: person })).body.includes(V.name));
+check('…and favourites don’t show it at all', !(await site('/explore?fav=1', { cookie: person })).body.includes(`aria-label="Remove ${V.name} from favourites"`));
 const forTeam = (await site(`/admin/bookings?business=${V.id}`, { cookie: cookieOf(sessions.team) })).body;
 check('…and the team sees whom to check in with', forTeam.includes('Check in with these people') && forTeam.includes(email('person')));
 await sql`update vendor set listing_status = 'published' where id = ${V.id}`;

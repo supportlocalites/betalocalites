@@ -202,7 +202,7 @@ check('signed out, the heart keeps a favourite in this browser', (await page.get
 await page.reload({ waitUntil: 'networkidle' });
 check('…and still after a reload', (await page.$(`button[aria-label="Remove ${B.name} from favourites"]`)) !== null);
 const at = async (sel) => page.$eval(sel, (el) => el.getBoundingClientRect().toJSON());
-const [fav, search, filters, msgs, comm] = [await at('header button:has-text("Favourites")'), await at('[role="search"]'), await at('summary[aria-label^="Filters"]'),
+const [fav, search, filters, msgs, comm] = [await at('header a[title="Favourites"]'), await at('[role="search"]'), await at('summary[aria-label^="Filters"]'),
   await at('header a[aria-label="Messages"]'), await at('header a[aria-label="Community"]')];
 // The owner, 26 October 2026: "I like the icons" at the right, and "search first", Filters inside it;
 // then Favourites leftmost, no Browse on Browse local, Messages and Community, the profile last.
@@ -214,10 +214,22 @@ check('…and no Curator’s note on a profile', !(await page.textContent('body'
 
 console.log('\nThe owner’s additions (24 October 2026)');
 const stepCount = async () => (await page.textContent('aside [class*="stepCount"]'))?.replace(/\s+/g, ' ').trim() ?? '';
-await page.click('button:has-text("Favourites")');
+await page.click('header a[title="Favourites"]');
+await page.waitForURL(/fav=1/);
+await page.waitForTimeout(300);
 names = await cardNames();
 check('Favourites shows only the favourites', names.length === 1 && names[0] === B.name, names.join(', '));
-await page.click('button:has-text("Favourites")');
+check('…its icon carries the count', (await page.textContent('header a[title="Favourites"]')).includes('1'));
+await page.click('header a[title="Favourites"]');
+await page.waitForTimeout(300);
+names = await cardNames();
+// The owner, 27 October 2026: "click favourites icon again it should stay on the favourite page".
+check('…pressed again, it stays on the favourites', names.length === 1 && names[0] === B.name, names.join(', '));
+await page.click('header a[class*="logo"]');
+await page.waitForURL((u) => !u.search.includes('fav'));
+await page.waitForTimeout(300);
+names = await cardNames();
+check('…and the Localites wordmark goes back to all of Browse local', names.includes(A.name) && names.includes(B.name), names.join(', '));
 await pick('Categories', kind2.name);
 names = await cardNames();
 check('Categories: ticking a kind leaves only that kind', !names.includes(A.name) && !names.includes(B.name));
@@ -309,10 +321,16 @@ await signedIn.addCookies(cookie.p.split('; ').map((pair) => {
 const me = await signedIn.newPage();
 await me.goto(`${BASE}/explore`, { waitUntil: 'networkidle' });
 
-const [favAt, menuAt] = [await me.$eval('header button:has-text("Favourites")', (el) => el.getBoundingClientRect().x), await me.$eval('summary[aria-label="Your menu"]', (el) => el.getBoundingClientRect().x)];
+const [favAt, menuAt] = [await me.$eval('header a[title="Favourites"]', (el) => el.getBoundingClientRect().x), await me.$eval('summary[aria-label="Your menu"]', (el) => el.getBoundingClientRect().x)];
 const commAt = await me.$eval('header a[aria-label="Community"]', (el) => el.getBoundingClientRect().x);
 check('signed in: the profile button is at the far right, with Favourites and Community left of it',
   menuAt > commAt && commAt > favAt && menuAt > 1280 * 0.9, `${Math.round(commAt)} ${Math.round(favAt)} ${Math.round(menuAt)}`);
+// The owner, 27 October 2026: "the icon numbers should show on all pages".
+await me.goto(`${BASE}/community`, { waitUntil: 'networkidle' });
+const favN = (await sql`select count(*)::int as n from saved_vendor where user_id = ${ids.p}`)[0].n;
+check('signed in, the Favourites count shows on other pages too (Community), and no Browse icon',
+  favN > 0 && (await me.textContent('header a[title="Favourites"]')).includes(String(favN)) && (await me.$('header a[aria-label="Browse"]')) === null, String(favN));
+await me.goto(`${BASE}/explore`, { waitUntil: 'networkidle' });
 await me.click('summary[aria-label="Your menu"]');
 check('…it opens Edit profile and Sign out (Messages is its own icon, not in the menu)', await me.isVisible('a:has-text("Edit profile")') && await me.isVisible('button:has-text("Sign out")')
   && (await me.$('nav[aria-label="Your pages"] a[href="/messages"]')) === null);
@@ -346,6 +364,8 @@ await openPicks();
 await me.click(`[aria-label="My picks"] button[aria-label="Remove ${A.name} from my picks"]`);
 await me.waitForSelector(`[role="status"]:has-text("${A.name} removed")`);
 check('taking one business off with its × offers Undo too', (await me.isVisible('button:has-text("Undo")')));
+const noteMiddle = async () => me.$eval('[role="status"]:has(button:has-text("Undo"))', (el) => { const b = el.getBoundingClientRect(); return b.x + b.width / 2; });
+check('…the note in the middle of the page, with no profile open', Math.abs((await noteMiddle()) - 640) < 40, String(Math.round(await noteMiddle())));
 await me.click('button:has-text("Undo")');
 await me.waitForSelector('[aria-label="My picks"] summary:has-text("1 pick")');
 // The pill can still be showing from before the Undo is saved: wait for the picks themselves.
@@ -370,6 +390,18 @@ await me.click('button:has-text("Undo")');
 await me.waitForSelector(tick);
 for (let i = 0; i < 30 && !(await mineNow()).includes(A.slug); i++) await me.waitForTimeout(100);
 check('…unticking it on the card offers Undo as well', (await mineNow()).includes(A.slug));
+// The owner, 27 October 2026: with a profile open, the note is in the middle of the list beside it.
+await me.goto(`${BASE}/explore?v=${B.slug}`, { waitUntil: 'networkidle' });
+await me.waitForSelector(`aside[aria-label="${B.name}"]`);
+await openPicks();
+await me.click(`[aria-label="My picks"] button[aria-label="Remove ${A.name} from my picks"]`);
+await me.waitForSelector(`[role="status"]:has-text("${A.name} removed")`);
+const listMiddle = await me.$eval(`aside[aria-label="${B.name}"]`, (el) => el.getBoundingClientRect().x / 2);
+check('…with a profile open, the Undo note is in the middle of the list, not the page', Math.abs((await noteMiddle()) - listMiddle) < 40,
+  `${Math.round(await noteMiddle())} ${Math.round(listMiddle)}`);
+await me.click('button:has-text("Undo")');
+for (let i = 0; i < 30 && !(await mineNow()).includes(A.slug); i++) await me.waitForTimeout(100);
+await me.goto(`${BASE}/explore`, { waitUntil: 'networkidle' });
 await me.click(CLEAR);
 await me.waitForSelector('[role="status"]:has-text("Picks cleared")');
 await me.mouse.move(5, 5);

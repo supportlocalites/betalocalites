@@ -234,6 +234,13 @@
   }
 }
 
+/* A profile open beside the list (wide screens): the middle of the list, left of the panel. */
+@media (min-width: 1024px) {
+  .undoBesidePanel {
+    left: calc((100% - var(--b44-panel)) / 2);
+  }
+}
+
 /* With the pill still showing, the note sits just above it. */
 .undoAbove {
   bottom: calc(var(--b44-undo-lift) + var(--safe-bottom));
