@@ -6,6 +6,7 @@ import { audit } from './admin/audit.server';
 import type { Admin } from './auth/admin.server';
 import { type Db, withDb } from './db.server';
 import type { ServerEnv } from './env';
+import { attachPostPhotos, type PostPhoto, photosOnQuestion, type StoredPhoto } from './community-photos.server';
 import { checkLanguage } from './moderation.server';
 import { smallPhotoUrl } from './photo-store.server';
 
@@ -55,8 +56,10 @@ export type Answer = {
   businessName: string | null;
   /** How many people's answers showing here suggest this same business (D-62, 0062: each their own answer). */
   suggested: number;
+  /** Its photos (0063): shown ones, and the author's own still waiting for the team. */
+  photos: PostPhoto[];
 };
-export type Question = Omit<FeedQuestion, 'answers' | 'leader'> & { detail: string | null; answers: Answer[] };
+export type Question = Omit<FeedQuestion, 'answers' | 'leader'> & { detail: string | null; answers: Answer[]; photos: PostPhoto[] };
 
 const person = (userId: string) => ({ side: 'person' as const, userId });
 
@@ -183,6 +186,7 @@ export async function communityQuestion(
         order by vm.role = 'logo' desc, vm.sort_order, m.created_at limit 1) cp on true
       where a.question_id = ${id} and (a.status = 'shown' or (a.status = 'held' and a.author_user_id = ${me}::uuid))
       order by ${order === 'newest' ? sql`a.created_at desc` : sql`a.up_votes - a.down_votes desc, a.up_votes desc, a.created_at`}`);
+    const photos = await photosOnQuestion(db, q.id);
     return {
       id: q.id,
       title: q.title,
@@ -192,6 +196,7 @@ export async function communityQuestion(
       mine: q.mine,
       held: q.status === 'held',
       createdAt: q.createdAt,
+      photos: photos.get(q.id) ?? [],
       answers: answers.map((a) => ({
         id: a.id,
         body: a.body,
@@ -205,6 +210,7 @@ export async function communityQuestion(
         business: a.slug && a.name ? { slug: a.slug, name: a.name, kind: a.kind, photo: smallPhotoUrl(env, a.photoPath), listed: true } : null,
         businessName: a.businessName,
         suggested: Number(a.suggested),
+        photos: photos.get(a.id) ?? [],
       })),
     };
   });
@@ -238,7 +244,19 @@ function refused(err: unknown): never {
   if (code === '23505') throw new CommunityRefused(/community_answer_person_once_per_(business|name)/.test(words) ? 'twice' : 'gone');
   if (code === 'LP100' || code === 'LP101') {
     throw new CommunityRefused(
-      /on the team of/.test(words) ? 'own' : /own answer/.test(words) ? 'ownVote' : /own business/.test(words) ? 'ownBusiness' : /own post/.test(words) ? 'ownReport' : /isn't listed/.test(words) ? 'unlisted' : 'gone',
+      /on the team of/.test(words)
+        ? 'own'
+        : /own answer/.test(words)
+          ? 'ownVote'
+          : /own business/.test(words)
+            ? 'ownBusiness'
+            : /photos today|up to 3 photos|photos go on/.test(words)
+              ? 'photos'
+              : /own post/.test(words)
+                ? 'ownReport'
+                : /isn't listed/.test(words)
+                  ? 'unlisted'
+                  : 'gone',
     );
   }
   throw err;
@@ -255,6 +273,7 @@ export async function askQuestion(
   env: ServerEnv,
   userId: string,
   input: { title: string; detail: string | null; kindSlug: string | null },
+  photos: StoredPhoto[] = [],
 ): Promise<{ id: string; held: boolean }> {
   const check = await checkLanguage(env, [input.title, input.detail], { personal: true });
   const id = uuidv7();
@@ -270,6 +289,7 @@ export async function askQuestion(
         insert into community_question (id, author_user_id, title, detail, category_id, status, language_flag)
         values (${id}, ${userId}, ${input.title}, ${input.detail}, ${kind?.id ?? null},
                 ${check.flagged ? 'held' : 'shown'}, ${check.flagged ? check.reason : null})`);
+      await attachPostPhotos(tx, { questionId: id }, userId, photos);
     });
   } catch (err) {
     refused(err);
@@ -283,6 +303,7 @@ export async function answerQuestion(
   userId: string,
   questionId: string,
   input: { body: string; vendorSlug: string | null; businessName: string | null },
+  photos: StoredPhoto[] = [],
 ): Promise<{ id: string; held: boolean }> {
   if (!isUuid(questionId)) throw new CommunityRefused('gone', 404);
   const check = await checkLanguage(env, [input.body, input.businessName], { personal: true });
@@ -308,6 +329,7 @@ export async function answerQuestion(
         insert into community_answer (id, question_id, author_user_id, body, vendor_id, business_name, status, language_flag)
         values (${id}, ${questionId}, ${userId}, ${input.body}, ${vendorId}, ${vendorId ? null : input.businessName},
                 ${check.flagged ? 'held' : 'shown'}, ${check.flagged ? check.reason : null})`);
+      await attachPostPhotos(tx, { answerId: id }, userId, photos);
     });
   } catch (err) {
     refused(err);
@@ -452,7 +474,11 @@ export async function countCommunityWaiting(env: ServerEnv, admin: Admin): Promi
       select (select count(*) from community_question q
               where q.status = 'held' or exists (select 1 from community_report r where r.question_id = q.id and r.decision is null))
            + (select count(*) from community_answer a
-              where a.status = 'held' or exists (select 1 from community_report r where r.answer_id = a.id and r.decision is null)) as n`),
+              where a.status = 'held' or exists (select 1 from community_report r where r.answer_id = a.id and r.decision is null))
+           + (select count(*) from community_photo p
+              left join community_answer a on a.id = p.answer_id
+              join community_question q on q.id = coalesce(p.question_id, a.question_id)
+              where p.status = 'pending' and q.status <> 'removed' and (a.id is null or a.status <> 'removed')) as n`),
   );
   return Number(row?.n ?? 0);
 }

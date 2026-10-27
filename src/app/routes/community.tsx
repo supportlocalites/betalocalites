@@ -1,10 +1,12 @@
 import { useMemo, useState } from 'react';
 import { data, Form, Link, useSearchParams } from 'react-router';
 import { cloudflareContext } from '@/app/context';
+import { PhotoPicker, usePhotoSubmit } from '@/components/CommunityPhotos';
 import { TopBar } from '@/components/TopBar';
 import { answersWords, COMMUNITY_LIMITS, communityDate, problemWords } from '@/lib/community-terms';
 import { shareMeta } from '@/lib/meta';
 import { hasSessionCookie, signedInUserId } from '@/server/auth/session.server';
+import { communityPhotosOn } from '@/server/community-photos.server';
 import { communityFeed, communityKinds } from '@/server/community.server';
 import type { Route } from './+types/community';
 import styles from './community.module.css';
@@ -23,7 +25,13 @@ export async function loader({ request, context }: Route.LoaderArgs) {
   const kind = new URL(request.url).searchParams.get('kind');
   const kinds = await communityKinds(env);
   const chosen = kinds.find((k) => k.slug === kind) ?? null;
-  const page = { signedIn: Boolean(userId), kinds, kind: chosen?.slug ?? null, questions: await communityFeed(env, userId, chosen?.slug ?? null) };
+  const page = {
+    signedIn: Boolean(userId),
+    kinds,
+    kind: chosen?.slug ?? null,
+    questions: await communityFeed(env, userId, chosen?.slug ?? null),
+    photosOn: communityPhotosOn(env),
+  };
   // Signed in, the page has their own held posts: never kept by a shared cache.
   return data(page, hasSessionCookie(request) ? { headers: { 'Cache-Control': 'private, no-store' } } : undefined);
 }
@@ -33,9 +41,10 @@ export const headers: Route.HeadersFunction = ({ loaderHeaders }) => loaderHeade
 /** Words of four letters or more, to spot a question already asked while typing a new one. */
 const keyWords = (text: string) => new Set(text.toLowerCase().split(/[^a-z]+/).filter((w) => w.length >= 4));
 
-export default function Community({ loaderData: { signedIn, kinds, kind, questions } }: Route.ComponentProps) {
+export default function Community({ loaderData: { signedIn, kinds, kind, questions, photosOn } }: Route.ComponentProps) {
   const [params] = useSearchParams();
   const [draft, setDraft] = useState('');
+  const photos = usePhotoSubmit('/community/ask');
   // Similar questions shown while asking (the owner: "similar questions shown while asking"), and
   // moved to the top of the list below (27 October 2026: "populate to the top similar questions to
   // see if they have already been answered").
@@ -76,7 +85,7 @@ export default function Community({ loaderData: { signedIn, kinds, kind, questio
         )}
 
         {signedIn ? (
-          <Form method="post" action="/community/ask" className={styles.ask}>
+          <Form method="post" action="/community/ask" encType="multipart/form-data" onSubmit={photos.onSubmit} className={styles.ask}>
             <label htmlFor="title" className="visually-hidden">
               Your question
             </label>
@@ -93,8 +102,8 @@ export default function Community({ loaderData: { signedIn, kinds, kind, questio
                 onChange={(e) => setDraft(e.target.value)}
                 autoComplete="off"
               />
-              <button type="submit" className="button button-primary">
-                Ask
+              <button type="submit" className="button button-primary" disabled={photos.preparing}>
+                {photos.preparing ? 'Getting photos ready…' : 'Ask'}
               </button>
             </div>
             {similar.length > 0 && (
@@ -125,6 +134,7 @@ export default function Community({ loaderData: { signedIn, kinds, kind, questio
                   More detail (optional)
                 </label>
                 <textarea id="detail" name="detail" className="input" maxLength={COMMUNITY_LIMITS.detail} />
+                {photosOn && <PhotoPicker problem={photos.problem} />}
               </>
             )}
             <p className={styles.small}>Questions are public, with your first name and last initial. Please don’t share private details.</p>

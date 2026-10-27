@@ -2,7 +2,19 @@ import { data, redirect } from 'react-router';
 import { cloudflareContext, memberContext } from '@/app/context';
 import { COMMUNITY_LIMITS, type CommunityProblem } from '@/lib/community-terms';
 import { isUuid } from '@/lib/ids.mjs';
+import {
+  abandonPhotos,
+  checkPhotoRoom,
+  cleanUpCommunityPhotos,
+  MAX_POST_UPLOAD,
+  PhotoProblem,
+  readPostPhotos,
+  type StoredPhoto,
+  storePostPhotos,
+} from '@/server/community-photos.server';
 import { answerQuestion, businessChoices, CommunityRefused, takeDownOwn, voteOn } from '@/server/community.server';
+import { discardBody } from '@/server/discard-body';
+import { afterwards } from '@/server/plan-pages.server';
 import { tooFast } from '@/server/plan-pages.server';
 import type { Route } from './+types/community-act';
 
@@ -18,9 +30,16 @@ export async function loader({ params }: Route.LoaderArgs) {
 export async function action({ request, params, context }: Route.ActionArgs) {
   if (!isUuid(params.id)) throw data(null, { status: 404 });
   const member = context.get(memberContext);
-  const { env } = context.get(cloudflareContext);
+  const { env, ctx } = context.get(cloudflareContext);
   const here = `/community/${params.id}`;
   const back = (problem: CommunityProblem, extra = '') => redirect(`${here}?problem=${problem}${extra}`);
+  // Up to 3 photos with an answer (0063): anything clearly bigger is refused before it's read.
+  const size = request.headers.get('content-length');
+  // Browsers always say how big a form is; one that doesn't isn't read either (as conversations).
+  if (size === null || !/^\d{1,9}$/.test(size) || Number(size) > MAX_POST_UPLOAD) {
+    await discardBody(request);
+    return back('photoTooMany', '&answer=1');
+  }
   const form = await request.formData();
   const intent = String(form.get('intent') ?? '');
   if (await tooFast(env, member.userId)) return back('tooFast');
@@ -34,12 +53,15 @@ export async function action({ request, params, context }: Route.ActionArgs) {
     }
     if (intent === 'remove-question') {
       await takeDownOwn(env, member.userId, 'question', params.id);
+      // Its photos' stored files go (the housekeeping finds them).
+      afterwards(ctx, cleanUpCommunityPhotos(env, 6), 'community photo clean-up');
       return redirect('/community?removed=1');
     }
     if (intent === 'remove-answer') {
       const answer = String(form.get('answer') ?? '');
       if (!isUuid(answer)) throw data(null, { status: 400 });
       await takeDownOwn(env, member.userId, 'answer', answer);
+      afterwards(ctx, cleanUpCommunityPhotos(env, 6), 'community photo clean-up');
       return redirect(here);
     }
     if (intent === 'answer') {
@@ -65,8 +87,19 @@ export async function action({ request, params, context }: Route.ActionArgs) {
           businessName = typed;
         }
       }
-      const posted = await answerQuestion(env, member.userId, params.id, { body, vendorSlug, businessName });
-      return redirect(posted.held ? `${here}?posted=held` : `${here}#a-${posted.id}`);
+      let stored: StoredPhoto[] = [];
+      try {
+        const photos = await readPostPhotos(form);
+        await checkPhotoRoom(env, photos);
+        stored = await storePostPhotos(env, photos);
+        const posted = await answerQuestion(env, member.userId, params.id, { body, vendorSlug, businessName }, stored);
+        return redirect(posted.held ? `${here}?posted=held` : `${here}${stored.length ? '?photos=waiting' : ''}#a-${posted.id}`);
+      } catch (err) {
+        // Not posted: photos already stored for it go again.
+        await abandonPhotos(env, stored);
+        if (err instanceof PhotoProblem) return back(err.code, '&answer=1');
+        throw err;
+      }
     }
     throw data(null, { status: 400 });
   } catch (err) {

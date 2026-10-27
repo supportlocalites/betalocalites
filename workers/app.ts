@@ -8,6 +8,7 @@ import { runDailyNote } from '@/server/daily-note.server';
 import { closeInterruptedPlanEmails } from '@/server/email-templates.server';
 import { sendPlanSummaries } from '@/server/plan-emails.server';
 import { runScheduledDeletions } from '@/server/retention.server';
+import { cleanUpCommunityPhotos } from '@/server/community-photos.server';
 import { cleanUpConversationFiles, expireConversationFiles } from '@/server/conversation-files.server';
 import { cleanUpRemovedPhotos } from '@/server/photos.server';
 import { sendReviewRequests } from '@/server/review-requests.server';
@@ -76,6 +77,13 @@ export default {
           (outcome) => console.log('removed conversation files:', outcome),
           (err) => console.error('conversation files clean-up failed', err instanceof Error ? err.message : err),
         ),
+    );
+    // Community photos taken down, or on a post its author took down (0063): their stored files go.
+    ctx.waitUntil(
+      cleanUpCommunityPhotos(env, 30).then(
+        (outcome) => console.log('removed community photos:', outcome),
+        (err) => console.error('community photos clean-up failed', err instanceof Error ? err.message : err),
+      ),
     );
     // "How was it?" emails the morning after events (review-requests.server.ts); the second
     // run of the morning sends what the first couldn't.

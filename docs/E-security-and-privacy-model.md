@@ -397,6 +397,24 @@ flagged post for the team instead of showing it. Names are shown as "Sarah M."; 
 deleted takes its posts down and its votes with it, and its reports keep no name. Download your
 data includes all of it. Limits: 5 questions, 20 answers and 10 reports a day per person.
 
+**Photos (27 October 2026, migration 0063).** Up to 3 with a question or answer, only on the
+author's own post, 10 a day per person (one person's uploads are taken one at a time, so both
+hold). Every photo starts `pending`: only its author and the team can see it until the team
+shows it (audit log); its author can take it down; a photo taken down stays down; nobody but the
+team decides, and never as anyone else. A shown photo is seen by everyone only while its post (and
+an answer's question) shows. Photos are shrunk in the browser (hidden details such as location left
+behind) and checked again on the server (JPEG or WebP only, up to 1 MB and 2048 pixels a side;
+anything else, an SVG or HTML among them, is refused); the whole request is refused before it is
+read when it is over 3 MB. Stored in the private conversation-files folder under `community/`; the
+site hands a photo over only after the database's rules say the person asking may see it
+(`/community/photos/:id`, as the person or as nobody; `/admin/community/photos/:id`, as the team),
+with nosniff; a waiting one is never cached, a shown one for 5 minutes at most. The team's
+Community page lists the photos waiting (and counts them in its menu). Files of
+photos taken down, of posts their author took down, and of deleted accounts are deleted by the
+site's own housekeeping (after each decision, after a take-down, at account deletion and nightly);
+a post the team took down keeps its photos' files, as the team can show it again. Download your data
+lists your photos (what they were on, their status and when), not the pictures.
+
 ### 4.5 Review eligibility (enforced by the database)
 
 A consumer can review a vendor only if: they marked that vendor booked on their own

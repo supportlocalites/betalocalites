@@ -3,7 +3,9 @@ import { adminContext, cloudflareContext } from '@/app/context';
 import { REPORT_REASONS } from '@/lib/community-terms';
 import { isUuid } from '@/lib/ids.mjs';
 import { pageMeta } from '@/lib/meta';
+import { cleanUpCommunityPhotos, decidePhoto, waitingPhotos } from '@/server/community-photos.server';
 import { communityQueue, CommunityRefused, decidePost } from '@/server/community.server';
+import { afterwards } from '@/server/plan-pages.server';
 import type { Route } from './+types/community';
 import styles from './admin.module.css';
 
@@ -16,15 +18,25 @@ export const meta: Route.MetaFunction = () => [...pageMeta('Community · Team'),
 
 export async function loader({ context }: Route.LoaderArgs) {
   const { env } = context.get(cloudflareContext);
-  return { posts: await communityQueue(env, context.get(adminContext)) };
+  const admin = context.get(adminContext);
+  const [posts, photos] = await Promise.all([communityQueue(env, admin), waitingPhotos(env, admin)]);
+  return { posts, photos };
 }
 
 export async function action({ request, context }: Route.ActionArgs) {
-  const { env } = context.get(cloudflareContext);
+  const { env, ctx } = context.get(cloudflareContext);
   const form = await request.formData();
   const id = String(form.get('id') ?? '');
   const kind = String(form.get('kind') ?? '');
   const intent = String(form.get('intent') ?? '');
+  // A photo waiting for the team (0063): show it, or take it down (its stored file then goes).
+  if (kind === 'photo') {
+    if (!isUuid(id) || (intent !== 'show' && intent !== 'remove')) throw data(null, { status: 400 });
+    const done = await decidePhoto(env, context.get(adminContext), id, intent);
+    if (!done) return data({ id, error: 'That photo was already decided (or taken down by its author).' }, { status: 409 });
+    if (intent === 'remove') afterwards(ctx, cleanUpCommunityPhotos(env, 4), 'community photo clean-up');
+    return redirect('/admin/community');
+  }
   if (!isUuid(id) || (kind !== 'question' && kind !== 'answer') || (intent !== 'show' && intent !== 'remove')) throw data(null, { status: 400 });
   const note = String(form.get('note') ?? '').trim().slice(0, 500) || null;
   try {
@@ -38,7 +50,7 @@ export async function action({ request, context }: Route.ActionArgs) {
 
 const when = new Intl.DateTimeFormat('en-CA', { dateStyle: 'medium', timeStyle: 'short', timeZone: 'America/Toronto' });
 
-export default function TeamCommunity({ loaderData: { posts }, actionData }: Route.ComponentProps) {
+export default function TeamCommunity({ loaderData: { posts, photos }, actionData }: Route.ComponentProps) {
   const busy = useNavigation().state === 'submitting';
   return (
     <>
@@ -48,6 +60,44 @@ export default function TeamCommunity({ loaderData: { posts }, actionData }: Rou
         Questions and answers the language check held (nobody but their author sees them yet), and ones someone reported (still
         showing). Show it, or take it down. Taking down a question hides its answers with it.
       </p>
+      {/* Photos (0063): every one waits for the team before anyone but its author sees it. */}
+      <h2 className="title-3">Photos waiting ({photos.length})</h2>
+      {photos.length === 0 ? (
+        <p className="muted">No photos waiting.</p>
+      ) : (
+        <ul className={styles.photoQueue}>
+          {photos.map((p) => (
+            <li key={p.id} className={styles.photoItem}>
+              <a href={`/admin/community/photos/${p.id}`} target="_blank" rel="noreferrer" className={styles.photoLink}>
+                <img src={`/admin/community/photos/${p.id}`} alt={`Photo on ${p.on === 'question' ? 'the question' : 'an answer to'} “${p.title}”`} loading="lazy" />
+              </a>
+              <span className="muted">
+                On {p.on === 'question' ? 'the question' : 'an answer to'}{' '}
+                <Link to={`/community/${p.questionId}`} className="text-link">
+                  {p.title}
+                </Link>{' '}
+                · by {p.author} · {when.format(new Date(p.createdAt))}
+              </span>
+              {actionData && 'id' in actionData && actionData.id === p.id && (
+                <p className="notice" role="alert">
+                  {actionData.error}
+                </p>
+              )}
+              <Form method="post" className={styles.buttons}>
+                <input type="hidden" name="id" value={p.id} />
+                <input type="hidden" name="kind" value="photo" />
+                <button type="submit" name="intent" value="show" className="button button-secondary" disabled={busy}>
+                  Show it
+                </button>
+                <button type="submit" name="intent" value="remove" className="button button-primary" disabled={busy}>
+                  Take it down
+                </button>
+              </Form>
+            </li>
+          ))}
+        </ul>
+      )}
+      <h2 className="title-3">Posts</h2>
       {posts.length === 0 ? (
         <p className="muted">Nothing waiting.</p>
       ) : (

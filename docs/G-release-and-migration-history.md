@@ -31,6 +31,35 @@ Every release and every database migration, in order. Appended before each deplo
 
 ## Releases
 
+### 2026-10-27 — Favourites beside Expand list, Find my address, Messages everywhere in the current look, Community photos
+
+**Stage:** 2 (the redesign)
+**What changed (plain English):** Favourites is a button left of Expand list on Browse local (with
+a × back to the whole list, or the wordmark), no longer in the top bar; the Messages number shows on
+every page. Edit profile's About you has **Find my address**: type it, press Find, choose the right
+one, and it fills in the boxes and, once saved, puts a small house on your own Browse local map
+(yours only). Community's Ask box opens its other fields at the first letter and lifts questions
+like yours to the top of the list; the answer form no longer offers typing a business's name.
+Messages is in the current look everywhere: a business's inbox and conversations are two panes like
+a person's; Message your picks, Message a business, Inquire and Report are each one white card; the
+little triangles and underlined words are gone. **Photos** on Community questions and answers: up
+to 3, each checked by the team first (the team's Community page lists them), shown to everyone only
+once the team shows them.
+**Migrations applied:** 0063_community_photos.sql (one new table, its rules, housekeeping, and
+Download your data wrapped again). **Destructive?** No.
+**Tests run:** `npm run check`; unit 234/234; database checks all passed (0063 25/25); browser:
+Browse local 106/108 locally (the two not passing are "moving the map", which can't load map
+tiles on this computer; GitHub runs them for real), Edit profile 33/33, Community 56/56, Community
+photos 25/25 (database 0063 28/28), messages 148/148, message groups 26/26, inquiries 41/41, business teams 39/39,
+scenario fixes all rounds, account deletion 22/22, event planning 146/146, look 956/956.
+Independent review of 0063 (diff and checklist): no serious problems (nobody sees another's waiting
+photo or shows their own). Fixed from it: a waiting photo on a post the team took down no longer
+sits in the queue; the housekeeping only marks a file deleted when it really could go, recording
+why; photos under a question its author took down are cleaned up too; a signed-in reader's photos
+are never kept by a shared cache; one person's uploads are taken one at a time, so the 3-a-post and
+10-a-day limits hold; a form that doesn't say its size isn't read. Left as is: a crash between
+storing a photo and saving its post could leave one file (as conversation files).
+
 ### 2026-10-27 — Community: the same business suggested by more than one person (D-62)
 
 **Stage:** 2 (the redesign)

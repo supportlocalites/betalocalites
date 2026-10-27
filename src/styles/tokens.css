@@ -151,6 +151,8 @@
   --size-form-wide: 760px;
   /* One form on its own page, in a white card (Message your picks, Inquire, Report; 27 October 2026). */
   --size-form-card: 600px;
+  /* A photo on a Community question or answer (0063). */
+  --size-thumb-community: 128px;
   /* The conversations list beside an open conversation (Messages, D-58). */
   --size-inbox: 380px;
   /* An event's page (D-58): the guests column beside the plan, and the event's name. */

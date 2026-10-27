@@ -283,3 +283,28 @@
 .nested {
   margin-left: var(--space-6);
 }
+
+/* Community photos waiting for the team (0063): each photo large enough to judge, then its post. */
+.photoQueue {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(var(--size-tile-min), 1fr));
+  gap: var(--space-4);
+  margin: 0 0 var(--space-6);
+  padding: 0;
+  list-style: none;
+}
+
+.photoItem {
+  display: grid;
+  gap: var(--space-2);
+  align-content: start;
+}
+
+.photoLink img {
+  display: block;
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  object-fit: cover;
+  border-radius: var(--radius-file);
+  background: var(--color-tint);
+}

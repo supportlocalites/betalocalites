@@ -50,6 +50,10 @@ keep it, and the choices you have. It applies to localites.ca and the emails we 
 ### When you use Community
 - The questions and answers you post, any business you suggest in an answer, your votes (up or
   down) and any reports you send. Who voted is never shown; only the totals on each answer.
+- Photos you add to a question or answer (up to 3). Your browser makes them smaller and leaves
+  out hidden details such as where they were taken. Our team looks at each one first: until then
+  only you can see it. Once shown, anyone reading Community can see it. Taking your post or photo
+  down, or deleting your account, deletes it.
 
 ### When you invite guests
 - The names you enter for your guests, and, if you choose, their email address or phone

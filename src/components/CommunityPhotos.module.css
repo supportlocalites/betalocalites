@@ -1,0 +1,36 @@
+/* Community photos (0063): small squares in a row under the words; one waiting says so. */
+
+.picker {
+  display: grid;
+  gap: var(--space-1);
+}
+
+.photos {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.photo {
+  display: grid;
+  gap: var(--space-1);
+  width: var(--size-thumb-community);
+}
+
+.photo img {
+  display: block;
+  width: 100%;
+  height: auto;
+  aspect-ratio: 4 / 3;
+  object-fit: cover;
+  border-radius: var(--radius-file);
+  background: var(--color-tint);
+}
+
+.waiting {
+  color: var(--color-muted);
+  font-size: var(--b44-text-note);
+}

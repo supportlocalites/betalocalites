@@ -19,6 +19,8 @@ export default [
   // Community (D-62, migration 0061): anyone reads; asking, answering, voting and reporting need an account.
   route('community', 'routes/community.tsx'),
   route('community/:id', 'routes/community-question.tsx'),
+  // A Community photo (0063): only if the person asking may see it.
+  route('community/photos/:id', 'routes/community-photo.ts'),
   route('for-businesses', 'routes/for-businesses.tsx'),
   route('help', 'routes/help.tsx'),
   route('join', 'routes/join.tsx'),
@@ -126,6 +128,7 @@ export default [
     route('suggestions', 'routes/admin/suggestions.tsx'),
     route('removals', 'routes/admin/removals.tsx'),
     route('community', 'routes/admin/community.tsx'),
+    route('community/photos/:id', 'routes/admin/community-photo.ts'),
     route('event-types', 'routes/admin/event-types.tsx'),
     route('booking-flags', 'routes/admin/booking-flags.tsx'),
     route('bookings', 'routes/admin/bookings.tsx'),

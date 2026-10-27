@@ -66,6 +66,11 @@ Every review waits for a person before it shows (D-51).
   decision, and the audit log records who did which.
 - You never see who voted. A post its author took down, or one from a deleted account, stays
   down.
+- **Photos waiting**: every photo someone adds to a question or answer waits here first; nobody
+  but its author sees it until you decide. Open it to see it full size. **Show it** if it's a
+  real photo that fits the post; **Take it down** if it shows a person who hasn't agreed, someone's
+  private details (an address, a licence plate, a face of a child), anything rude or unsafe, an
+  advert, or nothing to do with the post. Taking one down deletes it; it can't be shown again.
 
 ## Claims (Claims page)
 

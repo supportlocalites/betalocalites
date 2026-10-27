@@ -1,10 +1,12 @@
 import { Fragment, useState } from 'react';
 import { data, Form, Link, useSearchParams } from 'react-router';
 import { cloudflareContext } from '@/app/context';
+import { PhotoPicker, PostPhotos, usePhotoSubmit } from '@/components/CommunityPhotos';
 import { TopBar } from '@/components/TopBar';
 import { COMMUNITY_LIMITS, communityDate, problemWords } from '@/lib/community-terms';
 import { pageMeta } from '@/lib/meta';
 import { hasSessionCookie, signedInUserId } from '@/server/auth/session.server';
+import { communityPhotosOn } from '@/server/community-photos.server';
 import { businessChoices, communityQuestion } from '@/server/community.server';
 import type { Route } from './+types/community-question';
 import styles from './community.module.css';
@@ -23,7 +25,13 @@ export async function loader({ request, params, context }: Route.LoaderArgs) {
   const order = new URL(request.url).searchParams.get('sort') === 'newest' ? 'newest' : 'helpful';
   const question = await communityQuestion(env, userId, params.id, order);
   if (!question) throw data(null, { status: 404 });
-  const page = { signedIn: Boolean(userId), order, question, choices: userId && !question.held ? await businessChoices(env, userId) : null };
+  const page = {
+    signedIn: Boolean(userId),
+    order,
+    question,
+    choices: userId && !question.held ? await businessChoices(env, userId) : null,
+    photosOn: communityPhotosOn(env),
+  };
   // Signed in, the page has their own votes and held posts: never kept by a shared cache.
   return data(page, hasSessionCookie(request) ? { headers: { 'Cache-Control': 'private, no-store' } } : undefined);
 }
@@ -32,13 +40,14 @@ export const headers: Route.HeadersFunction = ({ loaderHeaders }) => loaderHeade
 
 const ARROW = { up: 'M12 19V5M6 11l6-6 6 6', down: 'M12 5v14M6 13l6 6 6-6' } as const;
 
-export default function CommunityQuestion({ loaderData: { signedIn, order, question: q, choices } }: Route.ComponentProps) {
+export default function CommunityQuestion({ loaderData: { signedIn, order, question: q, choices, photosOn } }: Route.ComponentProps) {
   const [params] = useSearchParams();
   const [composing, setComposing] = useState(params.get('answer') === '1');
   const [mode, setMode] = useState<'business' | 'advice'>('business');
   const here = `/community/${q.id}`;
   const join = `/join?next=${encodeURIComponent(here)}`;
   const problem = problemWords(params.get('problem'));
+  const photos = usePhotoSubmit(`/community/${q.id}/act`);
   return (
     <>
       <TopBar />
@@ -57,6 +66,7 @@ export default function CommunityQuestion({ loaderData: { signedIn, order, quest
             {q.title}
           </h1>
           {q.detail && <p className={styles.detail}>{q.detail}</p>}
+          <PostPhotos photos={q.photos} />
           <span className={styles.meta}>
             Asked by {q.mine ? 'you' : q.author} · {communityDate(q.createdAt)}
             {q.mine && (
@@ -75,6 +85,11 @@ export default function CommunityQuestion({ loaderData: { signedIn, order, quest
           </span>
         </article>
 
+        {params.get('photos') === 'waiting' && (
+          <p className="notice" role="status">
+            Thanks. Your photos are waiting for our team to look at them; until then only you can see them.
+          </p>
+        )}
         {params.get('posted') === 'held' && (
           <p className="notice" role="status">
             Thanks. Your answer is waiting for our team to look at it before others can see it.
@@ -111,7 +126,7 @@ export default function CommunityQuestion({ loaderData: { signedIn, order, quest
         )}
 
         {composing && choices && (
-          <Form method="post" action={`${here}/act`} className={styles.composer}>
+          <Form method="post" action={`${here}/act`} encType="multipart/form-data" onSubmit={photos.onSubmit} className={styles.composer}>
             <input type="hidden" name="intent" value="answer" />
             <fieldset>
               <legend>Your answer</legend>
@@ -167,13 +182,14 @@ export default function CommunityQuestion({ loaderData: { signedIn, order, quest
               maxLength={COMMUNITY_LIMITS.body.max}
               placeholder={mode === 'business' ? 'What did they do for you, and how was it?' : 'What would you tell a friend?'}
             />
+            {photosOn && <PhotoPicker problem={photos.problem} />}
             <p className={styles.small}>Answers are public, with your first name and last initial. Please don’t share private details.</p>
             <div className={styles.bar}>
               <button type="button" className={styles.textButton} onClick={() => setComposing(false)}>
                 Cancel
               </button>
-              <button type="submit" className="button button-primary">
-                Post answer
+              <button type="submit" className="button button-primary" disabled={photos.preparing}>
+                {photos.preparing ? 'Getting photos ready…' : 'Post answer'}
               </button>
             </div>
           </Form>
@@ -255,6 +271,7 @@ export default function CommunityQuestion({ loaderData: { signedIn, order, quest
                       )
                     )}
                     <p className={styles.body}>{a.body}</p>
+                    <PostPhotos photos={a.photos} />
                     <span className={styles.foot}>
                       <span>{a.mine ? 'You' : a.author}</span>
                       <span>{communityDate(a.createdAt)}</span>

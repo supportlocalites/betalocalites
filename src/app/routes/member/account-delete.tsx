@@ -3,6 +3,7 @@ import { cloudflareContext, memberContext } from '@/app/context';
 import { SiteHeader } from '@/components/SiteHeader';
 import { pageMeta } from '@/lib/meta';
 import { deleteMyAccount, onLocalitesTeam } from '@/server/account-deletion.server';
+import { cleanUpCommunityPhotos } from '@/server/community-photos.server';
 import { cleanUpConversationFiles } from '@/server/conversation-files.server';
 import { afterwards } from '@/server/plan-pages.server';
 import { signOut } from '@/server/auth/gotrue.server';
@@ -40,6 +41,7 @@ export async function action({ request, context }: Route.ActionArgs) {
   if (result === 'team') return data({ error: TEAM_WORDS }, { status: 409 });
   // Their conversation files are deleted from storage now (the nightly run catches any left).
   afterwards(ctx, cleanUpConversationFiles(env), 'file clean-up');
+  afterwards(ctx, cleanUpCommunityPhotos(env), 'community photo clean-up');
   // Deleted (or already closed): end the session with Supabase and clear the cookies.
   await signOut(env, member.accessToken).catch(() => undefined);
   return redirect('/goodbye', withCookies(undefined, clearedCookies()));
