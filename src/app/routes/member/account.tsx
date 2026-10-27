@@ -5,8 +5,9 @@ import { SiteHeader } from '@/components/SiteHeader';
 import { businessHome } from '@/components/TopBar';
 import { pageMeta } from '@/lib/meta';
 import { type TeamBusiness, updateDetails, updateNames, updatePerson } from '@/server/auth/member.server';
-import { NAME_WORDS, NAMES_NEEDED, namesInput, profileInput } from '@/server/member-input';
+import { NAME_WORDS, NAMES_NEEDED, namesInput, profileInput, readHomePoint } from '@/server/member-input';
 import { listMatches } from '@/server/moderation.server';
+import { homePoint } from '@/server/home-address.server';
 import { getProfile } from '@/server/profile.server';
 import { myOwnRequests } from '@/server/business-requests.server';
 import { myAccount } from '@/server/claims.server';
@@ -25,16 +26,17 @@ export const meta: Route.MetaFunction = () => [...pageMeta('Edit profile'), { na
 export async function loader({ context }: Route.LoaderArgs) {
   const member = context.get(memberContext);
   const { env } = context.get(cloudflareContext);
-  const [{ businesses, claims }, profile, added, reviewRequests] = await Promise.all([
+  const [{ businesses, claims }, profile, added, reviewRequests, home] = await Promise.all([
     myAccount(env, member.userId),
     getProfile(env, member.userId),
     myOwnRequests(env, member.userId),
     reviewRequestsOn(env, member.userId),
+    homePoint(env, member.userId),
   ]);
   // Accounts made before first and last names were asked (the team's) start with the
   // whole name in the first box.
   const first = member.firstName ?? member.name;
-  return { first, last: member.lastName, email: member.email, profile, businesses, claims, added, reviewRequests };
+  return { first, last: member.lastName, email: member.email, profile, businesses, claims, added, reviewRequests, homeOnMap: home !== null };
 }
 
 export async function action({ request, context }: Route.ActionArgs) {
@@ -72,12 +74,12 @@ export async function action({ request, context }: Route.ActionArgs) {
     return redirect('/account?saved=1');
   }
   if (intent === 'about' && profile?.success) {
-    await updateDetails(env, member.userId, profile.data);
+    await updateDetails(env, member.userId, profile.data, readHomePoint(fields));
     return redirect('/account?tab=about&saved=1');
   }
   // The older form with everything at once (kept for anything still sending it).
   if (names?.success && profile?.success) {
-    await updatePerson(env, member.userId, names.data, profile.data);
+    await updatePerson(env, member.userId, names.data, profile.data, readHomePoint(fields));
     return redirect('/account?saved=1');
   }
   throw data(null, { status: 400 });
@@ -106,7 +108,7 @@ const tabOf = (v: string | null | undefined): Tab => (TABS.some(([k]) => k === v
  * without scripts too). Only ever this person's own details, businesses and claims.
  */
 export default function Account({ loaderData, actionData }: Route.ComponentProps) {
-  const { first, last, email, profile, businesses, claims, added, reviewRequests } = loaderData;
+  const { first, last, email, profile, businesses, claims, added, reviewRequests, homeOnMap } = loaderData;
   const busy = useNavigation().state !== 'idle';
   const [params] = useSearchParams();
   const tab = tabOf(actionData?.tab === 'about' ? 'about' : actionData?.tab ? 'profile' : params.get('tab'));
@@ -191,7 +193,7 @@ export default function Account({ loaderData, actionData }: Route.ComponentProps
             {notice('about')}
             <Form method="post" noValidate className={styles.form}>
               <input type="hidden" name="intent" value="about" />
-              <ProfileFields values={profile} errors={tab === 'about' ? errors : {}} />
+              <ProfileFields values={profile} errors={tab === 'about' ? errors : {}} finder={{ onMap: homeOnMap }} />
               <p>
                 <button type="submit" className="button button-primary" disabled={busy}>
                   Save changes

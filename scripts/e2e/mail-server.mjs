@@ -22,6 +22,8 @@
 //   - GET /geocode stands in for OpenStreetMap's address search (Nominatim, when the site is
 //     pointed here with GEOCODE_URL): a street with "Nowhere" isn't found, "Outage" makes it fail; any other is in
 //     Orillia, a little further along for each number. GET /geocode/asked lists what it was asked.
+//     Asked with q= (a person finding their own address, 27 October 2026): two places with their
+//     parts (number, street, town, province, postal code), the first in Orillia.
 // Usage: node scripts/e2e/mail-server.mjs
 import { readFile } from 'node:fs/promises';
 import http from 'node:http';
@@ -226,6 +228,24 @@ http
         res.writeHead(200, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ response: { safe: categories.length === 0, categories } }));
       }
+    } else if (url.pathname === '/geocode' && req.method === 'GET' && url.searchParams.has('q')) {
+      const q = url.searchParams.get('q') ?? '';
+      geocodes.push({ q, agent: req.headers['user-agent'] ?? null });
+      if (q.toLowerCase().includes('outage')) {
+        res.writeHead(503);
+        res.end();
+        return;
+      }
+      const n = /^(\d+)/.exec(q)?.[1] ?? '12';
+      const place = (city, postcode, lat, lon) => ({
+        lat: String(lat),
+        lon: String(lon),
+        display_name: `${n}, Mississaga Street East, ${city}, Ontario, ${postcode}, Canada`,
+        address: { house_number: n, road: 'Mississaga Street East', city, state: 'Ontario', postcode, country_code: 'ca' },
+      });
+      const found = q.toLowerCase().includes('nowhere') ? [] : [place('Orillia', 'L3V 1V5', 44.6083, -79.41971), place('Barrie', 'L4M 1A1', 44.389, -79.69)];
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify(found));
     } else if (url.pathname === '/geocode' && req.method === 'GET') {
       const street = url.searchParams.get('street') ?? '';
       geocodes.push({ street, city: url.searchParams.get('city'), agent: req.headers['user-agent'] ?? null });

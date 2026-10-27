@@ -120,6 +120,17 @@
   font-size: var(--b44-text-note);
 }
 
+/* A question like the one being typed, lifted to the top of the list. */
+.alike {
+  display: inline-flex;
+  padding: 0 var(--space-2);
+  border-radius: var(--radius-pill);
+  background: var(--color-gold-soft);
+  color: var(--color-gold-ink);
+  font-size: var(--b44-text-note);
+  font-weight: 500;
+}
+
 /* A question in the feed. */
 .cards {
   list-style: none;

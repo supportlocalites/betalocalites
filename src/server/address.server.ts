@@ -29,7 +29,7 @@ export async function readAddress(db: Db, vendorId: string): Promise<Address> {
 }
 
 /** The address search's own address: Nominatim, or (tests only) a pretend one on this computer. */
-function searchUrl(env: ServerEnv): string {
+export function searchUrl(env: ServerEnv): string {
   const local = env.GEOCODE_URL;
   if (!local) return NOMINATIM;
   const host = new URL(local).hostname;

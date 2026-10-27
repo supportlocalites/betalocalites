@@ -1,5 +1,6 @@
 import { sql } from 'drizzle-orm';
 import { type Db, withDb } from './db.server';
+import { writeHomePoint } from './home-address.server';
 import type { ServerEnv } from './env';
 import { isEmptyProfile, type Profile } from './member-input';
 
@@ -18,8 +19,11 @@ export async function getProfile(env: ServerEnv, userId: string): Promise<Profil
   return row ?? null;
 }
 
-/** Saves the details, or removes them when every one is blank. Call inside a transaction. */
-export async function writeProfile(db: Db, userId: string, p: Profile): Promise<void> {
+/**
+ * Saves the details, or removes them when every one is blank. Call inside a transaction. With
+ * home (their address chosen from Find my address), where it is on their own map too.
+ */
+export async function writeProfile(db: Db, userId: string, p: Profile, home: { lat: number; lng: number } | null = null): Promise<void> {
   if (isEmptyProfile(p)) {
     await db.execute(sql`delete from person_profile where user_id = ${userId}`);
     return;
@@ -32,4 +36,5 @@ export async function writeProfile(db: Db, userId: string, p: Profile): Promise<
       gender = excluded.gender, gender_self_described = excluded.gender_self_described,
       date_of_birth = excluded.date_of_birth, street_address = excluded.street_address, unit = excluded.unit,
       town = excluded.town, province = excluded.province, postal_code = excluded.postal_code`);
+  if (home && p.streetAddress) await writeHomePoint(db, userId, home);
 }

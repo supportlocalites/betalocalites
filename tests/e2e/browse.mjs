@@ -202,29 +202,40 @@ check('signed out, the heart keeps a favourite in this browser', (await page.get
 await page.reload({ waitUntil: 'networkidle' });
 check('…and still after a reload', (await page.$(`button[aria-label="Remove ${B.name} from favourites"]`)) !== null);
 const at = async (sel) => page.$eval(sel, (el) => el.getBoundingClientRect().toJSON());
-const [fav, search, filters, msgs, comm] = [await at('header a[title="Favourites"]'), await at('[role="search"]'), await at('summary[aria-label^="Filters"]'),
-  await at('header a[aria-label="Messages"]'), await at('header a[aria-label="Community"]')];
+const [search, filters, msgs, comm, fav, expand] = [await at('[role="search"]'), await at('summary[aria-label^="Filters"]'),
+  await at('header a[aria-label="Messages"]'), await at('header a[aria-label="Community"]'), await at('[class*="viewbar"] button:has-text("Favourites")'), await at('button:has-text("Expand list")')];
 // The owner, 26 October 2026: "I like the icons" at the right, and "search first", Filters inside it;
-// then Favourites leftmost, no Browse on Browse local, Messages and Community, the profile last.
-check('the search in the middle with Filters inside it; Favourites, Messages, Community at the right, no Browse here',
+// 27 October: Favourites is a button left of Expand list, not in the top bar; no Browse icon.
+check('the search in the middle with Filters inside it; Messages then Community at the right; no Favourites or Browse up there',
   Math.abs(search.x + search.width / 2 - 640) < 160 && filters.x > search.x && filters.x + filters.width <= search.x + search.width
-  && fav.x > search.x + search.width && fav.x < msgs.x && msgs.x < comm.x && (await page.$('header a[aria-label="Browse"]')) === null,
-  `${Math.round(search.x)}+${Math.round(search.width)} ${Math.round(filters.x)} ${Math.round(msgs.x)} ${Math.round(comm.x)} ${Math.round(fav.x)}`);
+  && msgs.x > search.x + search.width && msgs.x < comm.x && (await page.$('header a[aria-label="Browse"]')) === null
+  && (await page.$('header a[title="Favourites"], header button:has-text("Favourites")')) === null,
+  `${Math.round(search.x)}+${Math.round(search.width)} ${Math.round(filters.x)} ${Math.round(msgs.x)} ${Math.round(comm.x)}`);
+check('…Favourites sits just left of Expand list, on the bar above the rows', fav.x < expand.x && Math.abs(fav.y - expand.y) < 12 && fav.y > search.y + search.height,
+  `${Math.round(fav.x)},${Math.round(fav.y)} ${Math.round(expand.x)},${Math.round(expand.y)}`);
 check('…and no Curator’s note on a profile', !(await page.textContent('body')).includes('Curator'));
 
 console.log('\nThe owner’s additions (24 October 2026)');
 const stepCount = async () => (await page.textContent('aside [class*="stepCount"]'))?.replace(/\s+/g, ' ').trim() ?? '';
-await page.click('header a[title="Favourites"]');
+const FAV = '[class*="viewbar"] button:has-text("Favourites")';
+await page.click(FAV);
 await page.waitForURL(/fav=1/);
 await page.waitForTimeout(300);
 names = await cardNames();
 check('Favourites shows only the favourites', names.length === 1 && names[0] === B.name, names.join(', '));
-check('…its icon carries the count', (await page.textContent('header a[title="Favourites"]')).includes('1'));
-await page.click('header a[title="Favourites"]');
+check('…the button carries the count', (await page.textContent(FAV)).includes('1'));
+await page.click(FAV);
 await page.waitForTimeout(300);
 names = await cardNames();
 // The owner, 27 October 2026: "click favourites icon again it should stay on the favourite page".
 check('…pressed again, it stays on the favourites', names.length === 1 && names[0] === B.name, names.join(', '));
+await page.click('button[aria-label="Show all businesses"]');
+await page.waitForURL((u) => !u.search.includes('fav'));
+await page.waitForTimeout(300);
+names = await cardNames();
+check('…the × beside it goes back to the whole list', names.includes(A.name) && names.includes(B.name) && (await page.$('button[aria-label="Show all businesses"]')) === null, names.join(', '));
+await page.click(FAV);
+await page.waitForURL(/fav=1/);
 await page.click('header a[class*="logo"]');
 await page.waitForURL((u) => !u.search.includes('fav'));
 await page.waitForTimeout(300);
@@ -321,15 +332,13 @@ await signedIn.addCookies(cookie.p.split('; ').map((pair) => {
 const me = await signedIn.newPage();
 await me.goto(`${BASE}/explore`, { waitUntil: 'networkidle' });
 
-const [favAt, menuAt] = [await me.$eval('header a[title="Favourites"]', (el) => el.getBoundingClientRect().x), await me.$eval('summary[aria-label="Your menu"]', (el) => el.getBoundingClientRect().x)];
+const [msgsAt, menuAt] = [await me.$eval('header a[aria-label^="Messages"]', (el) => el.getBoundingClientRect().x), await me.$eval('summary[aria-label="Your menu"]', (el) => el.getBoundingClientRect().x)];
 const commAt = await me.$eval('header a[aria-label="Community"]', (el) => el.getBoundingClientRect().x);
-check('signed in: the profile button is at the far right, with Favourites and Community left of it',
-  menuAt > commAt && commAt > favAt && menuAt > 1280 * 0.9, `${Math.round(commAt)} ${Math.round(favAt)} ${Math.round(menuAt)}`);
-// The owner, 27 October 2026: "the icon numbers should show on all pages".
+check('signed in: the profile button is at the far right, with Messages and Community left of it',
+  menuAt > commAt && commAt > msgsAt && menuAt > 1280 * 0.9, `${Math.round(msgsAt)} ${Math.round(commAt)} ${Math.round(menuAt)}`);
 await me.goto(`${BASE}/community`, { waitUntil: 'networkidle' });
-const favN = (await sql`select count(*)::int as n from saved_vendor where user_id = ${ids.p}`)[0].n;
-check('signed in, the Favourites count shows on other pages too (Community), and no Browse icon',
-  favN > 0 && (await me.textContent('header a[title="Favourites"]')).includes(String(favN)) && (await me.$('header a[aria-label="Browse"]')) === null, String(favN));
+check('on other pages (Community): Messages and Community, no Favourites or Browse icon',
+  (await me.$('header a[aria-label^="Messages"]')) !== null && (await me.$('header a[title="Favourites"]')) === null && (await me.$('header a[aria-label="Browse"]')) === null);
 await me.goto(`${BASE}/explore`, { waitUntil: 'networkidle' });
 await me.click('summary[aria-label="Your menu"]');
 check('…it opens Edit profile and Sign out (Messages is its own icon, not in the menu)', await me.isVisible('a:has-text("Edit profile")') && await me.isVisible('button:has-text("Sign out")')

@@ -1,4 +1,4 @@
-import { type ReactNode, useEffect, useRef } from 'react';
+import { type ReactNode, useEffect, useRef, useState } from 'react';
 import { CENTRE } from '@/lib/centre';
 import type { DirectoryCard } from '@/server/browse.server';
 import { addBaseMap } from './baseMap';
@@ -43,6 +43,10 @@ function drawPins(s: MapState | null, { pins, selected, onSelect }: Latest) {
   }
 }
 
+/** A small house (their home): white, outlined in ink, so it never looks like a business's dot. */
+const HOUSE =
+  '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 11.5 12 5l8 6.5V20h-5.5v-5h-5v5H4z" /></svg>';
+
 /**
  * The map stays where the visitor left it while they switch between businesses, and only the
  * open one's dot changes, so they can see where the others are (the owner, 25 October 2026). It
@@ -70,6 +74,7 @@ export function DirectoryMap({
   panelOpen,
   onMoved,
   onReady,
+  home,
   className,
   children,
 }: {
@@ -84,11 +89,15 @@ export function DirectoryMap({
   onMoved: () => void;
   /** The map's own controls once it's drawn (null when it goes). */
   onReady: (api: MapApi | null) => void;
+  /** The person's own home (Find my address), drawn as a small house; theirs only. */
+  home: { lat: number; lng: number } | null;
   className: string;
   children: ReactNode;
 }) {
   const box = useRef<HTMLDivElement>(null);
   const state = useRef<MapState | null>(null);
+  // Drawn (Leaflet loads after the page): the house waits for it.
+  const [ready, setReady] = useState(false);
   const latest = useRef<Latest>({ pins: [], selected: null, onSelect });
   const moved = useRef(onMoved);
   const pins = cards.filter((c) => c.lat !== null && c.lng !== null);
@@ -121,6 +130,7 @@ export function DirectoryMap({
         },
       });
       drawPins(s, latest.current);
+      setReady(true);
     })().catch((err) => console.error('map not shown:', err instanceof Error ? err.message : err));
     return () => {
       gone = true;
@@ -133,6 +143,22 @@ export function DirectoryMap({
   useEffect(() => {
     moved.current = onMoved;
   }, [onMoved]);
+
+  // Their home, as a small house (the owner, 27 October 2026: "my address in my profile is not
+  // showing up on the maps"). Only drawn in their own browser; it opens nothing.
+  const homeKey = home ? `${home.lat},${home.lng}` : '';
+  useEffect(() => {
+    const s = state.current;
+    if (!s || !home) return;
+    const icon = s.L.divIcon({ className: styles.home, iconSize: [26, 26], html: HOUSE });
+    const marker = s.L.marker([home.lat, home.lng], { icon, keyboard: false, interactive: false, zIndexOffset: -500, title: 'Your home' }).addTo(s.map);
+    marker.getElement()?.setAttribute('aria-hidden', 'true');
+    return () => {
+      marker.remove();
+    };
+    // Redrawn only when the home itself moves, or the map is first drawn.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [homeKey, ready]);
 
   useEffect(() => {
     latest.current = { pins, selected, onSelect };

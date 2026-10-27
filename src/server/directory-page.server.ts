@@ -3,6 +3,7 @@ import { cookieHeaders, pageTracks } from './activity.server';
 import { hasSessionCookie, signedInUserId } from './auth/session.server';
 import { directory } from './browse.server';
 import type { ServerEnv } from './env';
+import { homePoint } from './home-address.server';
 
 /**
  * Everything the Base44 browsing page needs, for Browse local and for a business's own web
@@ -10,7 +11,8 @@ import type { ServerEnv } from './env';
  */
 export async function loadDirectory(request: Request, env: ServerEnv, openId: string | null = null) {
   const userId = hasSessionCookie(request) ? await signedInUserId(request, env) : null;
-  const found = await directory(env, userId);
+  // Their own home, when they chose it with Find my address: a house on their map only (27 October 2026).
+  const [found, home] = await Promise.all([directory(env, userId), userId ? homePoint(env, userId) : null]);
   // Each row is counted as a list seen (ADR-030).
   const rails = found.kinds.map((k) => ({ slug: k.slug, ids: found.cards.filter((c) => c.kindSlug === k.slug).map((c) => c.id) }));
   const shown = rails.filter((r) => r.ids.length > 0);
@@ -28,6 +30,7 @@ export async function loadDirectory(request: Request, env: ServerEnv, openId: st
     {
       ...found,
       signedIn: Boolean(userId),
+      home,
       tracks: Object.fromEntries(shown.map((r, i) => [r.slug, tracks[i] ?? null])),
       view,
     },

@@ -54,8 +54,8 @@ export async function loader({ request, params, context }: Route.LoaderArgs) {
 export const headers: Route.HeadersFunction = ({ loaderHeaders }) => loaderHeaders;
 
 export default function VendorProfile({ loaderData }: Route.ComponentProps) {
-  const { cards, kinds, shortlist, signedIn, tracks, slug, track, reviews } = loaderData;
+  const { cards, kinds, shortlist, signedIn, tracks, slug, track, reviews, home } = loaderData;
   return (
-    <Directory cards={cards} kinds={kinds} shortlist={shortlist} signedIn={signedIn} tracks={tracks} initial={slug} initialTrack={track} initialReviews={reviews} />
+    <Directory cards={cards} kinds={kinds} shortlist={shortlist} signedIn={signedIn} tracks={tracks} initial={slug} initialTrack={track} initialReviews={reviews} home={home} />
   );
 }

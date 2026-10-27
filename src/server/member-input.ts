@@ -145,6 +145,18 @@ export const profileInput = z
   });
 export type Profile = z.output<typeof profileInput>;
 
+/**
+ * Where their home is, when they chose their address from Find my address (27 October 2026):
+ * both numbers, in the part of Canada the map covers, or none. Their own map only (0060).
+ */
+export function readHomePoint(fields: Record<string, unknown>): { lat: number; lng: number } | null {
+  const lat = Number(fields.homeLat);
+  const lng = Number(fields.homeLng);
+  if (!String(fields.homeLat ?? '') || !String(fields.homeLng ?? '')) return null;
+  if (!Number.isFinite(lat) || !Number.isFinite(lng) || lat < 41 || lat > 57 || lng < -96 || lng > -74) return null;
+  return { lat: Math.round(lat * 100000) / 100000, lng: Math.round(lng * 100000) / 100000 };
+}
+
 /** True when someone gave none of the details, so nothing needs keeping. */
 export const isEmptyProfile = (p: Profile) => Object.values(p).every((v) => v === null);
 

@@ -17,6 +17,6 @@ export async function loader({ request, context }: Route.LoaderArgs) {
 export const headers: Route.HeadersFunction = ({ loaderHeaders }) => loaderHeaders;
 
 export default function Explore({ loaderData }: Route.ComponentProps) {
-  const { cards, kinds, shortlist, signedIn, tracks } = loaderData;
-  return <Directory cards={cards} kinds={kinds} shortlist={shortlist} signedIn={signedIn} tracks={tracks} initial={null} />;
+  const { cards, kinds, shortlist, signedIn, tracks, home } = loaderData;
+  return <Directory cards={cards} kinds={kinds} shortlist={shortlist} signedIn={signedIn} tracks={tracks} initial={null} home={home} />;
 }

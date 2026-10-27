@@ -62,26 +62,32 @@ export async function findPerson(env: ServerEnv, userId: string, visitorId: stri
  * told us their name (ADR-028), with any personal details they chose to give (D-36), in
  * one transaction. The name is kept only here, never in Supabase.
  */
-export async function createPerson(env: ServerEnv, user: { id: string; email: string }, names: Names, profile: Profile): Promise<void> {
+export async function createPerson(
+  env: ServerEnv,
+  user: { id: string; email: string },
+  names: Names,
+  profile: Profile,
+  home: { lat: number; lng: number } | null = null,
+): Promise<void> {
   await withDb(env, (db) =>
     db.transaction(async (tx) => {
       const created = await tx.execute(sql`
         insert into app_user (id, display_name, given_name, family_name, email)
         values (${user.id}, ${names.display}, ${names.firstName}, ${names.lastName}, ${user.email})
         on conflict (id) do nothing returning id`);
-      if (created.length > 0) await writeProfile(tx, user.id, profile);
+      if (created.length > 0) await writeProfile(tx, user.id, profile, home);
     }),
   );
 }
 
 /** Updates the person's own name and details (Your account). */
-export async function updatePerson(env: ServerEnv, userId: string, names: Names, profile: Profile): Promise<void> {
+export async function updatePerson(env: ServerEnv, userId: string, names: Names, profile: Profile, home: { lat: number; lng: number } | null = null): Promise<void> {
   await withDb(env, (db) =>
     db.transaction(async (tx) => {
       const updated = await tx.execute(sql`
         update app_user set display_name = ${names.display}, given_name = ${names.firstName}, family_name = ${names.lastName}
         where id = ${userId} and deleted_at is null returning id`);
-      if (updated.length > 0) await writeProfile(tx, userId, profile);
+      if (updated.length > 0) await writeProfile(tx, userId, profile, home);
     }),
   );
 }
@@ -96,11 +102,11 @@ export async function updateNames(env: ServerEnv, userId: string, names: Names):
 }
 
 /** Edit profile's About you tab (D-63): the personal details only. */
-export async function updateDetails(env: ServerEnv, userId: string, profile: Profile): Promise<void> {
+export async function updateDetails(env: ServerEnv, userId: string, profile: Profile, home: { lat: number; lng: number } | null = null): Promise<void> {
   await withDb(env, (db) =>
     db.transaction(async (tx) => {
       const [open] = await tx.execute(sql`select id from app_user where id = ${userId} and deleted_at is null`);
-      if (open) await writeProfile(tx, userId, profile);
+      if (open) await writeProfile(tx, userId, profile, home);
     }),
   );
 }

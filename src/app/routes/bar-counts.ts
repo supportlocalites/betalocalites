@@ -5,7 +5,7 @@ import { barCounts } from '@/server/counts.server';
 import type { Route } from './+types/bar-counts';
 
 /**
- * The numbers on the bar's Favourites and Messages icons, which the bar asks for on every page
+ * The number on the bar's Messages icon, which the bar asks for on every page
  * (the owner, 27 October 2026). Signed out (or the session ended): none. Only ever the person's own.
  */
 export async function loader({ request, context }: Route.LoaderArgs) {

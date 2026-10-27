@@ -153,10 +153,6 @@ export default function CommunityQuestion({ loaderData: { signedIn, order, quest
                     <option key={b.slug} value={b.name} />
                   ))}
                 </datalist>
-                <label htmlFor="businessName" className="field-label">
-                  Not on Localites? Type its name
-                </label>
-                <input id="businessName" name="businessName" className="input" maxLength={COMMUNITY_LIMITS.businessName.max} autoComplete="off" />
               </>
             )}
             <label htmlFor="body" className="field-label">

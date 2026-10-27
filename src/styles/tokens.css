@@ -200,6 +200,8 @@
   --b44-icon-xs: 10px;
   --b44-icon-s: 12px;
   --b44-icon-m: 14px;
+  /* The small round × beside Favourites above the rows (27 October 2026). */
+  --b44-fav-close: 24px;
   --b44-icon: 16px;
   --b44-heart: 24px;
   --b44-heart-big: 32px;

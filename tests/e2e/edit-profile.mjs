@@ -93,4 +93,40 @@ check('…someone else’s business in the address shows none of it', r.status =
 r = await site(`/vendors/${V.slug}/edit`, { cookie: cookie.p });
 check('a stranger still can’t open the business’s edit page', r.status === 404 || r.status === 403, String(r.status));
 
+console.log('\nFind my address (27 October 2026)');
+// The owner: "bring up that address looker and make sure I select the right address and then can
+// autofill in my info"; and the home shows on their own map only.
+r = await site('/account/address-search?q=12 Mississaga St, Orillia');
+check('signed out, the address search asks you to sign in first', [302, 303].includes(r.status) && r.location.startsWith('/join'), `${r.status} ${r.location}`);
+r = await site(`/account/address-search?q=${encodeURIComponent('12 Mississaga St, Orillia')}`, { cookie: cookie.p });
+let found = JSON.parse(r.body);
+const first = found.places?.[0];
+check('signed in, it offers places with their parts, Orillia first', r.status === 200 && found.places.length === 2 && first.town === 'Orillia'
+  && first.streetAddress === '12 Mississaga Street East' && first.province === 'ON' && first.postalCode === 'L3V 1V5', r.body.slice(0, 200));
+r = await site(`/account/address-search?q=${encodeURIComponent('1 Nowhere Lane')}`, { cookie: cookie.p });
+found = JSON.parse(r.body);
+check('…nothing found is said plainly', found.places.length === 0 && /No address found/.test(found.problem ?? ''), r.body.slice(0, 200));
+r = await site(`/account/address-search?q=${encodeURIComponent('5 Outage Road')}`, { cookie: cookie.p });
+found = JSON.parse(r.body);
+check('…and a search that isn’t answering too, saving nothing', found.places.length === 0 && /isn’t answering/.test(found.problem ?? ''), r.body.slice(0, 200));
+const about = (extra) => ({ intent: 'about', streetAddress: first.streetAddress, town: first.town, province: 'ON', postalCode: first.postalCode, ...extra });
+r = await site('/account', { cookie: cookie.p, method: 'POST', form: about({ homeLat: String(first.lat), homeLng: String(first.lng) }) });
+const homeOf = async (id) => (await sql`select home_lat as lat, home_lng as lng, home_lookup as lookup from person_profile where user_id = ${id}`)[0];
+let h = await homeOf(ids.p);
+check('choosing it and saving keeps the address and where it is', [302, 303].includes(r.status) && h?.lookup === 'found' && Math.abs(h.lat - first.lat) < 0.0001, JSON.stringify(h));
+r = await site('/explore', { cookie: cookie.p });
+// The page's data is React Router's encoding, not plain JSON: look for the key and the two numbers together.
+const hasHome = (body) => body.includes('\\"home\\",{');
+check('…their own Browse local gets their home, for the house on the map', hasHome(r.body) && r.body.includes(String(Number(h.lat))) && r.body.includes(String(Number(h.lng))));
+r = await site('/explore', { cookie: cookie.o });
+check('…nobody else’s does', !hasHome(r.body));
+r = await site('/explore');
+check('…nor signed out', !hasHome(r.body));
+r = await site('/account', { cookie: cookie.p, method: 'POST', form: about({ streetAddress: '14 Mississaga Street East' }) });
+h = await homeOf(ids.p);
+check('changing the address by hand takes the house off until it’s chosen again', h?.lookup === null && h?.lat === null, JSON.stringify(h));
+r = await site('/account', { cookie: cookie.p, method: 'POST', form: about({ homeLat: '99', homeLng: '-79.4' }) });
+h = await homeOf(ids.p);
+check('a place outside the map is never kept', h?.lat === null, JSON.stringify(h));
+
 await finish('Edit profile');

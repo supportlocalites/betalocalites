@@ -529,7 +529,11 @@ search, shown, put in directions, or kept in the change's history from then on, 
 never bring a number back onto a business that hides it. Earlier changes already in the
 append-only audit log stay as they were. Pins come from OpenStreetMap's free address search
 (Nominatim: our User-Agent, about one look-up a second for the whole site, only when the address
-changed); maps are OpenFreeMap's Bright map (OpenStreetMap's data, drawn in the visitor's browser
+changed). A person's own Find my address (27 October 2026) sends only what they typed, one search
+per press of Find (never while typing), signed in only, behind the quick-repeat limit; the place they
+choose is kept as their exact home point (person_profile, 0060), sent only to their own Browse local
+for a small house on their map, and cleared by 0060's trigger whenever the address is changed by
+hand. Maps are OpenFreeMap's Bright map (OpenStreetMap's data, drawn in the visitor's browser
 with MapLibre, no account or key; D-64), or OpenStreetMap's own tiles when that can't be drawn,
 fetched by the visitor's browser, credited on the map.
 

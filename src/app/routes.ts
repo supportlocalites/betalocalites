@@ -46,6 +46,8 @@ export default [
     route('account/delete', 'routes/member/account-delete.tsx'),
     route('account/data', 'routes/member/account-data.tsx'),
     route('account/data/download', 'routes/member/account-data-download.ts'),
+    // Find my address (the owner, 27 October 2026): the address search's places, to choose one.
+    route('account/address-search', 'routes/member/address-search.ts'),
     route('vendors/:slug/claim', 'routes/member/claim.tsx'),
     route('vendors/:slug/edit', 'routes/member/listing-edit.tsx'),
     route('vendors/:slug/name', 'routes/member/business-name.tsx'),

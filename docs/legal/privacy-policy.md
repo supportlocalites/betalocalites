@@ -37,6 +37,10 @@ keep it, and the choices you have. It applies to localites.ca and the emails we 
   code each time you sign in; there's no password.
 - **Optional:** gender, date of birth and street address. Fill in only what
   you're happy to share. You can change or clear these at any time on **Your account**.
+- **Find my address (optional):** if you use it, what you type is sent to OpenStreetMap's free
+  address search when you press Find (nothing else about you), and the place you choose is kept
+  with your address so a small house shows on your own Browse local map. Only you ever see it;
+  businesses never do. Changing your address by hand removes it.
 
 ### When you plan an event
 - What you enter about the event: its name, kind of event, date, start and end time, town,
@@ -187,7 +191,7 @@ its service to us.
 | **Resend** | Sends our emails (your email address, and the email's content) | United States |
 | **GitHub** | Stores our encrypted nightly backup for 30 days | United States |
 | **OpenFreeMap** | Draws the maps on business pages and Browse local: your browser fetches the map's data from it directly, so it sees your internet address and which page you're on (no account, nothing else from Localites) | Worldwide |
-| **OpenStreetMap** (OpenStreetMap Foundation) | The map's information comes from OpenStreetMap, and when OpenFreeMap can't be reached your browser fetches OpenStreetMap's own map pictures directly, so it sees your internet address and which page you're on (no account, nothing else from Localites). When a business saves its address, we ask its free address search where to put the pin: we send the street, number (never when the business hides it) and town, nothing about you | United Kingdom and worldwide |
+| **OpenStreetMap** (OpenStreetMap Foundation) | The map's information comes from OpenStreetMap, and when OpenFreeMap can't be reached your browser fetches OpenStreetMap's own map pictures directly, so it sees your internet address and which page you're on (no account, nothing else from Localites). When a business saves its address, we ask its free address search where to put the pin: we send the street, number (never when the business hides it) and town, nothing about you. When you press Find my address, we send what you typed, nothing else about you | United Kingdom and worldwide |
 
 **Directions** on a business's page open Google Maps in a new tab, only if you tap it; Google's
 own privacy policy then applies. A business can hide its street number: it's then never shown

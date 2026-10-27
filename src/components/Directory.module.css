@@ -347,6 +347,23 @@
   border-color: var(--color-gold-dark);
 }
 
+/* The person's own home (Find my address): a small white house outlined in ink, under the dots. */
+.home {
+  display: grid;
+  place-items: center;
+  background: var(--color-surface);
+  border: var(--hairline) solid var(--color-ink);
+  border-radius: var(--radius-pill);
+  box-shadow: var(--shadow-pin);
+  color: var(--color-ink);
+}
+
+.home svg {
+  width: var(--b44-icon-m);
+  height: var(--b44-icon-m);
+  fill: currentColor;
+}
+
 .expand {
   position: absolute;
   right: var(--space-3);
@@ -414,6 +431,61 @@
 
 .expandList:hover {
   color: var(--color-ink);
+}
+
+/* Favourites, then Expand list, at the right of the bar above the rows. */
+.viewTools {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  gap: var(--space-4);
+}
+
+.favGroup {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+}
+
+.favButton {
+  composes: expandList;
+}
+
+.favOn {
+  color: var(--color-ink);
+}
+
+.favOn svg {
+  fill: currentColor;
+}
+
+.favCount {
+  display: inline-grid;
+  place-items: center;
+  min-width: var(--b44-icon-m);
+  height: var(--b44-icon-m);
+  padding-inline: var(--space-1);
+  border-radius: var(--radius-pill);
+  background: var(--color-gold-soft);
+  color: var(--color-gold-ink);
+  font-size: var(--b44-text-caps);
+  letter-spacing: 0;
+}
+
+.favClose {
+  display: inline-grid;
+  place-items: center;
+  width: var(--b44-fav-close);
+  height: var(--b44-fav-close);
+  border: var(--hairline) solid var(--color-line);
+  border-radius: var(--radius-pill);
+  background: var(--color-surface);
+  color: var(--color-ink);
+  cursor: pointer;
+}
+
+.favClose:hover {
+  border-color: var(--color-ink);
 }
 
 .count {

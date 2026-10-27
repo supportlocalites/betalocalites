@@ -55,6 +55,7 @@ export function Directory({
   initial,
   initialTrack = null,
   initialReviews = null,
+  home = null,
 }: {
   cards: DirectoryCard[];
   kinds: { slug: string; name: string }[];
@@ -67,6 +68,8 @@ export function Directory({
   initialTrack?: string | null;
   /** That business's reviews, sent with the page. */
   initialReviews?: PanelData['reviews'] | null;
+  /** Their own home, when they chose it with Find my address: a house on their map only. */
+  home?: { lat: number; lng: number } | null;
 }) {
   const [params, setParams] = useSearchParams();
   const [query, setQuery] = useState('');
@@ -267,7 +270,6 @@ export function Directory({
       <TopBar
         onTeam={cards.some((c) => c.yours !== null)}
         businesses={yourBusinesses}
-        favourites={{ on: favOnly, count: favourites }}
         // The wordmark on Browse local starts it again: no filters, no favourites, nothing open
         // (the owner, 27 October 2026). Its link drops ?fav and ?v from the address.
         onHome={startAgain}
@@ -325,6 +327,7 @@ export function Directory({
               panelOpen={Boolean(open) && !wide}
               onMoved={onMoved}
               onReady={onMapReady}
+              home={home ?? null}
               className={`${styles.map} ${view === 'map' ? styles.mapBig : ''}`}
             >
               <div className={`${styles.mapFoot} ${view === 'map' ? styles.mapFootRaised : ''}`}>
@@ -354,10 +357,32 @@ export function Directory({
                 </span>
                 <span className={styles.countHint}>Click a business to open the profile</span>
               </p>
-              <button type="button" onClick={() => setView(view === 'list' ? 'hybrid' : 'list')} className={styles.expandList}>
-                <Icon name={view === 'list' ? 'min' : 'max'} small />
-                {view === 'list' ? 'Collapse' : 'Expand list'}
-              </button>
+              <div className={styles.viewTools}>
+                {/* Favourites beside Expand list, not in the top bar (the owner, 27 October 2026: "when
+                    pressed it shows the favourites but also has an x beside the button that when pressed
+                    will go back to the list (or they can press the localities logo)"). */}
+                <span className={styles.favGroup}>
+                  <button
+                    type="button"
+                    onClick={() => setFavOnly(true)}
+                    className={`${styles.favButton} ${favOnly ? styles.favOn : ''}`}
+                    aria-pressed={favOnly}
+                  >
+                    <Icon name="heart" small />
+                    Favourites
+                    {favourites > 0 && <span className={styles.favCount}>{favourites}</span>}
+                  </button>
+                  {favOnly && (
+                    <button type="button" onClick={() => setFavOnly(false)} className={styles.favClose} aria-label="Show all businesses" title="Show all businesses">
+                      <Icon name="x" small />
+                    </button>
+                  )}
+                </span>
+                <button type="button" onClick={() => setView(view === 'list' ? 'hybrid' : 'list')} className={styles.expandList}>
+                  <Icon name={view === 'list' ? 'min' : 'max'} small />
+                  {view === 'list' ? 'Collapse' : 'Expand list'}
+                </button>
+              </div>
             </div>
           )}
 

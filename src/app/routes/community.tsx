@@ -36,17 +36,21 @@ const keyWords = (text: string) => new Set(text.toLowerCase().split(/[^a-z]+/).f
 export default function Community({ loaderData: { signedIn, kinds, kind, questions } }: Route.ComponentProps) {
   const [params] = useSearchParams();
   const [draft, setDraft] = useState('');
-  // Similar questions shown while asking (the owner: "similar questions shown while asking").
-  const similar = useMemo(() => {
+  // Similar questions shown while asking (the owner: "similar questions shown while asking"), and
+  // moved to the top of the list below (27 October 2026: "populate to the top similar questions to
+  // see if they have already been answered").
+  const { similar, listed } = useMemo(() => {
     const mine = keyWords(draft);
-    if (mine.size === 0) return [];
-    return questions
-      .map((q) => ({ q, shared: [...keyWords(q.title)].filter((w) => mine.has(w)).length }))
+    if (mine.size === 0) return { similar: [], listed: questions };
+    const scored = questions.map((q) => ({ q, shared: [...keyWords(q.title)].filter((w) => mine.has(w)).length }));
+    const alike = scored
       .filter((x) => x.shared >= Math.min(2, mine.size))
-      .sort((a, b) => b.shared - a.shared)
-      .slice(0, 3)
+      .sort((a, b) => b.shared - a.shared || b.q.answers - a.q.answers)
       .map((x) => x.q);
+    const ids = new Set(alike.map((q) => q.id));
+    return { similar: alike.slice(0, 3), listed: [...alike, ...questions.filter((q) => !ids.has(q.id))] };
   }, [draft, questions]);
+  const alikeIds = new Set(similar.map((q) => q.id));
   return (
     <>
       <TopBar />
@@ -103,7 +107,8 @@ export default function Community({ loaderData: { signedIn, kinds, kind, questio
                 ))}
               </div>
             )}
-            {draft.length >= COMMUNITY_LIMITS.title.min && (
+            {/* The rest opens at the first letter (the owner, 27 October 2026: "as soon as someone types"). */}
+            {draft.length > 0 && (
               <>
                 <label htmlFor="kind" className="field-label">
                   About (optional)
@@ -151,14 +156,15 @@ export default function Community({ loaderData: { signedIn, kinds, kind, questio
           ))}
         </nav>
 
-        {questions.length === 0 ? (
+        {listed.length === 0 ? (
           <p className={styles.empty}>{kind ? 'No questions about this kind of business yet.' : 'No questions yet. Be the first to ask.'}</p>
         ) : (
           <ul className={styles.cards}>
-            {questions.map((q) => (
+            {listed.map((q) => (
               <li key={q.id}>
                 <Link to={`/community/${q.id}`} className={styles.card}>
                   <span className={styles.meta}>
+                    {alikeIds.has(q.id) && <span className={styles.alike}>Like yours</span>}
                     {q.kind && <span className={styles.tag}>{q.kind.name}</span>}
                     {q.held && <span className={styles.held}>Waiting for our team</span>}
                     {answersWords(q.answers)} · {communityDate(q.createdAt)}
