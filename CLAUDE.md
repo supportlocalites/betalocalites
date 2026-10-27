@@ -7,6 +7,7 @@ decisions are in [docs/H-product-owner-action-register.md](docs/H-product-owner-
 
 ## The product owner
 - Non-technical: explain in plain English, step by step, no jargon.
+- Give times in Eastern Time (Orillia's), never UTC (the owner, 27 October 2026).
 - Never ask for passwords, keys, codes or other secrets in chat or documents; give them a
   secure way to enter them (Cloudflare, Supabase or GitHub settings). They manage their own
   passwords; don't prescribe a password manager.
