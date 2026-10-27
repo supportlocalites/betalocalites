@@ -5,7 +5,7 @@
 // what they shouldn't; reports of a review; "How was it?" emails and turning them off. The site reaches the database as app_server, so its rules are really tested.
 //
 // Usage: npm run test:e2e
-import { account, check, cookieFor, finish, mailFor, passwordSession, run, site, sql, twoStepSession } from './helpers.mjs';
+import { account, BASE, check, cookieFor, finish, mailFor, passwordSession, run, site, sql, twoStepSession } from './helpers.mjs';
 
 const decode = (s) => s.replace(/&quot;/g, '"').replace(/&#x27;|&#39;/g, "'").replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&amp;/g, '&');
 const words = (html) => decode(html.replace(/<!-- -->/g, '').replace(/<[^>]*>/g, ' ')).replace(/\s+/g, ' ');
@@ -125,9 +125,12 @@ check('the owner is told, with a link to reply', ownerMail.some((m) => m.subject
 // ------------------------------------------------------------------ 3. The public and the business
 r = await page(`/vendors/${V.slug}`);
 let text = words(r.body);
+// The side panel shows the newest review; the expanded view shows them all in full (D-65).
+const shown = JSON.parse((await page(`/vendors/${V.slug}/panel`)).body).reviews;
 check('the public sees it: "Sarah T.", the stars, the month, planned outside Localites',
-  text.includes(`${BODY}!`) && text.includes('Sarah T.') && !text.includes(`Tester${run}`) && text.includes('Planned outside Localites') && r.body.includes('5 out of 5 stars'));
-check('…and no average until 3 reviews', text.includes('1 review (the average shows from 3)'));
+  text.includes(`${BODY}!`) && text.includes('Sarah T.') && !text.includes(`Tester${run}`)
+  && shown.reviews[0]?.author === 'Sarah T.' && shown.reviews[0]?.rating === 5 && shown.reviews[0]?.plannedOnLocalites === false && Boolean(shown.reviews[0]?.eventMonth));
+check('…and no average until 3 reviews', text.includes('1 review') && shown.count === 1 && shown.average === null);
 r = await page(REVIEW(past), { cookie: cookie.a, method: 'POST', form: { rating: '1', body: 'Changed my mind' } });
 check('once published, the author can’t change it', r.status === 409 && (await sql`select rating from review where id = ${rev.id}`)[0].rating === 5, String(r.status));
 r = await page(`/vendors/${V.slug}/reviews`, { cookie: cookie.s });
@@ -145,7 +148,18 @@ r = await page(`/vendors/${V.slug}`);
 check('the reply shows under the review', words(r.body).includes(REPLY));
 
 // ------------------------------------------------------------------ 3b. Reporting a review (part 2)
-check('the public page offers "Report this review"', r.body.includes(`/reviews/${rev.id}/report`));
+{
+  // In the expanded view, which "Read the review" opens (D-65).
+  const { chromium } = await import('playwright');
+  const browser = await chromium.launch();
+  const tab = await browser.newPage({ viewport: { width: 1280, height: 860 } });
+  await tab.goto(`${BASE}/vendors/${V.slug}`, { waitUntil: 'networkidle' });
+  await tab.click('aside button:has-text("Read the review")');
+  await tab.waitForSelector('[role="dialog"]');
+  check('the public page offers "Report this review"', (await tab.$(`[role="dialog"] a[href="/reviews/${rev.id}/report"]`)) !== null
+    && (await tab.textContent('[role="dialog"]'))?.includes('Planned outside Localites'));
+  await browser.close();
+}
 r = await page(`/reviews/${rev.id}/report`);
 check('signed out: reporting asks you to sign in', r.status === 302 && /\/join/.test(r.headers.get('location') ?? ''), String(r.status));
 r = await page(`/reviews/${rev.id}/report`, { cookie: cookie.a });
