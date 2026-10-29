@@ -853,7 +853,7 @@ means a note on your own computer that you delete straight after.
    and ends in `:5432/postgres`). Copy it into a private note.
 3. In the note, replace `[YOUR-PASSWORD]` (including the square brackets) with the
    database password you saved in part 1.
-4. On GitHub, open **supportlocalites/localites** → **Settings** → **Secrets and
+4. On GitHub, open **supportlocalites/betalocalites** → **Settings** → **Secrets and
    variables** → **Actions** → **New repository secret**. Name:
    `SUPABASE_TEST_ADMIN_URL`. Secret: paste the edited text. Click **Add secret**, then
    delete the note.
@@ -1167,7 +1167,7 @@ Everything happens in the **localites-test** Supabase project; nothing is sent t
 
 *B. Use our code email*
 3. Open our email on GitHub:
-   https://github.com/supportlocalites/localites/blob/claude/event-discovery-architecture-dz0qgf/emails/sign-in-code.html
+   https://github.com/supportlocalites/betalocalites/blob/claude/event-discovery-architecture-dz0qgf/emails/sign-in-code.html
    and click the **Copy raw file** button (two overlapping squares, top right of the file).
 4. In Supabase, **Authentication** → **Emails** → **Templates** → **Magic link or OTP**
    (it may be called **Magic Link**):
@@ -1279,7 +1279,7 @@ then the database, then the website. An update that fails a test never goes live
 5. Also note your **Account ID**: open **Workers & Pages**; it's on the right-hand side.
 
 **Part 2: put them in GitHub**
-6. On GitHub, open the repository **supportlocalites/localites** → **Settings** →
+6. On GitHub, open the repository **supportlocalites/betalocalites** → **Settings** →
    **Secrets and variables** → **Actions** → **New repository secret**.
 7. **Name:** `CLOUDFLARE_API_TOKEN`. **Secret:** paste the key from step 4. **Add secret**.
 8. **New repository secret** again. **Name:** `CLOUDFLARE_ACCOUNT_ID`. **Secret:** the

@@ -45,6 +45,9 @@ decisions are in [docs/H-product-owner-action-register.md](docs/H-product-owner-
   then only the browser suites for the area changed (plus `look.mjs` if pages changed). GitHub
   runs every suite for free on push and won't update the site if any fail; a red run is fixed
   at once. Read only the summary lines of test output.
+- Repository: `supportlocalites/betalocalites` on GitHub (renamed from `supportlocalites/localites` by
+  the owner, 29 October 2026; before that `igbarker/Tallo`). Old addresses redirect; use the new name
+  in links and documents.
 - Branch: `claude/event-discovery-architecture-dz0qgf`; Cloudflare builds and deploys it on push.
 - Before pushing: `npm run check`, `npm test`, `npm run test:db` (needs TEST_DATABASE_ADMIN_URL),
   `npm run build && npm run size`; for sign-in, claims or admin changes also the matching browser suites of `npm run test:e2e`,

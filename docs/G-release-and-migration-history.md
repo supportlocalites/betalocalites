@@ -31,6 +31,14 @@ Every release and every database migration, in order. Appended before each deplo
 
 ## Releases
 
+### 2026-10-29 — The repository renamed to supportlocalites/betalocalites
+
+- The product owner renamed the GitHub repository from `supportlocalites/localites` to
+  `supportlocalites/betalocalites`. GitHub sends the old address to the new one.
+- Checked: the code, the automatic jobs (CI, backups, the site watch, Dependabot) and the live
+  site don't use the repository's name; its secrets and settings moved with it. The three links in
+  the H register's steps now use the new name; CLAUDE.md records it.
+
 ### 2026-10-27 — A business's profile fits without scrolling: side panel 4A, expanded view 5C (D-65)
 
 - **Side panel (4A):** a shorter photo strip with ♡ ⤢ × and ‹ n / N › on it; the first 3 lines of
